@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# Generated files
+artifacts/
+outputs/
+tmp/
+temp/
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Model artifacts
+models/
+checkpoints/
+
+# Credentials
+credentials.json
+secrets.json
+*.pem
+*.key
