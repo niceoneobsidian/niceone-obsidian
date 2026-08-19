@@ -71,136 +71,133 @@ class TestTool:
         )
 
 
-registry = CapabilityRegistry()
+def test_capability_registration_and_retrieval():
+    registry = CapabilityRegistry()
 
-capability_v1 = BasicCapability(
-    capability_id="test.echo",
-    version="1.0.0",
-)
+    capability = BasicCapability("test.echo", "1.0.0")
+    registry.register(capability)
 
-registry.register(capability_v1)
+    assert registry.has("test.echo", "1.0.0") is True
 
-assert registry.has("test.echo", "1.0.0") is True
+    entry = registry.get("test.echo", "1.0.0")
 
-entry = registry.get("test.echo", "1.0.0")
-
-assert entry.capability is capability_v1
-assert entry.contract.capability_id == "test.echo"
-assert entry.contract.version == "1.0.0"
+    assert entry.capability is capability
+    assert entry.contract.capability_id == "test.echo"
+    assert entry.contract.version == "1.0.0"
 
 
-try:
-    registry.register(
-        BasicCapability(
-            capability_id="test.echo",
-            version="1.0.0",
+def test_duplicate_capability_version_is_rejected():
+    registry = CapabilityRegistry()
+
+    registry.register(BasicCapability("test.echo", "1.0.0"))
+
+    try:
+        registry.register(BasicCapability("test.echo", "1.0.0"))
+        raise AssertionError(
+            "Duplicate capability/version should be rejected"
         )
-    )
-    raise AssertionError(
-        "Duplicate capability/version should be rejected"
-    )
-except DuplicateCapabilityError:
-    pass
+    except DuplicateCapabilityError:
+        pass
 
 
-capability_v2 = BasicCapability(
-    capability_id="test.echo",
-    version="2.0.0",
-)
+def test_multiple_capability_versions_can_coexist():
+    registry = CapabilityRegistry()
 
-registry.register(capability_v2)
+    capability_v1 = BasicCapability("test.echo", "1.0.0")
+    capability_v2 = BasicCapability("test.echo", "2.0.0")
 
-assert registry.has("test.echo", "2.0.0") is True
-assert registry.get(
-    "test.echo",
-    "2.0.0",
-).capability is capability_v2
+    registry.register(capability_v1)
+    registry.register(capability_v2)
 
-assert len(registry.list()) == 2
-
-
-try:
-    registry.get("test.missing", "1.0.0")
-    raise AssertionError(
-        "Missing capability should raise CapabilityNotFoundError"
-    )
-except CapabilityNotFoundError:
-    pass
+    assert registry.has("test.echo", "1.0.0") is True
+    assert registry.has("test.echo", "2.0.0") is True
+    assert registry.get("test.echo", "1.0.0").capability is capability_v1
+    assert registry.get("test.echo", "2.0.0").capability is capability_v2
+    assert len(registry.list()) == 2
 
 
-registry.unregister("test.echo", "1.0.0")
+def test_missing_capability_is_rejected():
+    registry = CapabilityRegistry()
 
-assert registry.has("test.echo", "1.0.0") is False
-assert registry.has("test.echo", "2.0.0") is True
+    try:
+        registry.get("test.missing", "1.0.0")
+        raise AssertionError(
+            "Missing capability should raise CapabilityNotFoundError"
+        )
+    except CapabilityNotFoundError:
+        pass
 
 
-try:
+def test_unregister_removes_only_requested_version():
+    registry = CapabilityRegistry()
+
+    registry.register(BasicCapability("test.echo", "1.0.0"))
+    registry.register(BasicCapability("test.echo", "2.0.0"))
+
     registry.unregister("test.echo", "1.0.0")
-    raise AssertionError(
-        "Unregistering a missing capability should fail"
-    )
-except CapabilityNotFoundError:
-    pass
+
+    assert registry.has("test.echo", "1.0.0") is False
+    assert registry.has("test.echo", "2.0.0") is True
 
 
-other_registry = CapabilityRegistry()
+def test_unregistering_missing_capability_is_rejected():
+    registry = CapabilityRegistry()
 
-assert other_registry.has("test.echo", "2.0.0") is False
-assert len(other_registry.list()) == 0
-
-
-agent_registry = AgentRegistry()
-
-agent = TestAgent()
-
-agent_registry.register(agent)
-
-assert agent_registry.has("test.agent", "1.0.0") is True
-assert agent_registry.get(
-    "test.agent",
-    "1.0.0",
-).capability is agent
-
-
-try:
-    agent_registry.register(
-        BasicCapability(
-            capability_id="test.not-agent",
-            version="1.0.0",
+    try:
+        registry.unregister("test.echo", "1.0.0")
+        raise AssertionError(
+            "Unregistering a missing capability should fail"
         )
-    )
-    raise AssertionError(
-        "AgentRegistry should require AgentContract"
-    )
-except RegistryError:
-    pass
+    except CapabilityNotFoundError:
+        pass
 
 
-tool_registry = ToolRegistry()
+def test_registries_are_isolated():
+    registry = CapabilityRegistry()
+    other_registry = CapabilityRegistry()
 
-tool = TestTool()
+    registry.register(BasicCapability("test.echo", "2.0.0"))
 
-tool_registry.register(tool)
-
-assert tool_registry.has("test.tool", "1.0.0") is True
-assert tool_registry.get(
-    "test.tool",
-    "1.0.0",
-).capability is tool
+    assert registry.has("test.echo", "2.0.0") is True
+    assert other_registry.has("test.echo", "2.0.0") is False
+    assert len(other_registry.list()) == 0
 
 
-try:
-    tool_registry.register(
-        BasicCapability(
-            capability_id="test.not-tool",
-            version="1.0.0",
+def test_agent_registry_requires_agent_contract():
+    registry = AgentRegistry()
+    agent = TestAgent()
+
+    registry.register(agent)
+
+    assert registry.has("test.agent", "1.0.0") is True
+    assert registry.get("test.agent", "1.0.0").capability is agent
+
+    try:
+        registry.register(
+            BasicCapability("test.not-agent", "1.0.0")
         )
-    )
-    raise AssertionError(
-        "ToolRegistry should require ToolContract"
-    )
-except RegistryError:
-    pass
+        raise AssertionError(
+            "AgentRegistry should require AgentContract"
+        )
+    except RegistryError:
+        pass
 
 
-print("KERNEL REGISTRY TEST: PASS")
+def test_tool_registry_requires_tool_contract():
+    registry = ToolRegistry()
+    tool = TestTool()
+
+    registry.register(tool)
+
+    assert registry.has("test.tool", "1.0.0") is True
+    assert registry.get("test.tool", "1.0.0").capability is tool
+
+    try:
+        registry.register(
+            BasicCapability("test.not-tool", "1.0.0")
+        )
+        raise AssertionError(
+            "ToolRegistry should require ToolContract"
+        )
+    except RegistryError:
+        pass
