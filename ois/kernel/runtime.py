@@ -150,7 +150,7 @@ class ExecutionRuntime:
             result = InvocationResult(
                 invocation_id=logical_invocation_id,
                 capability_id=capability_id,
-                status=InvocationStatus.CANCELLED,
+                status=InvocationStatus.FAILED,
                 output=None,
                 error=str(exc),
             )
