@@ -60,6 +60,7 @@ class ExecutionContext:
         if self.status in {
             ExecutionStatus.COMPLETED,
             ExecutionStatus.STOPPED,
+            ExecutionStatus.ESCALATED,
         }:
             raise ValueError(
                 f"Terminal execution status "

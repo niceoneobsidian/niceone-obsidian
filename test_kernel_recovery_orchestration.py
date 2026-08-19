@@ -124,4 +124,3 @@ def test_recovery_failure_remains_visible_to_supervisor():
     )
 
 
-print("RECOVERY ORCHESTRATION BOUNDARY TEST: PASS")

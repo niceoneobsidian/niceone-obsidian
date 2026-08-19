@@ -40,7 +40,7 @@ def make_context(status: ExecutionStatus = ExecutionStatus.RECEIVED) -> Executio
 
 @pytest.mark.parametrize(
     "terminal_status",
-    [ExecutionStatus.COMPLETED, ExecutionStatus.STOPPED],
+    [ExecutionStatus.COMPLETED, ExecutionStatus.STOPPED, ExecutionStatus.ESCALATED],
 )
 @pytest.mark.parametrize(
     "attempted_next",
@@ -153,22 +153,16 @@ def test_recovering_status_can_proceed_onward_consistently(prior_status):
 # Documented gap: ESCALATED is not currently treated as terminal
 # ---------------------------------------------------------------------------
 
-def test_escalated_status_is_not_currently_guarded():
+def test_escalated_status_is_now_guarded_as_terminal():
     """
-    KNOWN GAP: RecoveryPolicy can mark a decision as terminal=True when
-    escalating (see test_transient_retries_until_limit_then_escalates),
-    but ExecutionContext.set_status() does not block further transitions
-    out of ESCALATED the way it blocks COMPLETED/STOPPED.
-
-    This test documents current behavior (transition succeeds) so the
-    gap is visible in the suite rather than silently assumed away.
-    If ESCALATED is hardened to be terminal in the future, this test
-    should be updated to expect a ValueError, matching the
-    terminal-state tests above.
+    ESCALATED is now hardened as a terminal status in
+    ExecutionContext.set_status(), matching COMPLETED/STOPPED, so that
+    a RecoveryDecision.terminal=True escalation cannot be silently
+    transitioned away from.
     """
     context = make_context(status=ExecutionStatus.ESCALATED)
 
-    # Documents current (permissive) behavior — does NOT raise today.
-    context.set_status(ExecutionStatus.EXECUTING)
+    with pytest.raises(ValueError):
+        context.set_status(ExecutionStatus.EXECUTING)
 
-    assert context.status == ExecutionStatus.EXECUTING
+    assert context.status == ExecutionStatus.ESCALATED
