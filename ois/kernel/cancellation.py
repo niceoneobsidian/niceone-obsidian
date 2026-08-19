@@ -8,7 +8,7 @@ class ExecutionCancellation(Exception):
     """Raised when an execution is cancelled."""
 
 
-@dataclass(frozen=True)
+@dataclass
 class CancellationToken:
     """
     Cooperative cancellation token.
@@ -32,6 +32,10 @@ class CancellationToken:
     def reason(self) -> str | None:
         with self._lock:
             return self._reason
+
+    @property
+    def is_cancelled(self) -> bool:
+        return self.cancelled
 
     def cancel(self, reason: str | None = None) -> None:
         with self._lock:

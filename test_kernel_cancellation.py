@@ -195,3 +195,21 @@ def test_cancellation_is_checkpointed():
     )
 
     assert restored.status == ExecutionStatus.STOPPED
+
+def test_cancellation_token_is_mutable_and_reusable():
+    token = CancellationToken()
+
+    assert token.cancelled is False
+    assert token.reason is None
+
+    token.cancel("regression")
+
+    assert token.cancelled is True
+    assert token.reason == "regression"
+
+    try:
+        token.raise_if_cancelled()
+    except ExecutionCancellation as exc:
+        assert str(exc) == "regression"
+    else:
+        raise AssertionError("Expected ExecutionCancellation")

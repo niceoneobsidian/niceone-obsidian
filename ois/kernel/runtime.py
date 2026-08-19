@@ -128,7 +128,40 @@ class ExecutionRuntime:
             ExecutionStatus.PLAN_VALIDATED
         )
 
-        self.cancellation.raise_if_cancelled()
+        try:
+            self.cancellation.raise_if_cancelled()
+        except ExecutionCancellation as exc:
+            context.status = ExecutionStatus.STOPPED
+            context.error = str(exc)
+            context.current_node = capability_id
+
+            self.checkpoint_store.save(context)
+
+            self.evidence.record(
+                execution_id,
+                "execution.cancelled",
+                {
+                    "capability_id": capability_id,
+                    "invocation_id": logical_invocation_id,
+                    "reason": str(exc),
+                },
+            )
+
+            result = InvocationResult(
+                invocation_id=logical_invocation_id,
+                capability_id=capability_id,
+                status=InvocationStatus.CANCELLED,
+                output=None,
+                error=str(exc),
+            )
+
+            self.idempotency.put(
+                logical_invocation_id,
+                result,
+            )
+
+            return result
+
 
         request = InvocationRequest(
             invocation_id=logical_invocation_id,
