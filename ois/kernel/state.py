@@ -86,9 +86,19 @@ def _execution_context_from_dict(cls, payload):
     from dataclasses import fields
 
     identity_payload = payload.get("identity", {})
+    from uuid import UUID
+
+    raw_execution_id = identity_payload.get("execution_id")
+
+    if raw_execution_id is not None:
+        try:
+            raw_execution_id = UUID(str(raw_execution_id))
+        except (TypeError, ValueError):
+            pass
+
     identity = ExecutionIdentity(
         tenant_id=identity_payload.get("tenant_id", ""),
-        execution_id=identity_payload.get("execution_id"),
+        execution_id=raw_execution_id,
     )
 
     context = cls(
