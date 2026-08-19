@@ -19,6 +19,7 @@ from .evidence import EvidenceEvent, EvidenceLedger
 from .idempotency import (
     IdempotencyStore,
     InMemoryIdempotencyStore,
+    SQLiteIdempotencyStore,
 )
 from .planning import (
     CyclicPlanError,
@@ -92,6 +93,7 @@ __all__ = [
     "EvidenceLedger",
     "IdempotencyStore",
     "InMemoryIdempotencyStore",
+    "SQLiteIdempotencyStore",
     "ExecutionContext",
     "ExecutionError",
     "ExecutionRuntime",

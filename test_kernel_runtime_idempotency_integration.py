@@ -165,3 +165,72 @@ def test_idempotency_hit_is_recorded_in_evidence():
 
     assert len(hits) == 1
     assert hits[0].data["invocation_id"] == "inv-evidence"
+
+
+def test_runtime_idempotency_survives_runtime_restart(tmp_path):
+    from ois.kernel.idempotency import SQLiteIdempotencyStore
+
+    capability = CountingCapability()
+
+    database = tmp_path / "runtime-idempotency.db"
+
+    registry = CapabilityRegistry()
+    registry.register(capability)
+
+    # Runtime instance #1.
+    first_store = SQLiteIdempotencyStore(
+        str(database)
+    )
+
+    first_runtime = ExecutionRuntime(
+        registry=registry,
+        checkpoint_store=InMemoryCheckpointStore(),
+        evidence=EvidenceLedger(),
+        idempotency=first_store,
+    )
+
+    first_context = make_context()
+
+    first = first_runtime.execute(
+        context=first_context,
+        capability_id="test.idempotent",
+        version="1.0.0",
+        input_data={"value": 99},
+        invocation_id="restart-safe-001",
+    )
+
+    assert first.status == InvocationStatus.SUCCEEDED
+    assert capability.invocations == 1
+
+    first_store.close()
+
+    # Runtime instance #2 simulates a process/worker restart.
+    second_store = SQLiteIdempotencyStore(
+        str(database)
+    )
+
+    second_runtime = ExecutionRuntime(
+        registry=registry,
+        checkpoint_store=InMemoryCheckpointStore(),
+        evidence=EvidenceLedger(),
+        idempotency=second_store,
+    )
+
+    second_context = make_context()
+
+    second = second_runtime.execute(
+        context=second_context,
+        capability_id="test.idempotent",
+        version="1.0.0",
+        input_data={"value": 99},
+        invocation_id="restart-safe-001",
+    )
+
+    # The capability must NOT execute again after restart.
+    assert capability.invocations == 1
+
+    assert second.invocation_id == first.invocation_id
+    assert second.status == first.status
+    assert second.output == first.output
+
+    second_store.close()
