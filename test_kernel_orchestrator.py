@@ -121,3 +121,48 @@ def test_orchestrator_does_not_complete_failed_plan():
     assert second.invocations == 1
 
     assert context.status.value != "completed"
+
+
+def test_orchestrator_generates_stable_task_invocation_id():
+    class IdentityRecordingCapability(RecordingCapability):
+        def __init__(self):
+            super().__init__("test.identity")
+            self.invocation_ids = []
+
+        def invoke(self, request):
+            self.invocation_ids.append(request.invocation_id)
+            return super().invoke(request)
+
+    capability = IdentityRecordingCapability()
+
+    runtime = make_runtime(capability)
+    orchestrator = PlanOrchestrator(runtime)
+
+    plan = (
+        PlanBuilder(
+            objective="Verify stable task invocation identity"
+        )
+        .task(
+            task_id="stable-step",
+            capability_id="test.identity",
+            capability_version="1.0.0",
+        )
+        .build()
+    )
+
+    context = make_context()
+
+    result = orchestrator.execute(
+        plan,
+        context,
+    )
+
+    assert result.tasks["stable-step"].status.value == "succeeded"
+    assert capability.invocations == 1
+    assert len(capability.invocation_ids) == 1
+
+    expected = (
+        f"{context.identity.execution_id}:stable-step"
+    )
+
+    assert capability.invocation_ids[0] == expected

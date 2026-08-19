@@ -5,6 +5,7 @@ from uuid import uuid4
 from .checkpoint import CheckpointStore
 from .contracts import InvocationRequest, InvocationResult
 from .evidence import EvidenceLedger
+from .idempotency import IdempotencyStore, InMemoryIdempotencyStore
 from .policy import DefaultPolicyEngine, PolicyEngine
 from .recovery import RecoveryPolicy
 from .registry import CapabilityRegistry
@@ -27,7 +28,13 @@ class ExecutionRuntime:
 
     Important boundary:
     Runtime executes ONE capability invocation.
+
     Plan completion is owned by the orchestrator.
+
+    Idempotency boundary:
+    The caller may supply a stable invocation_id. If that invocation_id
+    has already completed, the cached InvocationResult is returned and
+    the capability is not executed again.
     """
 
     def __init__(
@@ -39,6 +46,7 @@ class ExecutionRuntime:
         validator: ContractValidator | None = None,
         policy: PolicyEngine | None = None,
         recovery: RecoveryPolicy | None = None,
+        idempotency: IdempotencyStore | None = None,
     ) -> None:
         self.registry = registry
         self.checkpoint_store = checkpoint_store
@@ -46,6 +54,9 @@ class ExecutionRuntime:
         self.validator = validator or ContractValidator()
         self.policy = policy or DefaultPolicyEngine()
         self.recovery = recovery or RecoveryPolicy()
+        self.idempotency = (
+            idempotency or InMemoryIdempotencyStore()
+        )
 
     def execute(
         self,
@@ -53,8 +64,9 @@ class ExecutionRuntime:
         capability_id: str,
         version: str,
         input_data: dict,
+        *,
+        invocation_id: str | None = None,
     ) -> InvocationResult:
-
         if context.status in {
             ExecutionStatus.COMPLETED,
             ExecutionStatus.STOPPED,
@@ -66,12 +78,37 @@ class ExecutionRuntime:
 
         execution_id = context.identity.execution_id
 
+        # -------------------------------------------------
+        # IDEMPOTENCY
+        # -------------------------------------------------
+        logical_invocation_id = (
+            invocation_id or str(uuid4())
+        )
+
+        cached = self.idempotency.get(
+            logical_invocation_id
+        )
+
+        if cached is not None:
+            self.evidence.record(
+                execution_id,
+                "execution.idempotency_hit",
+                {
+                    "capability_id": capability_id,
+                    "version": version,
+                    "invocation_id": logical_invocation_id,
+                },
+            )
+
+            return cached
+
         self.evidence.record(
             execution_id,
             "execution.received",
             {
                 "capability_id": capability_id,
                 "version": version,
+                "invocation_id": logical_invocation_id,
             },
         )
 
@@ -89,7 +126,7 @@ class ExecutionRuntime:
         )
 
         request = InvocationRequest(
-            invocation_id=str(uuid4()),
+            invocation_id=logical_invocation_id,
             capability_id=capability_id,
             input=input_data,
             execution=context,
@@ -99,7 +136,6 @@ class ExecutionRuntime:
         # -------------------------
         # INPUT VALIDATION
         # -------------------------
-
         self.validator.validate_input(
             request,
             entry.contract,
@@ -117,7 +153,6 @@ class ExecutionRuntime:
         # -------------------------
         # AUTHORIZATION
         # -------------------------
-
         self.policy.authorize(
             request,
             entry.contract,
@@ -139,7 +174,6 @@ class ExecutionRuntime:
         # -------------------------
         # EXECUTION
         # -------------------------
-
         context.set_status(
             ExecutionStatus.EXECUTING
         )
@@ -157,18 +191,33 @@ class ExecutionRuntime:
             result = entry.capability.invoke(
                 request
             )
-
         except Exception as exc:
-            return self._handle_failure(
+            result = self._handle_failure(
                 context,
                 capability_id,
+                logical_invocation_id,
                 exc,
+            )
+
+            self.idempotency.put(
+                logical_invocation_id,
+                result,
+            )
+
+            return result
+
+        # -------------------------
+        # RESULT IDENTITY CHECK
+        # -------------------------
+        if result.invocation_id != logical_invocation_id:
+            raise ExecutionError(
+                "Capability returned an invocation_id that "
+                "does not match the requested invocation_id."
             )
 
         # -------------------------
         # OBSERVATION
         # -------------------------
-
         context.set_status(
             ExecutionStatus.OBSERVING
         )
@@ -195,7 +244,6 @@ class ExecutionRuntime:
         # -------------------------
         # OUTPUT VALIDATION
         # -------------------------
-
         context.set_status(
             ExecutionStatus.VALIDATING
         )
@@ -219,7 +267,6 @@ class ExecutionRuntime:
         # -------------------------
         # STATE UPDATE
         # -------------------------
-
         context.set_status(
             ExecutionStatus.UPDATING_STATE
         )
@@ -232,7 +279,6 @@ class ExecutionRuntime:
         # -------------------------
         # CHECKPOINT
         # -------------------------
-
         context.set_status(
             ExecutionStatus.CHECKPOINTING
         )
@@ -251,13 +297,28 @@ class ExecutionRuntime:
         )
 
         # -------------------------
+        # IDEMPOTENCY COMMIT
+        # -------------------------
+        self.idempotency.put(
+            logical_invocation_id,
+            result,
+        )
+
+        self.evidence.record(
+            execution_id,
+            "execution.idempotency_recorded",
+            {
+                "capability_id": capability_id,
+                "invocation_id": logical_invocation_id,
+                "status": result.status.value,
+            },
+        )
+
+        # -------------------------
         # RETURN TO ORCHESTRATOR
         # -------------------------
-
-        # CRITICAL:
-        # Do NOT mark the entire execution COMPLETED here.
-        #
-        # The orchestrator owns plan-level completion.
+        # Runtime does NOT mark the entire execution
+        # completed. The orchestrator owns plan completion.
 
         context.set_status(
             ExecutionStatus.ROUTED
@@ -292,9 +353,9 @@ class ExecutionRuntime:
         self,
         context: ExecutionContext,
         capability_id: str,
+        invocation_id: str,
         error: Exception,
     ) -> InvocationResult:
-
         execution_id = context.identity.execution_id
 
         failure_class = FailureClass.TOOL
@@ -316,6 +377,7 @@ class ExecutionRuntime:
                 "recovery_action": (
                     decision.action
                 ),
+                "invocation_id": invocation_id,
             },
         )
 
@@ -324,7 +386,7 @@ class ExecutionRuntime:
         )
 
         return InvocationResult(
-            invocation_id=str(uuid4()),
+            invocation_id=invocation_id,
             capability_id=capability_id,
             status=InvocationStatus.FAILED,
             error={

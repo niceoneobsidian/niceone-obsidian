@@ -61,6 +61,17 @@ class PlanOrchestrator:
 
                 try:
 
+                    # Stable task-level invocation identity.
+                    #
+                    # The same execution + task represents the same
+                    # logical invocation. This allows retries/recovery
+                    # to reuse a previously completed result instead
+                    # of replaying side effects.
+                    invocation_id = (
+                        f"{context.identity.execution_id}:"
+                        f"{task.task_id}"
+                    )
+
                     result = self.runtime.execute(
                         context=context,
                         capability_id=(
@@ -72,6 +83,7 @@ class PlanOrchestrator:
                         input_data=dict(
                             task.input_data
                         ),
+                        invocation_id=invocation_id,
                     )
 
                     if (

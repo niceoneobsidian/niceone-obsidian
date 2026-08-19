@@ -16,6 +16,10 @@ from .contracts import (
     Validator,
 )
 from .evidence import EvidenceEvent, EvidenceLedger
+from .idempotency import (
+    IdempotencyStore,
+    InMemoryIdempotencyStore,
+)
 from .planning import (
     CyclicPlanError,
     DuplicateTaskError,
@@ -86,6 +90,8 @@ __all__ = [
     "DuplicateCapabilityError",
     "EvidenceEvent",
     "EvidenceLedger",
+    "IdempotencyStore",
+    "InMemoryIdempotencyStore",
     "ExecutionContext",
     "ExecutionError",
     "ExecutionRuntime",
