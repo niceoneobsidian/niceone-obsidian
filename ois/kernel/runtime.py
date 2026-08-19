@@ -56,6 +56,7 @@ class ExecutionRuntime:
     ) -> InvocationResult:
 
         if context.status in {
+            ExecutionStatus.COMPLETED,
             ExecutionStatus.STOPPED,
         }:
             raise ExecutionAlreadyCompleted(
