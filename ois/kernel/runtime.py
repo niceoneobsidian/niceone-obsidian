@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from uuid import uuid4
 
+from .cancellation import CancellationToken, ExecutionCancellation
 from .checkpoint import CheckpointStore
 from .contracts import InvocationRequest, InvocationResult
 from .evidence import EvidenceLedger
@@ -46,6 +47,7 @@ class ExecutionRuntime:
         validator: ContractValidator | None = None,
         policy: PolicyEngine | None = None,
         recovery: RecoveryPolicy | None = None,
+        cancellation: CancellationToken | None = None,
         idempotency: IdempotencyStore | None = None,
     ) -> None:
         self.registry = registry
@@ -54,6 +56,7 @@ class ExecutionRuntime:
         self.validator = validator or ContractValidator()
         self.policy = policy or DefaultPolicyEngine()
         self.recovery = recovery or RecoveryPolicy()
+        self.cancellation = cancellation or CancellationToken()
         self.idempotency = (
             idempotency or InMemoryIdempotencyStore()
         )
@@ -125,12 +128,15 @@ class ExecutionRuntime:
             ExecutionStatus.PLAN_VALIDATED
         )
 
+        self.cancellation.raise_if_cancelled()
+
         request = InvocationRequest(
             invocation_id=logical_invocation_id,
             capability_id=capability_id,
             input=input_data,
             execution=context,
             timeout_seconds=entry.contract.timeout_seconds,
+            cancellation=self.cancellation,
         )
 
         # -------------------------
@@ -188,8 +194,20 @@ class ExecutionRuntime:
         )
 
         try:
+            self.cancellation.raise_if_cancelled()
+
             result = entry.capability.invoke(
                 request
+            )
+
+            self.cancellation.raise_if_cancelled()
+
+        except ExecutionCancellation as exc:
+            return self._handle_cancellation(
+                context,
+                capability_id,
+                exc,
+                logical_invocation_id,
             )
         except Exception as exc:
             result = self._handle_failure(
@@ -347,6 +365,43 @@ class ExecutionRuntime:
         self.evidence.record(
             context.identity.execution_id,
             "execution.completed",
+        )
+
+    def _handle_cancellation(
+        self,
+        context: ExecutionContext,
+        capability_id: str,
+        error: ExecutionCancellation,
+        invocation_id: str,
+    ) -> InvocationResult:
+        execution_id = context.identity.execution_id
+
+        context.set_status(
+            ExecutionStatus.STOPPED
+        )
+
+        self.evidence.record(
+            execution_id,
+            "execution.cancelled",
+            {
+                "capability_id": capability_id,
+                "invocation_id": invocation_id,
+                "reason": str(error),
+            },
+        )
+
+        self.checkpoint_store.save(context)
+
+        return InvocationResult(
+            invocation_id=invocation_id,
+            capability_id=capability_id,
+            status=InvocationStatus.FAILED,
+            error={
+                "type": "ExecutionCancellation",
+                "message": str(error),
+                "failure_class": "cancellation",
+                "recovery_action": "stop",
+            },
         )
 
     def _handle_failure(

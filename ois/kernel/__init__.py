@@ -1,5 +1,10 @@
 """OIS Kernel public contracts and execution primitives."""
 
+from .cancellation import (
+    CancellationToken,
+    ExecutionCancellation,
+)
+
 from .checkpoint import (
     CheckpointNotFound,
     CheckpointStore,
@@ -79,6 +84,8 @@ from .validation import (
 
 __all__ = [
     "AgentContract",
+    "CancellationToken",
+    "ExecutionCancellation",
     "AgentRegistry",
     "AuthorizationDenied",
     "Capability",

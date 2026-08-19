@@ -55,6 +55,7 @@ class InvocationRequest:
 
     timeout_seconds: float | None = None
     attempt: int = 0
+    cancellation: object | None = None
 
 
 @dataclass
