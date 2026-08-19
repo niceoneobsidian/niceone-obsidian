@@ -1,3 +1,5 @@
+import pytest
+
 from ois.kernel import (
     CapabilityContract,
     ExecutionContext,
@@ -13,30 +15,37 @@ from ois.kernel.validation import (
 )
 
 
-contract = CapabilityContract(
-    capability_id="test.validation",
-    version="1.0.0",
-    description="Validation test capability",
-    input_schema={
-        "type": "object",
-        "required": ["message", "count"],
-        "properties": {
-            "message": {"type": "string"},
-            "count": {"type": "integer"},
-            "mode": {
-                "type": "string",
-                "enum": ["safe", "fast"],
+@pytest.fixture
+def contract():
+    return CapabilityContract(
+        capability_id="test.validation",
+        version="1.0.0",
+        description="Validation test capability",
+        input_schema={
+            "type": "object",
+            "required": ["message", "count"],
+            "properties": {
+                "message": {"type": "string"},
+                "count": {"type": "integer"},
+                "mode": {
+                    "type": "string",
+                    "enum": ["safe", "fast"],
+                },
             },
         },
-    },
-    output_schema={
-        "type": "object",
-        "required": ["result"],
-        "properties": {
-            "result": {"type": "string"},
+        output_schema={
+            "type": "object",
+            "required": ["result"],
+            "properties": {
+                "result": {"type": "string"},
+            },
         },
-    },
-)
+    )
+
+
+@pytest.fixture
+def validator():
+    return ContractValidator()
 
 
 def make_request(data):
@@ -53,104 +62,80 @@ def make_request(data):
     )
 
 
-validator = ContractValidator()
-
-
-# Valid input must pass.
-validator.validate_input(
-    make_request(
-        {
-            "message": "hello",
-            "count": 3,
-            "mode": "safe",
-        }
-    ),
-    contract,
-)
-
-
-# Missing required field must fail.
-try:
-    validator.validate_input(
-        make_request(
-            {
-                "message": "hello",
-            }
-        ),
-        contract,
-    )
-    raise AssertionError("Missing required field should fail")
-except InputValidationError:
-    pass
-
-
-# Wrong type must fail.
-try:
-    validator.validate_input(
-        make_request(
-            {
-                "message": "hello",
-                "count": "3",
-            }
-        ),
-        contract,
-    )
-    raise AssertionError("Wrong type should fail")
-except InputValidationError:
-    pass
-
-
-# Invalid enum must fail.
-try:
+def test_valid_input_passes(validator, contract):
     validator.validate_input(
         make_request(
             {
                 "message": "hello",
                 "count": 3,
-                "mode": "unsafe",
+                "mode": "safe",
             }
         ),
         contract,
     )
-    raise AssertionError("Invalid enum should fail")
-except InputValidationError:
-    pass
 
 
-# Valid output must pass.
-valid_result = InvocationResult(
-    invocation_id="validation-test-1",
-    capability_id="test.validation",
-    status=InvocationStatus.SUCCEEDED,
-    output={
-        "result": "success",
-    },
-)
-
-validator.validate_output(
-    valid_result,
-    contract,
-)
+def test_missing_required_field_fails(validator, contract):
+    with pytest.raises(InputValidationError):
+        validator.validate_input(
+            make_request(
+                {
+                    "message": "hello",
+                }
+            ),
+            contract,
+        )
 
 
-# Invalid output must fail.
-invalid_result = InvocationResult(
-    invocation_id="validation-test-1",
-    capability_id="test.validation",
-    status=InvocationStatus.SUCCEEDED,
-    output={
-        "result": 123,
-    },
-)
+def test_wrong_input_type_fails(validator, contract):
+    with pytest.raises(InputValidationError):
+        validator.validate_input(
+            make_request(
+                {
+                    "message": "hello",
+                    "count": "3",
+                }
+            ),
+            contract,
+        )
 
-try:
-    validator.validate_output(
-        invalid_result,
-        contract,
+
+def test_invalid_enum_fails(validator, contract):
+    with pytest.raises(InputValidationError):
+        validator.validate_input(
+            make_request(
+                {
+                    "message": "hello",
+                    "count": 3,
+                    "mode": "unsafe",
+                }
+            ),
+            contract,
+        )
+
+
+def test_valid_output_passes(validator, contract):
+    result = InvocationResult(
+        invocation_id="validation-test-1",
+        capability_id="test.validation",
+        status=InvocationStatus.SUCCEEDED,
+        output={
+            "result": "success",
+        },
     )
-    raise AssertionError("Invalid output should fail")
-except OutputValidationError:
-    pass
+
+    validator.validate_output(result, contract)
 
 
-print("KERNEL VALIDATION TEST: PASS")
+def test_invalid_output_fails(validator, contract):
+    result = InvocationResult(
+        invocation_id="validation-test-1",
+        capability_id="test.validation",
+        status=InvocationStatus.SUCCEEDED,
+        output={
+            "result": 123,
+        },
+    )
+
+    with pytest.raises(OutputValidationError):
+        validator.validate_output(result, contract)

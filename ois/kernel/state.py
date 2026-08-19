@@ -57,5 +57,15 @@ class ExecutionContext:
         self.updated_at = utc_now()
 
     def set_status(self, status: ExecutionStatus) -> None:
+        if self.status in {
+            ExecutionStatus.COMPLETED,
+            ExecutionStatus.STOPPED,
+        }:
+            raise ValueError(
+                f"Terminal execution status "
+                f"{self.status.value} cannot transition to "
+                f"{status.value}."
+            )
+
         self.status = status
         self.touch()

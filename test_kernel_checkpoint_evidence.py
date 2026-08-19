@@ -1,3 +1,5 @@
+import pytest
+
 from ois.kernel import (
     ExecutionContext,
     ExecutionIdentity,
@@ -8,140 +10,231 @@ from ois.kernel.checkpoint import CheckpointNotFound
 from ois.kernel.evidence import EvidenceLedger
 
 
-# =========================
-# CHECKPOINT TESTS
-# =========================
-
-store = InMemoryCheckpointStore()
-
-context = ExecutionContext(
-    identity=ExecutionIdentity(tenant_id="default"),
-    objective="Checkpoint test",
-)
-
-context.working_memory["value"] = "original"
-
-store.save(context)
-
-execution_id = context.identity.execution_id
-
-assert store.exists(execution_id) is True
-
-restored = store.load(execution_id)
-
-assert restored.identity.execution_id == execution_id
-assert restored.objective == "Checkpoint test"
-assert restored.working_memory["value"] == "original"
+def make_context():
+    return ExecutionContext(
+        identity=ExecutionIdentity(tenant_id="default"),
+        objective="Checkpoint test",
+    )
 
 
-# Verify load returns an independent copy.
-restored.working_memory["value"] = "modified"
+def test_checkpoint_save_and_restore():
+    store = InMemoryCheckpointStore()
+    context = make_context()
 
-again = store.load(execution_id)
+    context.working_memory["value"] = "original"
 
-assert again.working_memory["value"] == "original"
+    store.save(context)
 
+    execution_id = context.identity.execution_id
 
-# Verify status survives checkpointing.
-context.set_status(ExecutionStatus.EXECUTING)
-store.save(context)
+    assert store.exists(execution_id) is True
 
-restored = store.load(execution_id)
+    restored = store.load(execution_id)
 
-assert restored.status == ExecutionStatus.EXECUTING
-
-
-# Verify snapshot contains the expected checkpoint representation.
-snapshot = store.snapshot(execution_id)
-
-assert snapshot["execution_id"] == str(execution_id)
-assert snapshot["status"] == "executing"
-assert "created_at" in snapshot
-assert "updated_at" in snapshot
-assert "state" in snapshot
+    assert restored.identity.execution_id == execution_id
+    assert restored.objective == "Checkpoint test"
+    assert restored.working_memory["value"] == "original"
 
 
-# Verify deletion.
-store.delete(execution_id)
+def test_checkpoint_load_returns_independent_copy():
+    store = InMemoryCheckpointStore()
+    context = make_context()
 
-assert store.exists(execution_id) is False
+    context.working_memory["value"] = "original"
+    store.save(context)
 
-try:
-    store.load(execution_id)
-    raise AssertionError("Deleted checkpoint should not be loadable")
-except CheckpointNotFound:
-    pass
+    execution_id = context.identity.execution_id
 
+    restored = store.load(execution_id)
+    restored.working_memory["value"] = "modified"
 
-# Missing checkpoint should also raise.
-try:
-    store.snapshot(execution_id)
-    raise AssertionError("Missing checkpoint snapshot should fail")
-except CheckpointNotFound:
-    pass
+    again = store.load(execution_id)
+
+    assert again.working_memory["value"] == "original"
 
 
-# =========================
-# EVIDENCE TESTS
-# =========================
+def test_checkpoint_preserves_execution_status():
+    store = InMemoryCheckpointStore()
+    context = make_context()
 
-ledger = EvidenceLedger()
+    context.set_status(ExecutionStatus.EXECUTING)
+    store.save(context)
 
-event1 = ledger.record(
-    execution_id=execution_id,
-    event_type="execution.started",
-    data={"objective": "Checkpoint test"},
-    actor="test",
-    component="test.kernel",
-)
+    restored = store.load(context.identity.execution_id)
 
-event2 = ledger.record(
-    execution_id=execution_id,
-    event_type="execution.completed",
-    data={"status": "completed"},
-    correlation_id=str(event1.event_id),
-    causation_id=str(event1.event_id),
-)
+    assert restored.status == ExecutionStatus.EXECUTING
 
 
-assert event1.execution_id == execution_id
-assert event1.event_type == "execution.started"
-assert event1.actor == "test"
-assert event1.component == "test.kernel"
+def test_checkpoint_snapshot_contains_expected_representation():
+    store = InMemoryCheckpointStore()
+    context = make_context()
 
-assert event2.correlation_id == str(event1.event_id)
-assert event2.causation_id == str(event1.event_id)
+    store.save(context)
 
+    snapshot = store.snapshot(
+        context.identity.execution_id
+    )
 
-# Ledger is append-only and preserves insertion order.
-events = ledger.list(execution_id)
-
-assert len(events) == 2
-assert events[0].event_id == event1.event_id
-assert events[1].event_id == event2.event_id
-
-
-# Filtering by another execution should return nothing.
-other_execution = ExecutionIdentity(
-    tenant_id="default"
-).execution_id
-
-assert ledger.list(other_execution) == ()
+    assert snapshot["execution_id"] == str(
+        context.identity.execution_id
+    )
+    assert snapshot["status"] == "received"
+    assert "created_at" in snapshot
+    assert "updated_at" in snapshot
+    assert "state" in snapshot
 
 
-# Count must agree with list.
-assert ledger.count(execution_id) == 2
-assert ledger.count(other_execution) == 0
-assert ledger.count() == 2
+def test_checkpoint_delete_removes_checkpoint():
+    store = InMemoryCheckpointStore()
+    context = make_context()
+
+    execution_id = context.identity.execution_id
+
+    store.save(context)
+    store.delete(execution_id)
+
+    assert store.exists(execution_id) is False
+
+    with pytest.raises(CheckpointNotFound):
+        store.load(execution_id)
 
 
-# Event serialization must produce JSON-friendly identifiers/timestamp.
-serialized = event1.to_dict()
+def test_missing_checkpoint_snapshot_raises():
+    store = InMemoryCheckpointStore()
+    execution_id = ExecutionIdentity(
+        tenant_id="default"
+    ).execution_id
 
-assert isinstance(serialized["event_id"], str)
-assert isinstance(serialized["execution_id"], str)
-assert isinstance(serialized["timestamp"], str)
-assert serialized["event_type"] == "execution.started"
+    with pytest.raises(CheckpointNotFound):
+        store.snapshot(execution_id)
 
 
-print("KERNEL CHECKPOINT/EVIDENCE TEST: PASS")
+def test_evidence_record_preserves_event_relationships():
+    ledger = EvidenceLedger()
+
+    execution_id = ExecutionIdentity(
+        tenant_id="default"
+    ).execution_id
+
+    event1 = ledger.record(
+        execution_id=execution_id,
+        event_type="execution.started",
+        data={"objective": "Checkpoint test"},
+        actor="test",
+        component="test.kernel",
+    )
+
+    event2 = ledger.record(
+        execution_id=execution_id,
+        event_type="execution.completed",
+        data={"status": "completed"},
+        correlation_id=str(event1.event_id),
+        causation_id=str(event1.event_id),
+    )
+
+    assert event1.execution_id == execution_id
+    assert event1.event_type == "execution.started"
+    assert event1.actor == "test"
+    assert event1.component == "test.kernel"
+
+    assert event2.correlation_id == str(
+        event1.event_id
+    )
+    assert event2.causation_id == str(
+        event1.event_id
+    )
+
+
+def test_evidence_ledger_is_append_only_and_ordered():
+    ledger = EvidenceLedger()
+
+    execution_id = ExecutionIdentity(
+        tenant_id="default"
+    ).execution_id
+
+    event1 = ledger.record(
+        execution_id=execution_id,
+        event_type="execution.started",
+        data={},
+    )
+
+    event2 = ledger.record(
+        execution_id=execution_id,
+        event_type="execution.completed",
+        data={},
+    )
+
+    events = ledger.list(execution_id)
+
+    assert len(events) == 2
+    assert events[0].event_id == event1.event_id
+    assert events[1].event_id == event2.event_id
+
+
+def test_evidence_filters_by_execution():
+    ledger = EvidenceLedger()
+
+    execution_id = ExecutionIdentity(
+        tenant_id="default"
+    ).execution_id
+
+    other_execution = ExecutionIdentity(
+        tenant_id="default"
+    ).execution_id
+
+    ledger.record(
+        execution_id=execution_id,
+        event_type="execution.started",
+        data={},
+    )
+
+    assert ledger.list(other_execution) == ()
+
+
+def test_evidence_counts_match_events():
+    ledger = EvidenceLedger()
+
+    execution_id = ExecutionIdentity(
+        tenant_id="default"
+    ).execution_id
+
+    other_execution = ExecutionIdentity(
+        tenant_id="default"
+    ).execution_id
+
+    ledger.record(
+        execution_id=execution_id,
+        event_type="execution.started",
+        data={},
+    )
+
+    ledger.record(
+        execution_id=execution_id,
+        event_type="execution.completed",
+        data={},
+    )
+
+    assert ledger.count(execution_id) == 2
+    assert ledger.count(other_execution) == 0
+    assert ledger.count() == 2
+
+
+def test_evidence_event_serialization_is_json_friendly():
+    ledger = EvidenceLedger()
+
+    execution_id = ExecutionIdentity(
+        tenant_id="default"
+    ).execution_id
+
+    event = ledger.record(
+        execution_id=execution_id,
+        event_type="execution.started",
+        data={},
+    )
+
+    serialized = event.to_dict()
+
+    assert isinstance(serialized["event_id"], str)
+    assert isinstance(serialized["execution_id"], str)
+    assert isinstance(serialized["timestamp"], str)
+    assert serialized["event_type"] == "execution.started"

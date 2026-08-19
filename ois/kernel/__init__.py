@@ -37,6 +37,12 @@ from .policy import (
     PolicyDecision,
 )
 from .runtime import ExecutionError, ExecutionRuntime
+from .supervisor import (
+    AgentSelectionError,
+    SupervisionDecision,
+    Supervisor,
+    SupervisorError,
+)
 from .recovery import (
     RecoveryDecision,
     RecoveryPolicy,
@@ -83,6 +89,10 @@ __all__ = [
     "ExecutionContext",
     "ExecutionError",
     "ExecutionRuntime",
+    "AgentSelectionError",
+    "SupervisionDecision",
+    "Supervisor",
+    "SupervisorError",
     "ExecutionIdentity",
     "ExecutionStatus",
     "FailureClass",
