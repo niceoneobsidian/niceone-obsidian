@@ -69,7 +69,14 @@ class DefaultPolicyEngine:
         if not request.execution.identity.tenant_id:
             reasons.append("Execution must have a tenant identity.")
 
-        if contract.risk_level.value > self._maximum_risk.value:
+        risk_order = {
+            RiskLevel.LOW: 0,
+            RiskLevel.MEDIUM: 1,
+            RiskLevel.HIGH: 2,
+            RiskLevel.CRITICAL: 3,
+        }
+
+        if risk_order[contract.risk_level] > risk_order[self._maximum_risk]:
             reasons.append(
                 f"Capability risk exceeds policy limit: "
                 f"{contract.risk_level.value}"
