@@ -36,7 +36,8 @@ jobs:
 
       - name: Commit
         if: steps.diff.outputs.changed == 'true'
-        run: git commit -m "chore: automated update [skip ci]"
+        run: |
+          git commit -m "chore: automated update [skip ci]"
 
       - name: Pull with rebase to avoid conflicts
         if: steps.diff.outputs.changed == 'true'
