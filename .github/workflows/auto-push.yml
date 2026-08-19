@@ -1,0 +1,60 @@
+name: Automated Commit and Push
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "automation-staging" ]
+
+jobs:
+  commit-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GH_PAT }}
+
+      - name: Configure git identity
+        run: |
+          git config user.name "automation-bot"
+          git config user.email "automation-bot@users.noreply.github.com"
+
+      - name: Stage changes
+        run: git add -A
+
+      - name: Check for changes
+        id: diff
+        run: |
+          if git diff --cached --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit
+        if: steps.diff.outputs.changed == 'true'
+        run: git commit -m "chore: automated update [skip ci]"
+
+      - name: Pull with rebase to avoid conflicts
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          set -e
+          if ! git pull --rebase origin "${GITHUB_REF_NAME}"; then
+            echo "::error::Rebase conflict detected — manual resolution required."
+            git rebase --abort
+            exit 1
+          fi
+
+      - name: Push
+        if: steps.diff.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          set -e
+          if ! git push origin "HEAD:${GITHUB_REF_NAME}"; then
+            echo "::error::Push failed — check auth token scope/expiry."
+            exit 1
+          fi
