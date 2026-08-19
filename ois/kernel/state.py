@@ -70,3 +70,58 @@ class ExecutionContext:
 
         self.status = status
         self.touch()
+
+
+# ------------------------------------------------------------------
+# Durable checkpoint reconstruction
+# ------------------------------------------------------------------
+
+def _execution_context_from_dict(cls, payload):
+    """
+    Reconstruct ExecutionContext from a durable checkpoint payload.
+
+    Kept as a compatibility layer so the existing state model does not
+    need to change its public construction semantics.
+    """
+    from dataclasses import fields
+
+    identity_payload = payload.get("identity", {})
+    identity = ExecutionIdentity(
+        tenant_id=identity_payload.get("tenant_id", ""),
+        execution_id=identity_payload.get("execution_id"),
+    )
+
+    context = cls(
+        identity=identity,
+        objective=payload.get("objective", ""),
+    )
+
+    for field_name in fields(context):
+        name = field_name.name
+
+        if name in {"identity", "objective"}:
+            continue
+
+        if name not in payload:
+            continue
+
+        value = payload[name]
+
+        current = getattr(context, name, None)
+
+        if hasattr(current, "__class__") and hasattr(current.__class__, "__members__"):
+            try:
+                value = current.__class__(value)
+            except Exception:
+                pass
+
+        try:
+            setattr(context, name, value)
+        except Exception:
+            pass
+
+    return context
+
+
+if not hasattr(ExecutionContext, "from_dict"):
+    ExecutionContext.from_dict = classmethod(_execution_context_from_dict)

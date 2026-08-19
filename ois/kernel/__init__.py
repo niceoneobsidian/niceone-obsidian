@@ -4,6 +4,7 @@ from .checkpoint import (
     CheckpointNotFound,
     CheckpointStore,
     InMemoryCheckpointStore,
+    JsonFileCheckpointStore,
 )
 from .contracts import (
     AgentContract,
@@ -106,6 +107,7 @@ __all__ = [
     "FailureClass",
     "InputValidationError",
     "InMemoryCheckpointStore",
+    "JsonFileCheckpointStore",
     "InvocationRequest",
     "InvocationResult",
     "InvocationStatus",

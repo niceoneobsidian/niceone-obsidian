@@ -83,3 +83,78 @@ class InMemoryCheckpointStore:
             "updated_at": context.updated_at.isoformat(),
             "state": data,
         }
+
+
+class JsonFileCheckpointStore:
+    """
+    Durable filesystem-backed checkpoint store.
+
+    Stores serialized ExecutionContext snapshots as JSON files keyed
+    by execution_id.
+
+    This is the kernel reference durable implementation. It deliberately
+    remains infrastructure-neutral so a PostgreSQL adapter can replace
+    it later without changing runtime/orchestrator contracts.
+    """
+
+    def __init__(self, root_path: str = ".ois/checkpoints") -> None:
+        from pathlib import Path
+        from threading import RLock
+
+        self._root = Path(root_path)
+        self._root.mkdir(parents=True, exist_ok=True)
+        self._lock = RLock()
+
+    def _path(self, execution_id: str):
+        return self._root / f"{execution_id}.json"
+
+    def save(self, context) -> None:
+        import json
+        from dataclasses import asdict, is_dataclass
+
+        with self._lock:
+            payload = (
+                asdict(context)
+                if is_dataclass(context)
+                else context.model_dump()
+                if hasattr(context, "model_dump")
+                else context.dict()
+                if hasattr(context, "dict")
+                else vars(context)
+            )
+
+            path = self._path(context.identity.execution_id)
+            temporary = path.with_suffix(".tmp")
+
+            temporary.write_text(
+                json.dumps(
+                    payload,
+                    default=lambda value: (
+                        value.value
+                        if hasattr(value, "value")
+                        else str(value)
+                    ),
+                    indent=2,
+                    sort_keys=True,
+                )
+            )
+
+            temporary.replace(path)
+
+    def load(self, execution_id: str):
+        import json
+
+        from .state import ExecutionContext
+
+        path = self._path(execution_id)
+
+        if not path.exists():
+            raise CheckpointNotFound(execution_id)
+
+        with self._lock:
+            payload = json.loads(path.read_text())
+
+        return ExecutionContext.from_dict(payload)
+
+    def exists(self, execution_id: str) -> bool:
+        return self._path(execution_id).exists()
