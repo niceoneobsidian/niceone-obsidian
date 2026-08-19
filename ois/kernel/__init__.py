@@ -143,3 +143,5 @@ __all__ = [
     "ValidationResult",
     "Validator",
 ]
+
+from .supervisor import Supervisor, SupervisorRequest
