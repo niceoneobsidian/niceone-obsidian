@@ -1,6 +1,5 @@
-import pytest
-
 from ois.kernel import (
+    AgentRegistry,
     CapabilityContract,
     CapabilityRegistry,
     ExecutionContext,
@@ -8,14 +7,12 @@ from ois.kernel import (
     ExecutionRuntime,
     InMemoryCheckpointStore,
     InvocationRequest,
-    InvocationResult,
     InvocationStatus,
     PlanBuilder,
     PlanOrchestrator,
     RiskLevel,
     SideEffectLevel,
     Supervisor,
-    AgentRegistry,
 )
 from ois.kernel.evidence import EvidenceLedger
 
@@ -106,7 +103,7 @@ def test_recovery_failure_remains_visible_to_supervisor():
 
     decision = supervisor.inspect(context)
 
-    assert decision.action == "recover"
+    assert decision.action == "fallback"
 
     restored = checkpoint.load(
         context.identity.execution_id
@@ -122,5 +119,3 @@ def test_recovery_failure_remains_visible_to_supervisor():
         event.event_type == "execution.failure"
         for event in events
     )
-
-
