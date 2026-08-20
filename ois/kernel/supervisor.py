@@ -5,6 +5,7 @@ from typing import Any, Dict, Optional
 
 from .contracts import InvocationResult, InvocationStatus
 from .recovery import RecoveryDecision, RecoveryPolicy
+from .registry import CapabilityNotFoundError
 
 
 class SupervisorError(Exception):
@@ -52,6 +53,22 @@ class Supervisor:
         self.agent_registry = agent_registry
         self.orchestrator = orchestrator
         self.recovery_policy = recovery_policy or RecoveryPolicy()
+
+    def select_agent(self, capability_id: str, version: str) -> Any:
+        """Resolve an authorized agent contract from the AgentRegistry."""
+        if self.agent_registry is None:
+            raise AgentSelectionError("agent_registry is required for agent selection")
+        if not capability_id.strip():
+            raise AgentSelectionError("capability_id is required for agent selection")
+        if not version.strip():
+            raise AgentSelectionError("version is required for agent selection")
+
+        try:
+            return self.agent_registry.get(capability_id, version)
+        except CapabilityNotFoundError as exc:
+            raise AgentSelectionError(
+                f"No agent registered for {capability_id}@{version}"
+            ) from exc
 
     def execute(
         self,
