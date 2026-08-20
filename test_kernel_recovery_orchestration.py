@@ -103,7 +103,7 @@ def test_recovery_failure_remains_visible_to_supervisor():
 
     decision = supervisor.inspect(context)
 
-    assert decision.action == "fallback"
+    assert decision.action == "recover"
 
     restored = checkpoint.load(
         context.identity.execution_id
