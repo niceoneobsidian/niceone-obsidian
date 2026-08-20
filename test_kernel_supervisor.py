@@ -40,7 +40,8 @@ def make_context():
         identity=ExecutionIdentity(
             execution_id="supervisor-test-001",
             tenant_id="tenant-supervisor",
-        )
+        ),
+        objective="Supervisor direct execution test",
     )
 
 
