@@ -8,6 +8,7 @@ from .evidence import EvidenceLedger
 from .policy import DefaultPolicyEngine, PolicyEngine
 from .recovery import RecoveryDecision, RecoveryPolicy
 from .registry import AgentRegistry, AgentRoutingError
+from .state import ExecutionContext, ExecutionIdentity
 
 
 class SupervisorError(Exception):
@@ -78,14 +79,16 @@ class Supervisor:
             raise AgentSelectionError("capability_id is required for agent selection")
         if not version.strip():
             raise AgentSelectionError("version is required for agent selection")
-        if context is None:
-            raise AgentSelectionError("context is required for governed agent selection")
 
+        selection_context = context or ExecutionContext(
+            identity=ExecutionIdentity(),
+            objective=f"Agent selection for {capability_id}@{version}",
+        )
         request = InvocationRequest(
             invocation_id=invocation_id,
             capability_id=capability_id,
             input=input_data or {},
-            execution=context,
+            execution=selection_context,
         )
 
         try:
@@ -98,7 +101,7 @@ class Supervisor:
             )
         except AgentRoutingError as exc:
             self._record_selection_evidence(
-                context,
+                selection_context,
                 "agent.selection.rejected",
                 capability_id,
                 version,
@@ -107,7 +110,7 @@ class Supervisor:
             raise AgentSelectionError(str(exc)) from exc
 
         self._record_selection_evidence(
-            context,
+            selection_context,
             "agent.selection.selected",
             capability_id,
             version,
