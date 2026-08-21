@@ -42,9 +42,6 @@ class ContractValidator:
     - properties
     - type
     - enum
-
-    More sophisticated JSON Schema support can be introduced later without
-    changing the Kernel validation boundary.
     """
 
     def validate_input(
@@ -52,91 +49,20 @@ class ContractValidator:
         request: InvocationRequest,
         contract: CapabilityContract,
     ) -> None:
-        result = self.validate_mapping(
-            request.input,
-            contract.input_schema,
-        )
-
-        if not result.valid:
-            raise InputValidationError(
-                "; ".join(result.errors)
-            )
+        errors = self._validate_schema(request.input, contract.input_schema, path="input")
+        if errors:
+            raise InputValidationError("; ".join(errors))
 
     def validate_output(
         self,
         result: InvocationResult,
         contract: CapabilityContract,
     ) -> None:
-        if result.output is None:
-            return
+        errors = self._validate_schema(result.output, contract.output_schema, path="output")
+        if errors:
+            raise OutputValidationError("; ".join(errors))
 
-        schema = contract.output_schema
-
-        if not schema:
-            return
-
-        validation = self.validate_mapping(
-            result.output,
-            schema,
-        )
-
-        if not validation.valid:
-            raise OutputValidationError(
-                "; ".join(validation.errors)
-            )
-
-    def validate_mapping(
-        self,
-        value: Any,
-        schema: Mapping[str, Any],
-    ) -> ValidationResult:
-        errors: list[str] = []
-
-        expected_type = schema.get("type")
-
-        if expected_type == "object":
-            if not isinstance(value, Mapping):
-                return ValidationResult.failure(
-                    "Expected object."
-                )
-
-            required = schema.get("required", [])
-
-            for field in required:
-                if field not in value:
-                    errors.append(
-                        f"Missing required field: {field}"
-                    )
-
-            properties = schema.get("properties", {})
-
-            for name, property_schema in properties.items():
-                if name not in value:
-                    continue
-
-                errors.extend(
-                    self._validate_value(
-                        value[name],
-                        property_schema,
-                        name,
-                    )
-                )
-
-        else:
-            errors.extend(
-                self._validate_value(
-                    value,
-                    schema,
-                    "value",
-                )
-            )
-
-        return ValidationResult(
-            valid=not errors,
-            errors=tuple(errors),
-        )
-
-    def _validate_value(
+    def _validate_schema(
         self,
         value: Any,
         schema: Mapping[str, Any],
@@ -145,30 +71,41 @@ class ContractValidator:
         errors: list[str] = []
 
         expected_type = schema.get("type")
-
         type_validators = {
             "string": lambda v: isinstance(v, str),
             "integer": lambda v: isinstance(v, int) and not isinstance(v, bool),
-            "number": lambda v: isinstance(v, (int, float))
-            and not isinstance(v, bool),
+            "number": lambda v: isinstance(v, (int, float)) and not isinstance(v, bool),
             "boolean": lambda v: isinstance(v, bool),
             "object": lambda v: isinstance(v, Mapping),
             "array": lambda v: isinstance(v, (list, tuple)),
         }
 
-        validator = type_validators.get(expected_type)
-
-        if validator is not None and not validator(value):
-            errors.append(
-                f"{path}: expected {expected_type}."
-            )
-            return errors
+        if isinstance(expected_type, str):
+            validator = type_validators.get(expected_type)
+            if validator is not None and not validator(value):
+                errors.append(f"{path}: expected {expected_type}.")
+                return errors
 
         enum = schema.get("enum")
+        if isinstance(enum, (list, tuple)) and value not in enum:
+            errors.append(f"{path}: value is not one of the allowed enum values.")
 
-        if enum is not None and value not in enum:
-            errors.append(
-                f"{path}: value is not allowed."
-            )
+        required = schema.get("required")
+        properties = schema.get("properties")
+        if isinstance(required, (list, tuple)) and isinstance(value, Mapping):
+            for field_name in required:
+                if isinstance(field_name, str) and field_name not in value:
+                    errors.append(f"{path}: missing required field '{field_name}'.")
+
+        if isinstance(properties, Mapping) and isinstance(value, Mapping):
+            for field_name, field_schema in properties.items():
+                if field_name in value and isinstance(field_schema, Mapping):
+                    errors.extend(
+                        self._validate_schema(
+                            value[field_name],
+                            field_schema,
+                            path=f"{path}.{field_name}",
+                        )
+                    )
 
         return errors
