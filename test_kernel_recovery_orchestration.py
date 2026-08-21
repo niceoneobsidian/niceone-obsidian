@@ -103,7 +103,9 @@ def test_recovery_failure_remains_visible_to_supervisor():
 
     decision = supervisor.inspect(context)
 
-    assert decision.action == "recover"
+    # Runtime classifies exceptions as FailureClass.TOOL,
+    # and recovery policy maps TOOL -> fallback
+    assert decision.action == "fallback"
 
     restored = checkpoint.load(
         context.identity.execution_id
