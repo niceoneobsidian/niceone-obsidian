@@ -47,8 +47,7 @@ class ToolContract(CapabilityContract):
 
 
 class CancellationHandle(Protocol):
-    def raise_if_cancelled(self) -> None:
-        ...
+    def raise_if_cancelled(self) -> None: ...
 
 
 @dataclass
@@ -81,11 +80,9 @@ class InvocationResult:
 
 class Capability(Protocol):
     @property
-    def contract(self) -> CapabilityContract:
-        ...
+    def contract(self) -> CapabilityContract: ...
 
-    def invoke(self, request: InvocationRequest) -> InvocationResult:
-        ...
+    def invoke(self, request: InvocationRequest) -> InvocationResult: ...
 
 
 class PolicyEngine(Protocol):
@@ -93,8 +90,7 @@ class PolicyEngine(Protocol):
         self,
         request: InvocationRequest,
         contract: CapabilityContract,
-    ) -> bool:
-        ...
+    ) -> bool: ...
 
 
 class Validator(Protocol):
@@ -102,12 +98,10 @@ class Validator(Protocol):
         self,
         request: InvocationRequest,
         contract: CapabilityContract,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     def validate_output(
         self,
         result: InvocationResult,
         contract: CapabilityContract,
-    ) -> None:
-        ...
+    ) -> None: ...

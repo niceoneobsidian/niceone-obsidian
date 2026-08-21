@@ -152,16 +152,9 @@ def test_idempotency_hit_is_recorded_in_evidence():
         invocation_id="inv-evidence",
     )
 
-    events = evidence.list(
-        context.identity.execution_id
-    )
+    events = evidence.list(context.identity.execution_id)
 
-    hits = [
-        event
-        for event in events
-        if event.event_type
-        == "execution.idempotency_hit"
-    ]
+    hits = [event for event in events if event.event_type == "execution.idempotency_hit"]
 
     assert len(hits) == 1
     assert hits[0].data["invocation_id"] == "inv-evidence"
@@ -178,9 +171,7 @@ def test_runtime_idempotency_survives_runtime_restart(tmp_path):
     registry.register(capability)
 
     # Runtime instance #1.
-    first_store = SQLiteIdempotencyStore(
-        str(database)
-    )
+    first_store = SQLiteIdempotencyStore(str(database))
 
     first_runtime = ExecutionRuntime(
         registry=registry,
@@ -205,9 +196,7 @@ def test_runtime_idempotency_survives_runtime_restart(tmp_path):
     first_store.close()
 
     # Runtime instance #2 simulates a process/worker restart.
-    second_store = SQLiteIdempotencyStore(
-        str(database)
-    )
+    second_store = SQLiteIdempotencyStore(str(database))
 
     second_runtime = ExecutionRuntime(
         registry=registry,

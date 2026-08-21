@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from ois.kernel import (
     CapabilityContract,
     CapabilityRegistry,
@@ -11,8 +9,6 @@ from ois.kernel import (
     InvocationResult,
     InvocationStatus,
     JsonFileCheckpointStore,
-    PlanBuilder,
-    PlanOrchestrator,
     RiskLevel,
     SideEffectLevel,
 )
@@ -63,9 +59,7 @@ def make_runtime(capability, checkpoint_path):
 
     return ExecutionRuntime(
         registry=registry,
-        checkpoint_store=JsonFileCheckpointStore(
-            str(checkpoint_path)
-        ),
+        checkpoint_store=JsonFileCheckpointStore(str(checkpoint_path)),
         evidence=EvidenceLedger(),
         idempotency=InMemoryIdempotencyStore(),
     )
@@ -99,23 +93,13 @@ def test_checkpoint_can_be_restored_after_runtime_recreation(tmp_path):
         checkpoint_path,
     )
 
-    restored = runtime2.checkpoint_store.load(
-        execution_id
-    )
+    restored = runtime2.checkpoint_store.load(execution_id)
 
-    assert (
-        restored.identity.execution_id
-        == execution_id
-    )
+    assert restored.identity.execution_id == execution_id
 
-    assert (
-        restored.identity.tenant_id
-        == "tenant-recovery-test"
-    )
+    assert restored.identity.tenant_id == "tenant-recovery-test"
 
-    assert restored.objective == (
-        "Durable checkpoint recovery integration"
-    )
+    assert restored.objective == ("Durable checkpoint recovery integration")
 
 
 def test_restored_execution_preserves_working_memory(tmp_path):
@@ -146,15 +130,10 @@ def test_restored_execution_preserves_working_memory(tmp_path):
         checkpoint_path,
     )
 
-    restored = runtime2.checkpoint_store.load(
-        execution_id
-    )
+    restored = runtime2.checkpoint_store.load(execution_id)
 
     assert restored.working_memory
-    assert any(
-        value == result.output
-        for value in restored.working_memory.values()
-    )
+    assert any(value == result.output for value in restored.working_memory.values())
 
 
 def test_restored_execution_can_continue_with_idempotency(tmp_path):
@@ -168,7 +147,7 @@ def test_restored_execution_can_continue_with_idempotency(tmp_path):
         checkpoint_path,
     )
 
-    first = runtime1.execute(
+    runtime1.execute(
         context=context,
         capability_id="test.durable.recovery",
         version="1.0.0",
@@ -185,9 +164,7 @@ def test_restored_execution_can_continue_with_idempotency(tmp_path):
         checkpoint_path,
     )
 
-    restored = runtime2.checkpoint_store.load(
-        execution_id
-    )
+    restored = runtime2.checkpoint_store.load(execution_id)
 
     second = runtime2.execute(
         context=restored,
@@ -234,9 +211,7 @@ def test_checkpoint_store_survives_process_boundary_simulation(tmp_path):
         checkpoint_path,
     )
 
-    restored = runtime2.checkpoint_store.load(
-        execution_id
-    )
+    restored = runtime2.checkpoint_store.load(execution_id)
 
     assert restored.identity.execution_id == execution_id
     assert restored.working_memory

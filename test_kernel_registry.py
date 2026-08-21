@@ -93,9 +93,7 @@ def test_duplicate_capability_version_is_rejected():
 
     try:
         registry.register(BasicCapability("test.echo", "1.0.0"))
-        raise AssertionError(
-            "Duplicate capability/version should be rejected"
-        )
+        raise AssertionError("Duplicate capability/version should be rejected")
     except DuplicateCapabilityError:
         pass
 
@@ -121,9 +119,7 @@ def test_missing_capability_is_rejected():
 
     try:
         registry.get("test.missing", "1.0.0")
-        raise AssertionError(
-            "Missing capability should raise CapabilityNotFoundError"
-        )
+        raise AssertionError("Missing capability should raise CapabilityNotFoundError")
     except CapabilityNotFoundError:
         pass
 
@@ -145,9 +141,7 @@ def test_unregistering_missing_capability_is_rejected():
 
     try:
         registry.unregister("test.echo", "1.0.0")
-        raise AssertionError(
-            "Unregistering a missing capability should fail"
-        )
+        raise AssertionError("Unregistering a missing capability should fail")
     except CapabilityNotFoundError:
         pass
 
@@ -173,12 +167,8 @@ def test_agent_registry_requires_agent_contract():
     assert registry.get("test.agent", "1.0.0").capability is agent
 
     try:
-        registry.register(
-            BasicCapability("test.not-agent", "1.0.0")
-        )
-        raise AssertionError(
-            "AgentRegistry should require AgentContract"
-        )
+        registry.register(BasicCapability("test.not-agent", "1.0.0"))
+        raise AssertionError("AgentRegistry should require AgentContract")
     except RegistryError:
         pass
 
@@ -193,11 +183,7 @@ def test_tool_registry_requires_tool_contract():
     assert registry.get("test.tool", "1.0.0").capability is tool
 
     try:
-        registry.register(
-            BasicCapability("test.not-tool", "1.0.0")
-        )
-        raise AssertionError(
-            "ToolRegistry should require ToolContract"
-        )
+        registry.register(BasicCapability("test.not-tool", "1.0.0"))
+        raise AssertionError("ToolRegistry should require ToolContract")
     except RegistryError:
         pass

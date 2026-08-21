@@ -10,8 +10,8 @@ from ois.kernel import (
     SideEffectLevel,
 )
 from ois.kernel.evidence import EvidenceLedger
-from ois.kernel.types import ExecutionStatus, InvocationStatus
 from ois.kernel.recovery import RecoveryPolicy
+from ois.kernel.types import ExecutionStatus, InvocationStatus
 
 
 class ExplodingCapability:
@@ -77,9 +77,7 @@ def test_runtime_exception_enters_recovery_and_checkpoints():
 
     assert context.status == ExecutionStatus.EXECUTING
 
-    restored = checkpoint.load(
-        context.identity.execution_id
-    )
+    restored = checkpoint.load(context.identity.execution_id)
 
     assert restored.last_failure.value == "tool"
     assert restored.error["failure_class"] == "tool"
@@ -97,15 +95,9 @@ def test_runtime_failure_is_recorded_in_evidence():
         input_data={},
     )
 
-    events = evidence.list(
-        context.identity.execution_id
-    )
+    events = evidence.list(context.identity.execution_id)
 
-    failure_events = [
-        event
-        for event in events
-        if event.event_type == "execution.failure"
-    ]
+    failure_events = [event for event in events if event.event_type == "execution.failure"]
 
     assert len(failure_events) == 1
 

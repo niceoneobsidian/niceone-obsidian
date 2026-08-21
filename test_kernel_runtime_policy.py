@@ -2,13 +2,13 @@ from ois.kernel import (
     AuthorizationDenied,
     CapabilityContract,
     CapabilityRegistry,
-    InMemoryCheckpointStore,
     ContractValidator,
     DefaultPolicyEngine,
     EvidenceLedger,
     ExecutionContext,
     ExecutionIdentity,
     ExecutionRuntime,
+    InMemoryCheckpointStore,
     InvocationResult,
     InvocationStatus,
     RiskLevel,
@@ -86,9 +86,7 @@ def test_runtime_denied_authorization_blocks_capability_execution():
             version="1.0.0",
             input_data={},
         )
-        raise AssertionError(
-            "Runtime should reject unauthorized execution"
-        )
+        raise AssertionError("Runtime should reject unauthorized execution")
     except AuthorizationDenied:
         pass
 
@@ -154,9 +152,7 @@ def test_runtime_denies_high_risk_when_policy_limit_is_medium():
             version="1.0.0",
             input_data={},
         )
-        raise AssertionError(
-            "High-risk capability should be denied by medium-risk policy"
-        )
+        raise AssertionError("High-risk capability should be denied by medium-risk policy")
     except AuthorizationDenied:
         pass
 
@@ -189,9 +185,7 @@ def test_runtime_denies_irreversible_action_by_default():
             version="1.0.0",
             input_data={},
         )
-        raise AssertionError(
-            "Irreversible capability should be denied"
-        )
+        raise AssertionError("Irreversible capability should be denied")
     except AuthorizationDenied:
         pass
 
@@ -221,9 +215,7 @@ def test_runtime_missing_tenant_identity_is_denied():
             version="1.0.0",
             input_data={},
         )
-        raise AssertionError(
-            "Runtime should deny execution without tenant identity"
-        )
+        raise AssertionError("Runtime should deny execution without tenant identity")
     except AuthorizationDenied:
         pass
 

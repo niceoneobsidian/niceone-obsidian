@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any
 
 from .contracts import InvocationRequest, InvocationResult, InvocationStatus
 from .evidence import EvidenceLedger
@@ -24,7 +24,7 @@ class SupervisorRequest:
     objective: str
     capability_id: str
     version: str
-    input_data: Dict[str, Any]
+    input_data: dict[str, Any]
     invocation_id: str
 
 
@@ -50,7 +50,7 @@ class Supervisor:
         *,
         agent_registry: AgentRegistry | None = None,
         orchestrator: Any = None,
-        recovery_policy: Optional[RecoveryPolicy] = None,
+        recovery_policy: RecoveryPolicy | None = None,
         policy: PolicyEngine | None = None,
         evidence: EvidenceLedger | None = None,
         availability: Any = None,
@@ -69,7 +69,7 @@ class Supervisor:
         version: str,
         *,
         context: Any = None,
-        input_data: Optional[Dict[str, Any]] = None,
+        input_data: dict[str, Any] | None = None,
         invocation_id: str = "agent-selection",
     ) -> Any:
         """Resolve exactly one authorized, available agent through AgentRegistry."""
@@ -124,7 +124,7 @@ class Supervisor:
         event_type: str,
         capability_id: str,
         version: str,
-        data: Dict[str, Any],
+        data: dict[str, Any],
     ) -> None:
         if self.evidence is not None:
             self.evidence.record(
@@ -142,11 +142,11 @@ class Supervisor:
         plan: Any = None,
         context: Any = None,
         *,
-        objective: Optional[str] = None,
-        capability_id: Optional[str] = None,
-        version: Optional[str] = None,
-        input_data: Optional[Dict[str, Any]] = None,
-        invocation_id: Optional[str] = None,
+        objective: str | None = None,
+        capability_id: str | None = None,
+        version: str | None = None,
+        input_data: dict[str, Any] | None = None,
+        invocation_id: str | None = None,
     ) -> Any:
         """Execute either a plan or a single capability invocation."""
         if plan is not None:

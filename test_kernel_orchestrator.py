@@ -87,9 +87,7 @@ def test_orchestrator_does_not_complete_failed_plan():
     orchestrator = PlanOrchestrator(runtime)
 
     plan = (
-        PlanBuilder(
-            objective="Verify orchestrator failure boundary"
-        )
+        PlanBuilder(objective="Verify orchestrator failure boundary")
         .task(
             task_id="step-1",
             capability_id="test.first",
@@ -139,9 +137,7 @@ def test_orchestrator_generates_stable_task_invocation_id():
     orchestrator = PlanOrchestrator(runtime)
 
     plan = (
-        PlanBuilder(
-            objective="Verify stable task invocation identity"
-        )
+        PlanBuilder(objective="Verify stable task invocation identity")
         .task(
             task_id="stable-step",
             capability_id="test.identity",
@@ -161,8 +157,6 @@ def test_orchestrator_generates_stable_task_invocation_id():
     assert capability.invocations == 1
     assert len(capability.invocation_ids) == 1
 
-    expected = (
-        f"{context.identity.execution_id}:stable-step"
-    )
+    expected = f"{context.identity.execution_id}:stable-step"
 
     assert capability.invocation_ids[0] == expected
