@@ -1,0 +1,21 @@
+name: OIS Governance
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  governance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Run governance gate
+        run: python3 scripts/ois_governance_check.py
+      - name: Run test suite
+        run: python3 -m pytest -q
