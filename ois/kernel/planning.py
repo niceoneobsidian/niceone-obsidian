@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Mapping
+from typing import Any
 from uuid import uuid4
 
 
@@ -51,27 +52,19 @@ class TaskNode:
 
 @dataclass
 class ExecutionPlan:
-    plan_id: str = field(
-        default_factory=lambda: str(uuid4())
-    )
+    plan_id: str = field(default_factory=lambda: str(uuid4()))
 
     version: str = "1.0.0"
 
     objective: str = ""
 
-    tasks: dict[str, TaskNode] = field(
-        default_factory=dict
-    )
+    tasks: dict[str, TaskNode] = field(default_factory=dict)
 
-    metadata: Mapping[str, Any] = field(
-        default_factory=dict
-    )
+    metadata: Mapping[str, Any] = field(default_factory=dict)
 
     def add_task(self, task: TaskNode) -> None:
         if task.task_id in self.tasks:
-            raise DuplicateTaskError(
-                f"Task already exists: {task.task_id}"
-            )
+            raise DuplicateTaskError(f"Task already exists: {task.task_id}")
 
         self.tasks[task.task_id] = task
 
@@ -84,8 +77,7 @@ class ExecutionPlan:
             for dependency in task.dependencies:
                 if dependency not in self.tasks:
                     raise UnknownDependencyError(
-                        f"Task {task.task_id} depends on "
-                        f"unknown task {dependency}"
+                        f"Task {task.task_id} depends on unknown task {dependency}"
                     )
 
     def _validate_cycles(self) -> None:
@@ -94,18 +86,14 @@ class ExecutionPlan:
 
         def visit(task_id: str) -> None:
             if task_id in visiting:
-                raise CyclicPlanError(
-                    f"Dependency cycle detected at {task_id}"
-                )
+                raise CyclicPlanError(f"Dependency cycle detected at {task_id}")
 
             if task_id in visited:
                 return
 
             visiting.add(task_id)
 
-            for dependency in self.tasks[
-                task_id
-            ].dependencies:
+            for dependency in self.tasks[task_id].dependencies:
                 visit(dependency)
 
             visiting.remove(task_id)
@@ -122,8 +110,7 @@ class ExecutionPlan:
                 continue
 
             if all(
-                self.tasks[dependency].status
-                == TaskStatus.SUCCEEDED
+                self.tasks[dependency].status == TaskStatus.SUCCEEDED
                 for dependency in task.dependencies
             ):
                 task.status = TaskStatus.READY
@@ -133,16 +120,11 @@ class ExecutionPlan:
 
     def is_complete(self) -> bool:
         return all(
-            task.status
-            in {
-                TaskStatus.SUCCEEDED,
-                TaskStatus.SKIPPED,
-            }
+            task.status in {TaskStatus.SUCCEEDED, TaskStatus.SKIPPED}
             for task in self.tasks.values()
         )
 
     def has_failed(self) -> bool:
         return any(
-            task.status == TaskStatus.FAILED
-            for task in self.tasks.values()
+            task.status == TaskStatus.FAILED for task in self.tasks.values()
         )
