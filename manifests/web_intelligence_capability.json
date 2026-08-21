@@ -1,0 +1,39 @@
+{
+  "capability_id": "web.intelligence",
+  "version": "0.1.0",
+  "status": "implemented",
+  "activation": "not_activated",
+  "risk_level": "medium",
+  "permissions": ["network.read", "web.acquire"],
+  "side_effects": "none",
+  "idempotent": true,
+  "engines": [
+    "http",
+    "scrapy",
+    "crawlee",
+    "playwright",
+    "puppeteer",
+    "browser-use",
+    "crawl4ai",
+    "scrapling",
+    "katana",
+    "firecrawl-adapter"
+  ],
+  "components": [
+    "acquisition",
+    "adaptive_routing",
+    "browser_sessions",
+    "extraction",
+    "provenance",
+    "validation",
+    "learning"
+  ],
+  "evidence": {
+    "unit_tests_added": true,
+    "integration_tests": "missing",
+    "runtime_tests": "missing",
+    "security_tests": "missing",
+    "load_tests": "missing",
+    "production_verification": "missing"
+  }
+}
