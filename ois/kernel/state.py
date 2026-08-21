@@ -1,15 +1,17 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
+from contextlib import suppress
 from dataclasses import dataclass, field, fields
-from datetime import datetime, timezone
-from typing import Any, Mapping
+from datetime import UTC, datetime
+from typing import Any
 from uuid import UUID, uuid4
 
 from .types import ExecutionStatus, FailureClass, RiskLevel
 
 
 def utc_now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 @dataclass(frozen=True)
@@ -63,8 +65,7 @@ class ExecutionContext:
             ExecutionStatus.ESCALATED,
         }:
             raise ValueError(
-                f"Terminal execution status "
-                f"{self.status.value} cannot transition to "
+                f"Terminal execution status {self.status.value} cannot transition to "
                 f"{status.value}."
             )
 
@@ -72,7 +73,7 @@ class ExecutionContext:
         self.touch()
 
     @classmethod
-    def from_dict(cls, payload: Mapping[str, Any]) -> "ExecutionContext":
+    def from_dict(cls, payload: Mapping[str, Any]) -> ExecutionContext:
         """Reconstruct an execution context from a durable checkpoint payload."""
         identity_payload = payload.get("identity", {})
         if not isinstance(identity_payload, Mapping):
@@ -81,10 +82,8 @@ class ExecutionContext:
         raw_execution_id = identity_payload.get("execution_id")
         execution_id = uuid4()
         if raw_execution_id is not None:
-            try:
+            with suppress(TypeError, ValueError):
                 execution_id = UUID(str(raw_execution_id))
-            except (TypeError, ValueError):
-                pass
 
         identity = ExecutionIdentity(
             tenant_id=str(identity_payload.get("tenant_id", "default")),
@@ -106,14 +105,12 @@ class ExecutionContext:
             value = payload[name]
             current = getattr(context, name, None)
             if isinstance(current, (ExecutionStatus, FailureClass, RiskLevel)):
-                try:
+                with suppress(TypeError, ValueError):
                     value = type(current)(value)
-                except (TypeError, ValueError):
+                if not isinstance(value, type(current)):
                     continue
 
-            try:
+            with suppress(AttributeError, TypeError):
                 setattr(context, name, value)
-            except (AttributeError, TypeError):
-                continue
 
         return context
