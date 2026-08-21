@@ -2,13 +2,20 @@ name: License Compliance Scan
 
 on:
   push:
-    branches: [ "main", "automation-staging" ]
+    branches:
+      - main
+      - automation-staging
   pull_request:
-    branches: [ "main" ]
+    branches:
+      - main
+
+permissions:
+  contents: read
 
 jobs:
   license-check:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -17,26 +24,58 @@ jobs:
         uses: actions/setup-python@v7
         with:
           python-version: "3.12"
+          cache: "pip"
 
-      - name: Install dependencies
+      - name: Upgrade pip
         run: |
           python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          pip install pip-licenses
 
-      - name: Scan licenses
+      - name: Install project dependencies
         run: |
-          pip-licenses --format=markdown --output-file=THIRD_PARTY_NOTICES.md
-          echo "Checking for copyleft licenses..."
-          if pip-licenses --format=csv | grep -Ei "GPL|AGPL"; then
-            echo "::error::Copyleft (GPL/AGPL) dependency detected — review before merging."
-            exit 1
-          else
-            echo "No GPL/AGPL dependencies found."
+          if [ -f requirements.txt ]; then
+            python -m pip install -r requirements.txt
           fi
 
-      - name: Upload notices
+          if [ -f pyproject.toml ] || [ -f setup.py ]; then
+            python -m pip install -e .
+          fi
+
+      - name: Install license scanner
+        run: |
+          python -m pip install pip-licenses
+
+      - name: Generate third-party notices
+        run: |
+          python -m piplicenses \
+            --format=markdown \
+            --output-file=THIRD_PARTY_NOTICES.md
+
+      - name: Check for prohibited copyleft licenses
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "Checking for GPL/AGPL dependencies..."
+
+          python -m piplicenses \
+            --format=csv \
+            > licenses.csv
+
+          if grep -Ei '(^|,)"?[^"]*(GPL|AGPL)[^"]*"?($|,)' licenses.csv; then
+            echo "::error::GPL/AGPL dependency detected — review before merging."
+            echo
+            echo "Detected license entries:"
+            grep -Ei 'GPL|AGPL' licenses.csv || true
+            exit 1
+          fi
+
+          echo "No GPL/AGPL dependencies found."
+
+      - name: Upload license reports
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: third-party-notices
-          path: THIRD_PARTY_NOTICES.md
+          path: |
+            THIRD_PARTY_NOTICES.md
+            licenses.csv
