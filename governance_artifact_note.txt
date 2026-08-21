@@ -1,0 +1,1 @@
+Temporary archive marker for free-tier governance implementation; this file is not part of the intended main branch.
