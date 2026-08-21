@@ -104,7 +104,7 @@ class ExecutionContext:
 
             value = payload[name]
             current = getattr(context, name, None)
-            if isinstance(current, (ExecutionStatus, FailureClass, RiskLevel)):
+            if isinstance(current, ExecutionStatus | FailureClass | RiskLevel):
                 with suppress(TypeError, ValueError):
                     value = type(current)(value)
                 if not isinstance(value, type(current)):
