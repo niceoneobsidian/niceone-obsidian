@@ -32,7 +32,6 @@ class PlanOrchestrator:
         plan: ExecutionPlan,
         context: ExecutionContext,
     ) -> ExecutionPlan:
-
         plan.validate()
 
         while not plan.is_complete():
