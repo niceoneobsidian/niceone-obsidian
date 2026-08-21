@@ -3,9 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
-from .contracts import InvocationResult, InvocationStatus
+from .contracts import InvocationRequest, InvocationResult, InvocationStatus
+from .evidence import EvidenceLedger
+from .policy import DefaultPolicyEngine, PolicyEngine
 from .recovery import RecoveryDecision, RecoveryPolicy
-from .registry import CapabilityNotFoundError
+from .registry import AgentRegistry, AgentRoutingError
 
 
 class SupervisorError(Exception):
@@ -45,30 +47,92 @@ class Supervisor:
         self,
         runtime: Any = None,
         *,
-        agent_registry: Any = None,
+        agent_registry: AgentRegistry | None = None,
         orchestrator: Any = None,
         recovery_policy: Optional[RecoveryPolicy] = None,
+        policy: PolicyEngine | None = None,
+        evidence: EvidenceLedger | None = None,
+        availability: Any = None,
     ) -> None:
         self.runtime = runtime
         self.agent_registry = agent_registry
         self.orchestrator = orchestrator
         self.recovery_policy = recovery_policy or RecoveryPolicy()
+        self.policy = policy or DefaultPolicyEngine()
+        self.evidence = evidence
+        self.availability = availability
 
-    def select_agent(self, capability_id: str, version: str) -> Any:
-        """Resolve an authorized agent contract from the AgentRegistry."""
+    def select_agent(
+        self,
+        capability_id: str,
+        version: str,
+        *,
+        context: Any = None,
+        input_data: Optional[Dict[str, Any]] = None,
+        invocation_id: str = "agent-selection",
+    ) -> Any:
+        """Resolve exactly one authorized, available agent through AgentRegistry."""
         if self.agent_registry is None:
             raise AgentSelectionError("agent_registry is required for agent selection")
         if not capability_id.strip():
             raise AgentSelectionError("capability_id is required for agent selection")
         if not version.strip():
             raise AgentSelectionError("version is required for agent selection")
+        if context is None:
+            raise AgentSelectionError("context is required for governed agent selection")
+
+        request = InvocationRequest(
+            invocation_id=invocation_id,
+            capability_id=capability_id,
+            input=input_data or {},
+            execution=context,
+        )
 
         try:
-            return self.agent_registry.get(capability_id, version)
-        except CapabilityNotFoundError as exc:
-            raise AgentSelectionError(
-                f"No agent registered for {capability_id}@{version}"
-            ) from exc
+            decision = self.agent_registry.route(
+                capability_id,
+                version,
+                request=request,
+                policy=self.policy,
+                availability=self.availability,
+            )
+        except AgentRoutingError as exc:
+            self._record_selection_evidence(
+                context,
+                "agent.selection.rejected",
+                capability_id,
+                version,
+                {"reason": str(exc)},
+            )
+            raise AgentSelectionError(str(exc)) from exc
+
+        self._record_selection_evidence(
+            context,
+            "agent.selection.selected",
+            capability_id,
+            version,
+            {"reason": decision.reason},
+        )
+        return decision.selected
+
+    def _record_selection_evidence(
+        self,
+        context: Any,
+        event_type: str,
+        capability_id: str,
+        version: str,
+        data: Dict[str, Any],
+    ) -> None:
+        if self.evidence is not None:
+            self.evidence.record(
+                context.identity.execution_id,
+                event_type,
+                {
+                    "capability_id": capability_id,
+                    "version": version,
+                    **data,
+                },
+            )
 
     def execute(
         self,
