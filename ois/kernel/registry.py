@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from threading import RLock
+from typing import Any, Callable
 
 from .contracts import AgentContract, Capability, CapabilityContract, ToolContract
+from .policy import AuthorizationDenied, PolicyEngine
 
 
 class RegistryError(Exception):
@@ -18,10 +20,31 @@ class CapabilityNotFoundError(RegistryError):
     """Raised when a requested capability cannot be found."""
 
 
+class AgentRoutingError(RegistryError):
+    """Raised when an agent cannot be selected safely."""
+
+
+class AgentUnavailableError(AgentRoutingError):
+    """Raised when the registered agent is unavailable."""
+
+
+class AmbiguousAgentError(AgentRoutingError):
+    """Raised when routing produces more than one eligible agent."""
+
+
 @dataclass(frozen=True)
 class RegistryEntry:
     capability: Capability
     contract: CapabilityContract
+
+
+@dataclass(frozen=True)
+class AgentRoutingDecision:
+    capability_id: str
+    version: str
+    selected: RegistryEntry
+    candidates: tuple[RegistryEntry, ...]
+    reason: str
 
 
 class CapabilityRegistry:
@@ -84,12 +107,78 @@ class CapabilityRegistry:
 
 
 class AgentRegistry(CapabilityRegistry):
-    """Registry specialized for agent capabilities."""
+    """Registry specialized for governed agent routing."""
 
     def register(self, capability: Capability) -> None:
         if not isinstance(capability.contract, AgentContract):
             raise RegistryError("AgentRegistry requires an AgentContract.")
         super().register(capability)
+
+    def route(
+        self,
+        capability_id: str,
+        version: str,
+        *,
+        request: Any,
+        policy: PolicyEngine,
+        availability: Callable[[RegistryEntry], bool] | None = None,
+    ) -> AgentRoutingDecision:
+        """Select exactly one policy-authorized, available agent deterministically."""
+        candidates = tuple(
+            entry
+            for entry in self.list()
+            if entry.contract.capability_id == capability_id
+            and entry.contract.version == version
+            and isinstance(entry.contract, AgentContract)
+        )
+
+        if not candidates:
+            raise AgentRoutingError(
+                f"No agent registered for {capability_id}@{version}"
+            )
+
+        eligible: list[RegistryEntry] = []
+        rejected: list[str] = []
+        for entry in sorted(
+            candidates,
+            key=lambda item: (
+                item.contract.capability_id,
+                item.contract.version,
+                type(item.capability).__module__,
+                type(item.capability).__qualname__,
+            ),
+        ):
+            try:
+                policy.authorize(request, entry.contract)
+            except AuthorizationDenied as exc:
+                rejected.append(str(exc))
+                continue
+
+            if availability is not None and not availability(entry):
+                rejected.append(
+                    f"Agent unavailable: {entry.contract.capability_id}@{entry.contract.version}"
+                )
+                continue
+
+            eligible.append(entry)
+
+        if not eligible:
+            reason = "; ".join(rejected) or "No eligible agent matched routing policy."
+            raise AgentRoutingError(reason)
+
+        if len(eligible) > 1:
+            raise AmbiguousAgentError(
+                f"Ambiguous agent routing for {capability_id}@{version}: "
+                f"{len(eligible)} eligible agents"
+            )
+
+        return AgentRoutingDecision(
+            capability_id=capability_id,
+            version=version,
+            selected=eligible[0],
+            candidates=tuple(eligible),
+            reason="Selected the sole eligible agent after policy and availability filtering.",
+        )
 
 
 class ToolRegistry(CapabilityRegistry):
