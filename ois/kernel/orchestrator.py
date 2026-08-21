@@ -36,81 +36,49 @@ class PlanOrchestrator:
         plan.validate()
 
         while not plan.is_complete():
-
             ready = plan.ready_tasks()
 
             if not ready:
                 if plan.has_failed():
-                    raise PlanExecutionError(
-                        "Plan contains failed tasks "
-                        "and cannot continue."
-                    )
+                    raise PlanExecutionError("Plan contains failed tasks and cannot continue.")
 
-                raise PlanExecutionError(
-                    "No executable tasks remain. "
-                    "The plan may be blocked."
-                )
+                raise PlanExecutionError("No executable tasks remain. The plan may be blocked.")
 
             for task in ready:
-
                 task.status = TaskStatus.RUNNING
 
-                context.current_node = (
-                    task.task_id
-                )
+                context.current_node = task.task_id
 
                 try:
-
                     # Stable task-level invocation identity.
                     #
                     # The same execution + task represents the same
                     # logical invocation. This allows retries/recovery
                     # to reuse a previously completed result instead
                     # of replaying side effects.
-                    invocation_id = (
-                        f"{context.identity.execution_id}:"
-                        f"{task.task_id}"
-                    )
+                    invocation_id = f"{context.identity.execution_id}:{task.task_id}"
 
                     result = self.runtime.execute(
                         context=context,
-                        capability_id=(
-                            task.capability_id
-                        ),
-                        version=(
-                            task.capability_version
-                        ),
-                        input_data=dict(
-                            task.input_data
-                        ),
+                        capability_id=(task.capability_id),
+                        version=(task.capability_version),
+                        input_data=dict(task.input_data),
                         invocation_id=invocation_id,
                     )
 
-                    if (
-                        result.status
-                        != result.status.SUCCEEDED
-                    ):
-                        task.status = (
-                            TaskStatus.FAILED
-                        )
+                    if result.status != result.status.SUCCEEDED:
+                        task.status = TaskStatus.FAILED
 
-                        task.error = (
-                            result.error
-                        )
+                        task.error = result.error
 
                         return plan
 
                     task.output = result.output
 
-                    task.status = (
-                        TaskStatus.SUCCEEDED
-                    )
+                    task.status = TaskStatus.SUCCEEDED
 
                 except Exception as exc:
-
-                    task.status = (
-                        TaskStatus.FAILED
-                    )
+                    task.status = TaskStatus.FAILED
 
                     task.error = {
                         "type": type(exc).__name__,

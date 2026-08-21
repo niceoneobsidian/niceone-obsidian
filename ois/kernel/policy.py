@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Protocol
 
 from .contracts import (
     CapabilityContract,
     InvocationRequest,
+    PolicyEngine,
 )
 from .types import RiskLevel, SideEffectLevel
 
@@ -26,24 +26,7 @@ class PolicyDecision:
     requires_approval: bool = False
 
 
-class PolicyEngine(Protocol):
-    """
-    Policy engine interface.
-
-    Any policy engine implementation (default, RBAC/ABAC, tenant-scoped,
-    etc.) must satisfy this contract so runtime and orchestrator code can
-    depend on the interface rather than a concrete implementation.
-    """
-
-    def authorize(
-        self,
-        request: InvocationRequest,
-        contract: CapabilityContract,
-    ) -> bool:
-        ...
-
-
-class DefaultPolicyEngine:
+class DefaultPolicyEngine(PolicyEngine):
     """
     Conservative foundational policy engine.
 
@@ -92,27 +75,20 @@ class DefaultPolicyEngine:
         }
 
         if risk_order[contract.risk_level] > risk_order[self._maximum_risk]:
-            reasons.append(
-                f"Capability risk exceeds policy limit: {contract.risk_level.value}"
-            )
+            reasons.append(f"Capability risk exceeds policy limit: {contract.risk_level.value}")
 
         required_permissions = set(contract.permissions)
         missing_permissions = required_permissions - self._allowed_permissions
 
         if missing_permissions:
-            reasons.append(
-                "Missing permissions: "
-                + ", ".join(sorted(missing_permissions))
-            )
+            reasons.append("Missing permissions: " + ", ".join(sorted(missing_permissions)))
 
-        if (
-            contract.side_effects == SideEffectLevel.IRREVERSIBLE
-            and not self._allow_irreversible
-        ):
+        if contract.side_effects == SideEffectLevel.IRREVERSIBLE and not self._allow_irreversible:
             reasons.append("Irreversible side effects are not permitted.")
 
         requires_approval = (
-            contract.risk_level in {
+            contract.risk_level
+            in {
                 RiskLevel.HIGH,
                 RiskLevel.CRITICAL,
             }

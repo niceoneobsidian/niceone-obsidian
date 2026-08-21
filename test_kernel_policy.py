@@ -1,10 +1,10 @@
 from ois.kernel import (
+    AuthorizationDenied,
     CapabilityContract,
     DefaultPolicyEngine,
-    InvocationRequest,
-    AuthorizationDenied,
     ExecutionContext,
     ExecutionIdentity,
+    InvocationRequest,
     RiskLevel,
     SideEffectLevel,
 )
@@ -71,10 +71,7 @@ def test_excessive_risk_is_denied():
     decision = engine.evaluate(make_request(), contract)
 
     assert decision.allowed is False
-    assert any(
-        "risk" in reason.lower()
-        for reason in decision.reasons
-    )
+    assert any("risk" in reason.lower() for reason in decision.reasons)
 
 
 def test_missing_permission_is_denied():
@@ -92,10 +89,7 @@ def test_missing_permission_is_denied():
     decision = engine.evaluate(make_request(), contract)
 
     assert decision.allowed is False
-    assert any(
-        "missing permissions" in reason.lower()
-        for reason in decision.reasons
-    )
+    assert any("missing permissions" in reason.lower() for reason in decision.reasons)
 
 
 def test_irreversible_side_effect_is_denied_by_default():
@@ -113,10 +107,7 @@ def test_irreversible_side_effect_is_denied_by_default():
     decision = engine.evaluate(make_request(), contract)
 
     assert decision.allowed is False
-    assert any(
-        "irreversible" in reason.lower()
-        for reason in decision.reasons
-    )
+    assert any("irreversible" in reason.lower() for reason in decision.reasons)
 
 
 def test_high_risk_requires_approval():
@@ -187,8 +178,6 @@ def test_authorize_raises_when_policy_denies():
 
     try:
         engine.authorize(request, contract)
-        raise AssertionError(
-            "authorize() should raise AuthorizationDenied"
-        )
+        raise AssertionError("authorize() should raise AuthorizationDenied")
     except AuthorizationDenied:
         pass

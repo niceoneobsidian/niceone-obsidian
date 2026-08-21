@@ -1,6 +1,6 @@
 from __future__ import annotations
-from dataclasses import dataclass
 
+from dataclasses import dataclass
 from threading import RLock
 
 
@@ -44,6 +44,4 @@ class CancellationToken:
 
     def raise_if_cancelled(self) -> None:
         if self.cancelled:
-            raise ExecutionCancellation(
-                self.reason or "Execution cancelled."
-            )
+            raise ExecutionCancellation(self.reason or "Execution cancelled.")

@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 from uuid import uuid4
 
 
-class TaskStatus(str, Enum):
+class TaskStatus(StrEnum):
     PENDING = "pending"
     READY = "ready"
     RUNNING = "running"
@@ -125,6 +125,4 @@ class ExecutionPlan:
         )
 
     def has_failed(self) -> bool:
-        return any(
-            task.status == TaskStatus.FAILED for task in self.tasks.values()
-        )
+        return any(task.status == TaskStatus.FAILED for task in self.tasks.values())

@@ -69,9 +69,7 @@ def test_sqlite_idempotency_survives_store_recreation(tmp_path):
 
     database = tmp_path / "idempotency.db"
 
-    first_store = SQLiteIdempotencyStore(
-        str(database)
-    )
+    first_store = SQLiteIdempotencyStore(str(database))
 
     first = make_result("persistent-001")
 
@@ -84,13 +82,9 @@ def test_sqlite_idempotency_survives_store_recreation(tmp_path):
 
     # Simulate a runtime/process restart by creating an entirely
     # new store object against the same durable database.
-    second_store = SQLiteIdempotencyStore(
-        str(database)
-    )
+    second_store = SQLiteIdempotencyStore(str(database))
 
-    restored = second_store.get(
-        "persistent-001"
-    )
+    restored = second_store.get("persistent-001")
 
     assert restored is not None
     assert restored.invocation_id == "persistent-001"
@@ -106,9 +100,7 @@ def test_sqlite_idempotency_unknown_invocation_returns_none(tmp_path):
 
     database = tmp_path / "idempotency.db"
 
-    store = SQLiteIdempotencyStore(
-        str(database)
-    )
+    store = SQLiteIdempotencyStore(str(database))
 
     assert store.get("missing") is None
     assert store.exists("missing") is False

@@ -26,20 +26,12 @@ class EchoCapability:
             input_schema={
                 "type": "object",
                 "required": ["message"],
-                "properties": {
-                    "message": {
-                        "type": "string"
-                    }
-                },
+                "properties": {"message": {"type": "string"}},
             },
             output_schema={
                 "type": "object",
                 "required": ["message"],
-                "properties": {
-                    "message": {
-                        "type": "string"
-                    }
-                },
+                "properties": {"message": {"type": "string"}},
             },
             risk_level=RiskLevel.LOW,
             side_effects=SideEffectLevel.NONE,
@@ -50,9 +42,7 @@ class EchoCapability:
             invocation_id=request.invocation_id,
             capability_id=request.capability_id,
             status=InvocationStatus.SUCCEEDED,
-            output={
-                "message": request.input["message"]
-            },
+            output={"message": request.input["message"]},
         )
 
 
@@ -71,42 +61,32 @@ runtime = ExecutionRuntime(
 orchestrator = PlanOrchestrator(runtime)
 
 plan = (
-    PlanBuilder(
-        objective="Test deterministic DAG execution"
-    )
+    PlanBuilder(objective="Test deterministic DAG execution")
     .task(
         task_id="step-1",
         capability_id="test.echo",
         capability_version="1.0.0",
-        input_data={
-            "message": "first"
-        },
+        input_data={"message": "first"},
     )
     .task(
         task_id="step-2",
         capability_id="test.echo",
         capability_version="1.0.0",
-        input_data={
-            "message": "second"
-        },
+        input_data={"message": "second"},
         dependencies=("step-1",),
     )
     .task(
         task_id="step-3",
         capability_id="test.echo",
         capability_version="1.0.0",
-        input_data={
-            "message": "third"
-        },
+        input_data={"message": "third"},
         dependencies=("step-2",),
     )
     .build()
 )
 
 context = ExecutionContext(
-    identity=ExecutionIdentity(
-        tenant_id="default"
-    ),
+    identity=ExecutionIdentity(tenant_id="default"),
     objective=plan.objective,
 )
 
@@ -124,7 +104,4 @@ assert result.tasks["step-3"].status.value == "succeeded"
 print("KERNEL DAG TEST: PASS")
 
 for task in result.tasks.values():
-    print(
-        f"{task.task_id}: "
-        f"{task.status.value}"
-    )
+    print(f"{task.task_id}: {task.status.value}")

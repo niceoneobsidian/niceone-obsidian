@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Mapping
+from typing import Any
 
 from .contracts import CapabilityContract, InvocationRequest, InvocationResult
 
@@ -24,11 +25,11 @@ class ValidationResult:
     errors: tuple[str, ...] = ()
 
     @classmethod
-    def success(cls) -> "ValidationResult":
+    def success(cls) -> ValidationResult:
         return cls(valid=True)
 
     @classmethod
-    def failure(cls, *errors: str) -> "ValidationResult":
+    def failure(cls, *errors: str) -> ValidationResult:
         return cls(valid=False, errors=tuple(errors))
 
 
