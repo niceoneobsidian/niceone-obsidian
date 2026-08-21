@@ -1,15 +1,14 @@
 """OIS Kernel public contracts and execution primitives."""
 
-from .cancellation import (
-    CancellationToken,
-    ExecutionCancellation,
-)
+from .cancellation import CancellationToken, ExecutionCancellation
+
 from .checkpoint import (
     CheckpointNotFound,
     CheckpointStore,
     InMemoryCheckpointStore,
     JsonFileCheckpointStore,
 )
+
 from .contracts import (
     AgentContract,
     Capability,
@@ -20,12 +19,15 @@ from .contracts import (
     ToolContract,
     Validator,
 )
+
 from .evidence import EvidenceEvent, EvidenceLedger
+
 from .idempotency import (
     IdempotencyStore,
     InMemoryIdempotencyStore,
     SQLiteIdempotencyStore,
 )
+
 from .planning import (
     CyclicPlanError,
     DuplicateTaskError,
@@ -35,24 +37,30 @@ from .planning import (
     TaskStatus,
     UnknownDependencyError,
 )
+
 from .planner import PlanBuilder
+
 from .orchestrator import (
     OrchestrationError,
     PlanExecutionError,
     PlanOrchestrator,
 )
+
 from .policy import (
     AuthorizationDenied,
     DefaultPolicyEngine,
     PolicyDecision,
 )
+
 from .runtime import ExecutionError, ExecutionRuntime
 from .supervisor import Supervisor
+
 from .recovery import (
     RecoveryDecision,
     RecoveryPolicy,
     RetryLimitExceeded,
 )
+
 from .registry import (
     AgentRegistry,
     CapabilityNotFoundError,
@@ -60,7 +68,9 @@ from .registry import (
     DuplicateCapabilityError,
     ToolRegistry,
 )
+
 from .state import ExecutionContext, ExecutionIdentity
+
 from .types import (
     ExecutionStatus,
     FailureClass,
@@ -68,6 +78,7 @@ from .types import (
     RiskLevel,
     SideEffectLevel,
 )
+
 from .validation import (
     ContractValidator,
     InputValidationError,
@@ -76,21 +87,93 @@ from .validation import (
     ValidationResult,
 )
 
+
 __all__ = [
-    "AgentContract", "CancellationToken", "ExecutionCancellation",
-    "AgentRegistry", "AuthorizationDenied", "Capability", "CapabilityContract",
-    "CapabilityNotFoundError", "CapabilityRegistry", "CheckpointNotFound",
-    "CheckpointStore", "ContractValidator", "DefaultPolicyEngine",
-    "DuplicateCapabilityError", "EvidenceEvent", "EvidenceLedger",
-    "IdempotencyStore", "InMemoryIdempotencyStore", "SQLiteIdempotencyStore",
-    "ExecutionContext", "ExecutionError", "ExecutionIdentity", "ExecutionRuntime",
-    "ExecutionStatus", "FailureClass", "InputValidationError",
-    "InMemoryCheckpointStore", "JsonFileCheckpointStore", "InvocationRequest",
-    "InvocationResult", "InvocationStatus", "OrchestrationError",
-    "OutputValidationError", "PlanBuilder", "PlanError", "PlanExecutionError",
-    "PlanOrchestrator", "PolicyDecision", "ExecutionPlan", "TaskNode", "TaskStatus",
-    "CyclicPlanError", "DuplicateTaskError", "UnknownDependencyError",
-    "PolicyEngine", "RecoveryDecision", "RecoveryPolicy", "RetryLimitExceeded",
-    "RiskLevel", "SideEffectLevel", "Supervisor", "ToolContract", "ToolRegistry",
-    "ValidationError", "ValidationResult", "Validator",
+    # Contracts
+    "AgentContract",
+    "Capability",
+    "CapabilityContract",
+    "InvocationRequest",
+    "InvocationResult",
+    "PolicyEngine",
+    "ToolContract",
+    "Validator",
+
+    # Cancellation
+    "CancellationToken",
+    "ExecutionCancellation",
+
+    # Checkpoints
+    "CheckpointNotFound",
+    "CheckpointStore",
+    "InMemoryCheckpointStore",
+    "JsonFileCheckpointStore",
+
+    # Evidence
+    "EvidenceEvent",
+    "EvidenceLedger",
+
+    # Idempotency
+    "IdempotencyStore",
+    "InMemoryIdempotencyStore",
+    "SQLiteIdempotencyStore",
+
+    # Planning
+    "CyclicPlanError",
+    "DuplicateTaskError",
+    "ExecutionPlan",
+    "PlanError",
+    "TaskNode",
+    "TaskStatus",
+    "UnknownDependencyError",
+
+    # Planner
+    "PlanBuilder",
+
+    # Orchestration
+    "OrchestrationError",
+    "PlanExecutionError",
+    "PlanOrchestrator",
+
+    # Policy
+    "AuthorizationDenied",
+    "DefaultPolicyEngine",
+    "PolicyDecision",
+
+    # Runtime
+    "ExecutionError",
+    "ExecutionRuntime",
+
+    # Recovery
+    "RecoveryDecision",
+    "RecoveryPolicy",
+    "RetryLimitExceeded",
+
+    # Registry
+    "AgentRegistry",
+    "CapabilityNotFoundError",
+    "CapabilityRegistry",
+    "DuplicateCapabilityError",
+    "ToolRegistry",
+
+    # State
+    "ExecutionContext",
+    "ExecutionIdentity",
+
+    # Types
+    "ExecutionStatus",
+    "FailureClass",
+    "InvocationStatus",
+    "RiskLevel",
+    "SideEffectLevel",
+
+    # Validation
+    "ContractValidator",
+    "InputValidationError",
+    "OutputValidationError",
+    "ValidationError",
+    "ValidationResult",
+
+    # Supervisor
+    "Supervisor",
 ]
