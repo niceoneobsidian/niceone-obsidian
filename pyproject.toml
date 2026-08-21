@@ -1,3 +1,4 @@
+# Canonical OIS Python tooling configuration; TOML regexes use literal-string syntax.
 [project]
 name = "niceone-obsidian"
 version = "0.0.0"
