@@ -1,12 +1,12 @@
 from ois.kernel import (
+    CancellationToken,
     CapabilityContract,
     CapabilityRegistry,
-    CancellationToken,
+    ExecutionCancellation,
     ExecutionContext,
     ExecutionIdentity,
     ExecutionRuntime,
     ExecutionStatus,
-    ExecutionCancellation,
     InMemoryCheckpointStore,
     InvocationRequest,
     InvocationResult,
@@ -87,9 +87,7 @@ def test_cancellation_token_raises_after_cancel():
     except ExecutionCancellation as exc:
         assert "user requested cancellation" in str(exc)
     else:
-        raise AssertionError(
-            "Expected ExecutionCancellation"
-        )
+        raise AssertionError("Expected ExecutionCancellation")
 
 
 def test_runtime_stops_before_capability_when_cancelled():
@@ -147,20 +145,12 @@ def test_runtime_records_cancellation_evidence():
         invocation_id="cancel-evidence-001",
     )
 
-    events = evidence.list(
-        context.identity.execution_id
-    )
+    events = evidence.list(context.identity.execution_id)
 
-    cancellations = [
-        event
-        for event in events
-        if event.event_type == "execution.cancelled"
-    ]
+    cancellations = [event for event in events if event.event_type == "execution.cancelled"]
 
     assert len(cancellations) == 1
-    assert cancellations[0].data["invocation_id"] == (
-        "cancel-evidence-001"
-    )
+    assert cancellations[0].data["invocation_id"] == ("cancel-evidence-001")
 
 
 def test_cancellation_is_checkpointed():
@@ -190,11 +180,10 @@ def test_cancellation_is_checkpointed():
         invocation_id="cancel-checkpoint-001",
     )
 
-    restored = checkpoint.load(
-        context.identity.execution_id
-    )
+    restored = checkpoint.load(context.identity.execution_id)
 
     assert restored.status == ExecutionStatus.STOPPED
+
 
 def test_cancellation_token_is_mutable_and_reusable():
     token = CancellationToken()

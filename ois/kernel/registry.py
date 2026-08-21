@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from threading import RLock
-from typing import Any, Callable
+from typing import Any
 
 from .contracts import AgentContract, Capability, CapabilityContract, ToolContract
 from .policy import AuthorizationDenied, PolicyEngine
@@ -67,8 +68,7 @@ class CapabilityRegistry:
         with self._lock:
             if key in self._entries:
                 raise DuplicateCapabilityError(
-                    f"Capability already registered: "
-                    f"{contract.capability_id}@{contract.version}"
+                    f"Capability already registered: {contract.capability_id}@{contract.version}"
                 )
 
             self._entries[key] = RegistryEntry(
@@ -81,9 +81,7 @@ class CapabilityRegistry:
 
         with self._lock:
             if key not in self._entries:
-                raise CapabilityNotFoundError(
-                    f"Capability not found: {capability_id}@{version}"
-                )
+                raise CapabilityNotFoundError(f"Capability not found: {capability_id}@{version}")
 
             del self._entries[key]
 
@@ -133,9 +131,7 @@ class AgentRegistry(CapabilityRegistry):
         )
 
         if not candidates:
-            raise AgentRoutingError(
-                f"No agent registered for {capability_id}@{version}"
-            )
+            raise AgentRoutingError(f"No agent registered for {capability_id}@{version}")
 
         eligible: list[RegistryEntry] = []
         rejected: list[str] = []

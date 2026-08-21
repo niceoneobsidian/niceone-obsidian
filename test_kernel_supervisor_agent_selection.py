@@ -3,10 +3,10 @@ import pytest
 from ois.kernel import (
     AgentContract,
     AgentRegistry,
+    AgentSelectionError,
     RiskLevel,
     SideEffectLevel,
     Supervisor,
-    AgentSelectionError,
 )
 
 

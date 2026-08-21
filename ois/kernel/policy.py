@@ -39,8 +39,7 @@ class PolicyEngine(Protocol):
         self,
         request: InvocationRequest,
         contract: CapabilityContract,
-    ) -> bool:
-        ...
+    ) -> bool: ...
 
 
 class DefaultPolicyEngine:
@@ -92,27 +91,20 @@ class DefaultPolicyEngine:
         }
 
         if risk_order[contract.risk_level] > risk_order[self._maximum_risk]:
-            reasons.append(
-                f"Capability risk exceeds policy limit: {contract.risk_level.value}"
-            )
+            reasons.append(f"Capability risk exceeds policy limit: {contract.risk_level.value}")
 
         required_permissions = set(contract.permissions)
         missing_permissions = required_permissions - self._allowed_permissions
 
         if missing_permissions:
-            reasons.append(
-                "Missing permissions: "
-                + ", ".join(sorted(missing_permissions))
-            )
+            reasons.append("Missing permissions: " + ", ".join(sorted(missing_permissions)))
 
-        if (
-            contract.side_effects == SideEffectLevel.IRREVERSIBLE
-            and not self._allow_irreversible
-        ):
+        if contract.side_effects == SideEffectLevel.IRREVERSIBLE and not self._allow_irreversible:
             reasons.append("Irreversible side effects are not permitted.")
 
         requires_approval = (
-            contract.risk_level in {
+            contract.risk_level
+            in {
                 RiskLevel.HIGH,
                 RiskLevel.CRITICAL,
             }

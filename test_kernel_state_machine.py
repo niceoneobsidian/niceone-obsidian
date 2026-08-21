@@ -38,6 +38,7 @@ def make_context(status: ExecutionStatus = ExecutionStatus.RECEIVED) -> Executio
 # Terminal states immutable
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.parametrize(
     "terminal_status",
     [ExecutionStatus.COMPLETED, ExecutionStatus.STOPPED, ExecutionStatus.ESCALATED],
@@ -76,6 +77,7 @@ def test_terminal_state_rejection_does_not_touch_updated_at():
 # Valid transitions succeed
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.parametrize(
     "from_status,to_status",
     [
@@ -109,6 +111,7 @@ def test_valid_transition_updates_timestamp():
 # ---------------------------------------------------------------------------
 # Recovery states behave consistently regardless of prior state
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.parametrize(
     "prior_status",
@@ -152,6 +155,7 @@ def test_recovering_status_can_proceed_onward_consistently(prior_status):
 # ---------------------------------------------------------------------------
 # Documented gap: ESCALATED is not currently treated as terminal
 # ---------------------------------------------------------------------------
+
 
 def test_escalated_status_is_now_guarded_as_terminal():
     """

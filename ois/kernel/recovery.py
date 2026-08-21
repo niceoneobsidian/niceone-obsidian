@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable
 
 from .state import ExecutionContext
 from .types import ExecutionStatus, FailureClass
@@ -47,9 +46,7 @@ class RecoveryPolicy:
             raise ValueError("max_retries must be >= 0")
 
         if max_recovery_attempts < 0:
-            raise ValueError(
-                "max_recovery_attempts must be >= 0"
-            )
+            raise ValueError("max_recovery_attempts must be >= 0")
 
         self.max_retries = max_retries
         self.max_recovery_attempts = max_recovery_attempts
@@ -102,10 +99,7 @@ class RecoveryPolicy:
             )
 
         if failure == FailureClass.STATE:
-            allowed = (
-                context.recovery_attempts
-                < self.max_recovery_attempts
-            )
+            allowed = context.recovery_attempts < self.max_recovery_attempts
 
             return RecoveryDecision(
                 failure=failure,
@@ -113,9 +107,7 @@ class RecoveryPolicy:
                 retry_allowed=False,
                 terminal=not allowed,
                 reason=(
-                    "State recovery is permitted."
-                    if allowed
-                    else "State recovery limit exhausted."
+                    "State recovery is permitted." if allowed else "State recovery limit exhausted."
                 ),
             )
 
