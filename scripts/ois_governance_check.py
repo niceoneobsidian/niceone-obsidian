@@ -2,6 +2,7 @@
 
 This is a deterministic CI/local control, not server-side branch protection.
 """
+
 from __future__ import annotations
 
 import os
