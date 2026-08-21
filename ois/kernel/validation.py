@@ -75,10 +75,10 @@ class ContractValidator:
         type_validators = {
             "string": lambda v: isinstance(v, str),
             "integer": lambda v: isinstance(v, int) and not isinstance(v, bool),
-            "number": lambda v: isinstance(v, (int, float)) and not isinstance(v, bool),
+            "number": lambda v: isinstance(v, int | float) and not isinstance(v, bool),
             "boolean": lambda v: isinstance(v, bool),
             "object": lambda v: isinstance(v, Mapping),
-            "array": lambda v: isinstance(v, (list, tuple)),
+            "array": lambda v: isinstance(v, list | tuple),
         }
 
         if isinstance(expected_type, str):
@@ -88,12 +88,12 @@ class ContractValidator:
                 return errors
 
         enum = schema.get("enum")
-        if isinstance(enum, (list, tuple)) and value not in enum:
+        if isinstance(enum, list | tuple) and value not in enum:
             errors.append(f"{path}: value is not one of the allowed enum values.")
 
         required = schema.get("required")
         properties = schema.get("properties")
-        if isinstance(required, (list, tuple)) and isinstance(value, Mapping):
+        if isinstance(required, list | tuple) and isinstance(value, Mapping):
             for field_name in required:
                 if isinstance(field_name, str) and field_name not in value:
                     errors.append(f"{path}: missing required field '{field_name}'.")
