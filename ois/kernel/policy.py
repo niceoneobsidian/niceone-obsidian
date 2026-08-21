@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass
+from typing import Protocol
 
 from .contracts import (
     CapabilityContract,
@@ -23,6 +24,23 @@ class PolicyDecision:
     allowed: bool
     reasons: tuple[str, ...] = ()
     requires_approval: bool = False
+
+
+class PolicyEngine(Protocol):
+    """
+    Policy engine interface.
+
+    Any policy engine implementation (default, RBAC/ABAC, tenant-scoped,
+    etc.) must satisfy this contract so runtime and orchestrator code can
+    depend on the interface rather than a concrete implementation.
+    """
+
+    def authorize(
+        self,
+        request: InvocationRequest,
+        contract: CapabilityContract,
+    ) -> bool:
+        ...
 
 
 class DefaultPolicyEngine:
