@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import asdict
-from datetime import datetime
+from pathlib import Path
 from threading import RLock
 from typing import Protocol
 from uuid import UUID
@@ -73,13 +73,11 @@ class JsonFileCheckpointStore:
     """Durable filesystem-backed checkpoint store."""
 
     def __init__(self, root_path: str = ".ois/checkpoints") -> None:
-        from pathlib import Path
-
         self._root = Path(root_path)
         self._root.mkdir(parents=True, exist_ok=True)
         self._lock = RLock()
 
-    def _path(self, execution_id: UUID | str):
+    def _path(self, execution_id: UUID | str) -> Path:
         return self._root / f"{execution_id}.json"
 
     def save(self, context: ExecutionContext) -> None:
