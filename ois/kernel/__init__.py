@@ -4,7 +4,6 @@ from .cancellation import (
     CancellationToken,
     ExecutionCancellation,
 )
-
 from .checkpoint import (
     CheckpointNotFound,
     CheckpointStore,
@@ -53,6 +52,7 @@ from .supervisor import (
     SupervisionDecision,
     Supervisor,
     SupervisorError,
+    SupervisorRequest,
 )
 from .recovery import (
     RecoveryDecision,
@@ -61,6 +61,10 @@ from .recovery import (
 )
 from .registry import (
     AgentRegistry,
+    AgentRoutingDecision,
+    AgentRoutingError,
+    AgentUnavailableError,
+    AmbiguousAgentError,
     CapabilityNotFoundError,
     CapabilityRegistry,
     DuplicateCapabilityError,
@@ -87,6 +91,10 @@ __all__ = [
     "CancellationToken",
     "ExecutionCancellation",
     "AgentRegistry",
+    "AgentRoutingDecision",
+    "AgentRoutingError",
+    "AgentUnavailableError",
+    "AmbiguousAgentError",
     "AuthorizationDenied",
     "Capability",
     "CapabilityContract",
@@ -109,6 +117,7 @@ __all__ = [
     "SupervisionDecision",
     "Supervisor",
     "SupervisorError",
+    "SupervisorRequest",
     "ExecutionIdentity",
     "ExecutionStatus",
     "FailureClass",
@@ -143,5 +152,3 @@ __all__ = [
     "ValidationResult",
     "Validator",
 ]
-
-from .supervisor import Supervisor, SupervisorRequest

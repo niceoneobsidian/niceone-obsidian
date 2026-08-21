@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from datetime import datetime, timezone
 from typing import Any, Mapping
 from uuid import UUID, uuid4
@@ -71,67 +71,49 @@ class ExecutionContext:
         self.status = status
         self.touch()
 
+    @classmethod
+    def from_dict(cls, payload: Mapping[str, Any]) -> "ExecutionContext":
+        """Reconstruct an execution context from a durable checkpoint payload."""
+        identity_payload = payload.get("identity", {})
+        if not isinstance(identity_payload, Mapping):
+            identity_payload = {}
 
-# ------------------------------------------------------------------
-# Durable checkpoint reconstruction
-# ------------------------------------------------------------------
-
-def _execution_context_from_dict(cls, payload):
-    """
-    Reconstruct ExecutionContext from a durable checkpoint payload.
-
-    Kept as a compatibility layer so the existing state model does not
-    need to change its public construction semantics.
-    """
-    from dataclasses import fields
-
-    identity_payload = payload.get("identity", {})
-    from uuid import UUID
-
-    raw_execution_id = identity_payload.get("execution_id")
-
-    if raw_execution_id is not None:
-        try:
-            raw_execution_id = UUID(str(raw_execution_id))
-        except (TypeError, ValueError):
-            pass
-
-    identity = ExecutionIdentity(
-        tenant_id=identity_payload.get("tenant_id", ""),
-        execution_id=raw_execution_id,
-    )
-
-    context = cls(
-        identity=identity,
-        objective=payload.get("objective", ""),
-    )
-
-    for field_name in fields(context):
-        name = field_name.name
-
-        if name in {"identity", "objective"}:
-            continue
-
-        if name not in payload:
-            continue
-
-        value = payload[name]
-
-        current = getattr(context, name, None)
-
-        if hasattr(current, "__class__") and hasattr(current.__class__, "__members__"):
+        raw_execution_id = identity_payload.get("execution_id")
+        execution_id = uuid4()
+        if raw_execution_id is not None:
             try:
-                value = current.__class__(value)
-            except Exception:
+                execution_id = UUID(str(raw_execution_id))
+            except (TypeError, ValueError):
                 pass
 
-        try:
-            setattr(context, name, value)
-        except Exception:
-            pass
+        identity = ExecutionIdentity(
+            tenant_id=str(identity_payload.get("tenant_id", "default")),
+            execution_id=execution_id,
+            workflow_id=identity_payload.get("workflow_id"),
+            workflow_version=identity_payload.get("workflow_version"),
+        )
 
-    return context
+        context = cls(
+            identity=identity,
+            objective=str(payload.get("objective", "")),
+        )
 
+        for field_info in fields(context):
+            name = field_info.name
+            if name in {"identity", "objective"} or name not in payload:
+                continue
 
-if not hasattr(ExecutionContext, "from_dict"):
-    ExecutionContext.from_dict = classmethod(_execution_context_from_dict)
+            value = payload[name]
+            current = getattr(context, name, None)
+            if isinstance(current, (ExecutionStatus, FailureClass, RiskLevel)):
+                try:
+                    value = type(current)(value)
+                except (TypeError, ValueError):
+                    continue
+
+            try:
+                setattr(context, name, value)
+            except (AttributeError, TypeError):
+                continue
+
+        return context

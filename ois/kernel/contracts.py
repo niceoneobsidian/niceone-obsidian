@@ -45,6 +45,11 @@ class ToolContract(CapabilityContract):
     requires_approval: bool = False
 
 
+class CancellationHandle(Protocol):
+    def raise_if_cancelled(self) -> None:
+        ...
+
+
 @dataclass
 class InvocationRequest:
     invocation_id: str
@@ -55,7 +60,7 @@ class InvocationRequest:
 
     timeout_seconds: float | None = None
     attempt: int = 0
-    cancellation: object | None = None
+    cancellation: CancellationHandle | None = None
 
 
 @dataclass
