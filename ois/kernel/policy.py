@@ -1,12 +1,11 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable
 
 from .contracts import (
     CapabilityContract,
     InvocationRequest,
-    PolicyEngine,
 )
 from .types import RiskLevel, SideEffectLevel
 
@@ -53,9 +52,7 @@ class DefaultPolicyEngine:
         decision = self.evaluate(request, contract)
 
         if not decision.allowed:
-            raise AuthorizationDenied(
-                "; ".join(decision.reasons)
-            )
+            raise AuthorizationDenied("; ".join(decision.reasons))
 
         return True
 
@@ -78,14 +75,11 @@ class DefaultPolicyEngine:
 
         if risk_order[contract.risk_level] > risk_order[self._maximum_risk]:
             reasons.append(
-                f"Capability risk exceeds policy limit: "
-                f"{contract.risk_level.value}"
+                f"Capability risk exceeds policy limit: {contract.risk_level.value}"
             )
 
         required_permissions = set(contract.permissions)
-        missing_permissions = (
-            required_permissions - self._allowed_permissions
-        )
+        missing_permissions = required_permissions - self._allowed_permissions
 
         if missing_permissions:
             reasons.append(
@@ -97,9 +91,7 @@ class DefaultPolicyEngine:
             contract.side_effects == SideEffectLevel.IRREVERSIBLE
             and not self._allow_irreversible
         ):
-            reasons.append(
-                "Irreversible side effects are not permitted."
-            )
+            reasons.append("Irreversible side effects are not permitted.")
 
         requires_approval = (
             contract.risk_level in {
