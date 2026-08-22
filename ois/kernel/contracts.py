@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Any, Mapping, Protocol
+from typing import Any, Protocol
 
 from .state import ExecutionContext
 from .types import (
@@ -45,6 +46,10 @@ class ToolContract(CapabilityContract):
     requires_approval: bool = False
 
 
+class CancellationHandle(Protocol):
+    def raise_if_cancelled(self) -> None: ...
+
+
 @dataclass
 class InvocationRequest:
     invocation_id: str
@@ -55,7 +60,7 @@ class InvocationRequest:
 
     timeout_seconds: float | None = None
     attempt: int = 0
-    cancellation: object | None = None
+    cancellation: CancellationHandle | None = None
 
 
 @dataclass
@@ -75,11 +80,9 @@ class InvocationResult:
 
 class Capability(Protocol):
     @property
-    def contract(self) -> CapabilityContract:
-        ...
+    def contract(self) -> CapabilityContract: ...
 
-    def invoke(self, request: InvocationRequest) -> InvocationResult:
-        ...
+    def invoke(self, request: InvocationRequest) -> InvocationResult: ...
 
 
 class PolicyEngine(Protocol):
@@ -87,8 +90,7 @@ class PolicyEngine(Protocol):
         self,
         request: InvocationRequest,
         contract: CapabilityContract,
-    ) -> bool:
-        ...
+    ) -> bool: ...
 
 
 class Validator(Protocol):
@@ -96,12 +98,10 @@ class Validator(Protocol):
         self,
         request: InvocationRequest,
         contract: CapabilityContract,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     def validate_output(
         self,
         result: InvocationResult,
         contract: CapabilityContract,
-    ) -> None:
-        ...
+    ) -> None: ...

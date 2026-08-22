@@ -27,6 +27,7 @@ def make_context() -> ExecutionContext:
 # Retry limit (transient failures)
 # ---------------------------------------------------------------------------
 
+
 def test_transient_retries_until_limit_then_escalates():
     policy = RecoveryPolicy(max_retries=2, max_recovery_attempts=3)
     context = make_context()
@@ -82,6 +83,7 @@ def test_transient_retry_boundary_one_retry_allows_exactly_one():
 # Recovery-attempt limit (state failures) — distinct counter from retries
 # ---------------------------------------------------------------------------
 
+
 def test_state_recovery_attempts_until_limit_then_escalates():
     policy = RecoveryPolicy(max_retries=2, max_recovery_attempts=2)
     context = make_context()
@@ -121,6 +123,7 @@ def test_retry_count_and_recovery_attempts_are_independent_counters():
 # ---------------------------------------------------------------------------
 # Terminal escalation / stop behavior
 # ---------------------------------------------------------------------------
+
 
 def test_safety_failure_always_stops_regardless_of_counters():
     policy = RecoveryPolicy(max_retries=5, max_recovery_attempts=5)
@@ -165,6 +168,7 @@ def test_permission_failure_escalates_but_is_not_marked_terminal():
 # Constructor validation
 # ---------------------------------------------------------------------------
 
+
 def test_negative_max_retries_rejected():
     with pytest.raises(ValueError):
         RecoveryPolicy(max_retries=-1)
@@ -178,6 +182,7 @@ def test_negative_max_recovery_attempts_rejected():
 # ---------------------------------------------------------------------------
 # Error/context bookkeeping
 # ---------------------------------------------------------------------------
+
 
 def test_apply_records_failure_and_error_detail_on_context():
     policy = RecoveryPolicy()

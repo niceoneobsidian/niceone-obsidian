@@ -7,11 +7,9 @@ from .contracts import InvocationResult
 
 
 class IdempotencyStore(Protocol):
-    def get(self, invocation_id: str) -> InvocationResult | None:
-        ...
+    def get(self, invocation_id: str) -> InvocationResult | None: ...
 
-    def put(self, invocation_id: str, result: InvocationResult) -> None:
-        ...
+    def put(self, invocation_id: str, result: InvocationResult) -> None: ...
 
 
 class InMemoryIdempotencyStore:

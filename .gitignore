@@ -45,4 +45,5 @@ checkpoints/
 credentials.json
 secrets.json
 *.pem
-*.key
+*.key.venv/
+.venv/

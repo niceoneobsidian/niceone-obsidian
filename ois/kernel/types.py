@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 
 
-class ExecutionStatus(str, Enum):
+class ExecutionStatus(StrEnum):
     RECEIVED = "received"
     NORMALIZED = "normalized"
     UNDERSTOOD = "understood"
@@ -27,14 +27,14 @@ class ExecutionStatus(str, Enum):
     STOPPED = "stopped"
 
 
-class RiskLevel(str, Enum):
+class RiskLevel(StrEnum):
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
     CRITICAL = "critical"
 
 
-class FailureClass(str, Enum):
+class FailureClass(StrEnum):
     TRANSIENT = "transient"
     PARAMETER = "parameter"
     TOOL = "tool"
@@ -45,7 +45,7 @@ class FailureClass(str, Enum):
     UNKNOWN = "unknown"
 
 
-class InvocationStatus(str, Enum):
+class InvocationStatus(StrEnum):
     PENDING = "pending"
     RUNNING = "running"
     SUCCEEDED = "succeeded"
@@ -54,7 +54,7 @@ class InvocationStatus(str, Enum):
     TIMED_OUT = "timed_out"
 
 
-class SideEffectLevel(str, Enum):
+class SideEffectLevel(StrEnum):
     NONE = "none"
     REVERSIBLE = "reversible"
     IRREVERSIBLE = "irreversible"

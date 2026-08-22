@@ -2,6 +2,10 @@
 
 from .cancellation import CancellationToken, ExecutionCancellation
 
+from .cancellation import (
+    CancellationToken,
+    ExecutionCancellation,
+)
 from .checkpoint import (
     CheckpointNotFound,
     CheckpointStore,
@@ -28,6 +32,12 @@ from .idempotency import (
     SQLiteIdempotencyStore,
 )
 
+from .orchestrator import (
+    OrchestrationError,
+    PlanExecutionError,
+    PlanOrchestrator,
+)
+from .planner import PlanBuilder
 from .planning import (
     CyclicPlanError,
     DuplicateTaskError,
@@ -63,6 +73,10 @@ from .recovery import (
 
 from .registry import (
     AgentRegistry,
+    AgentRoutingDecision,
+    AgentRoutingError,
+    AgentUnavailableError,
+    AmbiguousAgentError,
     CapabilityNotFoundError,
     CapabilityRegistry,
     DuplicateCapabilityError,
@@ -71,6 +85,15 @@ from .registry import (
 
 from .state import ExecutionContext, ExecutionIdentity
 
+from .runtime import ExecutionError, ExecutionRuntime
+from .state import ExecutionContext, ExecutionIdentity
+from .supervisor import (
+    AgentSelectionError,
+    SupervisionDecision,
+    Supervisor,
+    SupervisorError,
+    SupervisorRequest,
+)
 from .types import (
     ExecutionStatus,
     FailureClass,
@@ -91,6 +114,14 @@ from .validation import (
 __all__ = [
     # Contracts
     "AgentContract",
+    "CancellationToken",
+    "ExecutionCancellation",
+    "AgentRegistry",
+    "AgentRoutingDecision",
+    "AgentRoutingError",
+    "AgentUnavailableError",
+    "AmbiguousAgentError",
+    "AuthorizationDenied",
     "Capability",
     "CapabilityContract",
     "InvocationRequest",
@@ -121,6 +152,30 @@ __all__ = [
     # Planning
     "CyclicPlanError",
     "DuplicateTaskError",
+    "ExecutionContext",
+    "ExecutionError",
+    "ExecutionRuntime",
+    "AgentSelectionError",
+    "SupervisionDecision",
+    "Supervisor",
+    "SupervisorError",
+    "SupervisorRequest",
+    "ExecutionIdentity",
+    "ExecutionStatus",
+    "FailureClass",
+    "InputValidationError",
+    "InMemoryCheckpointStore",
+    "JsonFileCheckpointStore",
+    "InvocationRequest",
+    "InvocationResult",
+    "InvocationStatus",
+    "OrchestrationError",
+    "OutputValidationError",
+    "PlanBuilder",
+    "PlanError",
+    "PlanExecutionError",
+    "PlanOrchestrator",
+    "PolicyDecision",
     "ExecutionPlan",
     "PlanError",
     "TaskNode",
@@ -176,4 +231,6 @@ __all__ = [
 
     # Supervisor
     "Supervisor",
+]
+    "Validator",
 ]

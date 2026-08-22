@@ -71,13 +71,9 @@ def test_checkpoint_snapshot_contains_expected_representation():
 
     store.save(context)
 
-    snapshot = store.snapshot(
-        context.identity.execution_id
-    )
+    snapshot = store.snapshot(context.identity.execution_id)
 
-    assert snapshot["execution_id"] == str(
-        context.identity.execution_id
-    )
+    assert snapshot["execution_id"] == str(context.identity.execution_id)
     assert snapshot["status"] == "received"
     assert "created_at" in snapshot
     assert "updated_at" in snapshot
@@ -101,9 +97,7 @@ def test_checkpoint_delete_removes_checkpoint():
 
 def test_missing_checkpoint_snapshot_raises():
     store = InMemoryCheckpointStore()
-    execution_id = ExecutionIdentity(
-        tenant_id="default"
-    ).execution_id
+    execution_id = ExecutionIdentity(tenant_id="default").execution_id
 
     with pytest.raises(CheckpointNotFound):
         store.snapshot(execution_id)
@@ -112,9 +106,7 @@ def test_missing_checkpoint_snapshot_raises():
 def test_evidence_record_preserves_event_relationships():
     ledger = EvidenceLedger()
 
-    execution_id = ExecutionIdentity(
-        tenant_id="default"
-    ).execution_id
+    execution_id = ExecutionIdentity(tenant_id="default").execution_id
 
     event1 = ledger.record(
         execution_id=execution_id,
@@ -137,20 +129,14 @@ def test_evidence_record_preserves_event_relationships():
     assert event1.actor == "test"
     assert event1.component == "test.kernel"
 
-    assert event2.correlation_id == str(
-        event1.event_id
-    )
-    assert event2.causation_id == str(
-        event1.event_id
-    )
+    assert event2.correlation_id == str(event1.event_id)
+    assert event2.causation_id == str(event1.event_id)
 
 
 def test_evidence_ledger_is_append_only_and_ordered():
     ledger = EvidenceLedger()
 
-    execution_id = ExecutionIdentity(
-        tenant_id="default"
-    ).execution_id
+    execution_id = ExecutionIdentity(tenant_id="default").execution_id
 
     event1 = ledger.record(
         execution_id=execution_id,
@@ -174,13 +160,9 @@ def test_evidence_ledger_is_append_only_and_ordered():
 def test_evidence_filters_by_execution():
     ledger = EvidenceLedger()
 
-    execution_id = ExecutionIdentity(
-        tenant_id="default"
-    ).execution_id
+    execution_id = ExecutionIdentity(tenant_id="default").execution_id
 
-    other_execution = ExecutionIdentity(
-        tenant_id="default"
-    ).execution_id
+    other_execution = ExecutionIdentity(tenant_id="default").execution_id
 
     ledger.record(
         execution_id=execution_id,
@@ -194,13 +176,9 @@ def test_evidence_filters_by_execution():
 def test_evidence_counts_match_events():
     ledger = EvidenceLedger()
 
-    execution_id = ExecutionIdentity(
-        tenant_id="default"
-    ).execution_id
+    execution_id = ExecutionIdentity(tenant_id="default").execution_id
 
-    other_execution = ExecutionIdentity(
-        tenant_id="default"
-    ).execution_id
+    other_execution = ExecutionIdentity(tenant_id="default").execution_id
 
     ledger.record(
         execution_id=execution_id,
@@ -222,9 +200,7 @@ def test_evidence_counts_match_events():
 def test_evidence_event_serialization_is_json_friendly():
     ledger = EvidenceLedger()
 
-    execution_id = ExecutionIdentity(
-        tenant_id="default"
-    ).execution_id
+    execution_id = ExecutionIdentity(tenant_id="default").execution_id
 
     event = ledger.record(
         execution_id=execution_id,

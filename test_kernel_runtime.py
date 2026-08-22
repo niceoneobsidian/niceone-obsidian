@@ -24,20 +24,12 @@ class EchoCapability:
             input_schema={
                 "type": "object",
                 "required": ["message"],
-                "properties": {
-                    "message": {
-                        "type": "string"
-                    }
-                },
+                "properties": {"message": {"type": "string"}},
             },
             output_schema={
                 "type": "object",
                 "required": ["message"],
-                "properties": {
-                    "message": {
-                        "type": "string"
-                    }
-                },
+                "properties": {"message": {"type": "string"}},
             },
             risk_level=RiskLevel.LOW,
             side_effects=SideEffectLevel.NONE,
@@ -48,9 +40,7 @@ class EchoCapability:
             invocation_id=request.invocation_id,
             capability_id=request.capability_id,
             status=InvocationStatus.SUCCEEDED,
-            output={
-                "message": request.input["message"]
-            },
+            output={"message": request.input["message"]},
         )
 
 
@@ -67,9 +57,7 @@ runtime = ExecutionRuntime(
 )
 
 execution = ExecutionContext(
-    identity=ExecutionIdentity(
-        tenant_id="default"
-    ),
+    identity=ExecutionIdentity(tenant_id="default"),
     objective="Test Kernel runtime",
 )
 
@@ -77,9 +65,7 @@ result = runtime.execute(
     context=execution,
     capability_id="test.echo",
     version="1.0.0",
-    input_data={
-        "message": "OIS Kernel runtime operational"
-    },
+    input_data={"message": "OIS Kernel runtime operational"},
 )
 
 # Runtime executes one task.
@@ -93,15 +79,11 @@ runtime.complete(execution)
 
 assert execution.status.value == "completed"
 
-restored = checkpoint.load(
-    execution.identity.execution_id
-)
+restored = checkpoint.load(execution.identity.execution_id)
 
 assert restored.status.value == "completed"
 
-events = evidence.list(
-    execution.identity.execution_id
-)
+events = evidence.list(execution.identity.execution_id)
 
 assert len(events) >= 5
 

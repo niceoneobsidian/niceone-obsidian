@@ -1,6 +1,3 @@
-
-from pathlib import Path
-
 from ois.kernel import (
     ExecutionContext,
     ExecutionIdentity,
@@ -18,75 +15,48 @@ def make_context():
 
 
 def test_json_checkpoint_store_persists_execution(tmp_path):
-    store = JsonFileCheckpointStore(
-        str(tmp_path / "checkpoints")
-    )
+    store = JsonFileCheckpointStore(str(tmp_path / "checkpoints"))
 
     context = make_context()
     context.working_memory["answer"] = {"value": 42}
 
     store.save(context)
 
-    assert store.exists(
-        context.identity.execution_id
-    )
+    assert store.exists(context.identity.execution_id)
 
-    restored = store.load(
-        context.identity.execution_id
-    )
+    restored = store.load(context.identity.execution_id)
 
-    assert (
-        restored.identity.execution_id
-        == context.identity.execution_id
-    )
-    assert (
-        restored.identity.tenant_id
-        == context.identity.tenant_id
-    )
+    assert restored.identity.execution_id == context.identity.execution_id
+    assert restored.identity.tenant_id == context.identity.tenant_id
     assert restored.objective == context.objective
-    assert restored.working_memory["answer"] == {
-        "value": 42
-    }
+    assert restored.working_memory["answer"] == {"value": 42}
 
 
 def test_json_checkpoint_survives_store_recreation(tmp_path):
     checkpoint_path = tmp_path / "checkpoints"
 
-    first_store = JsonFileCheckpointStore(
-        str(checkpoint_path)
-    )
+    first_store = JsonFileCheckpointStore(str(checkpoint_path))
 
     context = make_context()
     context.working_memory["survives_restart"] = True
 
     first_store.save(context)
 
-    second_store = JsonFileCheckpointStore(
-        str(checkpoint_path)
-    )
+    second_store = JsonFileCheckpointStore(str(checkpoint_path))
 
-    restored = second_store.load(
-        context.identity.execution_id
-    )
+    restored = second_store.load(context.identity.execution_id)
 
-    assert (
-        restored.working_memory["survives_restart"]
-        is True
-    )
+    assert restored.working_memory["survives_restart"] is True
 
 
 def test_json_checkpoint_missing_execution_raises(tmp_path):
     from ois.kernel import CheckpointNotFound
 
-    store = JsonFileCheckpointStore(
-        str(tmp_path / "checkpoints")
-    )
+    store = JsonFileCheckpointStore(str(tmp_path / "checkpoints"))
 
     try:
         store.load("missing-execution")
     except CheckpointNotFound:
         pass
     else:
-        raise AssertionError(
-            "Expected CheckpointNotFound"
-        )
+        raise AssertionError("Expected CheckpointNotFound")

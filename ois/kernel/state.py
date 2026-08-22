@@ -1,15 +1,17 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Any, Mapping
+from collections.abc import Mapping
+from contextlib import suppress
+from dataclasses import dataclass, field, fields
+from datetime import UTC, datetime
+from typing import Any
 from uuid import UUID, uuid4
 
 from .types import ExecutionStatus, FailureClass, RiskLevel
 
 
 def utc_now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 @dataclass(frozen=True)
@@ -63,75 +65,52 @@ class ExecutionContext:
             ExecutionStatus.ESCALATED,
         }:
             raise ValueError(
-                f"Terminal execution status "
-                f"{self.status.value} cannot transition to "
+                f"Terminal execution status {self.status.value} cannot transition to "
                 f"{status.value}."
             )
 
         self.status = status
         self.touch()
 
+    @classmethod
+    def from_dict(cls, payload: Mapping[str, Any]) -> ExecutionContext:
+        """Reconstruct an execution context from a durable checkpoint payload."""
+        identity_payload = payload.get("identity", {})
+        if not isinstance(identity_payload, Mapping):
+            identity_payload = {}
 
-# ------------------------------------------------------------------
-# Durable checkpoint reconstruction
-# ------------------------------------------------------------------
+        raw_execution_id = identity_payload.get("execution_id")
+        execution_id = uuid4()
+        if raw_execution_id is not None:
+            with suppress(TypeError, ValueError):
+                execution_id = UUID(str(raw_execution_id))
 
-def _execution_context_from_dict(cls, payload):
-    """
-    Reconstruct ExecutionContext from a durable checkpoint payload.
+        identity = ExecutionIdentity(
+            tenant_id=str(identity_payload.get("tenant_id", "default")),
+            execution_id=execution_id,
+            workflow_id=identity_payload.get("workflow_id"),
+            workflow_version=identity_payload.get("workflow_version"),
+        )
 
-    Kept as a compatibility layer so the existing state model does not
-    need to change its public construction semantics.
-    """
-    from dataclasses import fields
+        context = cls(
+            identity=identity,
+            objective=str(payload.get("objective", "")),
+        )
 
-    identity_payload = payload.get("identity", {})
-    from uuid import UUID
+        for field_info in fields(context):
+            name = field_info.name
+            if name in {"identity", "objective"} or name not in payload:
+                continue
 
-    raw_execution_id = identity_payload.get("execution_id")
+            value = payload[name]
+            current = getattr(context, name, None)
+            if isinstance(current, ExecutionStatus | FailureClass | RiskLevel):
+                with suppress(TypeError, ValueError):
+                    value = type(current)(value)
+                if not isinstance(value, type(current)):
+                    continue
 
-    if raw_execution_id is not None:
-        try:
-            raw_execution_id = UUID(str(raw_execution_id))
-        except (TypeError, ValueError):
-            pass
+            with suppress(AttributeError, TypeError):
+                setattr(context, name, value)
 
-    identity = ExecutionIdentity(
-        tenant_id=identity_payload.get("tenant_id", ""),
-        execution_id=raw_execution_id,
-    )
-
-    context = cls(
-        identity=identity,
-        objective=payload.get("objective", ""),
-    )
-
-    for field_name in fields(context):
-        name = field_name.name
-
-        if name in {"identity", "objective"}:
-            continue
-
-        if name not in payload:
-            continue
-
-        value = payload[name]
-
-        current = getattr(context, name, None)
-
-        if hasattr(current, "__class__") and hasattr(current.__class__, "__members__"):
-            try:
-                value = current.__class__(value)
-            except Exception:
-                pass
-
-        try:
-            setattr(context, name, value)
-        except Exception:
-            pass
-
-    return context
-
-
-if not hasattr(ExecutionContext, "from_dict"):
-    ExecutionContext.from_dict = classmethod(_execution_context_from_dict)
+        return context

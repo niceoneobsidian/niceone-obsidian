@@ -1,14 +1,15 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from threading import RLock
-from typing import Any, Mapping
+from typing import Any
 from uuid import UUID, uuid4
 
 
 def utc_now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 @dataclass(frozen=True)
@@ -86,11 +87,7 @@ class EvidenceLedger:
             if execution_id is None:
                 return tuple(self._events)
 
-            return tuple(
-                event
-                for event in self._events
-                if event.execution_id == execution_id
-            )
+            return tuple(event for event in self._events if event.execution_id == execution_id)
 
     def count(
         self,

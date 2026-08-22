@@ -57,9 +57,7 @@ class ExecutionRuntime:
         self.policy = policy or DefaultPolicyEngine()
         self.recovery = recovery or RecoveryPolicy()
         self.cancellation = cancellation or CancellationToken()
-        self.idempotency = (
-            idempotency or InMemoryIdempotencyStore()
-        )
+        self.idempotency = idempotency or InMemoryIdempotencyStore()
 
     def execute(
         self,
@@ -75,23 +73,13 @@ class ExecutionRuntime:
             ExecutionStatus.STOPPED,
         }:
             raise ExecutionAlreadyCompleted(
-                f"Execution cannot continue from "
-                f"{context.status.value}."
+                f"Execution cannot continue from {context.status.value}."
             )
 
         execution_id = context.identity.execution_id
+        logical_invocation_id = invocation_id or str(uuid4())
 
-        # -------------------------------------------------
-        # IDEMPOTENCY
-        # -------------------------------------------------
-        logical_invocation_id = (
-            invocation_id or str(uuid4())
-        )
-
-        cached = self.idempotency.get(
-            logical_invocation_id
-        )
-
+        cached = self.idempotency.get(logical_invocation_id)
         if cached is not None:
             self.evidence.record(
                 execution_id,
@@ -102,7 +90,6 @@ class ExecutionRuntime:
                     "invocation_id": logical_invocation_id,
                 },
             )
-
             return cached
 
         self.evidence.record(
@@ -115,53 +102,19 @@ class ExecutionRuntime:
             },
         )
 
-        context.set_status(
-            ExecutionStatus.NORMALIZED
-        )
-
-        entry = self.registry.get(
-            capability_id,
-            version,
-        )
-
-        context.set_status(
-            ExecutionStatus.PLAN_VALIDATED
-        )
+        context.set_status(ExecutionStatus.NORMALIZED)
+        entry = self.registry.get(capability_id, version)
+        context.set_status(ExecutionStatus.PLAN_VALIDATED)
 
         try:
             self.cancellation.raise_if_cancelled()
         except ExecutionCancellation as exc:
-            context.status = ExecutionStatus.STOPPED
-            context.error = str(exc)
-            context.current_node = capability_id
-
-            self.checkpoint_store.save(context)
-
-            self.evidence.record(
-                execution_id,
-                "execution.cancelled",
-                {
-                    "capability_id": capability_id,
-                    "invocation_id": logical_invocation_id,
-                    "reason": str(exc),
-                },
-            )
-
-            result = InvocationResult(
-                invocation_id=logical_invocation_id,
-                capability_id=capability_id,
-                status=InvocationStatus.FAILED,
-                output=None,
-                error=str(exc),
-            )
-
-            self.idempotency.put(
+            return self._handle_cancellation(
+                context,
+                capability_id,
+                exc,
                 logical_invocation_id,
-                result,
             )
-
-            return result
-
 
         request = InvocationRequest(
             invocation_id=logical_invocation_id,
@@ -172,14 +125,7 @@ class ExecutionRuntime:
             cancellation=self.cancellation,
         )
 
-        # -------------------------
-        # INPUT VALIDATION
-        # -------------------------
-        self.validator.validate_input(
-            request,
-            entry.contract,
-        )
-
+        self.validator.validate_input(request, entry.contract)
         self.evidence.record(
             execution_id,
             "execution.input_validated",
@@ -189,18 +135,8 @@ class ExecutionRuntime:
             },
         )
 
-        # -------------------------
-        # AUTHORIZATION
-        # -------------------------
-        self.policy.authorize(
-            request,
-            entry.contract,
-        )
-
-        context.set_status(
-            ExecutionStatus.AUTHORIZED
-        )
-
+        self.policy.authorize(request, entry.contract)
+        context.set_status(ExecutionStatus.AUTHORIZED)
         self.evidence.record(
             execution_id,
             "execution.authorized",
@@ -210,13 +146,7 @@ class ExecutionRuntime:
             },
         )
 
-        # -------------------------
-        # EXECUTION
-        # -------------------------
-        context.set_status(
-            ExecutionStatus.EXECUTING
-        )
-
+        context.set_status(ExecutionStatus.EXECUTING)
         self.evidence.record(
             execution_id,
             "capability.started",
@@ -228,13 +158,8 @@ class ExecutionRuntime:
 
         try:
             self.cancellation.raise_if_cancelled()
-
-            result = entry.capability.invoke(
-                request
-            )
-
+            result = entry.capability.invoke(request)
             self.cancellation.raise_if_cancelled()
-
         except ExecutionCancellation as exc:
             return self._handle_cancellation(
                 context,
@@ -249,30 +174,16 @@ class ExecutionRuntime:
                 logical_invocation_id,
                 exc,
             )
-
-            self.idempotency.put(
-                logical_invocation_id,
-                result,
-            )
-
+            self.idempotency.put(logical_invocation_id, result)
             return result
 
-        # -------------------------
-        # RESULT IDENTITY CHECK
-        # -------------------------
         if result.invocation_id != logical_invocation_id:
             raise ExecutionError(
-                "Capability returned an invocation_id that "
-                "does not match the requested invocation_id."
+                "Capability returned an invocation_id that does not match "
+                "the requested invocation_id."
             )
 
-        # -------------------------
-        # OBSERVATION
-        # -------------------------
-        context.set_status(
-            ExecutionStatus.OBSERVING
-        )
-
+        context.set_status(ExecutionStatus.OBSERVING)
         context.observations.append(
             {
                 "invocation_id": result.invocation_id,
@@ -292,52 +203,23 @@ class ExecutionRuntime:
             },
         )
 
-        # -------------------------
-        # OUTPUT VALIDATION
-        # -------------------------
-        context.set_status(
-            ExecutionStatus.VALIDATING
-        )
-
+        context.set_status(ExecutionStatus.VALIDATING)
         if result.status == InvocationStatus.SUCCEEDED:
-            self.validator.validate_output(
-                result,
-                entry.contract,
-            )
+            self.validator.validate_output(result, entry.contract)
 
         context.validation_results.append(
             {
                 "invocation_id": result.invocation_id,
-                "valid": (
-                    result.status
-                    == InvocationStatus.SUCCEEDED
-                ),
+                "valid": result.status == InvocationStatus.SUCCEEDED,
             }
         )
 
-        # -------------------------
-        # STATE UPDATE
-        # -------------------------
-        context.set_status(
-            ExecutionStatus.UPDATING_STATE
-        )
-
+        context.set_status(ExecutionStatus.UPDATING_STATE)
         if result.status == InvocationStatus.SUCCEEDED:
-            context.working_memory[
-                f"result:{result.invocation_id}"
-            ] = result.output
+            context.working_memory[f"result:{result.invocation_id}"] = result.output
 
-        # -------------------------
-        # CHECKPOINT
-        # -------------------------
-        context.set_status(
-            ExecutionStatus.CHECKPOINTING
-        )
-
-        self.checkpoint_store.save(
-            context
-        )
-
+        context.set_status(ExecutionStatus.CHECKPOINTING)
+        self.checkpoint_store.save(context)
         self.evidence.record(
             execution_id,
             "execution.checkpointed",
@@ -347,14 +229,7 @@ class ExecutionRuntime:
             },
         )
 
-        # -------------------------
-        # IDEMPOTENCY COMMIT
-        # -------------------------
-        self.idempotency.put(
-            logical_invocation_id,
-            result,
-        )
-
+        self.idempotency.put(logical_invocation_id, result)
         self.evidence.record(
             execution_id,
             "execution.idempotency_recorded",
@@ -365,36 +240,13 @@ class ExecutionRuntime:
             },
         )
 
-        # -------------------------
-        # RETURN TO ORCHESTRATOR
-        # -------------------------
-        # Runtime does NOT mark the entire execution
-        # completed. The orchestrator owns plan completion.
-
-        context.set_status(
-            ExecutionStatus.ROUTED
-        )
-
+        context.set_status(ExecutionStatus.ROUTED)
         return result
 
-    def complete(
-        self,
-        context: ExecutionContext,
-    ) -> None:
-        """
-        Mark the entire execution complete.
-
-        Called only after the plan/orchestrator has finished.
-        """
-
-        context.set_status(
-            ExecutionStatus.COMPLETED
-        )
-
-        self.checkpoint_store.save(
-            context
-        )
-
+    def complete(self, context: ExecutionContext) -> None:
+        """Mark the entire execution complete."""
+        context.set_status(ExecutionStatus.COMPLETED)
+        self.checkpoint_store.save(context)
         self.evidence.record(
             context.identity.execution_id,
             "execution.completed",
@@ -408,10 +260,14 @@ class ExecutionRuntime:
         invocation_id: str,
     ) -> InvocationResult:
         execution_id = context.identity.execution_id
-
-        context.set_status(
-            ExecutionStatus.STOPPED
-        )
+        context.set_status(ExecutionStatus.STOPPED)
+        context.error = {
+            "type": "ExecutionCancellation",
+            "message": str(error),
+            "failure_class": "cancellation",
+            "recovery_action": "stop",
+        }
+        context.current_node = capability_id
 
         self.evidence.record(
             execution_id,
@@ -422,10 +278,9 @@ class ExecutionRuntime:
                 "reason": str(error),
             },
         )
-
         self.checkpoint_store.save(context)
 
-        return InvocationResult(
+        result = InvocationResult(
             invocation_id=invocation_id,
             capability_id=capability_id,
             status=InvocationStatus.FAILED,
@@ -436,6 +291,8 @@ class ExecutionRuntime:
                 "recovery_action": "stop",
             },
         )
+        self.idempotency.put(invocation_id, result)
+        return result
 
     def _handle_failure(
         self,
@@ -445,13 +302,8 @@ class ExecutionRuntime:
         error: Exception,
     ) -> InvocationResult:
         execution_id = context.identity.execution_id
-
         failure_class = FailureClass.TOOL
-
-        decision = self.recovery.apply(
-            context,
-            failure_class,
-        )
+        decision = self.recovery.apply(context, failure_class)
 
         self.evidence.record(
             execution_id,
@@ -459,19 +311,12 @@ class ExecutionRuntime:
             {
                 "capability_id": capability_id,
                 "error": str(error),
-                "failure_class": (
-                    failure_class.value
-                ),
-                "recovery_action": (
-                    decision.action
-                ),
+                "failure_class": failure_class.value,
+                "recovery_action": decision.action,
                 "invocation_id": invocation_id,
             },
         )
-
-        self.checkpoint_store.save(
-            context
-        )
+        self.checkpoint_store.save(context)
 
         return InvocationResult(
             invocation_id=invocation_id,
@@ -480,11 +325,7 @@ class ExecutionRuntime:
             error={
                 "type": type(error).__name__,
                 "message": str(error),
-                "failure_class": (
-                    failure_class.value
-                ),
-                "recovery_action": (
-                    decision.action
-                ),
+                "failure_class": failure_class.value,
+                "recovery_action": decision.action,
             },
         )

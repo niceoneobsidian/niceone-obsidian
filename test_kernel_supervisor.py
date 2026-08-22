@@ -1,25 +1,38 @@
-
 from ois.kernel import (
+    CapabilityContract,
     CapabilityRegistry,
     EvidenceLedger,
     ExecutionContext,
     ExecutionIdentity,
     ExecutionRuntime,
     InMemoryCheckpointStore,
+    InvocationRequest,
+    InvocationResult,
     InvocationStatus,
+    RiskLevel,
+    SideEffectLevel,
     Supervisor,
 )
 
 
 class SupervisorCapability:
-    capability_id = "test.supervisor"
-    version = "1.0.0"
-    permissions = []
-    risk_level = "low"
-    side_effects = False
+    @property
+    def contract(self):
+        return CapabilityContract(
+            capability_id="test.supervisor",
+            version="1.0.0",
+            description="Capability used for supervisor tests.",
+            risk_level=RiskLevel.LOW,
+            side_effects=SideEffectLevel.NONE,
+        )
 
-    def execute(self, input_data):
-        return {"supervised": input_data}
+    def invoke(self, request: InvocationRequest):
+        return InvocationResult(
+            invocation_id=request.invocation_id,
+            capability_id=request.capability_id,
+            status=InvocationStatus.SUCCEEDED,
+            output={"supervised": request.input},
+        )
 
 
 def make_context():
@@ -27,7 +40,8 @@ def make_context():
         identity=ExecutionIdentity(
             execution_id="supervisor-test-001",
             tenant_id="tenant-supervisor",
-        )
+        ),
+        objective="Supervisor direct execution test",
     )
 
 

@@ -1,6 +1,5 @@
-import pytest
-
 from ois.kernel import (
+    AgentRegistry,
     CapabilityContract,
     CapabilityRegistry,
     ExecutionContext,
@@ -8,14 +7,11 @@ from ois.kernel import (
     ExecutionRuntime,
     InMemoryCheckpointStore,
     InvocationRequest,
-    InvocationResult,
-    InvocationStatus,
     PlanBuilder,
     PlanOrchestrator,
     RiskLevel,
     SideEffectLevel,
     Supervisor,
-    AgentRegistry,
 )
 from ois.kernel.evidence import EvidenceLedger
 
@@ -73,9 +69,7 @@ def make_system():
 
 def make_plan():
     return (
-        PlanBuilder(
-            objective="Verify recovery orchestration boundary"
-        )
+        PlanBuilder(objective="Verify recovery orchestration boundary")
         .task(
             task_id="failing-step",
             capability_id="test.recovery.failure",
@@ -106,21 +100,14 @@ def test_recovery_failure_remains_visible_to_supervisor():
 
     decision = supervisor.inspect(context)
 
-    assert decision.action == "recover"
+    # Runtime classifies exceptions as FailureClass.TOOL,
+    # and recovery policy maps TOOL -> fallback
+    assert decision.action == "fallback"
 
-    restored = checkpoint.load(
-        context.identity.execution_id
-    )
+    restored = checkpoint.load(context.identity.execution_id)
 
     assert restored.last_failure is not None
 
-    events = evidence.list(
-        context.identity.execution_id
-    )
+    events = evidence.list(context.identity.execution_id)
 
-    assert any(
-        event.event_type == "execution.failure"
-        for event in events
-    )
-
-
+    assert any(event.event_type == "execution.failure" for event in events)

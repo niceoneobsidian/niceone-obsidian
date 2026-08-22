@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from .planning import ExecutionPlan, TaskNode
 
@@ -15,9 +16,7 @@ class PlanBuilder:
     """
 
     def __init__(self, objective: str) -> None:
-        self._plan = ExecutionPlan(
-            objective=objective
-        )
+        self._plan = ExecutionPlan(objective=objective)
 
     def task(
         self,
@@ -27,7 +26,7 @@ class PlanBuilder:
         input_data: Mapping[str, Any] | None = None,
         dependencies: tuple[str, ...] = (),
         metadata: Mapping[str, Any] | None = None,
-    ) -> "PlanBuilder":
+    ) -> PlanBuilder:
         self._plan.add_task(
             TaskNode(
                 task_id=task_id,
