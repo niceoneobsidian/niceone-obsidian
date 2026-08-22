@@ -1,0 +1,20 @@
+{
+  "capability_id": "web.intelligence",
+  "version": "0.1.0",
+  "status": "implemented",
+  "activation": "not_activated",
+  "risk_level": "medium",
+  "permissions": ["network.read", "web.acquire"],
+  "side_effects": "none",
+  "idempotent": true,
+  "engines": ["http"],
+  "components": ["acquisition", "routing", "extraction", "validation", "provenance"],
+  "evidence": {
+    "unit_tests": "included",
+    "integration_tests": "pending",
+    "runtime_tests": "pending",
+    "security_tests": "pending",
+    "load_tests": "pending",
+    "production_verification": "pending"
+  }
+}
