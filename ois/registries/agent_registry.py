@@ -1,4 +1,5 @@
 """Agent registry."""
+
 from .base import Registry
 
 
