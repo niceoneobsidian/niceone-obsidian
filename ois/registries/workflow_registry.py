@@ -1,4 +1,5 @@
 """Workflow registry."""
+
 from .base import Registry
 
 
