@@ -72,9 +72,7 @@ def test_control_plane_rejects_invalid_capability() -> None:
     control_plane = ControlPlane()
 
     with pytest.raises(KeyError, match="not registered"):
-        control_plane.resolve_capability(
-            ControlRequest("missing.capability", "1.0.0")
-        )
+        control_plane.resolve_capability(ControlRequest("missing.capability", "1.0.0"))
 
 
 def test_control_plane_does_not_bypass_capability_registry() -> None:
@@ -82,9 +80,7 @@ def test_control_plane_does_not_bypass_capability_registry() -> None:
     control_plane = ControlPlane(capabilities=registry)
 
     with pytest.raises(KeyError, match="not registered"):
-        control_plane.resolve_capability(
-            ControlRequest("capability.example", "1.0.0")
-        )
+        control_plane.resolve_capability(ControlRequest("capability.example", "1.0.0"))
 
     registry.register("capability.example", "1.0.0", capability)
 
