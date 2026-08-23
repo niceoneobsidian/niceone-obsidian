@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Sequence
+from datetime import UTC, datetime
 
-from ois.kernel.contracts import CapabilityContract, InvocationRequest, InvocationResult
+from ois.kernel.contracts import (
+    CapabilityContract,
+    InvocationRequest,
+    InvocationResult,
+)
 from ois.kernel.types import InvocationStatus, RiskLevel, SideEffectLevel
 
 from .engines import AcquisitionEngine
@@ -32,9 +36,21 @@ class WebIntelligenceCapability:
         return CapabilityContract(
             capability_id="web.intelligence",
             version="0.1.0",
-            description="Governed read-only web acquisition, extraction, validation and provenance.",
-            input_schema={"url": "string", "objective": "string", "extract_schema": "object"},
-            output_schema={"success": "boolean", "source": "object", "extracted": "object", "evidence": "object"},
+            description=(
+                "Governed read-only web acquisition, extraction, "
+                "validation and provenance."
+            ),
+            input_schema={
+                "url": "string",
+                "objective": "string",
+                "extract_schema": "object",
+            },
+            output_schema={
+                "success": "boolean",
+                "source": "object",
+                "extracted": "object",
+                "evidence": "object",
+            },
             risk_level=RiskLevel.MEDIUM,
             permissions=("network.read", "web.acquire"),
             allowed_domains=(),
@@ -45,7 +61,7 @@ class WebIntelligenceCapability:
         )
 
     def invoke(self, request: InvocationRequest) -> InvocationResult:
-        started = datetime.now(timezone.utc).isoformat()
+        started = datetime.now(UTC).isoformat()
         try:
             data = dict(request.input)
             result = self.execute(
@@ -60,11 +76,18 @@ class WebIntelligenceCapability:
             return InvocationResult(
                 invocation_id=request.invocation_id,
                 capability_id=self.contract.capability_id,
-                status=InvocationStatus.SUCCEEDED if result.success else InvocationStatus.FAILED,
+                status=(
+                    InvocationStatus.SUCCEEDED
+                    if result.success
+                    else InvocationStatus.FAILED
+                ),
                 output=result,
                 started_at=started,
-                completed_at=datetime.now(timezone.utc).isoformat(),
-                metadata={"attempts": result.attempts, "engine": result.engine},
+                completed_at=datetime.now(UTC).isoformat(),
+                metadata={
+                    "attempts": result.attempts,
+                    "engine": result.engine,
+                },
             )
         except Exception as exc:
             return InvocationResult(
@@ -73,16 +96,20 @@ class WebIntelligenceCapability:
                 status=InvocationStatus.FAILED,
                 error={"type": type(exc).__name__, "message": str(exc)},
                 started_at=started,
-                completed_at=datetime.now(timezone.utc).isoformat(),
+                completed_at=datetime.now(UTC).isoformat(),
             )
 
     def execute(self, request: WebIntelligenceRequest) -> WebIntelligenceResult:
         if not request.url.startswith(("http://", "https://")):
-            return WebIntelligenceResult(False, None, None, None, None, 0, ("invalid_url",))
+            return WebIntelligenceResult(
+                False, None, None, None, None, 0, ("invalid_url",)
+            )
 
         assert self.router is not None
         errors: list[str] = []
-        for attempt, engine in enumerate(self.router.candidates(request), start=1):
+        for attempt, engine in enumerate(
+            self.router.candidates(request), start=1
+        ):
             try:
                 source = engine.acquire(request)
                 source_report = self.validator.validate_source(source, request)
@@ -113,4 +140,6 @@ class WebIntelligenceCapability:
                 errors.append(f"{engine.name}:{type(exc).__name__}")
                 self.router.learner.record(engine.name, False)
 
-        return WebIntelligenceResult(False, None, None, None, None, len(errors), tuple(errors))
+        return WebIntelligenceResult(
+            False, None, None, None, None, len(errors), tuple(errors)
+        )
