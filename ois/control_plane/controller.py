@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Callable, Mapping
+from collections.abc import Callable, Mapping
 
 from ois.registries import (
     AgentRegistry,
