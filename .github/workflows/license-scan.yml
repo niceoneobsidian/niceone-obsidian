@@ -36,7 +36,7 @@ jobs:
           fi
 
       - name: Upload notices
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: third-party-notices
           path: THIRD_PARTY_NOTICES.md
