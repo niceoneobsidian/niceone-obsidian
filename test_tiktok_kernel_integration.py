@@ -39,9 +39,7 @@ def test_tiktok_capability_is_registered():
 
 def test_tiktok_capability_executes_through_runtime_and_supervisor():
     _, _, runtime = make_runtime()
-    supervisor = Supervisor(runtime)
-
-    result = supervisor.execute(
+    result = Supervisor(runtime).execute(
         objective="Create a TikTok content plan",
         capability_id="tiktok.content.plan",
         version="1.0.0",
@@ -60,7 +58,8 @@ def test_tiktok_capability_executes_through_runtime_and_supervisor():
     assert result.output["keywords"]
     assert result.output["hashtags"]
     assert result.output["cta"]
-    assert result.output["provenance"]
+    assert "provenance" not in result.output
+    assert result.metadata["execution_provenance"]["input_sha256"]
 
 
 def test_tiktok_capability_is_idempotent_at_runtime_boundary():
