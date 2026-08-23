@@ -61,9 +61,7 @@ def test_control_plane_resolves_capability_through_registry() -> None:
     registry.register("capability.example", "1.0.0", capability)
     control_plane = ControlPlane(capabilities=registry)
 
-    resolved = control_plane.resolve_capability(
-        ControlRequest("capability.example", "1.0.0"),
-    )
+    resolved = control_plane.resolve_capability(ControlRequest("capability.example", "1.0.0"))
 
     assert resolved is capability
 
@@ -83,7 +81,6 @@ def test_control_plane_does_not_bypass_capability_registry() -> None:
         control_plane.resolve_capability(ControlRequest("capability.example", "1.0.0"))
 
     registry.register("capability.example", "1.0.0", capability)
+    resolved = control_plane.resolve_capability(ControlRequest("capability.example", "1.0.0"))
 
-    assert control_plane.resolve_capability(
-        ControlRequest("capability.example", "1.0.0"),
-    ) is capability
+    assert resolved is capability
