@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 from ois.capabilities import register_tiktok_capabilities
 from ois.kernel import (
     AgentRegistry,
@@ -22,12 +24,13 @@ def make_runtime():
     return registry, agent, runtime
 
 
-def make_context():
+def make_context() -> ExecutionContext:
     return ExecutionContext(
         identity=ExecutionIdentity(
-            execution_id="tiktok-integration-001",
+            execution_id=uuid4(),
             tenant_id="ois-test",
-        )
+        ),
+        objective="Create a TikTok content plan",
     )
 
 
