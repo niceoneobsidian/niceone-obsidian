@@ -1,4 +1,5 @@
 """Capability registry."""
+
 from .base import Registry
 
 
