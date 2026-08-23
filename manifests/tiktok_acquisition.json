@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
-  "capability": "tiktok.growth",
-  "status": "integrated_reference",
+  "capability": "tiktok.content.plan",
+  "status": "reference_provenance",
   "sources": [
     {
       "id": "tiktok-viral-hooks",
@@ -33,7 +33,8 @@
     "principle": "extract_and_reimplement",
     "do_not_vendor_external_apps": true,
     "do_not_copy_noncommercial_corpus": true,
-    "preserve_provenance": true,
+    "preserve_reference_provenance": true,
+    "record_execution_provenance_separately": true,
     "require_tests_before_production": true,
     "require_kernel_supervisor_orchestrator_path": true
   },
