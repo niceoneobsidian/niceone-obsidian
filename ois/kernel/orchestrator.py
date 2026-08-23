@@ -45,7 +45,6 @@ class PlanOrchestrator:
 
             for task in ready:
                 task.status = TaskStatus.RUNNING
-
                 context.current_node = task.task_id
 
                 try:
@@ -59,34 +58,28 @@ class PlanOrchestrator:
 
                     result = self.runtime.execute(
                         context=context,
-                        capability_id=(task.capability_id),
-                        version=(task.capability_version),
+                        capability_id=task.capability_id,
+                        version=task.capability_version,
                         input_data=dict(task.input_data),
                         invocation_id=invocation_id,
                     )
 
                     if result.status != result.status.SUCCEEDED:
                         task.status = TaskStatus.FAILED
-
                         task.error = result.error
-
                         return plan
 
                     task.output = result.output
-
                     task.status = TaskStatus.SUCCEEDED
 
                 except Exception as exc:
                     task.status = TaskStatus.FAILED
-
                     task.error = {
                         "type": type(exc).__name__,
                         "message": str(exc),
                     }
-
                     return plan
 
         # The graph is now completely executed.
         self.runtime.complete(context)
-
         return plan
