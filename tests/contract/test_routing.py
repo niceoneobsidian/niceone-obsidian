@@ -4,12 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from ois.registries import (
-    AgentRegistry,
-    CapabilityRegistry,
-    ModelRegistry,
-    ToolRegistry,
-)
+from ois.registries import AgentRegistry, CapabilityRegistry, ModelRegistry, ToolRegistry
 from ois.routing import RouteRequest, Router
 
 
