@@ -14,8 +14,14 @@ from ois.registries import (
 from .spec import RouteRequest, RouteResult
 
 
+class _RegistryEntry(Protocol):
+    id: str
+    version: str
+    value: object
+
+
 class _Registry(Protocol):
-    def resolve(self, object_id: str, version: str) -> object: ...
+    def resolve(self, object_id: str, version: str) -> _RegistryEntry: ...
 
 
 RegistryT = TypeVar("RegistryT", bound=_Registry)
