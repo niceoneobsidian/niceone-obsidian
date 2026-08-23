@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any, Mapping
+from typing import Any
 
 from ois.kernel.contracts import AgentContract, InvocationRequest, InvocationResult
 from ois.kernel.types import InvocationStatus, RiskLevel, SideEffectLevel
@@ -57,7 +58,9 @@ def build_tiktok_plan(brief: TikTokContentBrief) -> TikTokContentPlan:
     hook_templates = {
         "problem_first": f"If you are struggling with {brief.topic}, start here.",
         "mistake_correction": f"The biggest mistake with {brief.topic} is doing this first.",
-        "specific_outcome": f"Here is a practical way to improve {brief.topic} without adding complexity.",
+        "specific_outcome": (
+            f"Here is a practical way to improve {brief.topic} without adding complexity."
+        ),
         "step_by_step": f"Here are the essential steps for {brief.topic}.",
     }
     hook = hook_templates[pattern]
@@ -158,7 +161,11 @@ class TikTokContentAgent:
                 invocation_id=request.invocation_id,
                 capability_id=self.contract.capability_id,
                 status=InvocationStatus.FAILED,
-                error={"type": type(exc).__name__, "message": str(exc), "failure_class": "validation"},
+                error={
+                    "type": type(exc).__name__,
+                    "message": str(exc),
+                    "failure_class": "validation",
+                },
                 started_at=started,
                 completed_at=datetime.now(UTC).isoformat(),
             )
