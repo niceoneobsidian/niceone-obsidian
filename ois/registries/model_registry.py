@@ -1,4 +1,5 @@
 """Model registry."""
+
 from .base import Registry
 
 
