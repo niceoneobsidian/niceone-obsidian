@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Generic, Mapping, TypeVar
+from typing import Generic, TypeVar
 
 T = TypeVar("T")
 
@@ -24,13 +25,25 @@ class Registry(Generic[T]):
     def __init__(self) -> None:
         self._entries: dict[tuple[str, str], RegistryEntry[T]] = {}
 
-    def register(self, object_id: str, version: str, value: T, *, metadata: Mapping[str, object] | None = None) -> RegistryEntry[T]:
+    def register(
+        self,
+        object_id: str,
+        version: str,
+        value: T,
+        *,
+        metadata: Mapping[str, object] | None = None,
+    ) -> RegistryEntry[T]:
         if not object_id or not version:
             raise ValueError("registry id and version are required")
         key = (object_id, version)
         if key in self._entries:
             raise ValueError(f"already registered: {object_id}@{version}")
-        entry = RegistryEntry(id=object_id, version=version, value=value, metadata=dict(metadata or {}))
+        entry = RegistryEntry(
+            id=object_id,
+            version=version,
+            value=value,
+            metadata=dict(metadata or {}),
+        )
         self._entries[key] = entry
         return entry
 
