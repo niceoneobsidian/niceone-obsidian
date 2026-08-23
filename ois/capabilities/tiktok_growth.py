@@ -1,46 +1,13 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any, Mapping
 
 from ois.kernel.contracts import AgentContract, InvocationRequest, InvocationResult
 from ois.kernel.types import InvocationStatus, RiskLevel, SideEffectLevel
-
-
-ACQUISITION_SOURCES: tuple[Mapping[str, Any], ...] = (
-    {
-        "id": "tiktok-viral-hooks",
-        "url": "https://github.com/shixinzhang/tiktok-viral-hooks",
-        "license": "CC-BY-NC-SA-4.0 (repository corpus); MIT (scripts, per repository documentation)",
-        "acquisition_mode": "knowledge_reference_only",
-        "commercial_corpus_use": False,
-    },
-    {
-        "id": "captionaize",
-        "url": "https://github.com/tjoab/captionaize",
-        "license": "MIT",
-        "acquisition_mode": "implementation_reference",
-        "commercial_corpus_use": True,
-    },
-    {
-        "id": "social-media-caption-generator-claude",
-        "url": "https://github.com/rediumvex/social-media-caption-generator-claude",
-        "license": "MIT",
-        "acquisition_mode": "workflow_reference",
-        "commercial_corpus_use": True,
-    },
-)
-
-
-HOOK_PATTERNS: Mapping[str, str] = {
-    "problem_first": "State the painful or costly problem immediately, then promise a concrete resolution.",
-    "curiosity_gap": "Expose an unexpected result or contradiction, then explain the mechanism.",
-    "mistake_correction": "Name a common mistake, explain why it fails, and replace it with a better action.",
-    "specific_outcome": "Lead with a measurable or observable outcome, then show the path to reproduce it.",
-    "step_by_step": "Promise a bounded number of useful steps and execute them without filler.",
-    "contrarian": "Challenge a widely held assumption, but support the alternative with evidence or reasoning.",
-}
 
 
 @dataclass(frozen=True)
@@ -48,9 +15,7 @@ class TikTokContentBrief:
     topic: str
     audience: str = ""
     objective: str = "education"
-    source_text: str = ""
     tone: str = "clear"
-    desired_length_seconds: int = 30
 
 
 @dataclass(frozen=True)
@@ -63,16 +28,15 @@ class TikTokContentPlan:
     hashtags: tuple[str, ...]
     cta: str
     quality_checks: tuple[str, ...]
-    provenance: tuple[Mapping[str, Any], ...]
 
 
 def _keywords(topic: str) -> tuple[str, ...]:
-    words = [w.strip(".,!?;:#()[]{}") for w in topic.lower().split()]
-    return tuple(dict.fromkeys(w for w in words if len(w) > 2))[:5]
+    words = [word.strip(".,!?;:#()[]{}") for word in topic.lower().split()]
+    return tuple(dict.fromkeys(word for word in words if len(word) > 2))[:5]
 
 
 def _select_pattern(brief: TikTokContentBrief) -> str:
-    text = f"{brief.topic} {brief.source_text}".lower()
+    text = f"{brief.topic} {brief.objective}".lower()
     if any(token in text for token in ("mistake", "wrong", "avoid", "stop")):
         return "mistake_correction"
     if any(token in text for token in ("how", "steps", "guide", "tutorial")):
@@ -83,51 +47,46 @@ def _select_pattern(brief: TikTokContentBrief) -> str:
 
 
 def build_tiktok_plan(brief: TikTokContentBrief) -> TikTokContentPlan:
-    """Create an OIS-native TikTok plan without importing third-party corpus text."""
+    """Create a deterministic OIS-native TikTok plan."""
     if not brief.topic.strip():
         raise ValueError("topic is required")
 
     pattern = _select_pattern(brief)
     keywords = _keywords(brief.topic)
-    keyword_phrase = ", ".join(keywords) if keywords else brief.topic
-
+    keyword_phrase = ", ".join(keywords) if keywords else brief.topic.strip()
     hook_templates = {
         "problem_first": f"If you are struggling with {brief.topic}, start here.",
-        "curiosity_gap": f"Most people misunderstand {brief.topic}. Here is what actually matters.",
         "mistake_correction": f"The biggest mistake with {brief.topic} is doing this first.",
         "specific_outcome": f"Here is a practical way to improve {brief.topic} without adding complexity.",
         "step_by_step": f"Here are the essential steps for {brief.topic}.",
-        "contrarian": f"The usual advice about {brief.topic} misses one important point.",
     }
     hook = hook_templates[pattern]
-    caption = f"{hook} Focus: {keyword_phrase}. Save this as a reference and test one change at a time."
-    cta = "Save this for later and comment with the result you want to improve."
-    checks = (
-        "single_clear_topic",
-        "hook_delivers_immediate_context",
-        "caption_matches_spoken_content",
-        "keywords_are_natural",
-        "hashtags_are_specific_and_limited",
-        "no_watermark_or_reposted_source_required",
-        "no_claim_of_guaranteed_virality",
-    )
-    provenance = tuple(ACQUISITION_SOURCES)
-
     return TikTokContentPlan(
         topic=brief.topic,
         hook=hook,
         hook_pattern=pattern,
-        caption=caption,
+        caption=f"{hook} Focus: {keyword_phrase}. Test one change at a time.",
         keywords=keywords,
-        hashtags=tuple(f"#{k}" for k in keywords[:3]),
-        cta=cta,
-        quality_checks=checks,
-        provenance=provenance,
+        hashtags=tuple(f"#{keyword}" for keyword in keywords[:3]),
+        cta="Save this for later and comment with the result you want to improve.",
+        quality_checks=(
+            "single_clear_topic",
+            "immediate_context",
+            "caption_matches_hook",
+            "keywords_are_natural",
+            "hashtags_are_limited",
+            "no_guaranteed_virality_claim",
+        ),
     )
 
 
+def _input_hash(data: Mapping[str, Any]) -> str:
+    canonical = json.dumps(data, sort_keys=True, separators=(",", ":"), default=str)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
 class TikTokContentAgent:
-    """OIS agent that turns a content brief into a validated TikTok plan."""
+    """OIS agent that turns a content brief into a deterministic TikTok plan."""
 
     contract = AgentContract(
         capability_id="tiktok.content.plan",
@@ -140,9 +99,7 @@ class TikTokContentAgent:
                 "topic": {"type": "string"},
                 "audience": {"type": "string"},
                 "objective": {"type": "string"},
-                "source_text": {"type": "string"},
                 "tone": {"type": "string"},
-                "desired_length_seconds": {"type": "integer"},
             },
         },
         output_schema={
@@ -162,16 +119,14 @@ class TikTokContentAgent:
     )
 
     def invoke(self, request: InvocationRequest) -> InvocationResult:
-        started = datetime.now(timezone.utc).isoformat()
+        started = datetime.now(UTC).isoformat()
         try:
             data = request.input
             brief = TikTokContentBrief(
                 topic=str(data.get("topic", "")),
                 audience=str(data.get("audience", "")),
                 objective=str(data.get("objective", "education")),
-                source_text=str(data.get("source_text", "")),
                 tone=str(data.get("tone", "clear")),
-                desired_length_seconds=int(data.get("desired_length_seconds", 30)),
             )
             plan = build_tiktok_plan(brief)
             output = {
@@ -183,7 +138,6 @@ class TikTokContentAgent:
                 "hashtags": list(plan.hashtags),
                 "cta": plan.cta,
                 "quality_checks": list(plan.quality_checks),
-                "provenance": list(plan.provenance),
             }
             return InvocationResult(
                 invocation_id=request.invocation_id,
@@ -191,8 +145,13 @@ class TikTokContentAgent:
                 status=InvocationStatus.SUCCEEDED,
                 output=output,
                 started_at=started,
-                completed_at=datetime.now(timezone.utc).isoformat(),
-                metadata={"acquisition_mode": "extracted_and_reimplemented"},
+                completed_at=datetime.now(UTC).isoformat(),
+                metadata={
+                    "execution_provenance": {
+                        "input_sha256": _input_hash(data),
+                        "capability_version": self.contract.version,
+                    }
+                },
             )
         except (TypeError, ValueError) as exc:
             return InvocationResult(
@@ -201,5 +160,5 @@ class TikTokContentAgent:
                 status=InvocationStatus.FAILED,
                 error={"type": type(exc).__name__, "message": str(exc), "failure_class": "validation"},
                 started_at=started,
-                completed_at=datetime.now(timezone.utc).isoformat(),
+                completed_at=datetime.now(UTC).isoformat(),
             )
