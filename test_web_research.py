@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -25,7 +25,7 @@ def result(snippet: str, source_type: str = "primary") -> SearchResult:
         title="Example",
         url="https://example.com/source",
         snippet=snippet,
-        published_at=datetime(2026, 8, 22, tzinfo=timezone.utc),
+        published_at=datetime(2026, 8, 22, tzinfo=UTC),
         source_type=source_type,
     )
 
@@ -69,9 +69,8 @@ def test_empty_provider_result_is_explicit() -> None:
 
 
 def test_claim_check_requires_evidence() -> None:
-    evidence = WebResearchService(FakeSearchProvider([result("Evidence supports governed execution.")])).research(
-        SearchRequest("OIS")
-    ).evidence
+    provider = FakeSearchProvider([result("Evidence supports governed execution.")])
+    evidence = WebResearchService(provider).research(SearchRequest("OIS")).evidence
 
     verified = WebResearchService.check_claim("Evidence supports governed execution.", evidence)
     unsupported = WebResearchService.check_claim("The system has autonomous publishing.", evidence)
