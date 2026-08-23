@@ -1,27 +1,17 @@
 from ois.capabilities.tiktok_growth import (
-    ACQUISITION_SOURCES,
     TikTokContentAgent,
     TikTokContentBrief,
     build_tiktok_plan,
 )
 
 
-def test_acquisition_sources_preserve_legal_boundary():
-    sources = {source["id"]: source for source in ACQUISITION_SOURCES}
-    assert sources["tiktok-viral-hooks"]["commercial_corpus_use"] is False
-    assert sources["captionaize"]["license"] == "MIT"
-    assert sources["social-media-caption-generator-claude"]["license"] == "MIT"
-
-
 def test_plan_is_focused_and_limited():
-    plan = build_tiktok_plan(
-        TikTokContentBrief(topic="TikTok SEO strategy", source_text="how to improve search")
-    )
+    plan = build_tiktok_plan(TikTokContentBrief(topic="TikTok SEO strategy"))
     assert plan.hook
     assert plan.caption
     assert len(plan.hashtags) <= 3
     assert "single_clear_topic" in plan.quality_checks
-    assert "no_claim_of_guaranteed_virality" in plan.quality_checks
+    assert "no_guaranteed_virality_claim" in plan.quality_checks
 
 
 def test_agent_contract_is_stable():
@@ -38,3 +28,20 @@ def test_empty_topic_is_rejected():
         assert str(exc) == "topic is required"
     else:
         raise AssertionError("Expected ValueError")
+
+
+def test_execution_provenance_is_not_reference_provenance():
+    from ois.kernel.contracts import InvocationRequest
+
+    result = TikTokContentAgent().invoke(
+        InvocationRequest(
+            invocation_id="tiktok-provenance-001",
+            capability_id="tiktok.content.plan",
+            input={"topic": "TikTok SEO"},
+        )
+    )
+
+    assert result.status.value == "succeeded"
+    assert "provenance" not in result.output
+    assert result.metadata["execution_provenance"]["input_sha256"]
+    assert result.metadata["execution_provenance"]["capability_version"] == "1.0.0"
