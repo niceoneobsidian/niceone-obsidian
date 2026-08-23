@@ -1,8 +1,22 @@
+from uuid import uuid4
+
 from ois.capabilities.tiktok_growth import (
     TikTokContentAgent,
     TikTokContentBrief,
     build_tiktok_plan,
 )
+from ois.kernel import ExecutionContext, ExecutionIdentity
+from ois.kernel.contracts import InvocationRequest
+
+
+def make_context() -> ExecutionContext:
+    return ExecutionContext(
+        identity=ExecutionIdentity(
+            execution_id=uuid4(),
+            tenant_id="ois-test",
+        ),
+        objective="Create a TikTok content plan",
+    )
 
 
 def test_plan_is_focused_and_limited():
@@ -31,13 +45,12 @@ def test_empty_topic_is_rejected():
 
 
 def test_execution_provenance_is_not_reference_provenance():
-    from ois.kernel.contracts import InvocationRequest
-
     result = TikTokContentAgent().invoke(
         InvocationRequest(
             invocation_id="tiktok-provenance-001",
             capability_id="tiktok.content.plan",
             input={"topic": "TikTok SEO"},
+            execution=make_context(),
         )
     )
 
