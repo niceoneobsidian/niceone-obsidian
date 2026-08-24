@@ -1,5 +1,7 @@
 """Controlled optimization and evolution contracts."""
+
 from dataclasses import dataclass
+
 
 @dataclass(frozen=True)
 class EvolutionCandidate:
@@ -7,6 +9,7 @@ class EvolutionCandidate:
     baseline: str
     evidence_ref: str
     approval_required: bool = True
+
 
 @dataclass(frozen=True)
 class PromotionDecision:
