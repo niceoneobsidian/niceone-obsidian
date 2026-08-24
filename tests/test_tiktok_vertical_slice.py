@@ -22,10 +22,15 @@ def test_tiktok_vertical_slice_proves_kernel_path() -> None:
     assert result.context.status == ExecutionStatus.COMPLETED
     assert result.context.identity.workflow_id == VERTICAL_SLICE_WORKFLOW_ID
     assert result.context.identity.workflow_version == VERTICAL_SLICE_VERSION
+    assert result.context.metadata["supervised"] is True
     assert result.context.validation_results[-1]["valid"] is True
     assert result.context.working_memory
 
     event_types = [event.event_type for event in result.evidence]
+    assert "agent.selection.selected" in event_types
+    assert event_types.index("agent.selection.selected") < event_types.index(
+        "execution.received"
+    )
     assert event_types[:4] == [
         "execution.received",
         "execution.input_validated",
