@@ -1,5 +1,6 @@
 """OIS runtime bindings for the structural fabric layer."""
 
+from .agent_runtime import AgentRunResult, AgentRuntime, AgentSession, AgentWorkspace
 from .execution_backend import (
     ExecutionRecord,
     QueueJob,
@@ -9,6 +10,10 @@ from .execution_backend import (
 from .fabrics import FabricRuntime, register_fabric_capabilities
 
 __all__ = [
+    "AgentRunResult",
+    "AgentRuntime",
+    "AgentSession",
+    "AgentWorkspace",
     "ExecutionRecord",
     "FabricRuntime",
     "QueueJob",
