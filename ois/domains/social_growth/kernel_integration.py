@@ -7,8 +7,7 @@ idempotency, recovery, and evidence lifecycle.
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
-from typing import Any
+from collections.abc import Sequence
 
 from ois.kernel.contracts import CapabilityContract, InvocationRequest, InvocationResult
 from ois.kernel.registry import CapabilityRegistry
@@ -26,7 +25,7 @@ from .intelligence import (
     validate_events,
 )
 from .persistence import SQLiteSocialEventStore, SocialEventStore
-from .schemas import Evidence, SocialEvent, SocialResearchBrief, SocialSignal
+from .schemas import SocialEvent, SocialResearchBrief, SocialSignal
 
 
 class SocialIngestCapability:
@@ -47,7 +46,11 @@ class SocialIngestCapability:
             version="1.1.0",
             description="Normalize and persist social platform payloads as canonical SocialEvent records.",
             input_schema={"platform": "string", "payloads": "array"},
-            output_schema={"events": "array", "persisted": "integer", "evidence_recorded": "integer"},
+            output_schema={
+                "events": "array",
+                "persisted": "integer",
+                "evidence_recorded": "integer",
+            },
             risk_level=RiskLevel.LOW,
             allowed_domains=("social_growth",),
             side_effects=SideEffectLevel.NONE,
@@ -68,8 +71,7 @@ class SocialIngestCapability:
         events = [connector.normalize_event(payload) for payload in payloads]
         persisted = sum(self._event_store.append(event) for event in events)
         evidence_recorded = sum(
-            len(event.evidence) for event in events
-            if self._evidence_ledger.record_many(event.evidence)
+            len(self._evidence_ledger.record_many(event.evidence)) for event in events
         )
         return InvocationResult(
             invocation_id=request.invocation_id,
