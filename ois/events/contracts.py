@@ -1,5 +1,7 @@
 """Event-driven architecture contracts."""
+
 from dataclasses import dataclass
+
 
 @dataclass(frozen=True)
 class EventEnvelope:
