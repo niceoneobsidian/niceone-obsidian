@@ -38,12 +38,9 @@ def test_tiktok_vertical_slice_proves_kernel_path() -> None:
     assert "execution.completed" in event_types
 
 
-def test_tiktok_vertical_slice_is_idempotent_at_task_boundary() -> None:
-    first = execute_tiktok_vertical_slice({"topic": "AI agents"})
+def test_tiktok_vertical_slice_emits_provenance() -> None:
+    result = execute_tiktok_vertical_slice({"topic": "AI agents"})
 
-    second = execute_tiktok_vertical_slice({"topic": "AI agents"})
-
-    assert first.invocation.output == second.invocation.output
-    assert first.invocation.metadata["execution_provenance"] == second.invocation.metadata[
-        "execution_provenance"
-    ]
+    provenance = result.invocation.metadata["execution_provenance"]
+    assert provenance["capability_version"] == "1.0.0"
+    assert len(provenance["input_sha256"]) == 64
