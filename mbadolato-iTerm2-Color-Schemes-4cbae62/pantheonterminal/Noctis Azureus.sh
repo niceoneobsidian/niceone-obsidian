@@ -1,0 +1,9 @@
+#!/bin/bash
+dconf load /org/pantheon/terminal/settings/ <<COLORS
+[/]
+name='Noctis Azureus'
+cursor-color='#becfda'
+foreground='#becfda'
+background='rgba(7,39,59,.95)'
+palette='#28353e:#e66533:#49e9a6:#e4b781:#49ace9:#df769b:#49d6e9:#aec3d0:#475e6c:#e97749:#60ebb1:#e69533:#60b6eb:#e798b3:#60dbeb:#becfda'
+COLORS

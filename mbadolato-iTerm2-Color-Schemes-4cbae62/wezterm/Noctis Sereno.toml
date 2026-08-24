@@ -1,0 +1,12 @@
+# Noctis Sereno
+[colors]
+foreground = "#b2cacd"
+background = "#062e32"
+cursor_bg = "#b2cacd"
+cursor_border = "#b2cacd"
+cursor_fg = "#062e32"
+selection_bg = "#0f4045"
+selection_fg = "#b2cacd"
+
+ansi = ["#324a4d","#e66533","#49e9a6","#e4b781","#49ace9","#df769b","#49d6e9","#b2cacd"]
+brights = ["#47686c","#e97749","#60ebb1","#e69533","#60b6eb","#e798b3","#60dbeb","#c1d4d7"]

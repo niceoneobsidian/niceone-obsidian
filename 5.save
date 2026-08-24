@@ -1,0 +1,96 @@
+"""OIS Runtime Intelligence Fabrics plane contract and runtime interfaces."""
+
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Literal, Optional, Protocol
+
+
+@dataclass(frozen=True)
+class ExecutionTarget:
+    """Explicit resolved target for execution plane consumption."""
+
+    target_id: str
+    action_name: str
+    payload: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class ValidationResult:
+    """Explicit validation result returned by validation plane."""
+
+    is_valid: bool
+    reason: str
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class RecoveryDecision:
+    """Explicit retry/escalate recovery decision without silent failures."""
+
+    action: Literal["retry", "escalate"]
+    reason: str
+    retry_count: int = 0
+    max_retries: int = 3
+
+
+@dataclass(frozen=True)
+class StructuredEvent:
+    """Structured observability event."""
+
+    event_id: str
+    event_type: str
+    plane: str
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    details: Dict[str, Any] = field(default_factory=dict)
+
+
+class IntelligenceFabricProvider(Protocol):
+    """Runtime contract for Intelligence Fabric capability registration."""
+
+    def resolve_target(self, target_id: str) -> ExecutionTarget:
+        ...
+
+    def validate_execution(self, target: ExecutionTarget) -> ValidationResult:
+        ...
+
+    def evaluate_recovery(self, target: ExecutionTarget, error: Exception, attempt: int) -> RecoveryDecision:
+        ...
+
+
+class DefaultIntelligenceFabric:
+    """Foundational Intelligence Fabric orchestrator enforcing plane boundaries."""
+
+    def __init__(self, provider_id: str = "default_fabric") -> None:
+        self.provider_id = provider_id
+
+    def validate_target(self, target: ExecutionTarget) -> ValidationResult:
+        """Explicitly validates execution target before routing."""
+        if not target.target_id or not target.action_name:
+            return ValidationResult(
+                is_valid=False,
+                reason="Target ID and action_name must be non-empty strings.",
+            )
+        return ValidationResult(is_valid=True, reason="Target configuration is valid.")
+
+    def handle_failure(self, target: ExecutionTarget, error: Exception, attempt: int) -> RecoveryDecision:
+        """Determines explicit recovery actions to prevent silent failures."""
+        if attempt < 3:
+            return RecoveryDecision(
+                action="retry",
+                reason=f"Failure encountered ({str(error)}); retrying attempt {attempt + 1}.",
+                retry_count=attempt,
+            )
+        return RecoveryDecision(
+            action="escalate",
+            reason=f"Exceeded maximum retries ({attempt}) for target {target.target_id}. Error: {str(error)}",
+            retry_count=attempt,
+        )
+
+    def create_telemetry_event(self, event_type: str, details: Dict[str, Any]) -> StructuredEvent:
+        """Emits structured event for Observability plane consumption."""
+        return StructuredEvent(
+            event_id=f"evt_{datetime.now(timezone.utc).timestamp()}",
+            event_type=event_type,
+            plane="IntelligenceFabric",
+            details=details,
+    

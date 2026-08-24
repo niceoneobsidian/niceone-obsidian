@@ -1,0 +1,23 @@
+{
+  "name": "JetBrains Islands Dark",
+  "black": "#191a1c",
+  "red": "#f75464",
+  "green": "#6aab73",
+  "yellow": "#cf8e6d",
+  "blue": "#56a8f5",
+  "purple": "#c77dbb",
+  "cyan": "#2aacb8",
+  "white": "#bcbec4",
+  "brightBlack": "#7a7e85",
+  "brightRed": "#f57e84",
+  "brightGreen": "#6db083",
+  "brightYellow": "#f0ac81",
+  "brightBlue": "#548af7",
+  "brightPurple": "#b189f5",
+  "brightCyan": "#16baac",
+  "brightWhite": "#ffffff",
+  "background": "#191a1c",
+  "foreground": "#bcbec4",
+  "cursorColor": "#ced0d6",
+  "selectionBackground": "#2a4371"
+}

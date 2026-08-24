@@ -1,0 +1,43 @@
+!
+! JetBrains Islands Dark
+!
+*.foreground:  #bcbec4
+*.background:  #191a1c
+*.cursorColor: #ced0d6
+!
+! Black
+*.color0:      #191a1c
+*.color8:      #7a7e85
+!
+! Red
+*.color1:      #f75464
+*.color9:      #f57e84
+!
+! Green
+*.color2:      #6aab73
+*.color10:     #6db083
+!
+! Yellow
+*.color3:      #cf8e6d
+*.color11:     #f0ac81
+!
+! Blue
+*.color4:      #56a8f5
+*.color12:     #548af7
+!
+! Magenta
+*.color5:      #c77dbb
+*.color13:     #b189f5
+!
+! Cyan
+*.color6:      #2aacb8
+*.color14:     #16baac
+!
+! White
+*.color7:      #bcbec4
+*.color15:     #ffffff
+!
+! Bold, Italic, Underline
+*.colorBD:     #bcbec4
+!*.colorIT:
+!*.colorUL:

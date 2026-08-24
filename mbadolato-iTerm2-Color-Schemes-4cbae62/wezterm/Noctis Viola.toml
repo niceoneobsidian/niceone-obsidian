@@ -1,0 +1,12 @@
+# Noctis Viola
+[colors]
+foreground = "#ccbfd9"
+background = "#30243d"
+cursor_bg = "#ccbfd9"
+cursor_border = "#ccbfd9"
+cursor_fg = "#30243d"
+selection_bg = "#3e3352"
+selection_fg = "#ccbfd9"
+
+ansi = ["#362f3d","#e66533","#49e9a6","#e4b781","#49ace9","#df769b","#49d6e9","#bfafcf"]
+brights = ["#594e65","#e97749","#60ebb1","#e69533","#60b6eb","#e798b3","#60dbeb","#ccbfd9"]

@@ -1,0 +1,43 @@
+!
+! Noctis Lilac
+!
+*.foreground:  #0c006b
+*.background:  #f2f1f8
+*.cursorColor: #0c006b
+!
+! Black
+*.color0:      #0c006b
+*.color8:      #0f0080
+!
+! Red
+*.color1:      #e34e1c
+*.color9:      #ff4000
+!
+! Green
+*.color2:      #00b368
+*.color10:     #00d17a
+!
+! Yellow
+*.color3:      #f49725
+*.color11:     #ff8c00
+!
+! Blue
+*.color4:      #0094f0
+*.color12:     #0fa3ff
+!
+! Magenta
+*.color5:      #ff5792
+*.color13:     #ff6b9f
+!
+! Cyan
+*.color6:      #00bdd6
+*.color14:     #00cbe6
+!
+! White
+*.color7:      #8ca6a6
+*.color15:     #bbc3c4
+!
+! Bold, Italic, Underline
+*.colorBD:     #0c006b
+!*.colorIT:
+!*.colorUL:

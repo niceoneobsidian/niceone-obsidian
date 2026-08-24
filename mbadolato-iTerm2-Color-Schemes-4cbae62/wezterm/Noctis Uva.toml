@@ -1,0 +1,12 @@
+# Noctis Uva
+[colors]
+foreground = "#c5c2d6"
+background = "#292640"
+cursor_bg = "#c5c2d6"
+cursor_border = "#c5c2d6"
+cursor_fg = "#292640"
+selection_bg = "#35325a"
+selection_fg = "#c5c2d6"
+
+ansi = ["#302f3d","#e66533","#49e9a6","#e4b781","#49ace9","#df769b","#49d6e9","#b6b3cc"]
+brights = ["#504e65","#e97749","#60ebb1","#e69533","#60b6eb","#e798b3","#60dbeb","#c5c2d6"]

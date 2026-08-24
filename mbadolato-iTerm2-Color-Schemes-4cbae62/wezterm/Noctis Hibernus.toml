@@ -1,0 +1,12 @@
+# Noctis Hibernus
+[colors]
+foreground = "#005661"
+background = "#f4f6f6"
+cursor_bg = "#005661"
+cursor_border = "#005661"
+cursor_fg = "#f4f6f6"
+selection_bg = "#d9e0e0"
+selection_fg = "#005661"
+
+ansi = ["#003b42","#e34e1c","#00b368","#f49725","#0094f0","#ff5792","#00bdd6","#8ca6a6"]
+brights = ["#004d57","#ff4000","#00d17a","#ff8c00","#0fa3ff","#ff6b9f","#00cbe6","#bbc3c4"]

@@ -1,0 +1,7 @@
+#!/bin/sh
+# Catppuccin Latte
+printf "\033]4;0;#bcc0cc;1;#d20f39;2;#40a02b;3;#df8e1d;4;#1e66f5;5;#ea76cb;6;#179299;7;#5c5f77;8;#acb0be;9;#e7103f;10;#46b02f;11;#e49931;12;#3878f6;13;#ef95d7;14;#19a1a8;15;#6c6f85\007"
+printf "\033]10;#4c4f69;#eff1f5;#dc8a78\007"
+printf "\033]17;#dc8a78\007"
+printf "\033]19;#eff1f5\007"
+printf "\033]5;0;#4c4f69\007"

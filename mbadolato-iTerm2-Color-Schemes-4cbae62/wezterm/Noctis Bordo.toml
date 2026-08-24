@@ -1,0 +1,12 @@
+# Noctis Bordo
+[colors]
+foreground = "#cbbec2"
+background = "#322a2d"
+cursor_bg = "#cbbec2"
+cursor_border = "#cbbec2"
+cursor_fg = "#322a2d"
+selection_bg = "#4a3339"
+selection_fg = "#cbbec2"
+
+ansi = ["#47393e","#e66533","#49e9a6","#e4b781","#49ace9","#df769b","#49d6e9","#b9acb0"]
+brights = ["#69545b","#e97749","#60ebb1","#e69533","#60b6eb","#e798b3","#60dbeb","#cbbec2"]

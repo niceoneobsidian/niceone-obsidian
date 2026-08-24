@@ -95,7 +95,7 @@ def execute_tiktok_vertical_slice(
         runtime=runtime,
         agent_registry=agent_registry,
         orchestrator=orchestrator,
-        evidence=None,
+        evidence=evidence,
     )
     selected = supervisor.select_agent(
         "tiktok.content.plan",

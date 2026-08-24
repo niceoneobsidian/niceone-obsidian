@@ -1,0 +1,43 @@
+!
+! Noctis Minimus
+!
+*.foreground:  #c5cdd3
+*.background:  #1b2932
+*.cursorColor: #c5cdd3
+!
+! Black
+*.color0:      #182a35
+*.color8:      #425866
+!
+! Red
+*.color1:      #c08872
+*.color9:      #ca8468
+!
+! Green
+*.color2:      #72c09f
+*.color10:     #84c8ab
+!
+! Yellow
+*.color3:      #c8a984
+*.color11:     #d1aa7b
+!
+! Blue
+*.color4:      #6196b8
+*.color12:     #68a4ca
+!
+! Magenta
+*.color5:      #c28097
+*.color13:     #c88da2
+!
+! Cyan
+*.color6:      #72b7c0
+*.color14:     #84c0c8
+!
+! White
+*.color7:      #c5cdd3
+*.color15:     #c5d1d3
+!
+! Bold, Italic, Underline
+*.colorBD:     #c5cdd3
+!*.colorIT:
+!*.colorUL:

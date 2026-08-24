@@ -1,0 +1,12 @@
+# Noctis Azureus
+[colors]
+foreground = "#becfda"
+background = "#07273b"
+cursor_bg = "#becfda"
+cursor_border = "#becfda"
+cursor_fg = "#07273b"
+selection_bg = "#103850"
+selection_fg = "#becfda"
+
+ansi = ["#28353e","#e66533","#49e9a6","#e4b781","#49ace9","#df769b","#49d6e9","#aec3d0"]
+brights = ["#475e6c","#e97749","#60ebb1","#e69533","#60b6eb","#e798b3","#60dbeb","#becfda"]
