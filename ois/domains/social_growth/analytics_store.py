@@ -1,10 +1,9 @@
 """Append-only analytics and social event metrics storage."""
 from __future__ import annotations
 
-import json
 import sqlite3
-from dataclasses import dataclass, asdict
-from datetime import datetime, timezone
+from dataclasses import asdict, dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -38,29 +37,28 @@ class SQLiteAnalyticsStore:
     def append(self, observation: MetricObservation) -> bool:
         row = asdict(observation)
         row["observed_at"] = observation.observed_at.isoformat()
-        self._db.execute(
+        cursor = self._db.execute(
             """INSERT OR IGNORE INTO metric_observations
             (observation_id, entity_id, metric, value, observed_at, platform, source_event_id)
             VALUES (?, ?, ?, ?, ?, ?, ?)""",
             tuple(row.values()),
         )
-        changed = self._db.total_changes
         self._db.commit()
-        return changed > 0
+        return cursor.rowcount == 1
 
     def record_event_metrics(self, event: Any) -> int:
-        count = 0
-        for metric, value in event.metrics.items():
-            if isinstance(value, (int, float)):
-                observation = MetricObservation(
+        return sum(
+            self.append(
+                MetricObservation(
                     observation_id=f"{event.event_id}:{metric}",
                     entity_id=event.external_id or event.event_id,
-                    metric=str(metric), value=float(value),
-                    observed_at=event.occurred_at,
+                    metric=str(metric), value=float(value), observed_at=event.occurred_at,
                     platform=event.platform, source_event_id=event.event_id,
                 )
-                count += int(self.append(observation))
-        return count
+            )
+            for metric, value in event.metrics.items()
+            if isinstance(value, (int, float))
+        )
 
     def latest(self, entity_id: str, metric: str) -> MetricObservation | None:
         row = self._db.execute(
@@ -70,9 +68,8 @@ class SQLiteAnalyticsStore:
         if row is None:
             return None
         return MetricObservation(
-            observation_id=row["observation_id"], entity_id=row["entity_id"],
-            metric=row["metric"], value=float(row["value"]),
-            observed_at=datetime.fromisoformat(row["observed_at"]),
+            observation_id=row["observation_id"], entity_id=row["entity_id"], metric=row["metric"],
+            value=float(row["value"]), observed_at=datetime.fromisoformat(row["observed_at"]),
             platform=row["platform"], source_event_id=row["source_event_id"],
         )
 
