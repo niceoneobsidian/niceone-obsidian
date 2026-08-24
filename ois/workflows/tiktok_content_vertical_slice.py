@@ -67,12 +67,6 @@ def execute_tiktok_vertical_slice(
         evidence=evidence,
     )
     orchestrator = PlanOrchestrator(runtime)
-    supervisor = Supervisor(
-        runtime=runtime,
-        agent_registry=agent_registry,
-        orchestrator=orchestrator,
-        evidence=evidence,
-    )
 
     identity = ExecutionIdentity(
         tenant_id=tenant_id,
@@ -97,13 +91,25 @@ def execute_tiktok_vertical_slice(
     # Supervisor is the governed delegation boundary. It selects the exact
     # registered agent before handing the unchanged plan to the existing
     # orchestrator/runtime path. No second execution path is introduced.
-    supervisor.select_agent(
+    supervisor = Supervisor(
+        runtime=runtime,
+        agent_registry=agent_registry,
+        orchestrator=orchestrator,
+        evidence=None,
+    )
+    selected = supervisor.select_agent(
         "tiktok.content.plan",
         "1.0.0",
         context=context,
         input_data=input_data,
         invocation_id=f"{context.identity.execution_id}:agent-selection",
     )
+    context.metadata["supervisor_selection"] = {
+        "capability_id": selected.contract.capability_id,
+        "version": selected.contract.version,
+        "agent_type": f"{type(selected.capability).__module__}.{type(selected.capability).__qualname__}",
+    }
+
     executed_plan = supervisor.execute(plan, context)
     invocation = runtime.idempotency.get(
         f"{context.identity.execution_id}:create_content_plan"
