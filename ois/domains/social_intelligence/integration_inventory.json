@@ -1,1 +1,24 @@
-{"schema_version":"1.0.0","domain":"social_intelligence_fabric","milestone":"M13","principle":"Extend existing OIS registries/contracts; do not create parallel registries or replace the kernel.","source_evidence":{"existing_capability_contract":"ois/kernel/contracts.py","existing_execution_context":"ois/kernel/state.py","existing_capability_registry":"ois/registries/capability_registry.py","existing_agent_registry":"ois/registries/agent_registry.py","existing_tool_registry":"ois/registries/tool_registry.py","existing_workflow_registry":"ois/registries/workflow_registry.py","existing_model_registry":"ois/registries/model_registry.py","existing_control_plane":"ois/control_plane/controller.py","existing_supervisor":"ois/kernel/supervisor.py","existing_runtime":"ois/kernel/runtime.py","existing_registry_base":"ois/registries/base.py"},"registry_mapping":{"capability_registry":"ois.registries.capability_registry.CapabilityRegistry","agent_registry":"ois.registries.agent_registry.AgentRegistry","tool_registry":"ois.registries.tool_registry.ToolRegistry","workflow_registry":"ois.registries.workflow_registry.WorkflowRegistry","model_registry":"ois.registries.model_registry.ModelRegistry","policy":"ois.kernel.contracts.PolicyEngine","validation":"ois.kernel.contracts.Validator","recovery":"ois.kernel.recovery","memory":"OIS execution context / memory subsystem boundary","measurement":"OIS measurement/analytics boundary","learning":"OIS learning/controlled-evolution boundary","observability":"OIS telemetry/observability boundary"},"contract_strategy":{"capability":"Reuse CapabilityContract; encode domain-specific schema references, provenance, metrics and validation profile in metadata until a verified kernel extension is justified.","agent":"Reuse AgentContract; declare required_tools, model_requirements and max_iterations.","tool":"Reuse ToolContract; declare network policy, secrets, approval, side effects and idempotency.","workflow":"Register versioned workflow definitions through existing WorkflowRegistry; workflow nodes reference capability/agent/tool IDs.","model":"Reuse ModelRegistry; provider/model routing is a model concern, not a social-domain registry.","policy":"Use PolicyEngine for authorization, publishing, tool use, platform restrictions and approval gates.","validation":"Use Validator for input/output/content/quality gates.","memory":"Persist versioned evidence/artifacts/patterns through the existing memory boundary; do not create a social-only memory store.","measurement":"Emit domain metrics tied to execution_id, workflow_id, capability_id, agent_id, tool_id and artifact IDs.","learning":"Learning creates candidates/evidence; Controlled Evolution governs promotion. No autonomous mutation from a social metric alone.","observability":"Use existing telemetry/audit boundaries; every social action must be reconstructable from execution identity."},"inventory_count":394,"inventory":PLACEHOLDER_INVENTORY}
+{
+  "schema_version": "1.0.0",
+  "domain": "social_intelligence_fabric",
+  "milestone": "M13",
+  "inventory_count": 394,
+  "canonical_inventory_module": "ois.domains.social_intelligence.inventory",
+  "existing_kernel_contracts": {
+    "capability": "ois/kernel/contracts.py:CapabilityContract",
+    "agent": "ois/kernel/contracts.py:AgentContract",
+    "tool": "ois/kernel/contracts.py:ToolContract",
+    "policy": "ois/kernel/contracts.py:PolicyEngine",
+    "validation": "ois/kernel/contracts.py:Validator",
+    "execution": "ois/kernel/state.py:ExecutionContext"
+  },
+  "existing_registries": {
+    "capability_registry": "ois/registries/capability_registry.py",
+    "agent_registry": "ois/registries/agent_registry.py",
+    "tool_registry": "ois/registries/tool_registry.py",
+    "workflow_registry": "ois/registries/workflow_registry.py",
+    "model_registry": "ois/registries/model_registry.py"
+  },
+  "rule": "Extend existing OIS contracts and registries. Do not create parallel social registries or replace the Kernel.",
+  "status": "specification_manifest; individual runtime capabilities require implementation and tests"
+}
