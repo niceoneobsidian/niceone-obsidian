@@ -1,5 +1,7 @@
 """Human oversight contracts."""
+
 from dataclasses import dataclass
+
 
 @dataclass(frozen=True)
 class ApprovalRequest:
