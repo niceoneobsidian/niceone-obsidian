@@ -1,5 +1,7 @@
 """Software supply-chain security contracts."""
+
 from dataclasses import dataclass
+
 
 @dataclass(frozen=True)
 class ArtifactProvenance:
