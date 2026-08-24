@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
 
 from ois.kernel.contracts import CapabilityContract, InvocationRequest, InvocationResult
 from ois.kernel.types import InvocationStatus, RiskLevel, SideEffectLevel
@@ -39,7 +38,14 @@ class SocialPublishCapability:
                 raise ValueError("intent must be an object")
             intent = PublishIntent.model_validate(raw)
             if not intent.requires_approval:
-                raise ValueError("publish intent must carry approval requirement")
+                raise ValueError("publish intent must require approval")
+            approved = any(
+                str(item.get("intent_id")) == intent.intent_id and bool(item.get("approved"))
+                for item in request.execution.approvals
+                if isinstance(item, Mapping)
+            )
+            if not approved:
+                raise PermissionError("publish intent has no matching approval")
             connector = self._connectors.get(intent.platform)
             result = connector.publish(intent)
             return InvocationResult(
@@ -49,7 +55,7 @@ class SocialPublishCapability:
                 output=result,
                 metadata={"platform": intent.platform, "intent_id": intent.intent_id},
             )
-        except (KeyError, ValueError, RuntimeError) as exc:
+        except (KeyError, ValueError, RuntimeError, PermissionError) as exc:
             return InvocationResult(
                 invocation_id=request.invocation_id,
                 capability_id=self.contract.capability_id,
