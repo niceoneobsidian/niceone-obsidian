@@ -1,5 +1,7 @@
 """Identity and access contracts."""
+
 from dataclasses import dataclass
+
 
 @dataclass(frozen=True)
 class Principal:
