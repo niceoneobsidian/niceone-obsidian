@@ -7,8 +7,9 @@ approvals, audit and actual execution are delegated to OIS kernel services.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Callable, Mapping
 from datetime import datetime
-from typing import Any, Mapping
+from typing import Any
 
 from .schemas import PublishIntent, SocialEvent
 
@@ -43,7 +44,11 @@ class SocialConnector(ABC):
 class GenericSocialConnector(SocialConnector):
     """Reference adapter for platform-specific implementations."""
 
-    def __init__(self, platform: str, publish_callable=None):
+    def __init__(
+        self,
+        platform: str,
+        publish_callable: Callable[[PublishIntent], Mapping[str, Any]] | None = None,
+    ) -> None:
         self.platform = platform
         self._publish_callable = publish_callable
 
