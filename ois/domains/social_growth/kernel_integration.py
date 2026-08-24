@@ -8,7 +8,6 @@ idempotency, recovery, and evidence lifecycle.
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from datetime import datetime
 from typing import Any
 
 from ois.kernel.contracts import CapabilityContract, InvocationRequest, InvocationResult
@@ -16,6 +15,7 @@ from ois.kernel.registry import CapabilityRegistry
 from ois.kernel.types import InvocationStatus, RiskLevel, SideEffectLevel
 
 from .connectors import ConnectorRegistry
+from .evidence import SQLiteEvidenceLedger
 from .intelligence import (
     build_audience_profiles,
     build_competitor_profiles,
@@ -25,20 +25,29 @@ from .intelligence import (
     resolve_entities,
     validate_events,
 )
+from .persistence import SQLiteSocialEventStore, SocialEventStore
 from .schemas import Evidence, SocialEvent, SocialResearchBrief, SocialSignal
 
 
 class SocialIngestCapability:
-    """Normalize external payloads through the registered social connector."""
+    """Normalize and persist external payloads as canonical social events."""
 
-    def __init__(self, connectors: ConnectorRegistry) -> None:
+    def __init__(
+        self,
+        connectors: ConnectorRegistry,
+        *,
+        event_store: SocialEventStore | None = None,
+        evidence_ledger: SQLiteEvidenceLedger | None = None,
+    ) -> None:
         self._connectors = connectors
+        self._event_store = event_store or SQLiteSocialEventStore()
+        self._evidence_ledger = evidence_ledger or SQLiteEvidenceLedger()
         self._contract = CapabilityContract(
             capability_id="social.ingest",
-            version="1.0.0",
-            description="Normalize social platform payloads into canonical SocialEvent records.",
+            version="1.1.0",
+            description="Normalize and persist social platform payloads as canonical SocialEvent records.",
             input_schema={"platform": "string", "payloads": "array"},
-            output_schema={"events": "array"},
+            output_schema={"events": "array", "persisted": "integer", "evidence_recorded": "integer"},
             risk_level=RiskLevel.LOW,
             allowed_domains=("social_growth",),
             side_effects=SideEffectLevel.NONE,
@@ -57,11 +66,20 @@ class SocialIngestCapability:
 
         connector = self._connectors.get(platform)
         events = [connector.normalize_event(payload) for payload in payloads]
+        persisted = sum(self._event_store.append(event) for event in events)
+        evidence_recorded = sum(
+            len(event.evidence) for event in events
+            if self._evidence_ledger.record_many(event.evidence)
+        )
         return InvocationResult(
             invocation_id=request.invocation_id,
             capability_id=self.contract.capability_id,
             status=InvocationStatus.SUCCEEDED,
-            output={"events": [event.model_dump(mode="json") for event in events]},
+            output={
+                "events": [event.model_dump(mode="json") for event in events],
+                "persisted": persisted,
+                "evidence_recorded": evidence_recorded,
+            },
         )
 
 
@@ -161,7 +179,15 @@ def register_social_kernel_capabilities(
     registry: CapabilityRegistry,
     *,
     connectors: ConnectorRegistry,
+    event_store: SocialEventStore | None = None,
+    evidence_ledger: SQLiteEvidenceLedger | None = None,
 ) -> None:
     """Register executable M13 capabilities in the authoritative Kernel registry."""
-    registry.register(SocialIngestCapability(connectors))
+    registry.register(
+        SocialIngestCapability(
+            connectors,
+            event_store=event_store,
+            evidence_ledger=evidence_ledger,
+        )
+    )
     registry.register(SocialResearchCapability())
