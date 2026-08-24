@@ -1,5 +1,7 @@
 """Security architecture contracts."""
+
 from dataclasses import dataclass
+
 
 @dataclass(frozen=True)
 class SecurityContext:
