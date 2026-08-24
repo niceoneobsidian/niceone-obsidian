@@ -1,0 +1,23 @@
+name: "Gemini AI Code Review"
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Gemini AI PR Review
+        uses: petarzarkov/gemini-code-review-action@main #gitleaks:allow
+        with:
+          model: "gemini-2.5-flash"
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }} #gitleaks:allow
