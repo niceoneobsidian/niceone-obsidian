@@ -29,7 +29,14 @@ def test_context_and_knowledge() -> None:
     knowledge = KnowledgeEngine()
     knowledge.ingest("OIS social intelligence trend analysis", {"source": "test"})
     docs = knowledge.retrieve("trend analysis")
-    context = ContextEngine().assemble(ContextRequest("research", knowledge=tuple({"role": "user", "content": d.content} for d in docs)))
+    context = ContextEngine().assemble(
+        ContextRequest(
+            "research",
+            knowledge=tuple(
+                {"role": "user", "content": document.content} for document in docs
+            ),
+        )
+    )
     assert docs
     assert context.messages[0]["content"] == "research"
 
