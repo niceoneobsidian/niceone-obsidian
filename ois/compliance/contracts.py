@@ -1,5 +1,7 @@
 """Compliance evidence contracts."""
+
 from dataclasses import dataclass
+
 
 @dataclass(frozen=True)
 class EvidenceRecord:
