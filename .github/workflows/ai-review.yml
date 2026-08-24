@@ -15,8 +15,8 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Run AI Code Review
-        uses: petarzarkov/gemini-code-review-action@v1
+      - name: Gemini AI PR Review
+        uses: google-gemini/gemini-code-review-action@v1
         with:
           model: "gemini-2.5-flash"
         env:
