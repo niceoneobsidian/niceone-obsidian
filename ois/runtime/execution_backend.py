@@ -57,7 +57,12 @@ class SQLiteExecutionStore:
                 """
             )
 
-    def create(self, execution_id: str, workflow_id: str, payload: dict[str, Any]) -> ExecutionRecord:
+    def create(
+        self,
+        execution_id: str,
+        workflow_id: str,
+        payload: dict[str, Any],
+    ) -> ExecutionRecord:
         with self._lock, self._connection:
             self._connection.execute(
                 """
