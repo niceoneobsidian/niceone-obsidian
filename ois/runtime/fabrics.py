@@ -1,10 +1,7 @@
 """Runtime bindings for the OIS structural fabrics.
 
-This module turns the v1 architecture contracts into executable, dependency-light
-runtime primitives. External engines remain adapters/providers; all invocations
-enter through the OIS Kernel capability contract and therefore inherit policy,
-validation, checkpointing, idempotency, evidence and recovery from
-``ois.kernel.runtime.ExecutionRuntime``.
+Reference providers are intentionally in-memory. All externally visible
+capabilities remain behind the existing OIS Kernel contracts.
 """
 
 from __future__ import annotations
@@ -13,14 +10,12 @@ from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from threading import RLock
-from typing import Any, Callable, Protocol
+from typing import Any, Callable
 
 from ois.architecture.fabrics import (
     AgentWorkspace,
     ComponentSpec,
     ContextRequest,
-    EvaluationSpec,
-    FabricKind,
     KnowledgeArtifact,
     LearningCandidate,
     LLMGatewaySpec,
@@ -35,14 +30,12 @@ from ois.architecture.fabrics import (
 )
 from ois.kernel.contracts import (
     AgentContract,
-    Capability,
     CapabilityContract,
     InvocationRequest,
     InvocationResult,
 )
 from ois.kernel.registry import CapabilityRegistry
 from ois.kernel.types import InvocationStatus, RiskLevel, SideEffectLevel
-
 
 CAPABILITY_VERSION = "1.0.0"
 
@@ -51,14 +44,8 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-class FabricProvider(Protocol):
-    def execute(self, request: InvocationRequest) -> Any: ...
-
-
 @dataclass
 class InMemoryWorkflowEngine:
-    """Checkpointable DAG execution state for workflow definitions."""
-
     specs: dict[str, WorkflowSpec] = field(default_factory=dict)
     state: dict[str, dict[str, Any]] = field(default_factory=dict)
 
@@ -68,9 +55,15 @@ class InMemoryWorkflowEngine:
         self._validate(spec)
         self.specs[spec.ref_id] = spec
 
-    def start(self, workflow_id: str, execution_id: str, inputs: dict[str, Any]) -> dict[str, Any]:
-        spec = self.specs[workflow_id]
-        record = {
+    def start(
+        self,
+        workflow_id: str,
+        execution_id: str,
+        inputs: dict[str, Any],
+    ) -> dict[str, Any]:
+        if workflow_id not in self.specs:
+            raise LookupError(f"workflow not found: {workflow_id}")
+        record: dict[str, Any] = {
             "workflow_id": workflow_id,
             "execution_id": execution_id,
             "status": "ready",
@@ -104,9 +97,9 @@ class InMemoryWorkflowEngine:
 
 @dataclass
 class InMemoryWorkerFabric:
-    """Queue/worker abstraction with bounded retries and deterministic state."""
-
-    queues: dict[str, deque[dict[str, Any]]] = field(default_factory=lambda: defaultdict(deque))
+    queues: dict[str, deque[dict[str, Any]]] = field(
+        default_factory=lambda: defaultdict(deque)
+    )
     workers: dict[str, WorkerSpec] = field(default_factory=dict)
     attempts: dict[str, int] = field(default_factory=dict)
     results: dict[str, Any] = field(default_factory=dict)
@@ -121,7 +114,9 @@ class InMemoryWorkerFabric:
 
     def submit(self, job_id: str, queue: str, payload: dict[str, Any]) -> None:
         with self._lock:
-            self.queues[queue].append({"job_id": job_id, "payload": dict(payload)})
+            self.queues[queue].append(
+                {"job_id": job_id, "payload": dict(payload)}
+            )
             self.attempts.setdefault(job_id, 0)
 
     def claim(self, queue: str) -> dict[str, Any] | None:
@@ -150,65 +145,95 @@ class InMemoryModelRouter:
 
     def register(self, route: ModelRoute) -> None:
         self.routes.append(route)
-        self.routes.sort(key=lambda item: (item.provider, item.model, item.version))
+        self.routes.sort(
+            key=lambda item: (item.provider, item.model, item.version)
+        )
 
-    def select(self, required: set[str], constraints: dict[str, Any] | None = None) -> ModelRoute:
+    def select(
+        self,
+        required: set[str],
+        constraints: dict[str, Any] | None = None,
+    ) -> ModelRoute:
         constraints = constraints or {}
         candidates = [
             route
             for route in self.routes
             if required.issubset(route.capabilities)
-            and all(route.constraints.get(k) == v for k, v in constraints.items())
+            and all(
+                route.constraints.get(key) == value
+                for key, value in constraints.items()
+            )
         ]
         if not candidates:
-            raise LookupError(f"no model route satisfies capabilities={sorted(required)}")
-        return min(candidates, key=lambda r: sum(r.cost_profile.values()))
+            raise LookupError(
+                f"no model route satisfies capabilities={sorted(required)}"
+            )
+        return min(candidates, key=lambda route: sum(route.cost_profile.values()))
 
 
 @dataclass
 class InMemoryLLMGateway:
     spec: LLMGatewaySpec
     router: InMemoryModelRouter
-    providers: dict[str, Callable[[str, dict[str, Any]], Any]] = field(default_factory=dict)
+    providers: dict[str, Callable[[str, dict[str, Any]], Any]] = field(
+        default_factory=dict
+    )
     telemetry: list[dict[str, Any]] = field(default_factory=list)
 
-    def register_provider(self, provider_id: str, invoke: Callable[[str, dict[str, Any]], Any]) -> None:
+    def register_provider(
+        self,
+        provider_id: str,
+        invoke: Callable[[str, dict[str, Any]], Any],
+    ) -> None:
         self.providers[provider_id] = invoke
 
-    def invoke(self, prompt: str, *, capabilities: set[str] | None = None, options: dict[str, Any] | None = None) -> Any:
+    def invoke(
+        self,
+        prompt: str,
+        *,
+        capabilities: set[str] | None = None,
+        options: dict[str, Any] | None = None,
+    ) -> Any:
         options = options or {}
-        route = self.router.select(capabilities or set(), options.get("constraints"))
-        started = _now()
+        required = capabilities or set()
+        route = self.router.select(required, options.get("constraints"))
         provider = self.providers.get(route.provider)
         if provider is None:
             raise LookupError(f"provider not registered: {route.provider}")
+
         try:
             result = provider(route.model, {"prompt": prompt, **options})
-            self.telemetry.append({
-                "provider": route.provider,
-                "model": route.model,
-                "started_at": started,
-                "completed_at": _now(),
-                "status": "succeeded",
-            })
-            return result
         except Exception as exc:
-            self.telemetry.append({
-                "provider": route.provider,
-                "model": route.model,
-                "started_at": started,
-                "completed_at": _now(),
-                "status": "failed",
-                "error": type(exc).__name__,
-            })
-            if self.spec.fallback_policy == "next_compatible":
-                alternatives = [r for r in self.router.routes if r != route and (capabilities or set()).issubset(r.capabilities)]
-                for fallback in alternatives:
-                    fallback_provider = self.providers.get(fallback.provider)
-                    if fallback_provider is None:
-                        continue
-                    return fallback_provider(fallback.model, {"prompt": prompt, **options})
+            self.telemetry.append(
+                {
+                    "provider": route.provider,
+                    "model": route.model,
+                    "status": "failed",
+                    "error": type(exc).__name__,
+                }
+            )
+            if self.spec.fallback_policy != "next_compatible":
+                raise
+            for fallback in self.router.routes:
+                if fallback == route or not required.issubset(fallback.capabilities):
+                    continue
+                fallback_provider = self.providers.get(fallback.provider)
+                if fallback_provider is not None:
+                    return fallback_provider(
+                        fallback.model,
+                        {"prompt": prompt, **options},
+                    )
             raise
+        else:
+            self.telemetry.append(
+                {
+                    "provider": route.provider,
+                    "model": route.model,
+                    "started_at": _now(),
+                    "status": "succeeded",
+                }
+            )
+            return result
 
 
 @dataclass
@@ -218,13 +243,15 @@ class InMemoryAgentRuntime:
 
     def register(self, workspace: AgentWorkspace) -> None:
         if workspace.agent_id in self.workspaces:
-            raise ValueError(f"agent workspace already registered: {workspace.agent_id}")
+            raise ValueError(
+                f"agent workspace already registered: {workspace.agent_id}"
+            )
         self.workspaces[workspace.agent_id] = workspace
 
     def open_session(self, agent_id: str, session_id: str) -> dict[str, Any]:
         if agent_id not in self.workspaces:
             raise LookupError(f"agent workspace not found: {agent_id}")
-        record = {
+        record: dict[str, Any] = {
             "session_id": session_id,
             "agent_id": agent_id,
             "messages": [],
@@ -235,7 +262,9 @@ class InMemoryAgentRuntime:
         return dict(record)
 
     def append(self, session_id: str, role: str, content: Any) -> None:
-        self.sessions[session_id]["messages"].append({"role": role, "content": content})
+        self.sessions[session_id]["messages"].append(
+            {"role": role, "content": content}
+        )
 
     def close(self, session_id: str) -> None:
         self.sessions[session_id]["status"] = "closed"
@@ -249,12 +278,28 @@ class InMemoryContextEngine:
     skills: dict[str, Any] = field(default_factory=dict)
 
     def assemble(self, request: ContextRequest) -> dict[str, Any]:
-        context = {
+        context: dict[str, Any] = {
             "objective": request.objective,
-            "evidence": [self.evidence[r] for r in request.evidence_refs if r in self.evidence],
-            "memory": [self.memory[r] for r in request.memory_refs if r in self.memory],
-            "knowledge": [self.knowledge[r] for r in request.knowledge_refs if r in self.knowledge],
-            "skills": [self.skills[r] for r in request.skill_refs if r in self.skills],
+            "evidence": [
+                self.evidence[ref]
+                for ref in request.evidence_refs
+                if ref in self.evidence
+            ],
+            "memory": [
+                self.memory[ref]
+                for ref in request.memory_refs
+                if ref in self.memory
+            ],
+            "knowledge": [
+                self.knowledge[ref]
+                for ref in request.knowledge_refs
+                if ref in self.knowledge
+            ],
+            "skills": [
+                self.skills[ref]
+                for ref in request.skill_refs
+                if ref in self.skills
+            ],
         }
         if request.token_budget is not None:
             context["token_budget"] = request.token_budget
@@ -268,25 +313,39 @@ class InMemoryKnowledgeEngine:
     def ingest(self, artifact: KnowledgeArtifact) -> None:
         self.artifacts[artifact.ref_id] = artifact
 
-    def retrieve(self, query: str, *, artifact_type: str | None = None) -> tuple[KnowledgeArtifact, ...]:
+    def retrieve(
+        self,
+        query: str,
+        *,
+        artifact_type: str | None = None,
+    ) -> tuple[KnowledgeArtifact, ...]:
         terms = {term.lower() for term in query.split() if term}
         scored: list[tuple[int, KnowledgeArtifact]] = []
         for artifact in self.artifacts.values():
             if artifact_type and artifact.artifact_type != artifact_type:
                 continue
-            haystack = " ".join([artifact.source_ref, artifact.content_ref, str(artifact.metadata)]).lower()
+            haystack = " ".join(
+                (artifact.source_ref, artifact.content_ref, str(artifact.metadata))
+            ).lower()
             score = sum(term in haystack for term in terms)
             if score:
                 scored.append((score, artifact))
-        return tuple(item for _, item in sorted(scored, key=lambda pair: (-pair[0], pair[1].ref_id)))
+        scored.sort(key=lambda pair: (-pair[0], pair[1].ref_id))
+        return tuple(artifact for _, artifact in scored)
 
 
 @dataclass
 class InMemoryMiddleware:
     spec: MiddlewareSpec
-    hooks: dict[str, list[Callable[[dict[str, Any]], dict[str, Any]]]] = field(default_factory=lambda: defaultdict(list))
+    hooks: dict[str, list[Callable[[dict[str, Any]], dict[str, Any]]]] = field(
+        default_factory=lambda: defaultdict(list)
+    )
 
-    def add(self, stage: str, hook: Callable[[dict[str, Any]], dict[str, Any]]) -> None:
+    def add(
+        self,
+        stage: str,
+        hook: Callable[[dict[str, Any]], dict[str, Any]],
+    ) -> None:
         if stage not in self.spec.stages:
             raise ValueError(f"unsupported middleware stage: {stage}")
         self.hooks[stage].append(hook)
@@ -307,15 +366,29 @@ class InMemoryReasoningRegistry:
             raise ValueError(f"reasoning pattern already registered: {pattern.ref_id}")
         self.patterns[pattern.ref_id] = pattern
 
-    def select(self, objective_class: str, available: set[str] | None = None) -> ReasoningPattern:
+    def select(
+        self,
+        objective_class: str,
+        available: set[str] | None = None,
+    ) -> ReasoningPattern:
         available = available or set()
         candidates = [
-            p for p in self.patterns.values()
-            if objective_class in p.objective_classes and set(p.prerequisites).issubset(available)
+            pattern
+            for pattern in self.patterns.values()
+            if objective_class in pattern.objective_classes
+            and set(pattern.prerequisites).issubset(available)
         ]
         if not candidates:
-            raise LookupError(f"no reasoning pattern for objective={objective_class}")
-        return min(candidates, key=lambda p: (sum(p.cost_profile.values()), p.ref_id))
+            raise LookupError(
+                f"no reasoning pattern for objective={objective_class}"
+            )
+        return min(
+            candidates,
+            key=lambda pattern: (
+                sum(pattern.cost_profile.values()),
+                pattern.ref_id,
+            ),
+        )
 
 
 @dataclass
@@ -328,7 +401,10 @@ class InMemoryStudio:
     def validate(self, artifact_id: str) -> None:
         artifact = self.artifacts[artifact_id]
         components = set(artifact.component_refs)
-        if any(a not in components or b not in components for a, b in artifact.graph):
+        if any(
+            source not in components or target not in components
+            for source, target in artifact.graph
+        ):
             raise ValueError("studio graph references unknown components")
 
 
@@ -370,9 +446,15 @@ class InMemorySocialFabric:
             raise ValueError("social signal confidence must be between 0 and 1")
         self.signals.append(signal)
 
-    def query(self, *, platform: str | None = None, topic: str | None = None) -> tuple[SocialSignal, ...]:
+    def query(
+        self,
+        *,
+        platform: str | None = None,
+        topic: str | None = None,
+    ) -> tuple[SocialSignal, ...]:
         return tuple(
-            signal for signal in self.signals
+            signal
+            for signal in self.signals
             if (platform is None or signal.platform == platform)
             and (topic is None or topic in signal.topic_refs)
         )
@@ -387,10 +469,18 @@ class InMemoryLearningFabric:
             raise ValueError("new learning proposals must enter as candidate")
         self.candidates[candidate.ref_id] = candidate
 
-    def promote(self, ref_id: str, *, approved: bool, evidence_refs: tuple[str, ...] = ()) -> LearningCandidate:
+    def promote(
+        self,
+        ref_id: str,
+        *,
+        approved: bool,
+        evidence_refs: tuple[str, ...] = (),
+    ) -> LearningCandidate:
         current = self.candidates[ref_id]
         if not approved or not evidence_refs:
-            raise PermissionError("promotion requires explicit approval and evaluation evidence")
+            raise PermissionError(
+                "promotion requires explicit approval and evaluation evidence"
+            )
         promoted = LearningCandidate(
             ref_id=current.ref_id,
             version=current.version,
@@ -407,8 +497,6 @@ class InMemoryLearningFabric:
 
 @dataclass
 class FabricRuntime:
-    """Composition root for the 15 structural fabrics."""
-
     workflow: InMemoryWorkflowEngine = field(default_factory=InMemoryWorkflowEngine)
     workers: InMemoryWorkerFabric = field(default_factory=InMemoryWorkerFabric)
     model_router: InMemoryModelRouter = field(default_factory=InMemoryModelRouter)
@@ -416,16 +504,26 @@ class FabricRuntime:
     agents: InMemoryAgentRuntime = field(default_factory=InMemoryAgentRuntime)
     context: InMemoryContextEngine = field(default_factory=InMemoryContextEngine)
     knowledge: InMemoryKnowledgeEngine = field(default_factory=InMemoryKnowledgeEngine)
-    middleware: InMemoryMiddleware = field(default_factory=lambda: InMemoryMiddleware(MiddlewareSpec("ois.middleware")))
-    reasoning: InMemoryReasoningRegistry = field(default_factory=InMemoryReasoningRegistry)
+    middleware: InMemoryMiddleware = field(
+        default_factory=lambda: InMemoryMiddleware(
+            MiddlewareSpec("ois.middleware")
+        )
+    )
+    reasoning: InMemoryReasoningRegistry = field(
+        default_factory=InMemoryReasoningRegistry
+    )
     studio: InMemoryStudio = field(default_factory=InMemoryStudio)
-    components: InMemoryComponentRegistry = field(default_factory=InMemoryComponentRegistry)
-    multimodal: InMemoryMultimodalEngine = field(default_factory=InMemoryMultimodalEngine)
+    components: InMemoryComponentRegistry = field(
+        default_factory=InMemoryComponentRegistry
+    )
+    multimodal: InMemoryMultimodalEngine = field(
+        default_factory=InMemoryMultimodalEngine
+    )
     social: InMemorySocialFabric = field(default_factory=InMemorySocialFabric)
     learning: InMemoryLearningFabric = field(default_factory=InMemoryLearningFabric)
 
     def configure_gateway(self, spec: LLMGatewaySpec) -> InMemoryLLMGateway:
-        self.llm_gateway = InMemoryLLMGateway(spec=spec, router=self.model_router)
+        self.llm_gateway = InMemoryLLMGateway(spec, self.model_router)
         return self.llm_gateway
 
     def bind_workflow(self, spec: WorkflowSpec) -> None:
@@ -465,22 +563,13 @@ class FabricRuntime:
 
 @dataclass
 class FabricCapability:
-    """Kernel Capability adapter that exposes a FabricRuntime operation."""
-
-    capability: str
+    capability_id: str
     handler: Callable[[dict[str, Any]], Any]
     contract: CapabilityContract
 
     def invoke(self, request: InvocationRequest) -> InvocationResult:
         try:
             output = self.handler(dict(request.input))
-            return InvocationResult(
-                invocation_id=request.invocation_id,
-                capability_id=self.contract.capability_id,
-                status=InvocationStatus.SUCCEEDED,
-                output=output,
-                completed_at=_now(),
-            )
         except Exception as exc:
             return InvocationResult(
                 invocation_id=request.invocation_id,
@@ -489,10 +578,34 @@ class FabricCapability:
                 error={"type": type(exc).__name__, "message": str(exc)},
                 completed_at=_now(),
             )
+        return InvocationResult(
+            invocation_id=request.invocation_id,
+            capability_id=self.contract.capability_id,
+            status=InvocationStatus.SUCCEEDED,
+            output=output,
+            completed_at=_now(),
+        )
 
 
-def _contract(capability_id: str, description: str, *, agent: bool = False) -> CapabilityContract:
-    common = dict(
+def _contract(
+    capability_id: str,
+    description: str,
+    *,
+    agent: bool = False,
+) -> CapabilityContract:
+    if agent:
+        return AgentContract(
+            capability_id=capability_id,
+            version=CAPABILITY_VERSION,
+            description=description,
+            risk_level=RiskLevel.LOW,
+            timeout_seconds=60.0,
+            max_retries=0,
+            side_effects=SideEffectLevel.NONE,
+            idempotent=True,
+            max_iterations=4,
+        )
+    return CapabilityContract(
         capability_id=capability_id,
         version=CAPABILITY_VERSION,
         description=description,
@@ -502,36 +615,111 @@ def _contract(capability_id: str, description: str, *, agent: bool = False) -> C
         side_effects=SideEffectLevel.NONE,
         idempotent=True,
     )
-    if agent:
-        return AgentContract(**common, max_iterations=4)
-    return CapabilityContract(**common)
 
 
-def register_fabric_capabilities(registry: CapabilityRegistry, runtime: FabricRuntime) -> tuple[str, ...]:
-    """Expose the structural fabrics through the existing Kernel registry.
+def register_fabric_capabilities(
+    registry: CapabilityRegistry,
+    runtime: FabricRuntime,
+) -> tuple[str, ...]:
+    """Expose fabric operations through the existing Kernel registry."""
 
-    The registered capabilities are deliberately deterministic and side-effect
-    free by default. Real providers (n8n, RAGFlow, TensorZero, vLLM, Ollama,
-    Whisper, platform APIs, etc.) replace the handlers without changing Kernel
-    contracts or routing semantics.
-    """
+    def workflow_handler(inputs: dict[str, Any]) -> dict[str, Any]:
+        return runtime.workflow.start(
+            inputs["workflow_id"],
+            inputs["execution_id"],
+            inputs.get("inputs", {}),
+        )
 
-    bindings: list[tuple[str, Callable[[dict[str, Any]], Any], bool]] = [
-        ("fabric.workflow", lambda x: runtime.workflow.start(x["workflow_id"], x["execution_id"], x.get("inputs", {})), False),
-        ("fabric.worker.submit", lambda x: runtime.workers.submit(x["job_id"], x.get("queue", "default"), x.get("payload", {})) or {"job_id": x["job_id"], "status": "queued"}, False),
-        ("fabric.llm.invoke", lambda x: runtime.llm_gateway.invoke(x["prompt"], capabilities=set(x.get("capabilities", [])), options=x.get("options", {})) if runtime.llm_gateway else (_ for _ in ()).throw(LookupError("LLM gateway is not configured")), False),
-        ("fabric.agent.session", lambda x: runtime.agents.open_session(x["agent_id"], x["session_id"]), True),
-        ("fabric.context.assemble", lambda x: runtime.bind_context(ContextRequest(ref_id=x.get("request_id", "context"), objective=x.get("objective", ""), evidence_refs=tuple(x.get("evidence_refs", ())), memory_refs=tuple(x.get("memory_refs", ())), knowledge_refs=tuple(x.get("knowledge_refs", ())), skill_refs=tuple(x.get("skill_refs", ())), token_budget=x.get("token_budget"))), False),
-        ("fabric.knowledge.retrieve", lambda x: [a.__dict__ for a in runtime.knowledge.retrieve(x.get("query", ""), artifact_type=x.get("artifact_type"))], False),
-        ("fabric.reasoning.select", lambda x: runtime.reasoning.select(x["objective_class"], set(x.get("available", []))).__dict__, False),
-        ("fabric.multimodal.inspect", lambda x: runtime.multimodal.inspect(x["artifact_id"]), False),
-        ("fabric.social.query", lambda x: [s.__dict__ for s in runtime.social.query(platform=x.get("platform"), topic=x.get("topic"))], False),
-        ("fabric.learning.propose", lambda x: runtime.learning.propose(LearningCandidate(ref_id=x["ref_id"], hypothesis=x["hypothesis"], evidence_refs=tuple(x.get("evidence_refs", ())), experiment_ref=x.get("experiment_ref"), affected_refs=tuple(x.get("affected_refs", ()))) ) or {"ref_id": x["ref_id"], "status": "candidate"}, False),
-    ]
+    def worker_handler(inputs: dict[str, Any]) -> dict[str, Any]:
+        runtime.workers.submit(
+            inputs["job_id"],
+            inputs.get("queue", "default"),
+            inputs.get("payload", {}),
+        )
+        return {"job_id": inputs["job_id"], "status": "queued"}
+
+    def llm_handler(inputs: dict[str, Any]) -> Any:
+        if runtime.llm_gateway is None:
+            raise LookupError("LLM gateway is not configured")
+        return runtime.llm_gateway.invoke(
+            inputs["prompt"],
+            capabilities=set(inputs.get("capabilities", [])),
+            options=inputs.get("options", {}),
+        )
+
+    def agent_handler(inputs: dict[str, Any]) -> dict[str, Any]:
+        return runtime.agents.open_session(
+            inputs["agent_id"],
+            inputs["session_id"],
+        )
+
+    def context_handler(inputs: dict[str, Any]) -> dict[str, Any]:
+        request = ContextRequest(
+            ref_id=inputs.get("request_id", "context"),
+            objective=inputs.get("objective", ""),
+            evidence_refs=tuple(inputs.get("evidence_refs", ())),
+            memory_refs=tuple(inputs.get("memory_refs", ())),
+            knowledge_refs=tuple(inputs.get("knowledge_refs", ())),
+            skill_refs=tuple(inputs.get("skill_refs", ())),
+            token_budget=inputs.get("token_budget"),
+        )
+        return runtime.bind_context(request)
+
+    def knowledge_handler(inputs: dict[str, Any]) -> list[dict[str, Any]]:
+        artifacts = runtime.knowledge.retrieve(
+            inputs.get("query", ""),
+            artifact_type=inputs.get("artifact_type"),
+        )
+        return [artifact.__dict__ for artifact in artifacts]
+
+    def reasoning_handler(inputs: dict[str, Any]) -> dict[str, Any]:
+        pattern = runtime.reasoning.select(
+            inputs["objective_class"],
+            set(inputs.get("available", [])),
+        )
+        return pattern.__dict__
+
+    def multimodal_handler(inputs: dict[str, Any]) -> dict[str, Any]:
+        return runtime.multimodal.inspect(inputs["artifact_id"])
+
+    def social_handler(inputs: dict[str, Any]) -> list[dict[str, Any]]:
+        signals = runtime.social.query(
+            platform=inputs.get("platform"),
+            topic=inputs.get("topic"),
+        )
+        return [signal.__dict__ for signal in signals]
+
+    def learning_handler(inputs: dict[str, Any]) -> dict[str, str]:
+        candidate = LearningCandidate(
+            ref_id=inputs["ref_id"],
+            hypothesis=inputs["hypothesis"],
+            evidence_refs=tuple(inputs.get("evidence_refs", ())),
+            experiment_ref=inputs.get("experiment_ref"),
+            affected_refs=tuple(inputs.get("affected_refs", ())),
+        )
+        runtime.bind_learning(candidate)
+        return {"ref_id": candidate.ref_id, "status": "candidate"}
+
+    bindings: tuple[tuple[str, Callable[[dict[str, Any]], Any], bool], ...] = (
+        ("fabric.workflow", workflow_handler, False),
+        ("fabric.worker.submit", worker_handler, False),
+        ("fabric.llm.invoke", llm_handler, False),
+        ("fabric.agent.session", agent_handler, True),
+        ("fabric.context.assemble", context_handler, False),
+        ("fabric.knowledge.retrieve", knowledge_handler, False),
+        ("fabric.reasoning.select", reasoning_handler, False),
+        ("fabric.multimodal.inspect", multimodal_handler, False),
+        ("fabric.social.query", social_handler, False),
+        ("fabric.learning.propose", learning_handler, False),
+    )
 
     registered: list[str] = []
     for capability_id, handler, is_agent in bindings:
-        contract = _contract(capability_id, f"OIS structural fabric capability: {capability_id}", agent=is_agent)
+        contract = _contract(
+            capability_id,
+            f"OIS structural fabric capability: {capability_id}",
+            agent=is_agent,
+        )
         registry.register(FabricCapability(capability_id, handler, contract))
         registered.append(capability_id)
     return tuple(registered)
