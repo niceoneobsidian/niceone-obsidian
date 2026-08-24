@@ -11,13 +11,13 @@ from __future__ import annotations
 import json
 import sqlite3
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from threading import RLock
 from typing import Any
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 @dataclass(frozen=True)
@@ -57,12 +57,7 @@ class SQLiteExecutionStore:
                 """
             )
 
-    def create(
-        self,
-        execution_id: str,
-        workflow_id: str,
-        payload: dict[str, Any],
-    ) -> ExecutionRecord:
+    def create(self, execution_id: str, workflow_id: str, payload: dict[str, Any]) -> ExecutionRecord:
         with self._lock, self._connection:
             self._connection.execute(
                 """
@@ -74,11 +69,7 @@ class SQLiteExecutionStore:
             )
         return self.get(execution_id)
 
-    def checkpoint(
-        self,
-        execution_id: str,
-        checkpoint: dict[str, Any],
-    ) -> ExecutionRecord:
+    def checkpoint(self, execution_id: str, checkpoint: dict[str, Any]) -> ExecutionRecord:
         with self._lock, self._connection:
             self._connection.execute(
                 """
@@ -93,11 +84,7 @@ class SQLiteExecutionStore:
     def complete(self, execution_id: str, result: Any) -> ExecutionRecord:
         return self._set_terminal(execution_id, "succeeded", result=result)
 
-    def fail(
-        self,
-        execution_id: str,
-        error: dict[str, str],
-    ) -> ExecutionRecord:
+    def fail(self, execution_id: str, error: dict[str, str]) -> ExecutionRecord:
         return self._set_terminal(execution_id, "failed", error=error)
 
     def _set_terminal(
@@ -139,9 +126,7 @@ class SQLiteExecutionStore:
             payload=json.loads(row["payload"]),
             result=json.loads(row["result"]) if row["result"] else None,
             error=json.loads(row["error"]) if row["error"] else None,
-            checkpoint=(
-                json.loads(row["checkpoint"]) if row["checkpoint"] else None
-            ),
+            checkpoint=json.loads(row["checkpoint"]) if row["checkpoint"] else None,
         )
 
 
@@ -180,12 +165,7 @@ class SQLiteWorkerQueue:
                 """
             )
 
-    def enqueue(
-        self,
-        job_id: str,
-        queue: str,
-        payload: dict[str, Any],
-    ) -> QueueJob:
+    def enqueue(self, job_id: str, queue: str, payload: dict[str, Any]) -> QueueJob:
         with self._lock, self._connection:
             self._connection.execute(
                 """
@@ -240,12 +220,7 @@ class SQLiteWorkerQueue:
     def dead_letter(self, job_id: str, worker_id: str) -> QueueJob:
         return self._transition(job_id, worker_id, "dead_letter")
 
-    def _transition(
-        self,
-        job_id: str,
-        worker_id: str,
-        status: str,
-    ) -> QueueJob:
+    def _transition(self, job_id: str, worker_id: str, status: str) -> QueueJob:
         with self._lock, self._connection:
             self._connection.execute(
                 """
