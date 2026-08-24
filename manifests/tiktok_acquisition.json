@@ -1,0 +1,48 @@
+{
+  "schema_version": "1.0.0",
+  "capability": "tiktok.content.plan",
+  "status": "reference_provenance",
+  "sources": [
+    {
+      "id": "tiktok-viral-hooks",
+      "url": "https://github.com/shixinzhang/tiktok-viral-hooks",
+      "license": "CC-BY-NC-SA-4.0",
+      "code_license_note": "Repository documentation identifies _scripts as MIT.",
+      "use": "patterns_and_methodology_reference_only",
+      "commercial_corpus_copy": false,
+      "attribution_required_if_material_is_redistributed": true
+    },
+    {
+      "id": "captionaize",
+      "url": "https://github.com/tjoab/captionaize",
+      "license": "MIT",
+      "use": "implementation_reference",
+      "commercial_use": true,
+      "attribution_required": true
+    },
+    {
+      "id": "social-media-caption-generator-claude",
+      "url": "https://github.com/rediumvex/social-media-caption-generator-claude",
+      "license": "MIT",
+      "use": "workflow_reference",
+      "commercial_use": true,
+      "attribution_required": true
+    }
+  ],
+  "integration_policy": {
+    "principle": "extract_and_reimplement",
+    "do_not_vendor_external_apps": true,
+    "do_not_copy_noncommercial_corpus": true,
+    "preserve_reference_provenance": true,
+    "record_execution_provenance_separately": true,
+    "require_tests_before_production": true,
+    "require_kernel_supervisor_orchestrator_path": true
+  },
+  "native_capabilities": [
+    {
+      "id": "tiktok.content.plan",
+      "version": "1.0.0",
+      "implementation": "ois.capabilities.tiktok_growth.TikTokContentAgent"
+    }
+  ]
+}

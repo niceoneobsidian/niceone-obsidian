@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0.0",
+  "domain": "social_intelligence_fabric",
+  "milestone": "M13",
+  "inventory_count": 394,
+  "canonical_inventory_module": "ois.domains.social_intelligence.inventory",
+  "existing_kernel_contracts": {
+    "capability": "ois/kernel/contracts.py:CapabilityContract",
+    "agent": "ois/kernel/contracts.py:AgentContract",
+    "tool": "ois/kernel/contracts.py:ToolContract",
+    "policy": "ois/kernel/contracts.py:PolicyEngine",
+    "validation": "ois/kernel/contracts.py:Validator",
+    "execution": "ois/kernel/state.py:ExecutionContext"
+  },
+  "existing_registries": {
+    "capability_registry": "ois/registries/capability_registry.py",
+    "agent_registry": "ois/registries/agent_registry.py",
+    "tool_registry": "ois/registries/tool_registry.py",
+    "workflow_registry": "ois/registries/workflow_registry.py",
+    "model_registry": "ois/registries/model_registry.py"
+  },
+  "rule": "Extend existing OIS contracts and registries. Do not create parallel social registries or replace the Kernel.",
+  "status": "specification_manifest; individual runtime capabilities require implementation and tests"
+}
