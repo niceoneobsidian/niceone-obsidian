@@ -1,0 +1,49 @@
+from ois.kernel.types import ExecutionStatus, InvocationStatus
+from ois.workflows.tiktok_content_vertical_slice import (
+    VERTICAL_SLICE_VERSION,
+    VERTICAL_SLICE_WORKFLOW_ID,
+    execute_tiktok_vertical_slice,
+)
+
+
+def test_tiktok_vertical_slice_proves_kernel_path() -> None:
+    result = execute_tiktok_vertical_slice(
+        {
+            "topic": "AI content strategy",
+            "audience": "content creators",
+            "objective": "education",
+            "tone": "clear",
+        }
+    )
+
+    assert result.invocation.status == InvocationStatus.SUCCEEDED
+    assert result.plan.is_complete()
+    assert result.plan.tasks["create_content_plan"].status.value == "succeeded"
+    assert result.context.status == ExecutionStatus.COMPLETED
+    assert result.context.identity.workflow_id == VERTICAL_SLICE_WORKFLOW_ID
+    assert result.context.identity.workflow_version == VERTICAL_SLICE_VERSION
+    assert result.context.validation_results[-1]["valid"] is True
+    assert result.context.working_memory
+
+    event_types = [event.event_type for event in result.evidence]
+    assert event_types[:4] == [
+        "execution.received",
+        "execution.input_validated",
+        "execution.authorized",
+        "capability.started",
+    ]
+    assert "capability.completed" in event_types
+    assert "execution.checkpointed" in event_types
+    assert "execution.idempotency_recorded" in event_types
+    assert "execution.completed" in event_types
+
+
+def test_tiktok_vertical_slice_is_idempotent_at_task_boundary() -> None:
+    first = execute_tiktok_vertical_slice({"topic": "AI agents"})
+
+    second = execute_tiktok_vertical_slice({"topic": "AI agents"})
+
+    assert first.invocation.output == second.invocation.output
+    assert first.invocation.metadata["execution_provenance"] == second.invocation.metadata[
+        "execution_provenance"
+    ]
