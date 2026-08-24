@@ -60,6 +60,13 @@ class DomainCapability:
 SOCIAL_CAPABILITIES: tuple[DomainCapability, ...] = (
     DomainCapability("social.ingest", "Ingest social events", "ResearchQuery", "SocialEventBatch"),
     DomainCapability("social.normalize", "Normalize platform events", "SocialEventBatch", "SocialEventBatch"),
+    DomainCapability("social.data_quality", "Validate canonical social events", "SocialEventBatch", "DataQualityReport"),
+    DomainCapability("social.entity_resolution", "Resolve normalized entities", "SocialEventBatch", "EntityMap"),
+    DomainCapability("social.topic_clustering", "Cluster dominant social topics", "SocialEventBatch", "TopicClusters"),
+    DomainCapability("social.trend_detection", "Detect rising social topics", "SocialEventBatch", "TrendSignalBatch"),
+    DomainCapability("social.audience_intelligence", "Build deterministic audience profiles", "SocialEventBatch", "AudienceProfileBatch"),
+    DomainCapability("social.competitor_intelligence", "Build competitor/entity profiles", "SocialEventBatch", "CompetitorProfileBatch"),
+    DomainCapability("social.creative_intelligence", "Extract creative patterns", "SocialEventBatch", "CreativePatternBatch"),
     DomainCapability("social.signal_analysis", "Derive deterministic social signals", "SocialEventBatch", "SocialSignalBatch"),
     DomainCapability("social.research_brief", "Synthesize evidence-backed findings", "SocialSignalBatch", "SocialResearchBrief"),
     DomainCapability("social.content.generate", "Generate a content draft", "ContentBrief", "ContentDraft"),
