@@ -87,7 +87,6 @@ def execute_tiktok_vertical_slice(
     }
 
     executed_plan = orchestrator.execute(plan, context)
-    task = executed_plan.tasks["create_content_plan"]
     invocation = runtime.idempotency.get(
         f"{context.identity.execution_id}:create_content_plan"
     )
