@@ -7,10 +7,11 @@ capabilities remain behind the existing OIS Kernel contracts.
 from __future__ import annotations
 
 from collections import defaultdict, deque
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from threading import RLock
-from typing import Any, Callable
+from typing import Any
 
 from ois.architecture.fabrics import (
     AgentWorkspace,
@@ -41,7 +42,7 @@ CAPABILITY_VERSION = "1.0.0"
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 @dataclass
