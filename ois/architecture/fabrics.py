@@ -212,7 +212,7 @@ class InMemoryFabricRegistry:
         return self._items.get(fabric_id)
 
     def list(self, kind: FabricKind | None = None) -> tuple[FabricSpec, ...]:
-        values = self._items.values()
+        values: tuple[FabricSpec, ...] = tuple(self._items.values())
         if kind is not None:
-            values = (item for item in values if item.kind == kind)
+            values = tuple(item for item in values if item.kind == kind)
         return tuple(sorted(values, key=lambda item: item.fabric_id))
