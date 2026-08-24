@@ -1,13 +1,14 @@
-from __future__ import annotations
+from __future__
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Any, Callable
+from datetime import UTC, datetime
+from typing import Any
 from uuid import uuid4
 
 
 def utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 @dataclass
@@ -19,7 +20,10 @@ class MiddlewareContext:
 
 
 class MiddlewarePipeline:
-    def __init__(self, hooks: list[Callable[[MiddlewareContext], MiddlewareContext]] | None = None) -> None:
+    def __init__(
+        self,
+        hooks: list[Callable[[MiddlewareContext], MiddlewareContext]] | None = None,
+    ) -> None:
         self._hooks = list(hooks or [])
 
     def before(self, context: MiddlewareContext) -> MiddlewareContext:
@@ -82,7 +86,11 @@ class KnowledgeEngine:
     def __init__(self) -> None:
         self._documents: dict[str, KnowledgeDocument] = {}
 
-    def ingest(self, content: str, metadata: dict[str, Any] | None = None) -> KnowledgeDocument:
+    def ingest(
+        self,
+        content: str,
+        metadata: dict[str, Any] | None = None,
+    ) -> KnowledgeDocument:
         document = KnowledgeDocument(str(uuid4()), content, dict(metadata or {}))
         self._documents[document.document_id] = document
         return document
@@ -112,8 +120,12 @@ class ReasoningRegistry:
         self._patterns[pattern.name] = pattern
 
     def select(self, objective_type: str) -> ReasoningPattern | None:
-        matches = [p for p in self._patterns.values() if objective_type in p.objective_types]
-        return sorted(matches, key=lambda p: p.name)[0] if matches else None
+        matches = [
+            pattern
+            for pattern in self._patterns.values()
+            if objective_type in pattern.objective_types
+        ]
+        return sorted(matches, key=lambda pattern: pattern.name)[0] if matches else None
 
 
 @dataclass(frozen=True)
@@ -125,7 +137,12 @@ class MultimodalArtifact:
 
 
 class MultimodalRuntime:
-    def create(self, media_type: str, uri: str, metadata: dict[str, Any] | None = None) -> MultimodalArtifact:
+    def create(
+        self,
+        media_type: str,
+        uri: str,
+        metadata: dict[str, Any] | None = None,
+    ) -> MultimodalArtifact:
         return MultimodalArtifact(str(uuid4()), media_type, uri, dict(metadata or {}))
 
 
@@ -143,14 +160,27 @@ class SocialIntelligenceRuntime:
     def __init__(self) -> None:
         self._signals: list[SocialSignal] = []
 
-    def ingest(self, platform: str, signal_type: str, value: float, confidence: float = 1.0) -> SocialSignal:
-        signal = SocialSignal(str(uuid4()), platform, signal_type, value, utcnow(), confidence)
+    def ingest(
+        self,
+        platform: str,
+        signal_type: str,
+        value: float,
+        confidence: float = 1.0,
+    ) -> SocialSignal:
+        signal = SocialSignal(
+            str(uuid4()), platform, signal_type, value, utcnow(), confidence
+        )
         self._signals.append(signal)
         return signal
 
-    def query(self, platform: str | None = None, signal_type: str | None = None) -> list[SocialSignal]:
+    def query(
+        self,
+        platform: str | None = None,
+        signal_type: str | None = None,
+    ) -> list[SocialSignal]:
         return [
-            signal for signal in self._signals
+            signal
+            for signal in self._signals
             if (platform is None or signal.platform == platform)
             and (signal_type is None or signal.signal_type == signal_type)
         ]
@@ -177,12 +207,22 @@ class LearningRuntime:
         candidate = self._candidates[candidate_id]
         if candidate.status != "evaluated":
             raise ValueError("Candidate must be evaluated before approval")
-        approved = LearningCandidate(candidate.candidate_id, candidate.hypothesis, candidate.evidence, "approved")
+        approved = LearningCandidate(
+            candidate.candidate_id,
+            candidate.hypothesis,
+            candidate.evidence,
+            "approved",
+        )
         self._candidates[candidate_id] = approved
         return approved
 
     def mark_evaluated(self, candidate_id: str) -> LearningCandidate:
         candidate = self._candidates[candidate_id]
-        evaluated = LearningCandidate(candidate.candidate_id, candidate.hypothesis, candidate.evidence, "evaluated")
+        evaluated = LearningCandidate(
+            candidate.candidate_id,
+            candidate.hypothesis,
+            candidate.evidence,
+            "evaluated",
+        )
         self._candidates[candidate_id] = evaluated
         return evaluated
