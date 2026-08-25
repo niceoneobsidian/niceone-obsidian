@@ -56,6 +56,6 @@ from ois.tenancy.contracts import TenantScope
 )
 def test_enterprise_architecture_contracts_are_frozen(factory) -> None:
     contract = factory()
+    field_name = next(iter(contract.__dataclass_fields__))
     with pytest.raises(FrozenInstanceError):
-        contract.__dataclass_fields__[next(iter(contract.__dataclass_fields__))]
-        setattr(contract, next(iter(contract.__dataclass_fields__)), None)
+        setattr(contract, field_name, None)
