@@ -67,12 +67,7 @@ class SQLiteExecutionStore:
                 """
             )
 
-    def create(
-        self,
-        execution_id: str,
-        workflow_id: str,
-        payload: dict[str, Any],
-    ) -> ExecutionRecord:
+    def create(self, execution_id: str, workflow_id: str, payload: dict[str, Any]) -> ExecutionRecord:
         with self._lock, self._connection:
             self._connection.execute(
                 """
@@ -129,8 +124,7 @@ class SQLiteExecutionStore:
 
     def get(self, execution_id: str) -> ExecutionRecord:
         row = self._connection.execute(
-            "SELECT * FROM executions WHERE execution_id = ?",
-            (execution_id,),
+            "SELECT * FROM executions WHERE execution_id = ?", (execution_id,)
         ).fetchone()
         if row is None:
             raise LookupError(f"execution not found: {execution_id}")
@@ -184,8 +178,7 @@ class SQLiteWorkerQueue:
 
     def get(self, job_id: str) -> QueueJob:
         row = self._connection.execute(
-            "SELECT * FROM worker_queue WHERE job_id = ?",
-            (job_id,),
+            "SELECT * FROM worker_queue WHERE job_id = ?", (job_id,)
         ).fetchone()
         if row is None:
             raise LookupError(f"queue job not found: {job_id}")
