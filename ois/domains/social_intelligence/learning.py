@@ -42,7 +42,11 @@ def compare_prediction_to_outcome(
     """
     shared = sorted(set(predicted).intersection(observed.metrics))
     errors = {key: observed.metrics[key] - predicted[key] for key in shared}
-    mae = sum(abs(value) for value in errors.values()) / len(errors) if errors else 0.0
+    mae = (
+        sum(abs(value) for value in errors.values()) / len(errors)
+        if errors
+        else 0.0
+    )
     return LearningEvent(
         content_id=content_id,
         prediction_version=prediction_version,
