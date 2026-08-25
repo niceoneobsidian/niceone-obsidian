@@ -27,7 +27,7 @@ class ExecutionContext:
     identity: ExecutionIdentity
     objective: str
     constraints: Mapping[str, Any] = field(default_factory=dict)
-    metadata: Mapping[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     status: ExecutionStatus = ExecutionStatus.RECEIVED
     risk_level: RiskLevel = RiskLevel.LOW
@@ -92,25 +92,41 @@ class ExecutionContext:
             workflow_version=identity_payload.get("workflow_version"),
         )
 
-        context = cls(
-            identity=identity,
-            objective=str(payload.get("objective", "")),
-        )
+        context_fields = {item.name for item in fields(cls)}
+        context_payload = {
+            key: value
+            for key, value in payload.items()
+            if key in context_fields and key != "identity"
+        }
+        return cls(identity=identity, **context_payload)
 
-        for field_info in fields(context):
-            name = field_info.name
-            if name in {"identity", "objective"} or name not in payload:
-                continue
-
-            value = payload[name]
-            current = getattr(context, name, None)
-            if isinstance(current, ExecutionStatus | FailureClass | RiskLevel):
-                with suppress(TypeError, ValueError):
-                    value = type(current)(value)
-                if not isinstance(value, type(current)):
-                    continue
-
-            with suppress(AttributeError, TypeError):
-                setattr(context, name, value)
-
-        return context
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "identity": {
+                "execution_id": str(self.identity.execution_id),
+                "tenant_id": self.identity.tenant_id,
+                "workflow_id": self.identity.workflow_id,
+                "workflow_version": self.identity.workflow_version,
+            },
+            "objective": self.objective,
+            "constraints": dict(self.constraints),
+            "metadata": dict(self.metadata),
+            "status": self.status.value,
+            "risk_level": self.risk_level.value,
+            "intent": dict(self.intent) if self.intent is not None else None,
+            "plan": dict(self.plan) if self.plan is not None else None,
+            "current_node": self.current_node,
+            "working_memory": dict(self.working_memory),
+            "retrieved_context": [dict(item) for item in self.retrieved_context],
+            "artifacts": [dict(item) for item in self.artifacts],
+            "approvals": [dict(item) for item in self.approvals],
+            "escalations": [dict(item) for item in self.escalations],
+            "observations": [dict(item) for item in self.observations],
+            "validation_results": [dict(item) for item in self.validation_results],
+            "retry_count": self.retry_count,
+            "recovery_attempts": self.recovery_attempts,
+            "last_failure": self.last_failure.value if self.last_failure else None,
+            "error": dict(self.error) if self.error is not None else None,
+            "created_at": self.created_at.isoformat(),
+            "updated_at": self.updated_at.isoformat(),
+        }
