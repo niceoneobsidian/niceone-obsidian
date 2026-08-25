@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from typing import Any
 from dataclasses import dataclass
+from typing import Any
 
 from ois.capabilities.tiktok_growth import TikTokContentAgent
 from ois.kernel.checkpoint import InMemoryCheckpointStore
