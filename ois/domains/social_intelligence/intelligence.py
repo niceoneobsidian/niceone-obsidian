@@ -8,10 +8,10 @@ prediction, experimentation, measurement, and learning components can consume.
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from hashlib import sha256
 from typing import Any
-from collections.abc import Mapping
 
 
 @dataclass(frozen=True)
