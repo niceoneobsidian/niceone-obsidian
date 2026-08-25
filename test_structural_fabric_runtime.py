@@ -38,13 +38,13 @@ def test_structural_fabric_capabilities_register() -> None:
     runtime = FabricRuntime()
     register_fabric_capabilities(registry, runtime)
 
-    assert registry.resolve("fabric.workflow", "1.0.0") is not None
-    assert registry.resolve("fabric.worker", "1.0.0") is not None
-    assert registry.resolve("fabric.agent", "1.0.0") is not None
-    assert registry.resolve("fabric.model", "1.0.0") is not None
-    assert registry.resolve("fabric.llm", "1.0.0") is not None
-    assert registry.resolve("fabric.knowledge", "1.0.0") is not None
-    assert registry.resolve("fabric.context", "1.0.0") is not None
-    assert registry.resolve("fabric.reasoning", "1.0.0") is not None
-    assert registry.resolve("fabric.social", "1.0.0") is not None
-    assert registry.resolve("fabric.learning", "1.0.0") is not None
+    assert registry.has("fabric.workflow", "1.0.0")
+    assert registry.has("fabric.worker", "1.0.0")
+    assert registry.has("fabric.agent", "1.0.0")
+    assert registry.has("fabric.model", "1.0.0")
+    assert registry.has("fabric.llm", "1.0.0")
+    assert registry.has("fabric.knowledge", "1.0.0")
+    assert registry.has("fabric.context", "1.0.0")
+    assert registry.has("fabric.reasoning", "1.0.0")
+    assert registry.has("fabric.social", "1.0.0")
+    assert registry.has("fabric.learning", "1.0.0")
