@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Protocol, TypeVar
-
 from ois.registries import (
     AgentRegistry,
     CapabilityRegistry,
@@ -12,19 +10,6 @@ from ois.registries import (
 )
 
 from .spec import RouteRequest, RouteResult
-
-
-class _RegistryEntry(Protocol):
-    id: str
-    version: str
-    value: object
-
-
-class _Registry(Protocol):
-    def resolve(self, object_id: str, version: str) -> _RegistryEntry: ...
-
-
-RegistryT = TypeVar("RegistryT", bound=_Registry)
 
 
 class Router:
@@ -56,7 +41,10 @@ class Router:
         return self._resolve(self.tools, request)
 
     @staticmethod
-    def _resolve(registry: RegistryT, request: RouteRequest) -> RouteResult:
+    def _resolve(
+        registry: CapabilityRegistry | AgentRegistry | ModelRegistry | ToolRegistry,
+        request: RouteRequest,
+    ) -> RouteResult:
         entry = registry.resolve(request.object_id, request.version)
         return RouteResult(
             object_id=entry.id,
