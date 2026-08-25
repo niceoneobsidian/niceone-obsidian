@@ -107,7 +107,10 @@ def execute_tiktok_vertical_slice(
     context.metadata["supervisor_selection"] = {
         "capability_id": selected.contract.capability_id,
         "version": selected.contract.version,
-        "agent_type": f"{type(selected.capability).__module__}.{type(selected.capability).__qualname__}",
+        "agent_type": (
+            f"{type(selected.capability).__module__}."
+            f"{type(selected.capability).__qualname__}"
+        ),
     }
 
     executed_plan = supervisor.execute(plan, context)
