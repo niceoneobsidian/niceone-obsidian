@@ -9,7 +9,7 @@ from __future__ import annotations
 import math
 import re
 from collections import Counter, defaultdict
-from typing import Iterable
+from collections.abc import Iterable
 
 from .schemas import SocialEvent, SocialSignal
 
@@ -72,7 +72,11 @@ def detect_anomalies(values: list[float], z_threshold: float = 2.5) -> list[int]
 def engagement_rate(event: SocialEvent, denominator: float | None = None) -> float:
     metrics = event.metrics
     numerator = sum(float(metrics.get(k, 0)) for k in ("likes", "comments", "shares", "saves"))
-    base = denominator if denominator is not None else float(metrics.get("impressions", metrics.get("reach", 0)))
+    base = (
+        denominator
+        if denominator is not None
+        else float(metrics.get("impressions", metrics.get("reach", 0)))
+    )
     return numerator / base if base > 0 else 0.0
 
 
@@ -81,25 +85,33 @@ def signals_from_events(events: Iterable[SocialEvent]) -> list[SocialSignal]:
     signals: list[SocialSignal] = []
     for event in materialized:
         score = sentiment_score(event.text or "")
-        signals.append(SocialSignal(
-            signal_type="sentiment",
-            value="positive" if score > 0.1 else "negative" if score < -0.1 else "neutral",
-            score=min(1.0, abs(score)),
-            platform=event.platform,
-            confidence=0.5 if event.text else 0.2,
-        ))
+        signals.append(
+            SocialSignal(
+                signal_type="sentiment",
+                value="positive" if score > 0.1 else "negative" if score < -0.1 else "neutral",
+                score=min(1.0, abs(score)),
+                platform=event.platform,
+                confidence=0.5 if event.text else 0.2,
+            )
+        )
     for topic, count in topic_counts(materialized):
-        signals.append(SocialSignal(
-            signal_type="topic", value=topic,
-            score=min(1.0, count / max(len(materialized), 1)),
-            confidence=0.6,
-        ))
+        signals.append(
+            SocialSignal(
+                signal_type="topic",
+                value=topic,
+                score=min(1.0, count / max(len(materialized), 1)),
+                confidence=0.6,
+            )
+        )
     for topic, velocity in trend_velocity(materialized).items():
         if velocity > 0:
-            signals.append(SocialSignal(
-                signal_type="trend", value=topic,
-                score=min(1.0, velocity / (1 + velocity)),
-                velocity=velocity,
-                confidence=0.5,
-            ))
+            signals.append(
+                SocialSignal(
+                    signal_type="trend",
+                    value=topic,
+                    score=min(1.0, velocity / (1 + velocity)),
+                    velocity=velocity,
+                    confidence=0.5,
+                )
+            )
     return signals

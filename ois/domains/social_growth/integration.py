@@ -35,12 +35,21 @@ def register_social_domain(
             spec.capability_id,
             "1.0.0",
             spec,
-            metadata={"domain": "social_growth", "side_effect": spec.side_effect, "requires_approval": spec.requires_approval},
+            metadata={
+                "domain": "social_growth",
+                "side_effect": spec.side_effect,
+                "requires_approval": spec.requires_approval,
+            },
         )
     for spec in SOCIAL_AGENTS:
         agents.register(spec.agent_id, "1.0.0", spec, metadata={"domain": "social_growth"})
     for workflow in (RESEARCH_WORKFLOW, CONTENT_PUBLISH_WORKFLOW):
-        workflows.register(workflow.workflow_id, str(workflow.version), workflow, metadata={"domain": "social_growth"})
+        workflows.register(
+            workflow.workflow_id,
+            str(workflow.version),
+            workflow,
+            metadata={"domain": "social_growth"},
+        )
     return SocialIntegrationResult(
         capabilities=len(SOCIAL_CAPABILITIES),
         agents=len(SOCIAL_AGENTS),

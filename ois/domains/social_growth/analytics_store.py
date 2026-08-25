@@ -1,4 +1,5 @@
 """Append-only analytics and social event metrics storage."""
+
 from __future__ import annotations
 
 import sqlite3
@@ -52,8 +53,11 @@ class SQLiteAnalyticsStore:
                 MetricObservation(
                     observation_id=f"{event.event_id}:{metric}",
                     entity_id=event.external_id or event.event_id,
-                    metric=str(metric), value=float(value), observed_at=event.occurred_at,
-                    platform=event.platform, source_event_id=event.event_id,
+                    metric=str(metric),
+                    value=float(value),
+                    observed_at=event.occurred_at,
+                    platform=event.platform,
+                    source_event_id=event.event_id,
                 )
             )
             for metric, value in event.metrics.items()
@@ -63,14 +67,19 @@ class SQLiteAnalyticsStore:
     def latest(self, entity_id: str, metric: str) -> MetricObservation | None:
         row = self._db.execute(
             "SELECT * FROM metric_observations WHERE entity_id=? AND metric=? "
-            "ORDER BY observed_at DESC LIMIT 1", (entity_id, metric)
+            "ORDER BY observed_at DESC LIMIT 1",
+            (entity_id, metric),
         ).fetchone()
         if row is None:
             return None
         return MetricObservation(
-            observation_id=row["observation_id"], entity_id=row["entity_id"], metric=row["metric"],
-            value=float(row["value"]), observed_at=datetime.fromisoformat(row["observed_at"]),
-            platform=row["platform"], source_event_id=row["source_event_id"],
+            observation_id=row["observation_id"],
+            entity_id=row["entity_id"],
+            metric=row["metric"],
+            value=float(row["value"]),
+            observed_at=datetime.fromisoformat(row["observed_at"]),
+            platform=row["platform"],
+            source_event_id=row["source_event_id"],
         )
 
     def close(self) -> None:

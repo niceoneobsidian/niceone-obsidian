@@ -22,14 +22,51 @@ class SocialWorkflowSpec:
 
 
 SOCIAL_AGENTS: tuple[SocialAgentSpec, ...] = (
-    SocialAgentSpec("social.research_agent", "Social research and evidence synthesis", ("social.ingest", "social.data_quality", "social.entity_resolution", "social.topic_clustering", "social.trend_detection", "social.research_brief")),
-    SocialAgentSpec("social.trend_agent", "Trend and velocity intelligence", ("social.topic_clustering", "social.trend_detection")),
-    SocialAgentSpec("social.audience_agent", "Audience intelligence", ("social.audience_intelligence",)),
-    SocialAgentSpec("social.competitor_agent", "Competitor intelligence", ("social.entity_resolution", "social.competitor_intelligence")),
-    SocialAgentSpec("social.creative_agent", "Creative intelligence and pattern extraction", ("social.creative_intelligence", "social.learning.update")),
-    SocialAgentSpec("social.publisher_agent", "Governed publishing execution", ("social.publish.approve", "social.publish")),
-    SocialAgentSpec("social.analytics_agent", "Performance and attribution analysis", ("social.analytics.collect", "social.learning.update")),
-    SocialAgentSpec("social.supervisor", "Supervise social domain workflows", tuple(c.capability_id for c in SOCIAL_CAPABILITIES)),
+    SocialAgentSpec(
+        "social.research_agent",
+        "Social research and evidence synthesis",
+        (
+            "social.ingest",
+            "social.data_quality",
+            "social.entity_resolution",
+            "social.topic_clustering",
+            "social.trend_detection",
+            "social.research_brief",
+        ),
+    ),
+    SocialAgentSpec(
+        "social.trend_agent",
+        "Trend and velocity intelligence",
+        ("social.topic_clustering", "social.trend_detection"),
+    ),
+    SocialAgentSpec(
+        "social.audience_agent", "Audience intelligence", ("social.audience_intelligence",)
+    ),
+    SocialAgentSpec(
+        "social.competitor_agent",
+        "Competitor intelligence",
+        ("social.entity_resolution", "social.competitor_intelligence"),
+    ),
+    SocialAgentSpec(
+        "social.creative_agent",
+        "Creative intelligence and pattern extraction",
+        ("social.creative_intelligence", "social.learning.update"),
+    ),
+    SocialAgentSpec(
+        "social.publisher_agent",
+        "Governed publishing execution",
+        ("social.publish.approve", "social.publish"),
+    ),
+    SocialAgentSpec(
+        "social.analytics_agent",
+        "Performance and attribution analysis",
+        ("social.analytics.collect", "social.learning.update"),
+    ),
+    SocialAgentSpec(
+        "social.supervisor",
+        "Supervise social domain workflows",
+        tuple(c.capability_id for c in SOCIAL_CAPABILITIES),
+    ),
 )
 
 

@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import json
 import sqlite3
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from .schemas import Evidence
@@ -44,7 +43,7 @@ class SQLiteEvidenceLedger:
                 evidence.excerpt,
                 evidence.observed_at.isoformat(),
                 evidence.confidence,
-                datetime.now(timezone.utc).isoformat(),
+                datetime.now(UTC).isoformat(),
             ),
         )
         self._connection.commit()

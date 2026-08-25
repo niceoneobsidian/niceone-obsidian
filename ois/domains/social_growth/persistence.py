@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from collections.abc import Iterable
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Protocol
 
@@ -66,7 +66,7 @@ class SQLiteSocialEventStore:
                 event.external_id,
                 event.occurred_at.isoformat(),
                 payload,
-                datetime.now(timezone.utc).isoformat(),
+                datetime.now(UTC).isoformat(),
             ),
         )
         self._connection.commit()

@@ -3,15 +3,17 @@
 Credentials are injected by deployment configuration; no secrets are stored in
 OIS. Calls are made only when an authorized OIS capability invokes the adapter.
 """
+
 from __future__ import annotations
 
 import json
 import os
-from datetime import datetime, timezone
+from collections.abc import Mapping
+from datetime import UTC, datetime
+from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote
 from urllib.request import Request, urlopen
-from typing import Any, Mapping
 
 from .connectors import SocialConnector
 from .schemas import PublishIntent, SocialEvent
@@ -28,8 +30,13 @@ class BearerHTTPClient:
         self._token = token
         self._timeout = timeout
 
-    def request(self, method: str, url: str, payload: Mapping[str, Any] | None = None,
-                headers: Mapping[str, str] | None = None) -> dict[str, Any]:
+    def request(
+        self,
+        method: str,
+        url: str,
+        payload: Mapping[str, Any] | None = None,
+        headers: Mapping[str, str] | None = None,
+    ) -> dict[str, Any]:
         body = None if payload is None else json.dumps(payload).encode("utf-8")
         request_headers = {"Authorization": f"Bearer {self._token}", "Accept": "application/json"}
         if payload is not None:
@@ -56,9 +63,12 @@ class XConnector(SocialConnector):
 
     def normalize_event(self, payload: Mapping[str, Any]) -> SocialEvent:
         return SocialEvent(
-            platform="x", event_type="post", occurred_at=datetime.now(timezone.utc),
+            platform="x",
+            event_type="post",
+            occurred_at=datetime.now(UTC),
             external_id=str(payload.get("id")) if payload.get("id") else None,
-            text=payload.get("text"), raw=dict(payload),
+            text=payload.get("text"),
+            raw=dict(payload),
         )
 
     def publish(self, intent: PublishIntent) -> dict[str, Any]:
@@ -83,9 +93,12 @@ class LinkedInConnector(SocialConnector):
 
     def normalize_event(self, payload: Mapping[str, Any]) -> SocialEvent:
         return SocialEvent(
-            platform="linkedin", event_type="post", occurred_at=datetime.now(timezone.utc),
+            platform="linkedin",
+            event_type="post",
+            occurred_at=datetime.now(UTC),
             external_id=str(payload.get("id")) if payload.get("id") else None,
-            text=payload.get("commentary"), raw=dict(payload),
+            text=payload.get("commentary"),
+            raw=dict(payload),
         )
 
     def publish(self, intent: PublishIntent) -> dict[str, Any]:
@@ -97,13 +110,21 @@ class LinkedInConnector(SocialConnector):
         if not isinstance(commentary, str) or not commentary:
             raise ValueError("LinkedIn publish requires content.text")
         payload = {
-            "author": author, "commentary": commentary, "visibility": "PUBLIC",
-            "distribution": {"feedDistribution": "MAIN_FEED", "targetEntities": [],
-                             "thirdPartyDistributionChannels": []},
-            "lifecycleState": "PUBLISHED", "isReshareDisabledByAuthor": False,
+            "author": author,
+            "commentary": commentary,
+            "visibility": "PUBLIC",
+            "distribution": {
+                "feedDistribution": "MAIN_FEED",
+                "targetEntities": [],
+                "thirdPartyDistributionChannels": [],
+            },
+            "lifecycleState": "PUBLISHED",
+            "isReshareDisabledByAuthor": False,
         }
         return self._http.request(
-            "POST", "https://api.linkedin.com/rest/posts", payload,
+            "POST",
+            "https://api.linkedin.com/rest/posts",
+            payload,
             {"Linkedin-Version": self._api_version, "X-Restli-Protocol-Version": "2.0.0"},
         )
 
@@ -120,9 +141,12 @@ class InstagramGraphConnector(SocialConnector):
 
     def normalize_event(self, payload: Mapping[str, Any]) -> SocialEvent:
         return SocialEvent(
-            platform="instagram", event_type="media", occurred_at=datetime.now(timezone.utc),
+            platform="instagram",
+            event_type="media",
+            occurred_at=datetime.now(UTC),
             external_id=str(payload.get("id")) if payload.get("id") else None,
-            text=payload.get("caption"), raw=dict(payload),
+            text=payload.get("caption"),
+            raw=dict(payload),
         )
 
     def publish(self, intent: PublishIntent) -> dict[str, Any]:
@@ -132,9 +156,10 @@ class InstagramGraphConnector(SocialConnector):
         image_url = intent.content.get("image_url")
         if not isinstance(image_url, str) or not image_url:
             raise ValueError("Instagram publish requires content.image_url")
-        base = f"https://graph.facebook.com/{self._version}/{quote(intent.account_ref, safe='') }"
+        base = f"https://graph.facebook.com/{self._version}/{quote(intent.account_ref, safe='')}"
         creation = self._http.request(
-            "POST", f"{base}/media",
+            "POST",
+            f"{base}/media",
             {"image_url": image_url, "caption": intent.content.get("caption", "")},
         )
         creation_id = creation.get("id")

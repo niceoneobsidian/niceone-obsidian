@@ -24,7 +24,7 @@ from .intelligence import (
     resolve_entities,
     validate_events,
 )
-from .persistence import SQLiteSocialEventStore, SocialEventStore
+from .persistence import SocialEventStore, SQLiteSocialEventStore
 from .schemas import SocialEvent, SocialResearchBrief, SocialSignal
 
 
@@ -116,9 +116,7 @@ class SocialResearchCapability:
         events = [SocialEvent.model_validate(event) for event in raw_events]
         quality = validate_events(events)
         accepted = [
-            event
-            for event in events
-            if event.platform and event.event_type and event.occurred_at
+            event for event in events if event.platform and event.event_type and event.occurred_at
         ]
 
         entity_aliases = resolve_entities(accepted)
