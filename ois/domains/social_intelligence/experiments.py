@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Mapping
 
 from .intelligence import ContentGenome
 from .prediction import Prediction, predict_content
@@ -39,7 +39,7 @@ class Experiment:
 
 
 def simulate_variants(experiment: Experiment) -> tuple[VariantScore, ...]:
-    """Rank variants by expected overall performance without mutating production."""
+    """Rank variants by expected performance without mutating production."""
     scores = []
     for variant in experiment.variants:
         prediction: Prediction = predict_content(variant.genome)
@@ -53,7 +53,9 @@ def simulate_variants(experiment: Experiment) -> tuple[VariantScore, ...]:
     return tuple(
         sorted(
             scores,
-            key=lambda item: item.expected_metrics.get("overall_performance", 0.0),
+            key=lambda item: item.expected_metrics.get(
+                "overall_performance", 0.0
+            ),
             reverse=True,
         )
     )
