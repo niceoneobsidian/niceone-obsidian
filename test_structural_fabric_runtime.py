@@ -1,17 +1,6 @@
 from __future__ import annotations
 
-from ois.architecture.fabrics import (
-    AgentWorkspace,
-    ContextRequest,
-    KnowledgeArtifact,
-    LearningCandidate,
-    LLMGatewaySpec,
-    ModelRoute,
-    ReasoningPattern,
-    SocialSignal,
-    WorkflowSpec,
-    WorkerSpec,
-)
+from ois.architecture.fabrics import AgentWorkspace, WorkflowSpec, WorkerSpec
 from ois.kernel.registry import CapabilityRegistry
 from ois.runtime.fabrics import FabricRuntime, register_fabric_capabilities
 
@@ -39,14 +28,15 @@ def test_workflow_worker_and_agent_runtime_bindings() -> None:
     runtime.workflow.checkpoint("exec-1", "research", {"ok": True})
     resumed = runtime.workflow.resume("exec-1")
 
-    assert started.workflow_id == "wf"
-    assert started.execution_id == "exec-1"
-    assert resumed.execution_id == "exec-1"
+    assert started["workflow_id"] == "wf"
+    assert started["execution_id"] == "exec-1"
+    assert resumed["execution_id"] == "exec-1"
 
 
 def test_structural_fabric_capabilities_register() -> None:
     registry = CapabilityRegistry()
-    register_fabric_capabilities(registry)
+    runtime = FabricRuntime()
+    register_fabric_capabilities(registry, runtime)
 
     assert registry.resolve("fabric.workflow", "1.0.0") is not None
     assert registry.resolve("fabric.worker", "1.0.0") is not None
