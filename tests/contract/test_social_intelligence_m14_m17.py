@@ -1,6 +1,16 @@
-from ois.domains.social_intelligence.experiments import CreativeVariant, Experiment, simulate_variants
-from ois.domains.social_intelligence.intelligence import ModalityObservation, build_content_genome
-from ois.domains.social_intelligence.learning import PerformanceObservation, compare_prediction_to_outcome
+from ois.domains.social_intelligence.experiments import (
+    CreativeVariant,
+    Experiment,
+    simulate_variants,
+)
+from ois.domains.social_intelligence.intelligence import (
+    ModalityObservation,
+    build_content_genome,
+)
+from ois.domains.social_intelligence.learning import (
+    PerformanceObservation,
+    compare_prediction_to_outcome,
+)
 from ois.domains.social_intelligence.prediction import predict_content
 
 
