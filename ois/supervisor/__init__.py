@@ -1,3 +1,5 @@
 """Supervisor contracts."""
-from .supervisor import Supervisor, SupervisionDecision
+
+from .supervisor import SupervisionDecision, Supervisor
+
 __all__ = ["Supervisor", "SupervisionDecision"]

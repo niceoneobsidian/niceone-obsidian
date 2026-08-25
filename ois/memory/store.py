@@ -1,12 +1,16 @@
 """Append-only in-memory foundation for governed memory."""
+
 from __future__ import annotations
+
 from dataclasses import dataclass
+
 
 @dataclass(frozen=True)
 class MemoryEntry:
     key: str
     version: int
     value: object
+
 
 class MemoryPlane:
     def __init__(self) -> None:

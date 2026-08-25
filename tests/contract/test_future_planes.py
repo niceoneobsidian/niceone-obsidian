@@ -1,20 +1,23 @@
 """Contract tests for the next OIS architectural planes."""
-from ois.execution import ExecutionPlane, ExecutionRequest
-from ois.validation import ValidationPlane
-from ois.recovery import RecoveryPlane
+
 from ois.agents import AgentPlane
-from ois.models import ModelPlane, ModelRequest
-from ois.tools import ToolPlane, ToolRequest
-from ois.workflows import WorkflowPlane, WorkflowStep
-from ois.supervisor import Supervisor
-from ois.memory import MemoryPlane
-from ois.observability import ObservabilityPlane
-from ois.learning import LearningPlane
 from ois.evolution import EvolutionCandidate, EvolutionPlane
+from ois.execution import ExecutionPlane, ExecutionRequest
+from ois.learning import LearningPlane
+from ois.memory import MemoryPlane
+from ois.models import ModelPlane, ModelRequest
+from ois.observability import ObservabilityPlane
+from ois.recovery import RecoveryPlane
+from ois.supervisor import Supervisor
+from ois.tools import ToolPlane, ToolRequest
+from ois.validation import ValidationPlane
+from ois.workflows import WorkflowPlane, WorkflowStep
 
 
 def test_execution_validation_recovery_chain() -> None:
-    result = ExecutionPlane().execute(lambda data: data["x"] + 1, ExecutionRequest("x", "1", {"x": 1}))
+    result = ExecutionPlane().execute(
+        lambda data: data["x"] + 1, ExecutionRequest("x", "1", {"x": 1})
+    )
     assert ValidationPlane().validate(result).valid
     assert RecoveryPlane().decide(failure="failed", attempt=1, max_attempts=2).action == "retry"
 

@@ -1,12 +1,16 @@
 """Structured append-only observability events."""
+
 from __future__ import annotations
+
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Mapping
+
 
 @dataclass(frozen=True)
 class Event:
     name: str
     attributes: Mapping[str, object] = field(default_factory=dict)
+
 
 class ObservabilityPlane:
     def __init__(self) -> None:
