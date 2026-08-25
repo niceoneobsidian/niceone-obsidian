@@ -7,10 +7,11 @@ capabilities remain behind the existing OIS Kernel contracts.
 from __future__ import annotations
 
 from collections import defaultdict, deque
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from threading import RLock
-from typing import Any, Callable
+from typing import Any
 
 from ois.architecture.fabrics import (
     AgentWorkspace,
@@ -41,7 +42,7 @@ CAPABILITY_VERSION = "1.0.0"
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 @dataclass
@@ -114,9 +115,7 @@ class InMemoryWorkerFabric:
 
     def submit(self, job_id: str, queue: str, payload: dict[str, Any]) -> None:
         with self._lock:
-            self.queues[queue].append(
-                {"job_id": job_id, "payload": dict(payload)}
-            )
+            self.queues[queue].append({"job_id": job_id, "payload": dict(payload)})
             self.attempts.setdefault(job_id, 0)
 
     def claim(self, queue: str) -> dict[str, Any] | None:
@@ -145,9 +144,7 @@ class InMemoryModelRouter:
 
     def register(self, route: ModelRoute) -> None:
         self.routes.append(route)
-        self.routes.sort(
-            key=lambda item: (item.provider, item.model, item.version)
-        )
+        self.routes.sort(key=lambda item: (item.provider, item.model, item.version))
 
     def select(
         self,
@@ -200,7 +197,6 @@ class InMemoryLLMGateway:
         provider = self.providers.get(route.provider)
         if provider is None:
             raise LookupError(f"provider not registered: {route.provider}")
-
         try:
             result = provider(route.model, {"prompt": prompt, **options})
         except Exception as exc:
