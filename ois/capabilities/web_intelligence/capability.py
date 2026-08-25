@@ -37,8 +37,7 @@ class WebIntelligenceCapability:
             capability_id="web.intelligence",
             version="0.1.0",
             description=(
-                "Governed read-only web acquisition, extraction, "
-                "validation and provenance."
+                "Governed read-only web acquisition, extraction, validation and provenance."
             ),
             input_schema={
                 "url": "string",
@@ -76,11 +75,7 @@ class WebIntelligenceCapability:
             return InvocationResult(
                 invocation_id=request.invocation_id,
                 capability_id=self.contract.capability_id,
-                status=(
-                    InvocationStatus.SUCCEEDED
-                    if result.success
-                    else InvocationStatus.FAILED
-                ),
+                status=(InvocationStatus.SUCCEEDED if result.success else InvocationStatus.FAILED),
                 output=result,
                 started_at=started,
                 completed_at=datetime.now(UTC).isoformat(),
@@ -101,15 +96,11 @@ class WebIntelligenceCapability:
 
     def execute(self, request: WebIntelligenceRequest) -> WebIntelligenceResult:
         if not request.url.startswith(("http://", "https://")):
-            return WebIntelligenceResult(
-                False, None, None, None, None, 0, ("invalid_url",)
-            )
+            return WebIntelligenceResult(False, None, None, None, None, 0, ("invalid_url",))
 
         assert self.router is not None
         errors: list[str] = []
-        for attempt, engine in enumerate(
-            self.router.candidates(request), start=1
-        ):
+        for attempt, engine in enumerate(self.router.candidates(request), start=1):
             try:
                 source = engine.acquire(request)
                 source_report = self.validator.validate_source(source, request)
@@ -140,6 +131,4 @@ class WebIntelligenceCapability:
                 errors.append(f"{engine.name}:{type(exc).__name__}")
                 self.router.learner.record(engine.name, False)
 
-        return WebIntelligenceResult(
-            False, None, None, None, None, len(errors), tuple(errors)
-        )
+        return WebIntelligenceResult(False, None, None, None, None, len(errors), tuple(errors))

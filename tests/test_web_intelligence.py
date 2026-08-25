@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from ois.capabilities.web_intelligence import (
     AdaptiveRouter,
-    RuleBasedExtractor,
     RouteLearner,
+    RuleBasedExtractor,
     WebIntelligenceCapability,
     WebIntelligenceRequest,
     WebIntelligenceValidator,

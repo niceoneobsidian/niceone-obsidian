@@ -18,9 +18,7 @@ class ExtractionEngine(Protocol):
 class RuleBasedExtractor:
     name = "rule-based"
 
-    def extract(
-        self, source: SourceDocument, request: WebIntelligenceRequest
-    ) -> dict[str, object]:
+    def extract(self, source: SourceDocument, request: WebIntelligenceRequest) -> dict[str, object]:
         text = re.sub(r"<script\b[^>]*>.*?</script>", " ", source.body, flags=re.I | re.S)
         text = re.sub(r"<style\b[^>]*>.*?</style>", " ", text, flags=re.I | re.S)
         text = re.sub(r"<[^>]+>", " ", text)
