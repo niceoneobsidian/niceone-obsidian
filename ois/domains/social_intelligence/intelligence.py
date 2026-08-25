@@ -7,10 +7,11 @@ prediction, experimentation, measurement, and learning components can consume.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from hashlib import sha256
-import json
-from typing import Any, Mapping
+from typing import Any
+from collections.abc import Mapping
 
 
 @dataclass(frozen=True)
@@ -66,7 +67,9 @@ class ContentGenome:
 
     def fingerprint(self) -> str:
         """Return a deterministic fingerprint for provenance and caching."""
-        encoded = json.dumps(self.canonical_payload(), sort_keys=True, separators=(",", ":")).encode()
+        encoded = json.dumps(
+            self.canonical_payload(), sort_keys=True, separators=(",", ":")
+        ).encode()
         return sha256(encoded).hexdigest()
 
 
