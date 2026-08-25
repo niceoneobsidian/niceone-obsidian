@@ -26,6 +26,12 @@ def test_tiktok_vertical_slice_proves_kernel_path() -> None:
     assert result.context.validation_results[-1]["valid"] is True
     assert result.context.working_memory
 
+    provenance = result.invocation.metadata["execution_provenance"]
+    assert provenance["provider_id"] == "deterministic.test"
+    assert provenance["model_id"] == "deterministic-tiktok-model"
+    assert provenance["model_version"] == "1.0.0"
+    assert provenance["model_route"] == "tiktok.deterministic.test.v1"
+
     event_types = [event.event_type for event in result.evidence]
     assert "agent.selection.selected" in event_types
     assert event_types.index("agent.selection.selected") < event_types.index(
@@ -49,3 +55,4 @@ def test_tiktok_vertical_slice_emits_provenance() -> None:
     provenance = result.invocation.metadata["execution_provenance"]
     assert provenance["capability_version"] == "1.0.0"
     assert len(provenance["input_sha256"]) == 64
+    assert provenance["provider_id"] == "deterministic.test"
