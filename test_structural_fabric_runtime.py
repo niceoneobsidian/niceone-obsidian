@@ -55,9 +55,7 @@ def test_llm_gateway_routes_to_registered_provider() -> None:
             capabilities=("chat",),
         )
     )
-    gateway = runtime.configure_gateway(
-        LLMGatewaySpec("gateway", providers=("test",))
-    )
+    gateway = runtime.configure_gateway(LLMGatewaySpec("gateway", providers=("test",)))
     gateway.register_provider(
         "test",
         lambda model, payload: {
