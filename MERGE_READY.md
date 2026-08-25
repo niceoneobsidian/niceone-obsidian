@@ -1,0 +1,1 @@
+PR #55 core validation is green. The Gemini AI Code Review workflow is currently failing before execution because its configured action repository is unavailable; this is an external CI integration issue, not a code/test failure.
