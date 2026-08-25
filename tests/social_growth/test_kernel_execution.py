@@ -6,12 +6,14 @@ from ois.domains.social_growth.connectors import ConnectorRegistry, GenericSocia
 from ois.domains.social_growth.kernel_integration import register_social_kernel_capabilities
 from ois.kernel.checkpoint import InMemoryCheckpointStore
 from ois.kernel.evidence import EvidenceLedger
+from ois.kernel.registry import CapabilityRegistry
 from ois.kernel.runtime import ExecutionRuntime
 from ois.kernel.state import ExecutionContext, ExecutionIdentity
-from ois.kernel.registry import CapabilityRegistry
 
 
-def build_runtime() -> tuple[ExecutionRuntime, ExecutionContext, EvidenceLedger, InMemoryCheckpointStore]:
+def build_runtime() -> tuple[
+    ExecutionRuntime, ExecutionContext, EvidenceLedger, InMemoryCheckpointStore
+]:
     connectors = ConnectorRegistry()
     connectors.register(GenericSocialConnector("tiktok"))
 
@@ -99,8 +101,14 @@ def test_social_research_executes_and_checkpoints() -> None:
     assert result.output["brief"]["entities"] == ["Competitor One"]
     assert result.output["quality"]["accepted"] == 2
     assert checkpoints.exists(context.identity.execution_id)
-    assert any(event.event_type == "execution.authorized" for event in evidence.list(context.identity.execution_id))
-    assert any(event.event_type == "capability.completed" for event in evidence.list(context.identity.execution_id))
+    assert any(
+        event.event_type == "execution.authorized"
+        for event in evidence.list(context.identity.execution_id)
+    )
+    assert any(
+        event.event_type == "capability.completed"
+        for event in evidence.list(context.identity.execution_id)
+    )
 
 
 def test_social_research_is_idempotent() -> None:
@@ -134,4 +142,7 @@ def test_social_research_is_idempotent() -> None:
     )
 
     assert first.output == second.output
-    assert any(event.event_type == "execution.idempotency_hit" for event in evidence.list(context.identity.execution_id))
+    assert any(
+        event.event_type == "execution.idempotency_hit"
+        for event in evidence.list(context.identity.execution_id)
+    )

@@ -8,9 +8,9 @@ execution, validation, memory and observability.
 from __future__ import annotations
 
 from collections import Counter, defaultdict
+from collections.abc import Iterable
 from dataclasses import dataclass
 from math import sqrt
-from typing import Iterable
 
 from .algorithms import sentiment_score, tokenize, trend_velocity
 from .schemas import AudienceProfile, CompetitorProfile, CreativePattern, SocialEvent, SocialSignal
@@ -50,7 +50,9 @@ def resolve_entities(events: Iterable[SocialEvent]) -> dict[str, tuple[str, ...]
     return {key: tuple(sorted(values)) for key, values in sorted(aliases.items())}
 
 
-def cluster_topics(events: Iterable[SocialEvent], top_k: int = 20) -> list[tuple[str, tuple[str, ...], int]]:
+def cluster_topics(
+    events: Iterable[SocialEvent], top_k: int = 20
+) -> list[tuple[str, tuple[str, ...], int]]:
     """Group events by their strongest normalized lexical topic."""
     groups: defaultdict[str, list[str]] = defaultdict(list)
     for event in events:
@@ -68,13 +70,15 @@ def detect_trends(events: Iterable[SocialEvent], min_velocity: float = 0.5) -> l
     for topic, velocity in sorted(trend_velocity(events).items(), key=lambda item: -item[1]):
         if velocity < min_velocity:
             continue
-        signals.append(SocialSignal(
-            signal_type="trend",
-            value=topic,
-            score=min(1.0, velocity / (1.0 + velocity)),
-            velocity=velocity,
-            confidence=min(1.0, 0.4 + min(velocity, 2.0) * 0.2),
-        ))
+        signals.append(
+            SocialSignal(
+                signal_type="trend",
+                value=topic,
+                score=min(1.0, velocity / (1.0 + velocity)),
+                velocity=velocity,
+                confidence=min(1.0, 0.4 + min(velocity, 2.0) * 0.2),
+            )
+        )
     return signals
 
 
@@ -84,17 +88,23 @@ def build_audience_profiles(events: Iterable[SocialEvent]) -> list[AudienceProfi
         by_platform[event.platform].append(event)
     profiles: list[AudienceProfile] = []
     for platform, items in sorted(by_platform.items()):
-        interests = Counter(t for e in items for t in tokenize(e.text or "") if not t.startswith(("@", "#")))
+        interests = Counter(
+            t for e in items for t in tokenize(e.text or "") if not t.startswith(("@", "#"))
+        )
         mean_sentiment = sum(sentiment_score(e.text or "") for e in items) / max(len(items), 1)
-        profiles.append(AudienceProfile(
-            audience_id=f"platform:{platform}",
-            label=f"{platform} audience",
-            interests=[term for term, _ in interests.most_common(10)],
-            behaviors=["engaged" if sum(e.metrics.values()) > 0 else "observational" for e in items[:5]],
-            platforms=[platform],
-            sentiment=mean_sentiment,
-            confidence=min(1.0, 0.3 + sqrt(len(items)) / 10),
-        ))
+        profiles.append(
+            AudienceProfile(
+                audience_id=f"platform:{platform}",
+                label=f"{platform} audience",
+                interests=[term for term, _ in interests.most_common(10)],
+                behaviors=[
+                    "engaged" if sum(e.metrics.values()) > 0 else "observational" for e in items[:5]
+                ],
+                platforms=[platform],
+                sentiment=mean_sentiment,
+                confidence=min(1.0, 0.3 + sqrt(len(items)) / 10),
+            )
+        )
     return profiles
 
 
@@ -107,14 +117,18 @@ def build_competitor_profiles(events: Iterable[SocialEvent]) -> list[CompetitorP
     profiles: list[CompetitorProfile] = []
     for name, items in sorted(by_entity.items()):
         voice = len(items) / total
-        terms = Counter(t for e in items for t in tokenize(e.text or "") if not t.startswith(("@", "#")))
-        profiles.append(CompetitorProfile(
-            competitor_id=f"entity:{name.lower().replace(' ', '-')}",
-            name=name,
-            share_of_voice=voice,
-            strengths=[term for term, _ in terms.most_common(5)],
-            gaps=[],
-        ))
+        terms = Counter(
+            t for e in items for t in tokenize(e.text or "") if not t.startswith(("@", "#"))
+        )
+        profiles.append(
+            CompetitorProfile(
+                competitor_id=f"entity:{name.lower().replace(' ', '-')}",
+                name=name,
+                share_of_voice=voice,
+                strengths=[term for term, _ in terms.most_common(5)],
+                gaps=[],
+            )
+        )
     return profiles
 
 
@@ -125,13 +139,15 @@ def extract_creative_patterns(events: Iterable[SocialEvent]) -> list[CreativePat
         if not text:
             continue
         first_sentence = text.split(".", 1)[0][:120]
-        patterns.append(CreativePattern(
-            pattern_id=f"hook:{event.event_id}",
-            pattern_type="hook",
-            pattern=first_sentence,
-            platform=event.platform,
-            performance_score=float(event.metrics.get("engagement_rate", 0.0)),
-            confidence=0.4 if event.evidence else 0.2,
-            evidence=event.evidence,
-        ))
+        patterns.append(
+            CreativePattern(
+                pattern_id=f"hook:{event.event_id}",
+                pattern_type="hook",
+                pattern=first_sentence,
+                platform=event.platform,
+                performance_score=float(event.metrics.get("engagement_rate", 0.0)),
+                confidence=0.4 if event.evidence else 0.2,
+                evidence=event.evidence,
+            )
+        )
     return patterns

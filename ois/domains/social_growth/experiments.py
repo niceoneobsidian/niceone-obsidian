@@ -1,9 +1,9 @@
 """Experiment registry and deterministic execution primitives."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 from threading import RLock
-from typing import Any
 from uuid import uuid4
 
 from .schemas import ExperimentSpec
@@ -60,10 +60,14 @@ class DeterministicExperimentExecutor:
 
     def assign(self, experiment: ExperimentSpec, subject_id: str) -> ExperimentAssignment:
         variants = ["control", *[f"variant_{i}" for i, _ in enumerate(experiment.variants)]]
-        index = sum(ord(char) for char in f"{experiment.experiment_id}:{subject_id}") % len(variants)
+        index = sum(ord(char) for char in f"{experiment.experiment_id}:{subject_id}") % len(
+            variants
+        )
         return ExperimentAssignment(experiment.experiment_id, variants[index], subject_id)
 
-    def evaluate(self, experiment: ExperimentSpec, variant_id: str, metric_value: float) -> ExperimentResult:
+    def evaluate(
+        self, experiment: ExperimentSpec, variant_id: str, metric_value: float
+    ) -> ExperimentResult:
         accepted = metric_value >= experiment.success_threshold
         return ExperimentResult(experiment.experiment_id, variant_id, metric_value, accepted)
 

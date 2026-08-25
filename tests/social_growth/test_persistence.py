@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from ois.domains.social_growth.evidence import SQLiteEvidenceLedger
 from ois.domains.social_growth.persistence import SQLiteSocialEventStore
@@ -10,7 +10,7 @@ def make_event(event_id: str = "evt-1") -> SocialEvent:
         event_id=event_id,
         platform="tiktok",
         event_type="post",
-        occurred_at=datetime(2026, 8, 23, tzinfo=timezone.utc),
+        occurred_at=datetime(2026, 8, 23, tzinfo=UTC),
         external_id="post-1",
         text="A useful social signal",
         metrics={"views": 1000, "likes": 100},

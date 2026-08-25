@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any, Literal
 from uuid import uuid4
 
@@ -14,7 +14,7 @@ class Evidence(BaseModel):
     source_id: str
     uri: str | None = None
     excerpt: str | None = None
-    observed_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    observed_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     confidence: float = Field(ge=0, le=1, default=0.5)
 
 
@@ -37,7 +37,9 @@ class SocialEvent(BaseModel):
 class SocialSignal(BaseModel):
     model_config = ConfigDict(extra="forbid")
     signal_id: str = Field(default_factory=lambda: str(uuid4()))
-    signal_type: Literal["sentiment", "topic", "trend", "entity", "engagement", "anomaly", "influence"]
+    signal_type: Literal[
+        "sentiment", "topic", "trend", "entity", "engagement", "anomaly", "influence"
+    ]
     value: str
     score: float = Field(ge=0, le=1)
     velocity: float = 0.0
@@ -70,7 +72,9 @@ class CompetitorProfile(BaseModel):
 class CreativePattern(BaseModel):
     model_config = ConfigDict(extra="forbid")
     pattern_id: str
-    pattern_type: Literal["hook", "narrative", "emotion", "pacing", "visual", "cta", "format", "offer"]
+    pattern_type: Literal[
+        "hook", "narrative", "emotion", "pacing", "visual", "cta", "format", "offer"
+    ]
     pattern: str
     platform: str | None = None
     audience: str | None = None

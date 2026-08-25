@@ -1,8 +1,10 @@
 """Append-only attribution persistence."""
+
 from __future__ import annotations
 
 import sqlite3
 from pathlib import Path
+
 from .attribution import AttributionResult
 
 
@@ -25,8 +27,13 @@ class SQLiteAttributionStore:
                 """INSERT OR IGNORE INTO attribution_results
                 (conversion_id, touchpoint_id, credit, total_value, confidence)
                 VALUES (?, ?, ?, ?, ?)""",
-                (result.conversion_id, touchpoint_id, credit,
-                 result.total_value, result.confidence),
+                (
+                    result.conversion_id,
+                    touchpoint_id,
+                    credit,
+                    result.total_value,
+                    result.confidence,
+                ),
             )
             inserted += int(cursor.rowcount == 1)
         self._db.commit()
@@ -35,7 +42,8 @@ class SQLiteAttributionStore:
     def get(self, conversion_id: str) -> list[tuple[str, float]]:
         rows = self._db.execute(
             "SELECT touchpoint_id, credit FROM attribution_results "
-            "WHERE conversion_id=? ORDER BY touchpoint_id", (conversion_id,)
+            "WHERE conversion_id=? ORDER BY touchpoint_id",
+            (conversion_id,),
         ).fetchall()
         return [(str(row[0]), float(row[1])) for row in rows]
 

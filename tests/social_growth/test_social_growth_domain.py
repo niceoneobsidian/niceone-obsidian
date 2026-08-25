@@ -1,16 +1,25 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-from ois.domains.social_growth.algorithms import engagement_rate, sentiment_score, signals_from_events, topic_counts
+from ois.domains.social_growth.algorithms import (
+    engagement_rate,
+    sentiment_score,
+    signals_from_events,
+    topic_counts,
+)
 from ois.domains.social_growth.connectors import ConnectorRegistry, GenericSocialConnector
 from ois.domains.social_growth.schemas import PublishIntent, SocialEvent
-from ois.domains.social_growth.workflows import CONTENT_PUBLISH_WORKFLOW, RESEARCH_WORKFLOW, build_research_brief
+from ois.domains.social_growth.workflows import (
+    CONTENT_PUBLISH_WORKFLOW,
+    RESEARCH_WORKFLOW,
+    build_research_brief,
+)
 
 
 def event(text: str, **metrics) -> SocialEvent:
     return SocialEvent(
         platform="tiktok",
         event_type="post",
-        occurred_at=datetime.now(timezone.utc),
+        occurred_at=datetime.now(UTC),
         text=text,
         metrics=metrics,
     )

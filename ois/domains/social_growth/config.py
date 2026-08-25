@@ -1,4 +1,5 @@
 """Environment-backed Social Growth production configuration."""
+
 from __future__ import annotations
 
 import os
@@ -15,7 +16,7 @@ class SocialProductionConfig:
     meta_graph_version: str
 
     @classmethod
-    def from_env(cls) -> "SocialProductionConfig":
+    def from_env(cls) -> SocialProductionConfig:
         return cls(
             postgres_dsn=os.getenv("OIS_POSTGRES_DSN"),
             x_token=os.getenv("OIS_X_BEARER_TOKEN"),

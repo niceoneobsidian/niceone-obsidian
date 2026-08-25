@@ -1,8 +1,9 @@
 """Adapter boundary between Social Growth and OIS-owned memory."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Protocol
 
 
@@ -18,7 +19,9 @@ class MemoryRecord:
 
 class MemorySink(Protocol):
     def append(self, record: MemoryRecord) -> None: ...
-    def search(self, query: str, *, kind: str | None = None, limit: int = 20) -> list[MemoryRecord]: ...
+    def search(
+        self, query: str, *, kind: str | None = None, limit: int = 20
+    ) -> list[MemoryRecord]: ...
 
 
 class InMemoryMemoryAdapter:
@@ -33,7 +36,8 @@ class InMemoryMemoryAdapter:
     def search(self, query: str, *, kind: str | None = None, limit: int = 20) -> list[MemoryRecord]:
         query_lower = query.lower()
         matches = [
-            record for record in reversed(self._records)
+            record
+            for record in reversed(self._records)
             if query_lower in f"{record.key} {record.value}".lower()
             and (kind is None or record.kind == kind)
         ]
@@ -41,4 +45,4 @@ class InMemoryMemoryAdapter:
 
 
 def make_record(key: str, value: str, kind: str, source: str) -> MemoryRecord:
-    return MemoryRecord(key, value, kind, source, datetime.now(timezone.utc))
+    return MemoryRecord(key, value, kind, source, datetime.now(UTC))
