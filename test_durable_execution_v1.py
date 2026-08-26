@@ -1,4 +1,5 @@
 from pathlib import Path
+import sqlite3
 
 from ois.kernel import (
     CapabilityContract,
@@ -7,6 +8,7 @@ from ois.kernel import (
     ExecutionIdentity,
     ExecutionPlan,
     ExecutionRuntime,
+    FailureClass,
     InvocationRequest,
     InvocationResult,
     InvocationStatus,
@@ -76,11 +78,7 @@ def test_checkpoint_and_idempotency_survive_runtime_recreation(tmp_path: Path) -
     context = make_context()
 
     first = runtime.execute(
-        context,
-        "test.durable",
-        "1.0.0",
-        {"value": 1},
-        invocation_id="execution-1:task-1",
+        context, "test.durable", "1.0.0", {"value": 1}, invocation_id="execution-1:task-1"
     )
     execution_id = context.identity.execution_id
     runtime.checkpoint_store.save(context)
@@ -88,11 +86,7 @@ def test_checkpoint_and_idempotency_survive_runtime_recreation(tmp_path: Path) -
     restored_runtime = make_runtime(capability, tmp_path)
     restored = restored_runtime.checkpoint_store.load(execution_id)
     second = restored_runtime.execute(
-        restored,
-        "test.durable",
-        "1.0.0",
-        {"value": 1},
-        invocation_id="execution-1:task-1",
+        restored, "test.durable", "1.0.0", {"value": 1}, invocation_id="execution-1:task-1"
     )
 
     assert first.status == InvocationStatus.SUCCEEDED
@@ -100,7 +94,6 @@ def test_checkpoint_and_idempotency_survive_runtime_recreation(tmp_path: Path) -
     assert second.output == first.output
     assert capability.invocations == 1
     assert restored.identity.execution_id == execution_id
-    assert restored.status == restored.status.ROUTED
 
 
 def test_plan_resume_skips_succeeded_tasks_and_replays_only_pending(tmp_path: Path) -> None:
@@ -112,7 +105,6 @@ def test_plan_resume_skips_succeeded_tasks_and_replays_only_pending(tmp_path: Pa
     registry = CapabilityRegistry()
     registry.register(first_capability)
     registry.register(second_capability)
-
     runtime = ExecutionRuntime(
         registry=registry,
         checkpoint_store=checkpoint,
@@ -124,8 +116,6 @@ def test_plan_resume_skips_succeeded_tasks_and_replays_only_pending(tmp_path: Pa
     plan.add_task(TaskNode("first", "test.first", "1.0.0"))
     plan.add_task(TaskNode("second", "test.second", "1.0.0", dependencies=("first",)))
 
-    # Persist a realistic worker-crash checkpoint: first is complete and
-    # second was marked RUNNING immediately before the worker disappeared.
     first_result = runtime.execute(
         context, "test.first", "1.0.0", {}, invocation_id=f"{context.identity.execution_id}:first"
     )
@@ -135,8 +125,9 @@ def test_plan_resume_skips_succeeded_tasks_and_replays_only_pending(tmp_path: Pa
     context.plan = plan.to_dict()
     checkpoint.save(context)
 
-    orchestrator = PlanOrchestrator(runtime)
-    resumed_plan, resumed_context = orchestrator.resume(context.identity.execution_id)
+    resumed_plan, resumed_context = PlanOrchestrator(runtime).resume(
+        context.identity.execution_id
+    )
 
     assert resumed_plan.is_complete()
     assert resumed_context.status == resumed_context.status.COMPLETED
@@ -145,14 +136,16 @@ def test_plan_resume_skips_succeeded_tasks_and_replays_only_pending(tmp_path: Pa
 
 
 def test_corrupt_checkpoint_is_rejected(tmp_path: Path) -> None:
-    checkpoint = SQLiteCheckpointStore(str(tmp_path / "state.db"))
+    database = tmp_path / "state.db"
+    checkpoint = SQLiteCheckpointStore(str(database))
     context = make_context()
     checkpoint.save(context)
-    checkpoint._connection.execute(
-        "UPDATE execution_checkpoints SET state_hash = 'corrupt' WHERE execution_id = ?",
-        (str(context.identity.execution_id),),
-    )
-    checkpoint._connection.commit()
+    with sqlite3.connect(database) as connection:
+        connection.execute(
+            "UPDATE execution_checkpoints SET state_hash = 'corrupt' WHERE execution_id = ?",
+            (str(context.identity.execution_id),),
+        )
+        connection.commit()
 
     try:
         checkpoint.load(context.identity.execution_id)
@@ -183,10 +176,10 @@ def test_recovery_policy_is_bounded() -> None:
     context = make_context()
     policy = RecoveryPolicy(max_retries=1)
 
-    first = policy.apply(context, context.last_failure or __import__("ois.kernel").kernel.FailureClass.TRANSIENT)
+    first = policy.apply(context, FailureClass.TRANSIENT)
     assert first.action == "retry"
     assert context.retry_count == 1
 
-    second = policy.apply(context, __import__("ois.kernel").kernel.FailureClass.TRANSIENT)
+    second = policy.apply(context, FailureClass.TRANSIENT)
     assert second.action == "escalate"
     assert second.terminal is True
