@@ -79,10 +79,21 @@ class InMemorySemanticWorldStore:
 
     def put_relation(self, relation: WorldRelation) -> None:
         self._tenant_guard(self.relation_items.get(relation.relation_id), relation.tenant)
+        subject = self.entities.get(relation.subject_id)
+        object_ = self.entities.get(relation.object_id)
+        if subject is None or object_ is None:
+            raise ValueError("relation endpoints must exist in the same tenant")
+        if subject.tenant != relation.tenant or object_.tenant != relation.tenant:
+            raise PermissionError("tenant boundary violation")
         self.relation_items.setdefault(relation.relation_id, relation)
 
     def put_assertion(self, assertion: KnowledgeAssertion) -> None:
         self._tenant_guard(self.assertions.get(assertion.assertion_id), assertion.tenant)
+        subject = self.entities.get(assertion.subject_id)
+        if subject is None:
+            raise ValueError("assertion subject must exist")
+        if subject.tenant != assertion.tenant:
+            raise PermissionError("tenant boundary violation")
         self.assertions.setdefault(assertion.assertion_id, assertion)
 
     def get_entity(self, entity_id: UUID, *, tenant: str) -> WorldEntity | None:
@@ -105,5 +116,7 @@ class InMemorySemanticWorldStore:
 
 def content_hash(model: BaseModel) -> str:
     """Stable digest for evidence/provenance of semantic records."""
-    encoded = json.dumps(model.model_dump(mode="json"), sort_keys=True, separators=(",", ":")).encode()
+    encoded = json.dumps(
+        model.model_dump(mode="json"), sort_keys=True, separators=(",", ":")
+    ).encode()
     return hashlib.sha256(encoded).hexdigest()
