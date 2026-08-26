@@ -65,9 +65,7 @@ class PostgreSQLCheckpointStore:
         try:
             import psycopg
         except ImportError as exc:  # pragma: no cover - exercised by packaging tests
-            raise RuntimeError(
-                "PostgreSQL support requires the 'psycopg' package."
-            ) from exc
+            raise RuntimeError("PostgreSQL support requires the 'psycopg' package.") from exc
         return psycopg.connect(self._dsn)
 
     def initialize(self) -> None:
@@ -169,9 +167,7 @@ class PostgreSQLIdempotencyStore:
         try:
             import psycopg
         except ImportError as exc:  # pragma: no cover
-            raise RuntimeError(
-                "PostgreSQL support requires the 'psycopg' package."
-            ) from exc
+            raise RuntimeError("PostgreSQL support requires the 'psycopg' package.") from exc
         return psycopg.connect(self._dsn)
 
     def initialize(self) -> None:

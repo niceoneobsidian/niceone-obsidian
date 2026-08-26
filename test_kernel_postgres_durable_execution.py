@@ -7,7 +7,6 @@ import pytest
 from ois.kernel import ExecutionContext, ExecutionIdentity, InvocationResult, InvocationStatus
 from ois.kernel.postgres import PostgreSQLCheckpointStore, PostgreSQLIdempotencyStore
 
-
 POSTGRES_DSN = os.getenv("OIS_POSTGRES_DSN") or ""
 pytestmark = pytest.mark.skipif(
     not POSTGRES_DSN,

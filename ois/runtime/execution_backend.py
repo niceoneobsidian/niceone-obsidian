@@ -133,3 +133,142 @@ class SQLiteExecutionStore:
             error=json.loads(row["error"]) if row["error"] else None,
             checkpoint=json.loads(row["checkpoint"]) if row["checkpoint"] else None,
         )
+
+
+@dataclass(frozen=True)
+class QueueJob:
+    """Leasable worker-queue job."""
+
+    job_id: str
+    queue: str
+    payload: dict[str, Any]
+    attempts: int = 0
+    lease_owner: str | None = None
+    completed: bool = False
+
+
+class SQLiteWorkerQueue:
+    """SQLite-backed worker queue with atomic claim/retry/acknowledge semantics."""
+
+    def __init__(self, database: str = ":memory:") -> None:
+        self._connection = sqlite3.connect(database, check_same_thread=False)
+        self._connection.row_factory = sqlite3.Row
+        self._lock = RLock()
+        self._initialize()
+
+    def _initialize(self) -> None:
+        with self._lock, self._connection:
+            self._connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS worker_jobs (
+                    job_id TEXT PRIMARY KEY,
+                    queue TEXT NOT NULL,
+                    payload TEXT NOT NULL,
+                    attempts INTEGER NOT NULL DEFAULT 0,
+                    lease_owner TEXT,
+                    completed INTEGER NOT NULL DEFAULT 0,
+                    updated_at TEXT NOT NULL
+                )
+                """
+            )
+
+    def enqueue(
+        self,
+        job_id: str,
+        queue: str,
+        payload: dict[str, Any],
+    ) -> QueueJob:
+        with self._lock, self._connection:
+            self._connection.execute(
+                """
+                INSERT INTO worker_jobs
+                (job_id, queue, payload, updated_at)
+                VALUES (?, ?, ?, ?)
+                """,
+                (job_id, queue, json.dumps(payload), _now()),
+            )
+        return self._get(job_id)
+
+    def claim(self, queue: str, worker_id: str) -> QueueJob | None:
+        with self._lock, self._connection:
+            row = self._connection.execute(
+                """
+                SELECT job_id
+                FROM worker_jobs
+                WHERE queue = ?
+                  AND completed = 0
+                  AND lease_owner IS NULL
+                ORDER BY updated_at, job_id
+                LIMIT 1
+                """,
+                (queue,),
+            ).fetchone()
+
+            if row is None:
+                return None
+
+            updated = self._connection.execute(
+                """
+                UPDATE worker_jobs
+                SET lease_owner = ?, updated_at = ?
+                WHERE job_id = ?
+                  AND completed = 0
+                  AND lease_owner IS NULL
+                """,
+                (worker_id, _now(), row["job_id"]),
+            )
+
+            if updated.rowcount != 1:
+                return None
+
+        return self._get(row["job_id"])
+
+    def retry(self, job_id: str, worker_id: str) -> QueueJob:
+        with self._lock, self._connection:
+            updated = self._connection.execute(
+                """
+                UPDATE worker_jobs
+                SET attempts = attempts + 1,
+                    lease_owner = NULL,
+                    updated_at = ?
+                WHERE job_id = ?
+                  AND lease_owner = ?
+                  AND completed = 0
+                """,
+                (_now(), job_id, worker_id),
+            )
+            if updated.rowcount != 1:
+                raise LookupError(f"leased job not found: {job_id}")
+        return self._get(job_id)
+
+    def acknowledge(self, job_id: str, worker_id: str) -> QueueJob:
+        with self._lock, self._connection:
+            updated = self._connection.execute(
+                """
+                UPDATE worker_jobs
+                SET completed = 1, updated_at = ?
+                WHERE job_id = ?
+                  AND lease_owner = ?
+                  AND completed = 0
+                """,
+                (_now(), job_id, worker_id),
+            )
+            if updated.rowcount != 1:
+                raise LookupError(f"leased job not found: {job_id}")
+        return self._get(job_id)
+
+    def _get(self, job_id: str) -> QueueJob:
+        row = self._connection.execute(
+            "SELECT * FROM worker_jobs WHERE job_id = ?",
+            (job_id,),
+        ).fetchone()
+        if row is None:
+            raise LookupError(f"job not found: {job_id}")
+        return QueueJob(
+            job_id=row["job_id"],
+            queue=row["queue"],
+            payload=json.loads(row["payload"]),
+            attempts=row["attempts"],
+            lease_owner=row["lease_owner"],
+            completed=bool(row["completed"]),
+        )
