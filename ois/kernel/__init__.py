@@ -46,6 +46,10 @@ from .policy import (
     DefaultPolicyEngine,
     PolicyDecision,
 )
+from .postgres_checkpoint import (
+    PostgreSQLCheckpointStore,
+    PostgreSQLCheckpointStoreError,
+)
 from .recovery import (
     RecoveryDecision,
     RecoveryPolicy,
@@ -141,6 +145,8 @@ __all__ = [
     "DuplicateTaskError",
     "UnknownDependencyError",
     "PolicyEngine",
+    "PostgreSQLCheckpointStore",
+    "PostgreSQLCheckpointStoreError",
     "RecoveryDecision",
     "RecoveryPolicy",
     "RetryLimitExceeded",
