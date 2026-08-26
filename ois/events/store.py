@@ -51,7 +51,7 @@ class PostgresEventStore:
             raise ValueError("PostgreSQL DSN is required")
         self._dsn = dsn
 
-    def _connect(self):  # type: ignore[no-untyped-def]
+    def _connect(self) -> object:
         try:
             import psycopg
         except ImportError as exc:
@@ -60,7 +60,7 @@ class PostgresEventStore:
 
     def append(self, event: Event) -> None:
         event.assert_integrity()
-        with self._connect() as conn:
+        with self._connect() as conn:  # type: ignore[union-attr]
             conn.execute(
                 """INSERT INTO ois_events
                 (event_id, timestamp, source, tenant, actor, event_type, payload,
@@ -77,11 +77,11 @@ class PostgresEventStore:
             )
 
     def get(self, event_id: UUID) -> Event | None:
-        with self._connect() as conn:
+        with self._connect() as conn:  # type: ignore[union-attr]
             row = conn.execute(
-                "SELECT event_id,timestamp,source,tenant,actor,event_type,payload,provenance,
-                 correlation_id,execution_id,policy_context,validation,content_hash
-                 FROM ois_events WHERE event_id=%s",
+                """SELECT event_id,timestamp,source,tenant,actor,event_type,payload,provenance,
+                correlation_id,execution_id,policy_context,validation,content_hash
+                FROM ois_events WHERE event_id=%s""",
                 (str(event_id),),
             ).fetchone()
         return _row_to_event(row) if row else None
@@ -89,11 +89,11 @@ class PostgresEventStore:
     def list(self, *, tenant: str, limit: int = 100) -> Sequence[Event]:
         if limit < 1:
             raise ValueError("limit must be positive")
-        with self._connect() as conn:
+        with self._connect() as conn:  # type: ignore[union-attr]
             rows = conn.execute(
-                "SELECT event_id,timestamp,source,tenant,actor,event_type,payload,provenance,
-                 correlation_id,execution_id,policy_context,validation,content_hash
-                 FROM ois_events WHERE tenant=%s ORDER BY timestamp DESC LIMIT %s",
+                """SELECT event_id,timestamp,source,tenant,actor,event_type,payload,provenance,
+                correlation_id,execution_id,policy_context,validation,content_hash
+                FROM ois_events WHERE tenant=%s ORDER BY timestamp DESC LIMIT %s""",
                 (tenant, limit),
             ).fetchall()
         return tuple(_row_to_event(row) for row in rows)
