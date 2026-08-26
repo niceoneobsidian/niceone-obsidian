@@ -66,8 +66,8 @@ class PostgresSemanticWorldStore(SemanticWorldStore):
     def get_entity(self, entity_id: UUID, *, tenant: str) -> WorldEntity | None:
         with self._connect() as conn:
             row = conn.execute(
-                "SELECT entity_id,tenant,entity_type,canonical_name,attributes,provenance_refs,observed_at,version
-                 FROM ois_world_entities WHERE entity_id=%s AND tenant=%s",
+                """SELECT entity_id,tenant,entity_type,canonical_name,attributes,provenance_refs,observed_at,version
+                FROM ois_world_entities WHERE entity_id=%s AND tenant=%s""",
                 (str(entity_id), tenant),
             ).fetchone()
         return WorldEntity.model_validate(_entity_row(row)) if row else None
@@ -75,8 +75,8 @@ class PostgresSemanticWorldStore(SemanticWorldStore):
     def relations(self, entity_id: UUID, *, tenant: str) -> tuple[WorldRelation, ...]:
         with self._connect() as conn:
             rows = conn.execute(
-                "SELECT relation_id,tenant,subject_id,predicate,object_id,provenance_refs,valid_from,valid_until,confidence
-                 FROM ois_world_relations WHERE tenant=%s AND (subject_id=%s OR object_id=%s)",
+                """SELECT relation_id,tenant,subject_id,predicate,object_id,provenance_refs,valid_from,valid_until,confidence
+                FROM ois_world_relations WHERE tenant=%s AND (subject_id=%s OR object_id=%s)""",
                 (tenant, str(entity_id), str(entity_id)),
             ).fetchall()
         return tuple(WorldRelation.model_validate(_relation_row(row)) for row in rows)
