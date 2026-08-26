@@ -106,7 +106,6 @@ def execute_tiktok_vertical_slice(
     )
     metadata = dict(context.metadata)
     metadata["supervisor_selection"] = {
-    context.metadata["supervisor_selection"] = {
         "capability_id": selected.contract.capability_id,
         "version": selected.contract.version,
         "agent_type": f"{type(selected.capability).__module__}.{type(selected.capability).__qualname__}",
