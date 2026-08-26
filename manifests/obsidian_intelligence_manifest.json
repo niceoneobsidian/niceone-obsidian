@@ -1,0 +1,44 @@
+{
+  "manifest_version": "1.0",
+  "capabilities": {
+    "event_ingestion": {
+      "version": "1.0.0",
+      "status": "IMPLEMENTED",
+      "enabled": true,
+      "risk": "low",
+      "requires": ["events:write"]
+    },
+    "system_event_intelligence": {
+      "version": "1.0.0",
+      "status": "ARCHITECTURAL",
+      "enabled": false,
+      "risk": "medium",
+      "requires": ["event_ingestion"]
+    },
+    "semantic_world": {
+      "version": "1.0.0",
+      "status": "IMPLEMENTED",
+      "enabled": true,
+      "risk": "medium",
+      "requires": ["events:write"]
+    },
+    "semantic_knowledge": {
+      "version": "1.0.0",
+      "status": "IMPLEMENTED",
+      "enabled": true,
+      "risk": "medium",
+      "requires": ["semantic_world"]
+    }
+  },
+  "persistence": {
+    "provider": "postgresql",
+    "schema": "migrations/001_event_intelligence_semantic_world.sql",
+    "event_store": "ois.events.store.PostgresEventStore",
+    "semantic_world_store": "ois.knowledge.postgres.PostgresSemanticWorldStore"
+  },
+  "governance": {
+    "downstream_requires_validated_provenance": true,
+    "operational_truth_separate_from_learned_knowledge": true,
+    "append_only_events": true
+  }
+}
