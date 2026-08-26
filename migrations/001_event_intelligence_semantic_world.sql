@@ -20,6 +20,18 @@ CREATE INDEX IF NOT EXISTS idx_ois_events_execution ON ois_events (tenant, execu
 CREATE INDEX IF NOT EXISTS idx_ois_events_correlation ON ois_events (tenant, correlation_id, timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_ois_events_type ON ois_events (tenant, event_type, timestamp DESC);
 
+CREATE TABLE IF NOT EXISTS ois_execution_checkpoints (
+    execution_id UUID PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    status TEXT NOT NULL,
+    state JSONB NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL,
+    UNIQUE (tenant_id, execution_id)
+);
+CREATE INDEX IF NOT EXISTS idx_ois_checkpoints_tenant_updated
+    ON ois_execution_checkpoints (tenant_id, updated_at DESC);
+
 CREATE TABLE IF NOT EXISTS ois_world_entities (
     entity_id UUID PRIMARY KEY,
     tenant TEXT NOT NULL,
@@ -66,6 +78,7 @@ CREATE TABLE IF NOT EXISTS ois_knowledge_assertions (
 CREATE INDEX IF NOT EXISTS idx_ois_knowledge_subject ON ois_knowledge_assertions (tenant, subject_id, predicate);
 
 COMMENT ON TABLE ois_events IS 'Append-only canonical OIS perception events.';
+COMMENT ON TABLE ois_execution_checkpoints IS 'Durable tenant-scoped OIS execution state.';
 COMMENT ON TABLE ois_world_entities IS 'Ground operational semantic state; authoritative observations only.';
 COMMENT ON TABLE ois_world_relations IS 'Ground semantic relationships with provenance and temporal validity.';
 COMMENT ON TABLE ois_knowledge_assertions IS 'Derived/learned knowledge kept separate from ground operational state.';
