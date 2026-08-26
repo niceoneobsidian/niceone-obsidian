@@ -98,6 +98,15 @@ class ExecutionContext:
             for key, value in payload.items()
             if key in context_fields and key != "identity"
         }
+        if "status" in context_payload:
+            context_payload["status"] = ExecutionStatus(context_payload["status"])
+        if "risk_level" in context_payload:
+            context_payload["risk_level"] = RiskLevel(context_payload["risk_level"])
+        if context_payload.get("last_failure") is not None:
+            context_payload["last_failure"] = FailureClass(context_payload["last_failure"])
+        for key in ("created_at", "updated_at"):
+            if isinstance(context_payload.get(key), str):
+                context_payload[key] = datetime.fromisoformat(context_payload[key])
         return cls(identity=identity, **context_payload)
 
     def to_dict(self) -> dict[str, Any]:
