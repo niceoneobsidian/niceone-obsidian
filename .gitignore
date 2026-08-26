@@ -31,6 +31,7 @@ artifacts/
 outputs/
 tmp/
 temp/
+.ois/evidence/
 
 # Databases
 *.db
@@ -45,5 +46,4 @@ checkpoints/
 credentials.json
 secrets.json
 *.pem
-*.key.venv/
-.venv/
+*.key
