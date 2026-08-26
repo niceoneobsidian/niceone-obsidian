@@ -24,19 +24,7 @@ class ExecutionAlreadyCompleted(ExecutionError):
 
 
 class ExecutionRuntime:
-    """
-    Foundational OIS Kernel execution runtime.
-
-    Important boundary:
-    Runtime executes ONE capability invocation.
-
-    Plan completion is owned by the orchestrator.
-
-    Idempotency boundary:
-    The caller may supply a stable invocation_id. If that invocation_id
-    has already completed, the cached InvocationResult is returned and
-    the capability is not executed again.
-    """
+    """Foundational OIS Kernel runtime for one capability invocation."""
 
     def __init__(
         self,
@@ -68,38 +56,28 @@ class ExecutionRuntime:
         *,
         invocation_id: str | None = None,
     ) -> InvocationResult:
-        if context.status in {
-            ExecutionStatus.COMPLETED,
-            ExecutionStatus.STOPPED,
-        }:
+        if context.status in {ExecutionStatus.COMPLETED, ExecutionStatus.STOPPED}:
             raise ExecutionAlreadyCompleted(
                 f"Execution cannot continue from {context.status.value}."
             )
 
         execution_id = context.identity.execution_id
         logical_invocation_id = invocation_id or str(uuid4())
-
         cached = self.idempotency.get(logical_invocation_id)
         if cached is not None:
             self.evidence.record(
                 execution_id,
                 "execution.idempotency_hit",
-                {
-                    "capability_id": capability_id,
-                    "version": version,
-                    "invocation_id": logical_invocation_id,
-                },
+                {"capability_id": capability_id, "version": version,
+                 "invocation_id": logical_invocation_id},
             )
             return cached
 
         self.evidence.record(
             execution_id,
             "execution.received",
-            {
-                "capability_id": capability_id,
-                "version": version,
-                "invocation_id": logical_invocation_id,
-            },
+            {"capability_id": capability_id, "version": version,
+             "invocation_id": logical_invocation_id},
         )
 
         context.set_status(ExecutionStatus.NORMALIZED)
@@ -109,12 +87,7 @@ class ExecutionRuntime:
         try:
             self.cancellation.raise_if_cancelled()
         except ExecutionCancellation as exc:
-            return self._handle_cancellation(
-                context,
-                capability_id,
-                exc,
-                logical_invocation_id,
-            )
+            return self._handle_cancellation(context, capability_id, exc, logical_invocation_id)
 
         request = InvocationRequest(
             invocation_id=logical_invocation_id,
@@ -124,15 +97,11 @@ class ExecutionRuntime:
             timeout_seconds=entry.contract.timeout_seconds,
             cancellation=self.cancellation,
         )
-
         self.validator.validate_input(request, entry.contract)
         self.evidence.record(
             execution_id,
             "execution.input_validated",
-            {
-                "capability_id": capability_id,
-                "invocation_id": request.invocation_id,
-            },
+            {"capability_id": capability_id, "invocation_id": request.invocation_id},
         )
 
         self.policy.authorize(request, entry.contract)
@@ -140,20 +109,18 @@ class ExecutionRuntime:
         self.evidence.record(
             execution_id,
             "execution.authorized",
-            {
-                "capability_id": capability_id,
-                "invocation_id": request.invocation_id,
-            },
+            {"capability_id": capability_id, "invocation_id": request.invocation_id},
         )
 
         context.set_status(ExecutionStatus.EXECUTING)
+        context.current_node = capability_id
+        # Persist the RUNNING boundary before a side effect can occur. If the
+        # worker dies, resume can distinguish unfinished work from completed work.
+        self.checkpoint_store.save(context)
         self.evidence.record(
             execution_id,
             "capability.started",
-            {
-                "capability_id": capability_id,
-                "invocation_id": request.invocation_id,
-            },
+            {"capability_id": capability_id, "invocation_id": request.invocation_id},
         )
 
         try:
@@ -161,96 +128,68 @@ class ExecutionRuntime:
             result = entry.capability.invoke(request)
             self.cancellation.raise_if_cancelled()
         except ExecutionCancellation as exc:
-            return self._handle_cancellation(
-                context,
-                capability_id,
-                exc,
-                logical_invocation_id,
-            )
+            return self._handle_cancellation(context, capability_id, exc, logical_invocation_id)
         except Exception as exc:
-            result = self._handle_failure(
-                context,
-                capability_id,
-                logical_invocation_id,
-                exc,
-            )
-            self.idempotency.put(logical_invocation_id, result)
-            return result
+            return self._handle_failure(context, capability_id, logical_invocation_id, exc)
 
         if result.invocation_id != logical_invocation_id:
             raise ExecutionError(
-                "Capability returned an invocation_id that does not match "
-                "the requested invocation_id."
+                "Capability returned an invocation_id that does not match the requested invocation_id."
             )
 
         context.set_status(ExecutionStatus.OBSERVING)
         context.observations.append(
-            {
-                "invocation_id": result.invocation_id,
-                "capability_id": result.capability_id,
-                "status": result.status.value,
-                "output": result.output,
-            }
+            {"invocation_id": result.invocation_id, "capability_id": result.capability_id,
+             "status": result.status.value, "output": result.output}
         )
-
         self.evidence.record(
             execution_id,
             "capability.completed",
-            {
-                "capability_id": capability_id,
-                "invocation_id": result.invocation_id,
-                "status": result.status.value,
-            },
+            {"capability_id": capability_id, "invocation_id": result.invocation_id,
+             "status": result.status.value},
         )
 
         context.set_status(ExecutionStatus.VALIDATING)
         if result.status == InvocationStatus.SUCCEEDED:
             self.validator.validate_output(result, entry.contract)
-
         context.validation_results.append(
-            {
-                "invocation_id": result.invocation_id,
-                "valid": result.status == InvocationStatus.SUCCEEDED,
-            }
+            {"invocation_id": result.invocation_id, "valid": result.status == InvocationStatus.SUCCEEDED}
         )
 
         context.set_status(ExecutionStatus.UPDATING_STATE)
         if result.status == InvocationStatus.SUCCEEDED:
             context.working_memory[f"result:{result.invocation_id}"] = result.output
 
+        # Commit the terminal invocation identity before the checkpoint. Thus a
+        # crash after the side effect but before state persistence can still be
+        # reconciled by replaying the stable invocation_id.
+        self._cache_terminal_result(logical_invocation_id, result)
+        self.evidence.record(
+            execution_id,
+            "execution.idempotency_recorded",
+            {"capability_id": capability_id, "invocation_id": logical_invocation_id,
+             "status": result.status.value},
+        )
+
         context.set_status(ExecutionStatus.CHECKPOINTING)
         self.checkpoint_store.save(context)
         self.evidence.record(
             execution_id,
             "execution.checkpointed",
-            {
-                "capability_id": capability_id,
-                "invocation_id": result.invocation_id,
-            },
+            {"capability_id": capability_id, "invocation_id": result.invocation_id},
         )
-
-        self.idempotency.put(logical_invocation_id, result)
-        self.evidence.record(
-            execution_id,
-            "execution.idempotency_recorded",
-            {
-                "capability_id": capability_id,
-                "invocation_id": logical_invocation_id,
-                "status": result.status.value,
-            },
-        )
-
         context.set_status(ExecutionStatus.ROUTED)
         return result
 
     def complete(self, context: ExecutionContext) -> None:
-        """Mark the entire execution complete."""
+        """Mark the entire execution complete and durably checkpoint it."""
         context.set_status(ExecutionStatus.COMPLETED)
         self.checkpoint_store.save(context)
-        self.evidence.record(
-            context.identity.execution_id,
-            "execution.completed",
-        )
+        self.evidence.record(context.identity.execution_id, "execution.completed")
+
+    def _cache_terminal_result(self, invocation_id: str, result: InvocationResult) -> None:
+        if result.status in {InvocationStatus.SUCCEEDED, InvocationStatus.CANCELLED}:
+            self.idempotency.put(invocation_id, result)
 
     def _handle_cancellation(
         self,
@@ -261,38 +200,23 @@ class ExecutionRuntime:
     ) -> InvocationResult:
         execution_id = context.identity.execution_id
         context.set_status(ExecutionStatus.STOPPED)
-        context.error = {
-            "type": "ExecutionCancellation",
-            "message": str(error),
-            "failure_class": "cancellation",
-            "recovery_action": "stop",
-        }
+        context.error = {"type": "ExecutionCancellation", "message": str(error),
+                         "failure_class": "cancellation", "recovery_action": "stop"}
         context.current_node = capability_id
-
         self.evidence.record(
             execution_id,
             "execution.cancelled",
-            {
-                "capability_id": capability_id,
-                "invocation_id": invocation_id,
-                "reason": str(error),
-            },
+            {"capability_id": capability_id, "invocation_id": invocation_id,
+             "reason": str(error)},
         )
         self.checkpoint_store.save(context)
-
-        result = InvocationResult(
+        return InvocationResult(
             invocation_id=invocation_id,
             capability_id=capability_id,
-            status=InvocationStatus.FAILED,
-            error={
-                "type": "ExecutionCancellation",
-                "message": str(error),
-                "failure_class": "cancellation",
-                "recovery_action": "stop",
-            },
+            status=InvocationStatus.CANCELLED,
+            error={"type": "ExecutionCancellation", "message": str(error),
+                   "failure_class": "cancellation", "recovery_action": "stop"},
         )
-        self.idempotency.put(invocation_id, result)
-        return result
 
     def _handle_failure(
         self,
@@ -304,28 +228,18 @@ class ExecutionRuntime:
         execution_id = context.identity.execution_id
         failure_class = FailureClass.TOOL
         decision = self.recovery.apply(context, failure_class)
-
         self.evidence.record(
             execution_id,
             "execution.failure",
-            {
-                "capability_id": capability_id,
-                "error": str(error),
-                "failure_class": failure_class.value,
-                "recovery_action": decision.action,
-                "invocation_id": invocation_id,
-            },
+            {"capability_id": capability_id, "error": str(error),
+             "failure_class": failure_class.value, "recovery_action": decision.action,
+             "invocation_id": invocation_id},
         )
         self.checkpoint_store.save(context)
-
         return InvocationResult(
             invocation_id=invocation_id,
             capability_id=capability_id,
             status=InvocationStatus.FAILED,
-            error={
-                "type": type(error).__name__,
-                "message": str(error),
-                "failure_class": failure_class.value,
-                "recovery_action": decision.action,
-            },
+            error={"type": type(error).__name__, "message": str(error),
+                   "failure_class": failure_class.value, "recovery_action": decision.action},
         )
