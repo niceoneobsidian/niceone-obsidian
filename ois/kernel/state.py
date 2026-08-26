@@ -27,7 +27,7 @@ class ExecutionContext:
     identity: ExecutionIdentity
     objective: str
     constraints: Mapping[str, Any] = field(default_factory=dict)
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: Mapping[str, Any] = field(default_factory=dict)
 
     status: ExecutionStatus = ExecutionStatus.RECEIVED
     risk_level: RiskLevel = RiskLevel.LOW
