@@ -1,14 +1,13 @@
 """OIS Kernel public contracts and execution primitives."""
 
-from .cancellation import (
-    CancellationToken,
-    ExecutionCancellation,
-)
+from .cancellation import CancellationToken, ExecutionCancellation
 from .checkpoint import (
+    CheckpointConflict,
     CheckpointNotFound,
     CheckpointStore,
     InMemoryCheckpointStore,
     JsonFileCheckpointStore,
+    PostgresCheckpointStore,
 )
 from .contracts import (
     AgentContract,
@@ -22,15 +21,13 @@ from .contracts import (
 )
 from .evidence import EvidenceEvent, EvidenceLedger
 from .idempotency import (
+    IdempotencyClaim,
     IdempotencyStore,
     InMemoryIdempotencyStore,
+    PostgresIdempotencyStore,
     SQLiteIdempotencyStore,
 )
-from .orchestrator import (
-    OrchestrationError,
-    PlanExecutionError,
-    PlanOrchestrator,
-)
+from .orchestrator import OrchestrationError, PlanExecutionError, PlanOrchestrator
 from .planner import PlanBuilder
 from .planning import (
     CyclicPlanError,
@@ -41,16 +38,8 @@ from .planning import (
     TaskStatus,
     UnknownDependencyError,
 )
-from .policy import (
-    AuthorizationDenied,
-    DefaultPolicyEngine,
-    PolicyDecision,
-)
-from .recovery import (
-    RecoveryDecision,
-    RecoveryPolicy,
-    RetryLimitExceeded,
-)
+from .policy import AuthorizationDenied, DefaultPolicyEngine, PolicyDecision
+from .recovery import RecoveryDecision, RecoveryPolicy, RetryLimitExceeded
 from .registry import (
     AgentRegistry,
     AgentRoutingDecision,
@@ -71,13 +60,7 @@ from .supervisor import (
     SupervisorError,
     SupervisorRequest,
 )
-from .types import (
-    ExecutionStatus,
-    FailureClass,
-    InvocationStatus,
-    RiskLevel,
-    SideEffectLevel,
-)
+from .types import ExecutionStatus, FailureClass, InvocationStatus, RiskLevel, SideEffectLevel
 from .validation import (
     ContractValidator,
     InputValidationError,
@@ -100,6 +83,7 @@ __all__ = [
     "CapabilityContract",
     "CapabilityNotFoundError",
     "CapabilityRegistry",
+    "CheckpointConflict",
     "CheckpointNotFound",
     "CheckpointStore",
     "ContractValidator",
@@ -107,8 +91,11 @@ __all__ = [
     "DuplicateCapabilityError",
     "EvidenceEvent",
     "EvidenceLedger",
+    "IdempotencyClaim",
     "IdempotencyStore",
     "InMemoryIdempotencyStore",
+    "PostgresCheckpointStore",
+    "PostgresIdempotencyStore",
     "SQLiteIdempotencyStore",
     "ExecutionContext",
     "ExecutionError",

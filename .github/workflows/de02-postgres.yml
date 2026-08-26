@@ -1,0 +1,52 @@
+name: DE-02 PostgreSQL Durable Execution
+
+on:
+  push:
+    branches: ["feat/de-02-postgres-durable-execution"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ois
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d ois"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Set up Go for Gitleaks
+        uses: actions/setup-go@v6
+        with:
+          go-version: "1.24"
+
+      - name: Install verification tools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e . pytest ruff mypy bandit pip-licenses
+          go install github.com/gitleaks/gitleaks/v8@latest
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Run OIS LOCAL CI
+        env:
+          OIS_POSTGRES_DSN: postgresql://postgres:postgres@localhost:5432/ois
+        run: python -m ois.verify
