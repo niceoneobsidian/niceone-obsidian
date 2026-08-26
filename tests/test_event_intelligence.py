@@ -1,5 +1,4 @@
 from datetime import datetime, timezone
-from uuid import uuid4
 
 import pytest
 
@@ -13,23 +12,18 @@ def test_event_ingestion_hashes_and_persists_canonically() -> None:
     store = InMemoryEventStore()
     capability = EventIngestion(store)
     event = capability.ingest(
-        source="git",
-        tenant="tenant-a",
-        actor="user-1",
-        event_type="commit",
+        source="git", tenant="tenant-a", actor="user-1", event_type="commit",
         payload={"sha": "abc", "branch": "main"},
         observed_at=datetime(2026, 8, 26, tzinfo=timezone.utc),
-        source_ref="git:commit:abc",
-        source_kind="git",
+        source_ref="git:commit:abc", source_kind="git",
     )
-
     assert event.validation.valid is True
     assert len(event.content_hash) == 64
     event.assert_integrity()
     assert store.get(event.event_id) == event
 
 
-def test_event_store_is_idempotent_but_rejects_hash_collision() -> None:
+def test_event_store_is_idempotent_but_rejects_tampering() -> None:
     store = InMemoryEventStore()
     capability = EventIngestion(store)
     event = capability.ingest(
@@ -39,10 +33,9 @@ def test_event_store_is_idempotent_but_rejects_hash_collision() -> None:
     )
     store.append(event)
     assert len(store.list(tenant="tenant-a")) == 1
-
-    conflicting = event.model_copy(update={"payload": {"status": "failed"}})
+    tampered = event.model_copy(update={"payload": {"status": "failed"}})
     with pytest.raises(ValueError, match="integrity"):
-        store.append(conflicting)
+        store.append(tampered)
 
 
 def test_event_ingestion_is_registry_addressable() -> None:
@@ -66,7 +59,6 @@ def test_semantic_world_separates_ground_state_from_learned_assertions() -> None
         value="timeout", evidence_refs=("event:123",), confidence=0.7,
     )
     store.put_assertion(assertion)
-
     assert store.get_entity(first.entity_id, tenant="tenant-a") == first
     assert store.relations(first.entity_id, tenant="tenant-a") == (relation,)
     assert store.assertions[assertion.assertion_id] == assertion
@@ -80,5 +72,5 @@ def test_semantic_world_enforces_tenant_boundary() -> None:
     relation = WorldRelation(
         tenant="tenant-b", subject_id=entity.entity_id, predicate="owns", object_id=entity.entity_id
     )
-    store.put_relation(relation)
-    assert store.relations(entity.entity_id, tenant="tenant-a") == ()
+    with pytest.raises(PermissionError, match="tenant"):
+        store.put_relation(relation)
