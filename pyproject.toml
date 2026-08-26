@@ -7,6 +7,11 @@ dependencies = [
   "psycopg[binary]>=3.2,<4",
 ]
 
+[tool.pytest.ini_options]
+markers = [
+  "integration: tests requiring external infrastructure such as PostgreSQL",
+]
+
 [tool.ruff]
 target-version = "py312"
 line-length = 100
