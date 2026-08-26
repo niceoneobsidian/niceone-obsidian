@@ -1,5 +1,7 @@
-from pathlib import Path
 import sqlite3
+from pathlib import Path
+
+import pytest
 
 from ois.kernel import (
     CapabilityContract,
@@ -78,7 +80,11 @@ def test_checkpoint_and_idempotency_survive_runtime_recreation(tmp_path: Path) -
     context = make_context()
 
     first = runtime.execute(
-        context, "test.durable", "1.0.0", {"value": 1}, invocation_id="execution-1:task-1"
+        context,
+        "test.durable",
+        "1.0.0",
+        {"value": 1},
+        invocation_id="execution-1:task-1",
     )
     execution_id = context.identity.execution_id
     runtime.checkpoint_store.save(context)
@@ -86,7 +92,11 @@ def test_checkpoint_and_idempotency_survive_runtime_recreation(tmp_path: Path) -
     restored_runtime = make_runtime(capability, tmp_path)
     restored = restored_runtime.checkpoint_store.load(execution_id)
     second = restored_runtime.execute(
-        restored, "test.durable", "1.0.0", {"value": 1}, invocation_id="execution-1:task-1"
+        restored,
+        "test.durable",
+        "1.0.0",
+        {"value": 1},
+        invocation_id="execution-1:task-1",
     )
 
     assert first.status == InvocationStatus.SUCCEEDED
@@ -114,10 +124,16 @@ def test_plan_resume_skips_succeeded_tasks_and_replays_only_pending(tmp_path: Pa
     context = make_context()
     plan = ExecutionPlan(objective=context.objective)
     plan.add_task(TaskNode("first", "test.first", "1.0.0"))
-    plan.add_task(TaskNode("second", "test.second", "1.0.0", dependencies=("first",)))
+    plan.add_task(
+        TaskNode("second", "test.second", "1.0.0", dependencies=("first",))
+    )
 
     first_result = runtime.execute(
-        context, "test.first", "1.0.0", {}, invocation_id=f"{context.identity.execution_id}:first"
+        context,
+        "test.first",
+        "1.0.0",
+        {},
+        invocation_id=f"{context.identity.execution_id}:first",
     )
     plan.tasks["first"].status = TaskStatus.SUCCEEDED
     plan.tasks["first"].output = first_result.output
@@ -142,16 +158,14 @@ def test_corrupt_checkpoint_is_rejected(tmp_path: Path) -> None:
     checkpoint.save(context)
     with sqlite3.connect(database) as connection:
         connection.execute(
-            "UPDATE execution_checkpoints SET state_hash = 'corrupt' WHERE execution_id = ?",
+            "UPDATE execution_checkpoints SET state_hash = 'corrupt' "
+            "WHERE execution_id = ?",
             (str(context.identity.execution_id),),
         )
         connection.commit()
 
-    try:
+    with pytest.raises(Exception, match="integrity hash mismatch"):
         checkpoint.load(context.identity.execution_id)
-        raise AssertionError("corrupt checkpoint was accepted")
-    except Exception as exc:
-        assert "integrity hash mismatch" in str(exc)
 
 
 def test_failure_is_not_cached_as_success(tmp_path: Path) -> None:
@@ -164,8 +178,12 @@ def test_failure_is_not_cached_as_success(tmp_path: Path) -> None:
     runtime = make_runtime(capability, tmp_path)
     context = make_context()
 
-    first = runtime.execute(context, "test.failure", "1.0.0", {}, invocation_id="failure-1")
-    second = runtime.execute(context, "test.failure", "1.0.0", {}, invocation_id="failure-1")
+    first = runtime.execute(
+        context, "test.failure", "1.0.0", {}, invocation_id="failure-1"
+    )
+    second = runtime.execute(
+        context, "test.failure", "1.0.0", {}, invocation_id="failure-1"
+    )
 
     assert first.status == InvocationStatus.FAILED
     assert second.status == InvocationStatus.FAILED
