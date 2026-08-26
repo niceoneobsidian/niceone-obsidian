@@ -1,9 +1,15 @@
-# Canonical OIS Python tooling configuration; TOML regexes use literal-string syntax.
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "niceone-obsidian"
 version = "0.0.0"
 requires-python = ">=3.12"
 dependencies = []
+
+[project.scripts]
+ois = "ois.cli:main"
 
 [tool.ruff]
 target-version = "py312"
@@ -29,10 +35,6 @@ select = [
   "SIM",
 ]
 
-# The Social Intelligence inventory is a declarative, machine-maintained manifest.
-# Its long structure lists are intentionally kept readable as grouped data rather
-# than reformatted into generated noise. Keep normal linting and type checking for
-# the module, while allowing the manifest's long data rows and formatting to remain stable.
 [tool.ruff.lint.per-file-ignores]
 "ois/domains/social_intelligence/inventory.py" = ["E501"]
 
