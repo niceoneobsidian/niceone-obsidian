@@ -11,18 +11,14 @@ CREATE TABLE IF NOT EXISTS ois_events (
     execution_id UUID,
     policy_context JSONB NOT NULL,
     validation JSONB NOT NULL,
-    content_hash CHAR(64) NOT NULL UNIQUE,
-    ingested_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    content_hash CHAR(64) NOT NULL,
+    ingested_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (tenant, content_hash)
 );
-
-CREATE INDEX IF NOT EXISTS idx_ois_events_tenant_timestamp
-    ON ois_events (tenant, timestamp DESC);
-CREATE INDEX IF NOT EXISTS idx_ois_events_execution
-    ON ois_events (tenant, execution_id, timestamp DESC);
-CREATE INDEX IF NOT EXISTS idx_ois_events_correlation
-    ON ois_events (tenant, correlation_id, timestamp DESC);
-CREATE INDEX IF NOT EXISTS idx_ois_events_type
-    ON ois_events (tenant, event_type, timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_ois_events_tenant_timestamp ON ois_events (tenant, timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_ois_events_execution ON ois_events (tenant, execution_id, timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_ois_events_correlation ON ois_events (tenant, correlation_id, timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_ois_events_type ON ois_events (tenant, event_type, timestamp DESC);
 
 CREATE TABLE IF NOT EXISTS ois_world_entities (
     entity_id UUID PRIMARY KEY,
@@ -35,8 +31,7 @@ CREATE TABLE IF NOT EXISTS ois_world_entities (
     version INTEGER NOT NULL CHECK (version > 0),
     UNIQUE (tenant, entity_id)
 );
-CREATE INDEX IF NOT EXISTS idx_ois_world_entities_tenant_type
-    ON ois_world_entities (tenant, entity_type);
+CREATE INDEX IF NOT EXISTS idx_ois_world_entities_tenant_type ON ois_world_entities (tenant, entity_type);
 
 CREATE TABLE IF NOT EXISTS ois_world_relations (
     relation_id UUID PRIMARY KEY,
@@ -48,13 +43,11 @@ CREATE TABLE IF NOT EXISTS ois_world_relations (
     valid_from TIMESTAMPTZ,
     valid_until TIMESTAMPTZ,
     confidence DOUBLE PRECISION NOT NULL CHECK (confidence BETWEEN 0 AND 1),
-    FOREIGN KEY (subject_id) REFERENCES ois_world_entities(entity_id),
-    FOREIGN KEY (object_id) REFERENCES ois_world_entities(entity_id)
+    FOREIGN KEY (tenant, subject_id) REFERENCES ois_world_entities(tenant, entity_id),
+    FOREIGN KEY (tenant, object_id) REFERENCES ois_world_entities(tenant, entity_id)
 );
-CREATE INDEX IF NOT EXISTS idx_ois_world_rel_subject
-    ON ois_world_relations (tenant, subject_id);
-CREATE INDEX IF NOT EXISTS idx_ois_world_rel_object
-    ON ois_world_relations (tenant, object_id);
+CREATE INDEX IF NOT EXISTS idx_ois_world_rel_subject ON ois_world_relations (tenant, subject_id);
+CREATE INDEX IF NOT EXISTS idx_ois_world_rel_object ON ois_world_relations (tenant, object_id);
 
 CREATE TABLE IF NOT EXISTS ois_knowledge_assertions (
     assertion_id UUID PRIMARY KEY,
@@ -68,10 +61,9 @@ CREATE TABLE IF NOT EXISTS ois_knowledge_assertions (
     valid_from TIMESTAMPTZ,
     valid_until TIMESTAMPTZ,
     version INTEGER NOT NULL CHECK (version > 0),
-    FOREIGN KEY (subject_id) REFERENCES ois_world_entities(entity_id)
+    FOREIGN KEY (tenant, subject_id) REFERENCES ois_world_entities(tenant, entity_id)
 );
-CREATE INDEX IF NOT EXISTS idx_ois_knowledge_subject
-    ON ois_knowledge_assertions (tenant, subject_id, predicate);
+CREATE INDEX IF NOT EXISTS idx_ois_knowledge_subject ON ois_knowledge_assertions (tenant, subject_id, predicate);
 
 COMMENT ON TABLE ois_events IS 'Append-only canonical OIS perception events.';
 COMMENT ON TABLE ois_world_entities IS 'Ground operational semantic state; authoritative observations only.';
