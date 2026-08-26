@@ -1,19 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import Any, Protocol
 from uuid import uuid4
 
 
 class AgentLLMGateway(Protocol):
-    def invoke(
-        self,
-        *,
-        model: str,
-        messages: list[dict[str, Any]],
-        metadata: dict[str, Any] | None = None,
-    ) -> Any:
+    def invoke(self, *, model: str, messages: list[dict[str, Any]], metadata: dict[str, Any] | None = None) -> Any:
         ...
 
 
@@ -40,8 +34,8 @@ class AgentSession:
     agent_id: str
     status: str = "active"
     messages: list[dict[str, Any]] = field(default_factory=list)
-    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
-    updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 @dataclass(frozen=True)
@@ -68,11 +62,7 @@ class InMemoryAgentMemory:
 class AgentRuntime:
     """Kernel-facing agent lifecycle using the OIS LLM gateway and memory boundaries."""
 
-    def __init__(
-        self,
-        llm_gateway: AgentLLMGateway,
-        memory: AgentMemory | None = None,
-    ) -> None:
+    def __init__(self, llm_gateway: AgentLLMGateway, memory: AgentMemory | None = None) -> None:
         self._llm_gateway = llm_gateway
         self._memory = memory or InMemoryAgentMemory()
         self._workspaces: dict[str, AgentWorkspace] = {}
@@ -98,7 +88,7 @@ class AgentRuntime:
     ) -> AgentRunResult:
         session = self._sessions[session_id]
         workspace = self._workspaces[session.agent_id]
-        started = datetime.now(UTC)
+        started = datetime.now(timezone.utc)
         history = self._memory.load(workspace.agent_id, session_id)
         messages = [*history, *(context or []), {"role": "user", "content": prompt}]
         session.messages.append(messages[-1])
@@ -111,12 +101,12 @@ class AgentRuntime:
         assistant_message = {"role": "assistant", "content": output}
         session.messages.append(assistant_message)
         self._memory.append(workspace.agent_id, session_id, assistant_message)
-        session.updated_at = datetime.now(UTC)
+        session.updated_at = datetime.now(timezone.utc)
         completed = session.updated_at
         return AgentRunResult(session_id, "completed", output, model, started, completed)
 
     def close_session(self, session_id: str) -> AgentSession:
         session = self._sessions[session_id]
         session.status = "closed"
-        session.updated_at = datetime.now(UTC)
+        session.updated_at = datetime.now(timezone.utc)
         return session

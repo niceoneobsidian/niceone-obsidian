@@ -3,9 +3,7 @@
 name = "niceone-obsidian"
 version = "0.0.0"
 requires-python = ">=3.12"
-dependencies = [
-  "psycopg[binary]>=3.2,<4",
-]
+dependencies = []
 
 [tool.ruff]
 target-version = "py312"
@@ -31,16 +29,10 @@ select = [
   "SIM",
 ]
 
-[tool.ruff.lint.per-file-ignores]
-"ois/domains/social_intelligence/inventory.py" = ["E501"]
-
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
 line-ending = "auto"
-exclude = [
-  "ois/domains/social_intelligence/inventory.py",
-]
 
 [tool.mypy]
 python_version = "3.12"

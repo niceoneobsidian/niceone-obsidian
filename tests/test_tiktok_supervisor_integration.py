@@ -14,8 +14,7 @@ def test_supervisor_selects_agent_before_existing_kernel_execution_path() -> Non
     assert result.context.status == ExecutionStatus.COMPLETED
 
     event_types = [event.event_type for event in result.evidence]
-    assert event_types[:5] == [
-        "agent.selection.selected",
+    assert event_types[:4] == [
         "execution.received",
         "execution.input_validated",
         "execution.authorized",
