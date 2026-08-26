@@ -5,7 +5,7 @@ from uuid import uuid4
 from .cancellation import CancellationToken, ExecutionCancellation
 from .checkpoint import CheckpointStore
 from .contracts import InvocationRequest, InvocationResult
-from .evidence import EvidenceLedger
+from .evidence import EvidenceLedger, EvidenceStore
 from .idempotency import IdempotencyStore, InMemoryIdempotencyStore
 from .policy import DefaultPolicyEngine, PolicyEngine
 from .recovery import RecoveryPolicy
@@ -30,7 +30,7 @@ class ExecutionRuntime:
         self,
         registry: CapabilityRegistry,
         checkpoint_store: CheckpointStore,
-        evidence: EvidenceLedger,
+        evidence: EvidenceStore | None = None,
         *,
         validator: ContractValidator | None = None,
         policy: PolicyEngine | None = None,
@@ -40,7 +40,7 @@ class ExecutionRuntime:
     ) -> None:
         self.registry = registry
         self.checkpoint_store = checkpoint_store
-        self.evidence = evidence
+        self.evidence = evidence or EvidenceLedger()
         self.validator = validator or ContractValidator()
         self.policy = policy or DefaultPolicyEngine()
         self.recovery = recovery or RecoveryPolicy()
@@ -79,7 +79,6 @@ class ExecutionRuntime:
             {"capability_id": capability_id, "version": version,
              "invocation_id": logical_invocation_id},
         )
-
         context.set_status(ExecutionStatus.NORMALIZED)
         entry = self.registry.get(capability_id, version)
         context.set_status(ExecutionStatus.PLAN_VALIDATED)
@@ -103,7 +102,6 @@ class ExecutionRuntime:
             "execution.input_validated",
             {"capability_id": capability_id, "invocation_id": request.invocation_id},
         )
-
         self.policy.authorize(request, entry.contract)
         context.set_status(ExecutionStatus.AUTHORIZED)
         self.evidence.record(
@@ -114,8 +112,6 @@ class ExecutionRuntime:
 
         context.set_status(ExecutionStatus.EXECUTING)
         context.current_node = capability_id
-        # Persist the RUNNING boundary before a side effect can occur. If the
-        # worker dies, resume can distinguish unfinished work from completed work.
         self.checkpoint_store.save(context)
         self.evidence.record(
             execution_id,
@@ -155,14 +151,10 @@ class ExecutionRuntime:
         context.validation_results.append(
             {"invocation_id": result.invocation_id, "valid": result.status == InvocationStatus.SUCCEEDED}
         )
-
         context.set_status(ExecutionStatus.UPDATING_STATE)
         if result.status == InvocationStatus.SUCCEEDED:
             context.working_memory[f"result:{result.invocation_id}"] = result.output
 
-        # Commit the terminal invocation identity before the checkpoint. Thus a
-        # crash after the side effect but before state persistence can still be
-        # reconciled by replaying the stable invocation_id.
         self._cache_terminal_result(logical_invocation_id, result)
         self.evidence.record(
             execution_id,
@@ -170,7 +162,6 @@ class ExecutionRuntime:
             {"capability_id": capability_id, "invocation_id": logical_invocation_id,
              "status": result.status.value},
         )
-
         context.set_status(ExecutionStatus.CHECKPOINTING)
         self.checkpoint_store.save(context)
         self.evidence.record(
