@@ -46,6 +46,7 @@ from .policy import (
     DefaultPolicyEngine,
     PolicyDecision,
 )
+from .postgres import PostgreSQLCheckpointStore, PostgreSQLIdempotencyStore
 from .recovery import (
     RecoveryDecision,
     RecoveryPolicy,
@@ -110,6 +111,8 @@ __all__ = [
     "IdempotencyStore",
     "InMemoryIdempotencyStore",
     "SQLiteIdempotencyStore",
+    "PostgreSQLCheckpointStore",
+    "PostgreSQLIdempotencyStore",
     "ExecutionContext",
     "ExecutionError",
     "ExecutionRuntime",
