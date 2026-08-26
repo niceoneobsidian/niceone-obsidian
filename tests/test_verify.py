@@ -7,10 +7,12 @@ from ois.verify import CheckResult, build_evidence, verify_artifact
 
 
 def test_evidence_decision_is_derived_from_checks() -> None:
-    document = build_evidence([
-        CheckResult("one", ["one"], 0, True, "ok"),
-        CheckResult("two", ["two"], 1, False, "failed"),
-    ])
+    document = build_evidence(
+        [
+            CheckResult("one", ["one"], 0, True, "ok"),
+            CheckResult("two", ["two"], 1, False, "failed"),
+        ]
+    )
     assert document["conformance"] == "FAIL"
     assert document["activation_eligible"] is False
 
