@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS ois_idempotency_results (
+    invocation_id TEXT PRIMARY KEY,
+    result_json JSONB NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
