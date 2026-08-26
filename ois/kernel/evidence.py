@@ -6,7 +6,7 @@ from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from threading import RLock
-from typing import Any
+from typing import Any, Protocol
 from uuid import UUID, uuid4
 
 
@@ -33,6 +33,22 @@ class EvidenceEvent:
         result["timestamp"] = self.timestamp.isoformat()
         result["data"] = dict(self.data)
         return result
+
+
+class EvidenceStore(Protocol):
+    def append(self, event: EvidenceEvent) -> None: ...
+
+    def record(
+        self,
+        execution_id: UUID,
+        event_type: str,
+        data: Mapping[str, Any] | None = None,
+        *,
+        actor: str = "kernel",
+        component: str = "ois.kernel",
+        correlation_id: str | None = None,
+        causation_id: str | None = None,
+    ) -> EvidenceEvent: ...
 
 
 class EvidenceLedger:
