@@ -23,7 +23,8 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     env:
-      OIS_POSTGRES_DSN: postgresql://postgres:postgres@localhost:5432/ois_test
+      OIS_POSTGRES_DSN: postgresql://postgres@localhost:5432/ois_test
+      PGPASSWORD: postgres
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -36,7 +37,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e .
+          python -m pip install -e ".[postgres]"
           python -m pip install pytest
 
       - name: Run tests
