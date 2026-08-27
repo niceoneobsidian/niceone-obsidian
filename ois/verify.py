@@ -5,7 +5,7 @@ import argparse
 import hashlib
 import json
 import platform
-import subprocess
+import subprocess  # nosec B404 - commands are fixed and never invoked through a shell.
 import sys
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
@@ -28,7 +28,7 @@ class CheckResult:
 
 def _run(command: list[str]) -> CheckResult:
     try:
-        result = subprocess.run(
+        result = subprocess.run(  # nosec B603 - command lists are defined internally; shell execution is disabled.
             command,
             cwd=ROOT,
             text=True,
@@ -48,7 +48,7 @@ def _run(command: list[str]) -> CheckResult:
 
 
 def _git(*args: str) -> str:
-    result = subprocess.run(
+    result = subprocess.run(  # nosec B603 - Git arguments are supplied only by trusted internal callers.
         ["git", *args],
         cwd=ROOT,
         text=True,
