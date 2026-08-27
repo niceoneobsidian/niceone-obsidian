@@ -47,3 +47,6 @@ secrets.json
 *.pem
 *.key.venv/
 .venv/
+
+# OIS local verification artifacts
+.ois/
