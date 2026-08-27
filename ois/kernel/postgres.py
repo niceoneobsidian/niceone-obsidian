@@ -69,18 +69,16 @@ class PostgreSQLCheckpointStore:
         return psycopg.connect(self._dsn)
 
     def initialize(self) -> None:
-        with self._connect() as connection:
-            with connection.cursor() as cursor:
-                cursor.execute(_SCHEMA)
+        with self._connect() as connection, connection.cursor() as cursor:
+            cursor.execute(_SCHEMA)
 
     def save(self, context: ExecutionContext) -> None:
         context.touch()
         payload = context.to_dict()
         identity = context.identity
-        with self._connect() as connection:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    """
+        with self._connect() as connection, connection.cursor() as cursor:
+            cursor.execute(
+                """
                     INSERT INTO ois_checkpoints (
                         execution_id, tenant_id, workflow_id, workflow_version,
                         context, revision, created_at, updated_at
@@ -94,54 +92,50 @@ class PostgreSQLCheckpointStore:
                         revision = ois_checkpoints.revision + 1,
                         updated_at = EXCLUDED.updated_at
                     """,
-                    (
-                        identity.execution_id,
-                        identity.tenant_id,
-                        identity.workflow_id,
-                        identity.workflow_version,
-                        _jsonb(payload),
-                        context.created_at,
-                        context.updated_at,
-                    ),
-                )
+                (
+                    identity.execution_id,
+                    identity.tenant_id,
+                    identity.workflow_id,
+                    identity.workflow_version,
+                    _jsonb(payload),
+                    context.created_at,
+                    context.updated_at,
+                ),
+            )
 
     def load(self, execution_id: UUID) -> ExecutionContext:
-        with self._connect() as connection:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    "SELECT context FROM ois_checkpoints WHERE execution_id = %s",
-                    (execution_id,),
-                )
-                row = cursor.fetchone()
+        with self._connect() as connection, connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT context FROM ois_checkpoints WHERE execution_id = %s",
+                (execution_id,),
+            )
+            row = cursor.fetchone()
         if row is None:
             raise CheckpointNotFound(f"No checkpoint for execution {execution_id}")
         return _context_from_payload(row[0])
 
     def delete(self, execution_id: UUID) -> None:
-        with self._connect() as connection:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    "DELETE FROM ois_checkpoints WHERE execution_id = %s",
-                    (execution_id,),
-                )
+        with self._connect() as connection, connection.cursor() as cursor:
+            cursor.execute(
+                "DELETE FROM ois_checkpoints WHERE execution_id = %s",
+                (execution_id,),
+            )
 
     def exists(self, execution_id: UUID) -> bool:
-        with self._connect() as connection:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    "SELECT 1 FROM ois_checkpoints WHERE execution_id = %s",
-                    (execution_id,),
-                )
-                return cursor.fetchone() is not None
+        with self._connect() as connection, connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT 1 FROM ois_checkpoints WHERE execution_id = %s",
+                (execution_id,),
+            )
+            return cursor.fetchone() is not None
 
     def revision(self, execution_id: UUID) -> int:
-        with self._connect() as connection:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    "SELECT revision FROM ois_checkpoints WHERE execution_id = %s",
-                    (execution_id,),
-                )
-                row = cursor.fetchone()
+        with self._connect() as connection, connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT revision FROM ois_checkpoints WHERE execution_id = %s",
+                (execution_id,),
+            )
+            row = cursor.fetchone()
         if row is None:
             raise CheckpointNotFound(f"No checkpoint for execution {execution_id}")
         return int(row[0])
@@ -171,32 +165,29 @@ class PostgreSQLIdempotencyStore:
         return psycopg.connect(self._dsn)
 
     def initialize(self) -> None:
-        with self._connect() as connection:
-            with connection.cursor() as cursor:
-                cursor.execute(_SCHEMA)
+        with self._connect() as connection, connection.cursor() as cursor:
+            cursor.execute(_SCHEMA)
 
     def get(self, invocation_id: str) -> InvocationResult | None:
-        with self._connect() as connection:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    """
+        with self._connect() as connection, connection.cursor() as cursor:
+            cursor.execute(
+                """
                     SELECT result
                     FROM ois_idempotency_results
                     WHERE invocation_id = %s
                     """,
-                    (invocation_id,),
-                )
-                row = cursor.fetchone()
+                (invocation_id,),
+            )
+            row = cursor.fetchone()
         if row is None:
             return None
         return _result_from_payload(row[0])
 
     def put(self, invocation_id: str, result: InvocationResult) -> None:
         payload = _result_to_payload(result)
-        with self._connect() as connection:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    """
+        with self._connect() as connection, connection.cursor() as cursor:
+            cursor.execute(
+                """
                     INSERT INTO ois_idempotency_results (
                         invocation_id, capability_id, status, result
                     )
@@ -207,13 +198,13 @@ class PostgreSQLIdempotencyStore:
                         result = EXCLUDED.result,
                         updated_at = CURRENT_TIMESTAMP
                     """,
-                    (
-                        invocation_id,
-                        result.capability_id,
-                        result.status.value,
-                        _jsonb(payload),
-                    ),
-                )
+                (
+                    invocation_id,
+                    result.capability_id,
+                    result.status.value,
+                    _jsonb(payload),
+                ),
+            )
 
     def put_if_absent(self, invocation_id: str, result: InvocationResult) -> bool:
         """Atomically persist the first result for an invocation id.
@@ -222,10 +213,9 @@ class PostgreSQLIdempotencyStore:
         concurrent duplicate receives ``False`` without overwriting the winner.
         """
         payload = _result_to_payload(result)
-        with self._connect() as connection:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    """
+        with self._connect() as connection, connection.cursor() as cursor:
+            cursor.execute(
+                """
                     INSERT INTO ois_idempotency_results (
                         invocation_id, capability_id, status, result
                     )
@@ -233,14 +223,14 @@ class PostgreSQLIdempotencyStore:
                     ON CONFLICT (invocation_id) DO NOTHING
                     RETURNING invocation_id
                     """,
-                    (
-                        invocation_id,
-                        result.capability_id,
-                        result.status.value,
-                        _jsonb(payload),
-                    ),
-                )
-                return cursor.fetchone() is not None
+                (
+                    invocation_id,
+                    result.capability_id,
+                    result.status.value,
+                    _jsonb(payload),
+                ),
+            )
+            return cursor.fetchone() is not None
 
     def exists(self, invocation_id: str) -> bool:
         return self.get(invocation_id) is not None

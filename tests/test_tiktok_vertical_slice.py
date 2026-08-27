@@ -28,9 +28,7 @@ def test_tiktok_vertical_slice_proves_kernel_path() -> None:
 
     event_types = [event.event_type for event in result.evidence]
     assert "agent.selection.selected" in event_types
-    assert event_types.index("agent.selection.selected") < event_types.index(
-        "execution.received"
-    )
+    assert event_types.index("agent.selection.selected") < event_types.index("execution.received")
     assert event_types[:5] == [
         "agent.selection.selected",
         "execution.received",

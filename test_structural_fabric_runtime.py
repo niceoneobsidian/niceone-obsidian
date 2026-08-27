@@ -4,13 +4,13 @@ from ois.architecture.fabrics import (
     AgentWorkspace,
     ContextRequest,
     KnowledgeArtifact,
-    LLMGatewaySpec,
     LearningCandidate,
+    LLMGatewaySpec,
     ModelRoute,
     ReasoningPattern,
     SocialSignal,
-    WorkflowSpec,
     WorkerSpec,
+    WorkflowSpec,
 )
 from ois.kernel.registry import CapabilityRegistry
 from ois.runtime.fabrics import FabricRuntime, register_fabric_capabilities
@@ -55,9 +55,7 @@ def test_llm_gateway_routes_to_registered_provider() -> None:
             capabilities=("chat",),
         )
     )
-    gateway = runtime.configure_gateway(
-        LLMGatewaySpec("gateway", providers=("test",))
-    )
+    gateway = runtime.configure_gateway(LLMGatewaySpec("gateway", providers=("test",)))
     gateway.register_provider(
         "test",
         lambda model, payload: {

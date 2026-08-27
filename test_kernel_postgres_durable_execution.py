@@ -92,12 +92,11 @@ def test_postgres_idempotency_survives_store_recreation():
     assert restored.output == {"value": 42}
     assert restored.metadata == {"source": "de-02"}
 
-    with second._connect() as connection:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "DELETE FROM ois_idempotency_results WHERE invocation_id = %s",
-                (invocation_id,),
-            )
+    with second._connect() as connection, connection.cursor() as cursor:
+        cursor.execute(
+            "DELETE FROM ois_idempotency_results WHERE invocation_id = %s",
+            (invocation_id,),
+        )
 
 
 def test_postgres_concurrent_duplicate_claim_has_one_winner():
@@ -125,9 +124,8 @@ def test_postgres_concurrent_duplicate_claim_has_one_winner():
     assert restored is not None
     assert restored.output["winner"] in range(12)
 
-    with store._connect() as connection:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "DELETE FROM ois_idempotency_results WHERE invocation_id = %s",
-                (invocation_id,),
-            )
+    with store._connect() as connection, connection.cursor() as cursor:
+        cursor.execute(
+            "DELETE FROM ois_idempotency_results WHERE invocation_id = %s",
+            (invocation_id,),
+        )

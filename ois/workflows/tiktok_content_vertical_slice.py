@@ -14,7 +14,6 @@ from ois.kernel.runtime import ExecutionRuntime
 from ois.kernel.state import ExecutionContext, ExecutionIdentity
 from ois.kernel.supervisor import Supervisor
 
-
 VERTICAL_SLICE_WORKFLOW_ID = "tiktok.content.vertical_slice"
 VERTICAL_SLICE_VERSION = "1.0.0"
 
@@ -108,15 +107,12 @@ def execute_tiktok_vertical_slice(
         "capability_id": selected.contract.capability_id,
         "version": selected.contract.version,
         "agent_type": (
-            f"{type(selected.capability).__module__}."
-            f"{type(selected.capability).__qualname__}"
+            f"{type(selected.capability).__module__}.{type(selected.capability).__qualname__}"
         ),
     }
 
     executed_plan = supervisor.execute(plan, context)
-    invocation = runtime.idempotency.get(
-        f"{context.identity.execution_id}:create_content_plan"
-    )
+    invocation = runtime.idempotency.get(f"{context.identity.execution_id}:create_content_plan")
     if invocation is None:
         raise RuntimeError("Vertical slice completed without an invocation result.")
 

@@ -69,9 +69,7 @@ class LLMGateway:
             and all(route.constraints.get(key) == value for key, value in constraints.items())
         ]
         if not candidates:
-            raise LookupError(
-                f"no model route satisfies capabilities={sorted(capabilities)}"
-            )
+            raise LookupError(f"no model route satisfies capabilities={sorted(capabilities)}")
         return min(
             candidates,
             key=lambda item: (sum(item.cost_profile.values()), item.provider, item.model),

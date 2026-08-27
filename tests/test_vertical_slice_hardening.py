@@ -81,12 +81,16 @@ def _runtime(capability, *, policy=None):
     registry.register(capability)
     checkpoint = InMemoryCheckpointStore()
     evidence = EvidenceLedger()
-    return ExecutionRuntime(
-        registry,
+    return (
+        ExecutionRuntime(
+            registry,
+            checkpoint,
+            evidence,
+            policy=policy,
+        ),
         checkpoint,
         evidence,
-        policy=policy,
-    ), checkpoint, evidence
+    )
 
 
 def test_vertical_slice_contract_is_canonical() -> None:
@@ -178,9 +182,7 @@ def test_policy_denial_blocks_execution_before_capability() -> None:
         )
     assert capability.invoked is False
     assert checkpoint.exists(context.identity.execution_id) is False
-    event_types = [
-        event.event_type for event in evidence.list(context.identity.execution_id)
-    ]
+    event_types = [event.event_type for event in evidence.list(context.identity.execution_id)]
     assert "execution.input_validated" in event_types
     assert "execution.authorized" not in event_types
     assert "capability.started" not in event_types
