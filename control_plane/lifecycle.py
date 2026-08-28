@@ -15,7 +15,7 @@ from ois.kernel.checkpoint import CheckpointStore, InMemoryCheckpointStore
 from ois.kernel.contracts import CapabilityContract, InvocationRequest, InvocationResult, PolicyEngine
 from ois.kernel.evidence import EvidenceEvent as KernelEvidenceEvent
 from ois.kernel.evidence import EvidenceStore as KernelEvidenceStore
-from ois.kernel.policy import DefaultPolicyEngine, PolicyError
+from ois.kernel.policy import DefaultPolicyEngine
 from ois.kernel.registry import CapabilityRegistry
 from ois.kernel.runtime import ExecutionRuntime
 from ois.kernel.state import ExecutionContext, ExecutionIdentity
@@ -108,7 +108,10 @@ class ProductionPolicyAdapter(PolicyEngine):
         required = contract.permissions[0] if contract.permissions else "execution.invoke"
         self.authorization.authorize(
             subject,
-            AuthorizationPolicy(permission=required, required_attributes={"environment": str(metadata.get("environment", "staging"))}),
+            AuthorizationPolicy(
+                permission=required,
+                required_attributes={"environment": str(metadata.get("environment", "staging"))},
+            ),
         )
         return self.fallback.authorize(request, contract)
 
