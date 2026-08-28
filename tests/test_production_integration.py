@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from production.control_plane import (
     AuthorizationError,
-    AuthorizationPolicy,
     EvidenceLedger,
     InMemoryDeploymentAdapter,
     ProductionControlPlane,
@@ -51,7 +50,7 @@ def test_activation_and_rollback_are_evidenced() -> None:
     assert ledger.verify_chain()
 
 
-def test_distributed_lease_allows_single_owner_and_recovers() -> None:
+def test_distributed_lease_allows_single_owner_and_completes() -> None:
     queue = LeaseQueue(lease_seconds=60, max_attempts=2)
     work_id = queue.enqueue({"value": 7})
     first = queue.claim("worker-a")
@@ -59,12 +58,13 @@ def test_distributed_lease_allows_single_owner_and_recovers() -> None:
     assert queue.claim("worker-b") is None
     assert queue.heartbeat(work_id, "worker-b") is False
     assert queue.complete(work_id, "worker-a", 49)
-    assert queue.get(work_id).result == 49
+    item = queue.get(work_id)
+    assert item is not None and item.result == 49 and item.status == "SUCCEEDED"
 
 
 def test_worker_failure_requeues_for_retry() -> None:
     queue = LeaseQueue(max_attempts=2)
-    queue.enqueue({"fail": True})
+    work_id = queue.enqueue({"fail": True})
     calls = {"n": 0}
 
     def handler(payload):
@@ -76,8 +76,9 @@ def test_worker_failure_requeues_for_retry() -> None:
     worker = Worker("worker-a", queue, handler)
     assert worker.run_once()
     assert worker.run_once()
-    item = next(i for i in (queue.get(work_id) for work_id in []) if i)
-    assert item is None
+    item = queue.get(work_id)
+    assert item is not None and item.status == "SUCCEEDED"
+    assert item.result == "recovered"
 
 
 def test_semantic_world_requires_provenance_and_versions_facts() -> None:
