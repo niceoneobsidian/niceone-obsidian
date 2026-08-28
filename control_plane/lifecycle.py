@@ -5,7 +5,7 @@ the Control Plane integration boundary, not a second execution runtime.
 """
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
@@ -28,7 +28,7 @@ from production.control_plane import (
     RBACABAC,
     Subject,
 )
-from production.evolution import CanaryController, LearningLoop, Measurement
+from production.evolution import CanaryController, CanaryDecision, LearningLoop, Measurement
 from production.semantic_world import SemanticWorld
 from production.workers import LeaseQueue, Worker
 
@@ -125,6 +125,15 @@ class LifecycleResult:
     learning_state: str
 
 
+@dataclass(frozen=True)
+class RolloutResult:
+    candidate: str
+    decision: CanaryDecision
+    state: str
+    execution_ids: tuple[str, ...]
+    evidence_event_ids: tuple[str, ...]
+
+
 class OISProductionLifecycle:
     """Bind Control Plane → Kernel → evidence → world → learning → workers."""
 
@@ -140,6 +149,7 @@ class OISProductionLifecycle:
         learning: LearningLoop | None = None,
         canary: CanaryController | None = None,
         authorization: RBACABAC | None = None,
+        deployment: InMemoryDeploymentAdapter | None = None,
     ) -> None:
         self.control_plane = control_plane
         self.registry = registry
@@ -160,7 +170,7 @@ class OISProductionLifecycle:
         self.deployment = ProductionControlPlane(
             authorization=self.authorization,
             evidence=self.evidence,
-            deployment=InMemoryDeploymentAdapter(),
+            deployment=deployment or InMemoryDeploymentAdapter(),
         )
 
     def execute(
@@ -241,6 +251,74 @@ class OISProductionLifecycle:
             evidence_event_ids=tuple(event.event_id for event in self.evidence.events(execution_id)),
             semantic_entity_id=entity.entity_id,
             learning_state=learning_state,
+        )
+
+    def rollout_from_executions(
+        self,
+        *,
+        candidate: str,
+        environment: str,
+        previous: str,
+        executions: Iterable[LifecycleResult],
+        traffic_percent: int,
+        latency_ms: float,
+        release_subject: Subject,
+    ) -> RolloutResult:
+        """Make canary decisions from actual Kernel execution outcomes."""
+        observed = tuple(executions)
+        successes = sum(item.result.status is InvocationStatus.SUCCEEDED for item in observed)
+        total = len(observed)
+        execution_ids = tuple(item.execution_id for item in observed)
+        rollout_id = f"rollout:{candidate}:{environment}"
+        self.evidence.append(
+            rollout_id,
+            "rollout.canary.started",
+            {"candidate": candidate, "traffic_percent": traffic_percent, "execution_ids": list(execution_ids)},
+        )
+        decision = self.canary.decide(
+            candidate,
+            traffic_percent,
+            successes=successes,
+            total=total,
+            latency_ms=latency_ms,
+        )
+        if not decision.passed:
+            self.evidence.append(
+                rollout_id,
+                "rollout.canary.failed",
+                {"success_rate": decision.success_rate, "latency_ms": latency_ms},
+            )
+            rollback = self.deployment.rollback(release_subject, previous, environment)
+            self.evidence.append(
+                rollout_id,
+                "rollout.rollback.verified",
+                {"target": previous, "deployment_evidence": list(rollback.evidence_ids)},
+            )
+            state = "ROLLED_BACK"
+        else:
+            self.evidence.append(
+                rollout_id,
+                "rollout.canary.passed",
+                {"success_rate": decision.success_rate, "latency_ms": latency_ms},
+            )
+            activation = self.deployment.activate(
+                release_subject,
+                candidate,
+                environment,
+                previous=previous,
+            )
+            self.evidence.append(
+                rollout_id,
+                "rollout.promoted",
+                {"candidate": candidate, "deployment_evidence": list(activation.evidence_ids)},
+            )
+            state = "PROMOTED"
+        return RolloutResult(
+            candidate=candidate,
+            decision=decision,
+            state=state,
+            execution_ids=execution_ids,
+            evidence_event_ids=tuple(event.event_id for event in self.evidence.events(rollout_id)),
         )
 
     def worker(self, queue: LeaseQueue, worker_id: str) -> Worker:
