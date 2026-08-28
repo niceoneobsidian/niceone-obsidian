@@ -13,6 +13,7 @@ from ois.kernel import (
     InvocationResult,
     InvocationStatus,
 )
+from ois.registries import CapabilityRegistry as ControlPlaneCapabilityRegistry
 
 
 class FlakyCapability:
@@ -49,13 +50,24 @@ class FlakyCapability:
 
 
 def test_p0_integrated_spine_recovers_and_records_evidence() -> None:
+    # The Kernel's CapabilityRegistry (holding real Capability objects, used
+    # by ExecutionRuntime for invocation) and the Control Plane's
+    # CapabilityRegistry (a generic id/version -> callable registry, used for
+    # pre-admission resolution) are deliberately separate contracts across
+    # the layer boundary. Both must be populated for an end-to-end spine.
     registry = CapabilityRegistry()
     capability = FlakyCapability()
     registry.register(capability)
+    control_plane_registry = ControlPlaneCapabilityRegistry()
+    control_plane_registry.register(
+        capability.contract.capability_id,
+        capability.contract.version,
+        capability.invoke,
+    )
     evidence = EvidenceLedger()
     checkpoints = InMemoryCheckpointStore()
     runtime = ExecutionRuntime(registry, checkpoints, evidence)
-    spine = IntegratedExecution(ControlPlane(capabilities=registry), runtime)
+    spine = IntegratedExecution(ControlPlane(capabilities=control_plane_registry), runtime)
 
     context = spine.execute(
         objective="prove the integrated P0 execution spine",

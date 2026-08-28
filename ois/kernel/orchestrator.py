@@ -102,15 +102,17 @@ class PlanOrchestrator:
                         task.status = TaskStatus.PENDING
                         task.error = None
                         continue
-                    raise PlanExecutionError(
-                        f"Task {task.task_id} failed: "
-                        f"{(result.error or {}).get('message', 'unknown failure')}"
-                    )
+                    # Terminal failure: surface the plan with the failed task
+                    # recorded rather than raising here. The plan is left in a
+                    # non-complete, failed state; re-executing it is what
+                    # raises PlanExecutionError, via the has_failed() check
+                    # above the ready_tasks() branch.
+                    return plan
 
             self.runtime.complete(context, lease=owned_lease)
             return plan
         finally:
-            if release_when_done and owned_lease is not None:
+            if release_when_done and owned_lease is not None and self.coordinator is not None:
                 self.coordinator.release(owned_lease)
 
     def _assert_lease(self, lease: ExecutionLease | None) -> None:

@@ -126,3 +126,26 @@ class ExecutionPlan:
 
     def has_failed(self) -> bool:
         return any(task.status == TaskStatus.FAILED for task in self.tasks.values())
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-safe snapshot of the plan for checkpointing/evidence."""
+        return {
+            "plan_id": self.plan_id,
+            "version": self.version,
+            "objective": self.objective,
+            "metadata": dict(self.metadata),
+            "tasks": {
+                task_id: {
+                    "task_id": task.task_id,
+                    "capability_id": task.capability_id,
+                    "capability_version": task.capability_version,
+                    "input_data": dict(task.input_data),
+                    "dependencies": list(task.dependencies),
+                    "status": task.status.value,
+                    "output": task.output,
+                    "error": dict(task.error) if task.error is not None else None,
+                    "metadata": dict(task.metadata),
+                }
+                for task_id, task in self.tasks.items()
+            },
+        }
