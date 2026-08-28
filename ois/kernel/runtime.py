@@ -24,19 +24,7 @@ class ExecutionAlreadyCompleted(ExecutionError):
 
 
 class ExecutionRuntime:
-    """
-    Foundational OIS Kernel execution runtime.
-
-    Important boundary:
-    Runtime executes ONE capability invocation.
-
-    Plan completion is owned by the orchestrator.
-
-    Idempotency boundary:
-    The caller may supply a stable invocation_id. If that invocation_id
-    has already completed, the cached InvocationResult is returned and
-    the capability is not executed again.
-    """
+    """Foundational OIS Kernel execution runtime."""
 
     def __init__(
         self,
@@ -110,10 +98,7 @@ class ExecutionRuntime:
             self.cancellation.raise_if_cancelled()
         except ExecutionCancellation as exc:
             return self._handle_cancellation(
-                context,
-                capability_id,
-                exc,
-                logical_invocation_id,
+                context, capability_id, exc, logical_invocation_id
             )
 
         request = InvocationRequest(
@@ -162,19 +147,16 @@ class ExecutionRuntime:
             self.cancellation.raise_if_cancelled()
         except ExecutionCancellation as exc:
             return self._handle_cancellation(
-                context,
-                capability_id,
-                exc,
-                logical_invocation_id,
+                context, capability_id, exc, logical_invocation_id
             )
         except Exception as exc:
             result = self._handle_failure(
-                context,
-                capability_id,
-                logical_invocation_id,
-                exc,
+                context, capability_id, logical_invocation_id, exc
             )
-            self.idempotency.put(logical_invocation_id, result)
+            # Failed invocations are deliberately not cached. A recovery
+            # controller must be able to retry a transient failure using the
+            # same logical invocation identity without replaying a successful
+            # side effect.
             return result
 
         if result.invocation_id != logical_invocation_id:
@@ -229,16 +211,17 @@ class ExecutionRuntime:
             },
         )
 
-        self.idempotency.put(logical_invocation_id, result)
-        self.evidence.record(
-            execution_id,
-            "execution.idempotency_recorded",
-            {
-                "capability_id": capability_id,
-                "invocation_id": logical_invocation_id,
-                "status": result.status.value,
-            },
-        )
+        if result.status == InvocationStatus.SUCCEEDED:
+            self.idempotency.put(logical_invocation_id, result)
+            self.evidence.record(
+                execution_id,
+                "execution.idempotency_recorded",
+                {
+                    "capability_id": capability_id,
+                    "invocation_id": logical_invocation_id,
+                    "status": result.status.value,
+                },
+            )
 
         context.set_status(ExecutionStatus.ROUTED)
         return result
@@ -247,10 +230,7 @@ class ExecutionRuntime:
         """Mark the entire execution complete."""
         context.set_status(ExecutionStatus.COMPLETED)
         self.checkpoint_store.save(context)
-        self.evidence.record(
-            context.identity.execution_id,
-            "execution.completed",
-        )
+        self.evidence.record(context.identity.execution_id, "execution.completed")
 
     def _handle_cancellation(
         self,
@@ -268,7 +248,6 @@ class ExecutionRuntime:
             "recovery_action": "stop",
         }
         context.current_node = capability_id
-
         self.evidence.record(
             execution_id,
             "execution.cancelled",
@@ -279,8 +258,7 @@ class ExecutionRuntime:
             },
         )
         self.checkpoint_store.save(context)
-
-        result = InvocationResult(
+        return InvocationResult(
             invocation_id=invocation_id,
             capability_id=capability_id,
             status=InvocationStatus.FAILED,
@@ -291,8 +269,6 @@ class ExecutionRuntime:
                 "recovery_action": "stop",
             },
         )
-        self.idempotency.put(invocation_id, result)
-        return result
 
     def _handle_failure(
         self,
@@ -304,7 +280,6 @@ class ExecutionRuntime:
         execution_id = context.identity.execution_id
         failure_class = FailureClass.TOOL
         decision = self.recovery.apply(context, failure_class)
-
         self.evidence.record(
             execution_id,
             "execution.failure",
@@ -317,7 +292,6 @@ class ExecutionRuntime:
             },
         )
         self.checkpoint_store.save(context)
-
         return InvocationResult(
             invocation_id=invocation_id,
             capability_id=capability_id,
