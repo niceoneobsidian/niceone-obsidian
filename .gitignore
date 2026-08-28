@@ -47,3 +47,6 @@ credentials.json
 secrets.json
 *.pem
 *.key
+
+# Python build metadata
+*.egg-info/

@@ -4,13 +4,13 @@ from ois.architecture.fabrics import (
     AgentWorkspace,
     ContextRequest,
     KnowledgeArtifact,
-    LLMGatewaySpec,
     LearningCandidate,
+    LLMGatewaySpec,
     ModelRoute,
     ReasoningPattern,
     SocialSignal,
-    WorkflowSpec,
     WorkerSpec,
+    WorkflowSpec,
 )
 from ois.kernel.registry import CapabilityRegistry
 from ois.runtime.fabrics import FabricRuntime, register_fabric_capabilities

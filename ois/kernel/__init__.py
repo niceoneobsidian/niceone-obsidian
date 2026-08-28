@@ -1,22 +1,73 @@
 """OIS Kernel public contracts and execution primitives."""
 
 from .cancellation import CancellationToken, ExecutionCancellation
-from .checkpoint import CheckpointNotFound, CheckpointStore, InMemoryCheckpointStore, JsonFileCheckpointStore
-from .contracts import AgentContract, Capability, CapabilityContract, InvocationRequest, InvocationResult, PolicyEngine, ToolContract, Validator
+from .checkpoint import (
+    CheckpointNotFound,
+    CheckpointStore,
+    InMemoryCheckpointStore,
+    JsonFileCheckpointStore,
+)
+from .contracts import (
+    AgentContract,
+    Capability,
+    CapabilityContract,
+    InvocationRequest,
+    InvocationResult,
+    PolicyEngine,
+    ToolContract,
+    Validator,
+)
 from .evidence import EvidenceEvent, EvidenceLedger
 from .idempotency import IdempotencyStore, InMemoryIdempotencyStore, SQLiteIdempotencyStore
 from .orchestrator import OrchestrationError, PlanExecutionError, PlanOrchestrator
 from .planner import PlanBuilder
-from .planning import CyclicPlanError, DuplicateTaskError, ExecutionPlan, PlanError, TaskNode, TaskStatus, UnknownDependencyError
+from .planning import (
+    CyclicPlanError,
+    DuplicateTaskError,
+    ExecutionPlan,
+    PlanError,
+    TaskNode,
+    TaskStatus,
+    UnknownDependencyError,
+)
 from .policy import AuthorizationDenied, DefaultPolicyEngine, PolicyDecision
-from .postgres import ExecutionLease, LeaseLost, LeaseUnavailable, PostgreSQLCheckpointStore, PostgreSQLExecutionCoordinator, PostgreSQLIdempotencyStore
+from .postgres import (
+    ExecutionLease,
+    LeaseLost,
+    LeaseUnavailable,
+    PostgreSQLCheckpointStore,
+    PostgreSQLExecutionCoordinator,
+    PostgreSQLIdempotencyStore,
+)
 from .recovery import RecoveryDecision, RecoveryPolicy, RetryLimitExceeded
-from .registry import AgentRegistry, AgentRoutingDecision, AgentRoutingError, AgentUnavailableError, AmbiguousAgentError, CapabilityNotFoundError, CapabilityRegistry, DuplicateCapabilityError, ToolRegistry
+from .registry import (
+    AgentRegistry,
+    AgentRoutingDecision,
+    AgentRoutingError,
+    AgentUnavailableError,
+    AmbiguousAgentError,
+    CapabilityNotFoundError,
+    CapabilityRegistry,
+    DuplicateCapabilityError,
+    ToolRegistry,
+)
 from .runtime import ExecutionError, ExecutionRuntime
 from .state import ExecutionContext, ExecutionIdentity
-from .supervisor import AgentSelectionError, SupervisionDecision, Supervisor, SupervisorError, SupervisorRequest
+from .supervisor import (
+    AgentSelectionError,
+    SupervisionDecision,
+    Supervisor,
+    SupervisorError,
+    SupervisorRequest,
+)
 from .types import ExecutionStatus, FailureClass, InvocationStatus, RiskLevel, SideEffectLevel
-from .validation import ContractValidator, InputValidationError, OutputValidationError, ValidationError, ValidationResult
+from .validation import (
+    ContractValidator,
+    InputValidationError,
+    OutputValidationError,
+    ValidationError,
+    ValidationResult,
+)
 
 __all__ = [
     "AgentContract", "CancellationToken", "ExecutionCancellation", "AgentRegistry", "AgentRoutingDecision",

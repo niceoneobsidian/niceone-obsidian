@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Mapping
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID
 
@@ -216,7 +216,7 @@ class PostgreSQLExecutionCoordinator:
 
     def claim(self, execution_id: UUID, tenant_id: str, worker_id: str,
               ttl_seconds: float = 30.0) -> ExecutionLease:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         expires = now + timedelta(seconds=ttl_seconds)
         with self._connect() as connection, connection.cursor() as cursor:
             cursor.execute(
@@ -248,7 +248,7 @@ class PostgreSQLExecutionCoordinator:
         return ExecutionLease(execution_id, tenant_id, worker_id, epoch, expires)
 
     def renew(self, lease: ExecutionLease, ttl_seconds: float = 30.0) -> ExecutionLease:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         expires = now + timedelta(seconds=ttl_seconds)
         with self._connect() as connection, connection.cursor() as cursor:
             cursor.execute(
@@ -268,7 +268,7 @@ class PostgreSQLExecutionCoordinator:
                               lease.lease_epoch, row[0])
 
     def assert_current(self, lease: ExecutionLease) -> None:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         with self._connect() as connection, connection.cursor() as cursor:
             cursor.execute(
                 """

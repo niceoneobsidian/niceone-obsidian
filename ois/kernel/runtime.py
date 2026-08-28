@@ -7,8 +7,8 @@ from .checkpoint import CheckpointStore
 from .contracts import InvocationRequest, InvocationResult
 from .evidence import EvidenceLedger
 from .idempotency import IdempotencyStore, InMemoryIdempotencyStore
-from .postgres import ExecutionLease, PostgreSQLExecutionCoordinator
 from .policy import DefaultPolicyEngine, PolicyEngine
+from .postgres import ExecutionLease, PostgreSQLExecutionCoordinator
 from .recovery import RecoveryPolicy
 from .registry import CapabilityRegistry
 from .state import ExecutionContext
