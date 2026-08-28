@@ -3,6 +3,7 @@ from __future__ import annotations
 from .planning import ExecutionPlan, TaskStatus
 from .runtime import ExecutionRuntime
 from .state import ExecutionContext
+from .types import FailureClass, InvocationStatus
 
 
 class OrchestrationError(Exception):
@@ -14,17 +15,9 @@ class PlanExecutionError(OrchestrationError):
 
 
 class PlanOrchestrator:
-    """
-    Deterministic DAG orchestrator.
+    """Deterministic DAG orchestrator with bounded recovery."""
 
-    Runtime owns individual capability execution.
-    Orchestrator owns plan-level lifecycle.
-    """
-
-    def __init__(
-        self,
-        runtime: ExecutionRuntime,
-    ) -> None:
+    def __init__(self, runtime: ExecutionRuntime) -> None:
         self.runtime = runtime
 
     def execute(
@@ -39,47 +32,64 @@ class PlanOrchestrator:
 
             if not ready:
                 if plan.has_failed():
-                    raise PlanExecutionError("Plan contains failed tasks and cannot continue.")
-
-                raise PlanExecutionError("No executable tasks remain. The plan may be blocked.")
+                    raise PlanExecutionError(
+                        "Plan contains failed tasks and cannot continue."
+                    )
+                raise PlanExecutionError(
+                    "No executable tasks remain. The plan may be blocked."
+                )
 
             for task in ready:
                 task.status = TaskStatus.RUNNING
                 context.current_node = task.task_id
+                invocation_id = f"{context.identity.execution_id}:{task.task_id}"
 
-                try:
-                    # Stable task-level invocation identity.
-                    #
-                    # The same execution + task represents the same
-                    # logical invocation. This allows retries/recovery
-                    # to reuse a previously completed result instead
-                    # of replaying side effects.
-                    invocation_id = f"{context.identity.execution_id}:{task.task_id}"
+                result = self.runtime.execute(
+                    context=context,
+                    capability_id=task.capability_id,
+                    version=task.capability_version,
+                    input_data=dict(task.input_data),
+                    invocation_id=invocation_id,
+                )
 
-                    result = self.runtime.execute(
-                        context=context,
-                        capability_id=task.capability_id,
-                        version=task.capability_version,
-                        input_data=dict(task.input_data),
-                        invocation_id=invocation_id,
-                    )
-
-                    if result.status != result.status.SUCCEEDED:
-                        task.status = TaskStatus.FAILED
-                        task.error = result.error
-                        return plan
-
+                if result.status == InvocationStatus.SUCCEEDED:
                     task.output = result.output
+                    task.error = None
                     task.status = TaskStatus.SUCCEEDED
+                    continue
 
-                except Exception as exc:
-                    task.status = TaskStatus.FAILED
-                    task.error = {
-                        "type": type(exc).__name__,
-                        "message": str(exc),
-                    }
-                    return plan
+                task.status = TaskStatus.FAILED
+                task.error = result.error
+                failure_name = (result.error or {}).get("failure_class", "unknown")
+                try:
+                    failure = FailureClass(failure_name)
+                except ValueError:
+                    failure = FailureClass.UNKNOWN
 
-        # The graph is now completely executed.
+                decision = self.runtime.recovery.apply(context, failure)
+                self.runtime.evidence.record(
+                    context.identity.execution_id,
+                    "execution.recovery_decision",
+                    {
+                        "task_id": task.task_id,
+                        "invocation_id": invocation_id,
+                        "failure_class": failure.value,
+                        "action": decision.action,
+                        "retry_allowed": decision.retry_allowed,
+                        "terminal": decision.terminal,
+                    },
+                )
+                self.runtime.checkpoint_store.save(context)
+
+                if decision.action == "retry":
+                    task.status = TaskStatus.PENDING
+                    task.error = None
+                    continue
+
+                raise PlanExecutionError(
+                    f"Task {task.task_id} failed: "
+                    f"{(result.error or {}).get('message', 'unknown failure')}"
+                )
+
         self.runtime.complete(context)
         return plan
