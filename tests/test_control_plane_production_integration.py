@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Any
-
 from control_plane.controller import ControlPlane
 from control_plane.lifecycle import OISProductionLifecycle
 from control_plane.request import ControlRequest
