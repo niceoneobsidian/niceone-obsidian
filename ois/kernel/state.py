@@ -39,16 +39,13 @@ class ExecutionContext:
     working_memory: dict[str, Any] = field(default_factory=dict)
     retrieved_context: list[Mapping[str, Any]] = field(default_factory=list)
     artifacts: list[Mapping[str, Any]] = field(default_factory=list)
-
     approvals: list[Mapping[str, Any]] = field(default_factory=list)
     escalations: list[Mapping[str, Any]] = field(default_factory=list)
-
     observations: list[Mapping[str, Any]] = field(default_factory=list)
     validation_results: list[Mapping[str, Any]] = field(default_factory=list)
 
     retry_count: int = 0
     recovery_attempts: int = 0
-
     last_failure: FailureClass | None = None
     error: Mapping[str, Any] | None = None
 
@@ -68,39 +65,11 @@ class ExecutionContext:
                 f"Terminal execution status {self.status.value} cannot transition to "
                 f"{status.value}."
             )
-
         self.status = status
         self.touch()
 
-    @classmethod
-    def from_dict(cls, payload: Mapping[str, Any]) -> ExecutionContext:
-        """Reconstruct an execution context from a durable checkpoint payload."""
-        identity_payload = payload.get("identity", {})
-        if not isinstance(identity_payload, Mapping):
-            identity_payload = {}
-
-        raw_execution_id = identity_payload.get("execution_id")
-        execution_id = uuid4()
-        if raw_execution_id is not None:
-            with suppress(TypeError, ValueError):
-                execution_id = UUID(str(raw_execution_id))
-
-        identity = ExecutionIdentity(
-            tenant_id=str(identity_payload.get("tenant_id", "default")),
-            execution_id=execution_id,
-            workflow_id=identity_payload.get("workflow_id"),
-            workflow_version=identity_payload.get("workflow_version"),
-        )
-
-        context_fields = {item.name for item in fields(cls)}
-        context_payload = {
-            key: value
-            for key, value in payload.items()
-            if key in context_fields and key != "identity"
-        }
-        return cls(identity=identity, **context_payload)
-
     def to_dict(self) -> dict[str, Any]:
+        """Return the canonical JSON-compatible checkpoint representation."""
         return {
             "identity": {
                 "execution_id": str(self.identity.execution_id),
@@ -130,3 +99,42 @@ class ExecutionContext:
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
         }
+
+    @classmethod
+    def from_dict(cls, payload: Mapping[str, Any]) -> ExecutionContext:
+        """Reconstruct an execution context from a durable checkpoint payload."""
+        identity_payload = payload.get("identity", {})
+        if not isinstance(identity_payload, Mapping):
+            identity_payload = {}
+
+        raw_execution_id = identity_payload.get("execution_id")
+        execution_id = uuid4()
+        if raw_execution_id is not None:
+            with suppress(TypeError, ValueError):
+                execution_id = UUID(str(raw_execution_id))
+
+        identity = ExecutionIdentity(
+            tenant_id=str(identity_payload.get("tenant_id", "default")),
+            execution_id=execution_id,
+            workflow_id=identity_payload.get("workflow_id"),
+            workflow_version=identity_payload.get("workflow_version"),
+        )
+        context = cls(identity=identity, objective=str(payload.get("objective", "")))
+
+        for field_info in fields(context):
+            name = field_info.name
+            if name in {"identity", "objective"} or name not in payload:
+                continue
+            value = payload[name]
+            current = getattr(context, name, None)
+            if isinstance(current, ExecutionStatus | FailureClass | RiskLevel):
+                with suppress(TypeError, ValueError):
+                    value = type(current)(value)
+                if not isinstance(value, type(current)):
+                    continue
+            if name in {"created_at", "updated_at"} and isinstance(value, str):
+                with suppress(TypeError, ValueError):
+                    value = datetime.fromisoformat(value)
+            with suppress(AttributeError, TypeError):
+                setattr(context, name, value)
+        return context

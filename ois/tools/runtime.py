@@ -27,3 +27,7 @@ class ToolInvoker(Protocol):
 class ToolPlane:
     def invoke(self, request: ToolRequest, tool: ToolInvoker) -> ToolResult:
         return ToolResult("success", tool.invoke(request.input))
+class ToolPlane:
+    def invoke(self, request: ToolRequest, tool: object) -> ToolResult:
+        invoke = tool.invoke
+        return ToolResult("success", invoke(request.input))

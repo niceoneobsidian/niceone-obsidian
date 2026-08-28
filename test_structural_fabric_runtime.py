@@ -1,6 +1,18 @@
 from __future__ import annotations
 
 from ois.architecture.fabrics import AgentWorkspace, WorkflowSpec, WorkerSpec
+from ois.architecture.fabrics import (
+    AgentWorkspace,
+    ContextRequest,
+    KnowledgeArtifact,
+    LearningCandidate,
+    LLMGatewaySpec,
+    ModelRoute,
+    ReasoningPattern,
+    SocialSignal,
+    WorkflowSpec,
+    WorkerSpec,
+)
 from ois.kernel.registry import CapabilityRegistry
 from ois.runtime.fabrics import FabricRuntime, register_fabric_capabilities
 
