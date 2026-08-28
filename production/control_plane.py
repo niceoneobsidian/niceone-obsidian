@@ -27,8 +27,8 @@ class Subject:
     subject_id: str
     tenant_id: str
     roles: frozenset[str] = frozenset()
-    permissions: frozenset[str] = frozenset()
     attributes: dict[str, str] = field(default_factory=dict)
+    permissions: frozenset[str] = frozenset()
 
 
 @dataclass(frozen=True)
@@ -45,10 +45,17 @@ class AuthorizationError(PermissionError):
 class RBACABAC:
     """Deny-by-default RBAC + ABAC authorization."""
 
+    ROLE_PERMISSIONS = {
+        "release-manager": frozenset({"deployment.activate", "deployment.rollback"}),
+    }
+
     def authorize(self, subject: Subject, policy: AuthorizationPolicy) -> None:
         if not subject.tenant_id:
             raise AuthorizationError("tenant identity is required")
-        if policy.permission not in subject.permissions:
+        granted = set(subject.permissions)
+        for role in subject.roles:
+            granted.update(self.ROLE_PERMISSIONS.get(role, ()))
+        if policy.permission not in granted:
             raise AuthorizationError(f"permission is missing: {policy.permission}")
         if policy.required_role and policy.required_role not in subject.roles:
             raise AuthorizationError("required role is missing")
