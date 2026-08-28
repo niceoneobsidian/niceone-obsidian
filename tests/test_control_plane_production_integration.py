@@ -8,7 +8,7 @@ from control_plane.request import ControlRequest
 from ois.kernel.contracts import CapabilityContract, InvocationRequest, InvocationResult
 from ois.kernel.registry import CapabilityRegistry
 from ois.kernel.types import InvocationStatus
-from production.control_plane import AuthorizationError
+from production.control_plane import AuthorizationError, Subject
 from production.workers import LeaseQueue
 
 
@@ -28,16 +28,32 @@ class EchoCapability:
         )
 
 
+class FailingCapability:
+    contract = CapabilityContract(
+        capability_id="test.fail",
+        version="1.0.0",
+        description="Deterministic failing capability for rollout recovery",
+    )
+
+    def invoke(self, request: InvocationRequest) -> InvocationResult:
+        return InvocationResult(
+            invocation_id=request.invocation_id,
+            capability_id=request.capability_id,
+            status=InvocationStatus.FAILED,
+            error={"type": "DeliberateFailure"},
+        )
+
+
 def build_lifecycle() -> OISProductionLifecycle:
     registry = CapabilityRegistry()
     registry.register(EchoCapability())
+    registry.register(FailingCapability())
     return OISProductionLifecycle(ControlPlane(capabilities=registry), registry)
 
 
-def test_control_plane_executes_through_kernel_and_emits_shared_evidence() -> None:
-    lifecycle = build_lifecycle()
-    result = lifecycle.execute(
-        ControlRequest("test.echo", "1.0.0", {"value": 7}),
+def execute(lifecycle: OISProductionLifecycle, capability_id: str) -> object:
+    return lifecycle.execute(
+        ControlRequest(capability_id, "1.0.0", {"value": 7}),
         objective="prove integrated execution",
         tenant_id="tenant-1",
         subject_id="operator-1",
@@ -45,6 +61,11 @@ def test_control_plane_executes_through_kernel_and_emits_shared_evidence() -> No
         environment="staging",
         attributes={"environment": "staging"},
     )
+
+
+def test_control_plane_executes_through_kernel_and_emits_shared_evidence() -> None:
+    lifecycle = build_lifecycle()
+    result = execute(lifecycle, "test.echo")
 
     assert result.result.status is InvocationStatus.SUCCEEDED
     assert result.result.output == {"echo": {"value": 7}}
@@ -91,7 +112,7 @@ def test_worker_enters_control_plane_and_kernel_instead_of_calling_capability_di
 def test_kernel_rbac_abac_denies_missing_permission_before_capability_execution() -> None:
     lifecycle = build_lifecycle()
     with pytest.raises(AuthorizationError, match="permission is missing"):
-        lifecycle.execute(
+        execute(lifecycle, "test.echo") if False else lifecycle.execute(
             ControlRequest("test.echo", "1.0.0", {"value": 1}),
             objective="deny unauthorized execution",
             tenant_id="tenant-1",
@@ -100,3 +121,34 @@ def test_kernel_rbac_abac_denies_missing_permission_before_capability_execution(
             environment="staging",
             attributes={"environment": "staging"},
         )
+
+
+def test_canary_decision_uses_actual_kernel_execution_outcomes() -> None:
+    lifecycle = build_lifecycle()
+    successful = execute(lifecycle, "test.echo")
+    failed = execute(lifecycle, "test.fail")
+    release_subject = Subject(
+        "release-operator",
+        "tenant-1",
+        frozenset({"release-manager"}),
+        {"environment": "staging"},
+    )
+
+    rollout = lifecycle.rollout_from_executions(
+        candidate="v2",
+        environment="staging",
+        previous="v1",
+        executions=[successful, failed],
+        traffic_percent=10,
+        latency_ms=100.0,
+        release_subject=release_subject,
+    )
+
+    assert rollout.state == "ROLLED_BACK"
+    assert rollout.decision.success_rate == 0.5
+    assert len(rollout.execution_ids) == 2
+    assert lifecycle.evidence.verify_chain()
+    assert any(
+        event.event_type == "rollout.rollback.verified"
+        for event in lifecycle.evidence.events()
+    )
