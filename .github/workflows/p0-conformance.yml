@@ -2,13 +2,28 @@ name: OIS P0 conformance
 
 on:
   push:
-    branches: [feat/p0-integrated-spine]
+    branches: [feat/p0-integrated-spine, dev/de-03-postgres-fenced-execution]
   pull_request:
     branches: [main]
 
 jobs:
   conformance:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: ois_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d ois_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      OIS_POSTGRES_DSN: postgresql://postgres@localhost:5432/ois_test
     steps:
       - uses: actions/checkout@v4
         with:
