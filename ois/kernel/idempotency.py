@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import json
+import sqlite3
 from threading import RLock
 from typing import Protocol
 
 from .contracts import InvocationResult
+from .types import InvocationStatus
 
 
 class IdempotencyStore(Protocol):
@@ -13,19 +16,7 @@ class IdempotencyStore(Protocol):
 
 
 class InMemoryIdempotencyStore:
-    """
-    Reference idempotency implementation.
-
-    Caches an InvocationResult by caller-supplied invocation_id so that
-    re-submitting the same logical invocation does not re-execute a
-    capability's side effects.
-
-    Identity is scoped to the invocation_id the caller provides -- two
-    calls with the same input but different invocation_ids are always
-    treated as distinct invocations. This is a deliberate design choice:
-    identity is explicit (caller-supplied), not inferred from payload
-    contents.
-    """
+    """Process-local completed-invocation cache."""
 
     def __init__(self) -> None:
         self._store: dict[str, InvocationResult] = {}
@@ -37,7 +28,7 @@ class InMemoryIdempotencyStore:
 
     def put(self, invocation_id: str, result: InvocationResult) -> None:
         with self._lock:
-            self._store[invocation_id] = result
+            self._store.setdefault(invocation_id, result)
 
     def exists(self, invocation_id: str) -> bool:
         with self._lock:
@@ -45,29 +36,18 @@ class InMemoryIdempotencyStore:
 
 
 class SQLiteIdempotencyStore:
-    """
-    Durable idempotency implementation backed by SQLite.
+    """Durable completed-invocation store using SQLite transactions.
 
-    The store persists completed InvocationResult objects so that
-    idempotency survives creation of a new runtime/store instance
-    and therefore provides a local restart/recovery boundary.
-
-    SQLite is used here as a deterministic reference durable backend.
-    Production deployments can replace this implementation with
-    PostgreSQL or another durable state service without changing the
-    IdempotencyStore contract.
+    Only terminal results are persisted. A failed or interrupted attempt is
+    therefore eligible for recovery rather than being permanently treated as
+    completed work. ``INSERT OR IGNORE`` also makes the first terminal result
+    authoritative and prevents a later replay from replacing it.
     """
 
     def __init__(self, path: str) -> None:
-        import json
-        import sqlite3
-
-        self._json = json
-        self._sqlite3 = sqlite3
-        self._connection = sqlite3.connect(
-            path,
-            check_same_thread=False,
-        )
+        self._connection = sqlite3.connect(path, check_same_thread=False)
+        self._connection.execute("PRAGMA journal_mode=WAL")
+        self._connection.execute("PRAGMA synchronous=FULL")
         self._connection.execute(
             """
             CREATE TABLE IF NOT EXISTS idempotency_results (
@@ -82,21 +62,12 @@ class SQLiteIdempotencyStore:
     def get(self, invocation_id: str) -> InvocationResult | None:
         with self._lock:
             row = self._connection.execute(
-                """
-                SELECT result_json
-                FROM idempotency_results
-                WHERE invocation_id = ?
-                """,
+                "SELECT result_json FROM idempotency_results WHERE invocation_id = ?",
                 (invocation_id,),
             ).fetchone()
-
         if row is None:
             return None
-
-        data = self._json.loads(row[0])
-
-        from .types import InvocationStatus
-
+        data = json.loads(row[0])
         return InvocationResult(
             invocation_id=data["invocation_id"],
             capability_id=data["capability_id"],
@@ -108,12 +79,10 @@ class SQLiteIdempotencyStore:
             metadata=data.get("metadata", {}),
         )
 
-    def put(
-        self,
-        invocation_id: str,
-        result: InvocationResult,
-    ) -> None:
-        payload = self._json.dumps(
+    def put(self, invocation_id: str, result: InvocationResult) -> None:
+        if result.status not in {InvocationStatus.SUCCEEDED, InvocationStatus.CANCELLED}:
+            return
+        payload = json.dumps(
             {
                 "invocation_id": result.invocation_id,
                 "capability_id": result.capability_id,
@@ -126,37 +95,18 @@ class SQLiteIdempotencyStore:
             },
             sort_keys=True,
         )
-
         with self._lock:
             self._connection.execute(
                 """
-                INSERT INTO idempotency_results (
-                    invocation_id,
-                    result_json
-                )
+                INSERT OR IGNORE INTO idempotency_results(invocation_id, result_json)
                 VALUES (?, ?)
-                ON CONFLICT(invocation_id)
-                DO UPDATE SET result_json = excluded.result_json
                 """,
-                (
-                    invocation_id,
-                    payload,
-                ),
+                (invocation_id, payload),
             )
             self._connection.commit()
 
     def exists(self, invocation_id: str) -> bool:
-        with self._lock:
-            row = self._connection.execute(
-                """
-                SELECT 1
-                FROM idempotency_results
-                WHERE invocation_id = ?
-                """,
-                (invocation_id,),
-            ).fetchone()
-
-        return row is not None
+        return self.get(invocation_id) is not None
 
     def close(self) -> None:
         with self._lock:
