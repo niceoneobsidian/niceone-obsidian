@@ -51,7 +51,7 @@ def build_lifecycle() -> OISProductionLifecycle:
     return OISProductionLifecycle(ControlPlane(capabilities=registry), registry)
 
 
-def execute(lifecycle: OISProductionLifecycle, capability_id: str) -> object:
+def execute(lifecycle: OISProductionLifecycle, capability_id: str):
     return lifecycle.execute(
         ControlRequest(capability_id, "1.0.0", {"value": 7}),
         objective="prove integrated execution",
@@ -112,7 +112,7 @@ def test_worker_enters_control_plane_and_kernel_instead_of_calling_capability_di
 def test_kernel_rbac_abac_denies_missing_permission_before_capability_execution() -> None:
     lifecycle = build_lifecycle()
     with pytest.raises(AuthorizationError, match="permission is missing"):
-        execute(lifecycle, "test.echo") if False else lifecycle.execute(
+        lifecycle.execute(
             ControlRequest("test.echo", "1.0.0", {"value": 1}),
             objective="deny unauthorized execution",
             tenant_id="tenant-1",
