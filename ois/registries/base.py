@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Generic, TypeVar
+from typing import Any, Generic, TypeVar
 
 T = TypeVar("T")
 
@@ -17,6 +17,16 @@ class RegistryEntry(Generic[T]):
     version: str
     value: T
     metadata: Mapping[str, object] = field(default_factory=dict)
+
+    @property
+    def capability(self) -> T:
+        """Compatibility name for capability-oriented consumers."""
+        return self.value
+
+    @property
+    def contract(self) -> Any:
+        """Return the registered value's capability contract when present."""
+        return getattr(self.value, "contract")
 
 
 class Registry(Generic[T]):

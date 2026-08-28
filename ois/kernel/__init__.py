@@ -11,7 +11,18 @@ from .planning import CyclicPlanError, DuplicateTaskError, ExecutionPlan, PlanEr
 from .policy import AuthorizationDenied, DefaultPolicyEngine, PolicyDecision
 from .postgres import ExecutionLease, LeaseLost, LeaseUnavailable, PostgreSQLCheckpointStore, PostgreSQLExecutionCoordinator, PostgreSQLIdempotencyStore
 from .recovery import RecoveryDecision, RecoveryPolicy, RetryLimitExceeded
-from .registry import AgentRegistry, AgentRoutingDecision, AgentRoutingError, AgentUnavailableError, AmbiguousAgentError, CapabilityNotFoundError, CapabilityRegistry, DuplicateCapabilityError, ToolRegistry
+from ois.registries.capability_registry import (
+    AgentRegistry,
+    AgentRoutingDecision,
+    AgentRoutingError,
+    AgentUnavailableError,
+    AmbiguousAgentError,
+    CapabilityNotFoundError,
+    CapabilityRegistry,
+    DuplicateCapabilityError,
+    RegistryError,
+    ToolRegistry,
+)
 from .runtime import ExecutionError, ExecutionRuntime
 from .state import ExecutionContext, ExecutionIdentity
 from .supervisor import AgentSelectionError, SupervisionDecision, Supervisor, SupervisorError, SupervisorRequest
@@ -31,5 +42,5 @@ __all__ = [
     "OrchestrationError", "OutputValidationError", "PlanBuilder", "PlanError", "PlanExecutionError", "PolicyDecision",
     "ExecutionPlan", "TaskNode", "TaskStatus", "CyclicPlanError", "DuplicateTaskError", "UnknownDependencyError",
     "PolicyEngine", "RecoveryDecision", "RecoveryPolicy", "RetryLimitExceeded", "RiskLevel", "SideEffectLevel",
-    "ToolContract", "ToolRegistry", "ValidationError", "ValidationResult", "Validator",
+    "ToolContract", "ToolRegistry", "ValidationError", "ValidationResult", "Validator", "RegistryError",
 ]
