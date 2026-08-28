@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import pytest
 
-from control_plane.controller import ControlPlane
-from control_plane.lifecycle import OISProductionLifecycle
-from control_plane.request import ControlRequest
+from ois.control_plane.controller import ControlPlane
+from ois.control_plane.lifecycle import OISProductionLifecycle
+from ois.control_plane.request import ControlRequest
 from ois.kernel.contracts import CapabilityContract, InvocationRequest, InvocationResult
 from ois.kernel.registry import CapabilityRegistry
 from ois.kernel.types import InvocationStatus
