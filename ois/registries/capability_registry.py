@@ -5,12 +5,13 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from threading import RLock
-from typing import Any
-
-from ois.kernel.contracts import AgentContract, Capability, ToolContract
-from ois.kernel.policy import AuthorizationDenied, PolicyEngine
+from typing import TYPE_CHECKING, Any
 
 from .base import Registry, RegistryEntry
+
+if TYPE_CHECKING:
+    from ois.kernel.contracts import Capability
+    from ois.kernel.policy import PolicyEngine
 
 
 class RegistryError(Exception):
@@ -61,12 +62,7 @@ class CapabilityRegistry(Registry[Capability]):
         *,
         metadata: dict[str, object] | None = None,
     ) -> RegistryEntry[Capability]:
-        """Register either a contracted capability or a generic registry value.
-
-        The object form is authoritative for executable capabilities. The
-        three-argument form is retained for the generic control-plane contract
-        tests and for non-executable registry compatibility.
-        """
+        """Register a contracted capability or a generic versioned value."""
         if isinstance(capability_or_id, str):
             if version is None or value is None:
                 raise TypeError("id, version, and value are required")
@@ -123,6 +119,8 @@ class AgentRegistry(CapabilityRegistry):
     ) -> RegistryEntry[Capability]:
         if version is not None or value is not None:
             raise TypeError("AgentRegistry requires a contracted agent object")
+        from ois.kernel.contracts import AgentContract
+
         if not isinstance(capability.contract, AgentContract):
             raise RegistryError("AgentRegistry requires an AgentContract.")
         return super().register(capability, metadata=metadata)
@@ -137,6 +135,9 @@ class AgentRegistry(CapabilityRegistry):
         availability: Callable[[RegistryEntry[Capability]], bool] | None = None,
     ) -> AgentRoutingDecision:
         """Select exactly one policy-authorized, available agent deterministically."""
+        from ois.kernel.contracts import AgentContract
+        from ois.kernel.policy import AuthorizationDenied
+
         candidates = tuple(
             entry
             for entry in self.list()
@@ -200,6 +201,8 @@ class ToolRegistry(CapabilityRegistry):
     ) -> RegistryEntry[Capability]:
         if version is not None or value is not None:
             raise TypeError("ToolRegistry requires a contracted tool object")
+        from ois.kernel.contracts import ToolContract
+
         if not isinstance(capability.contract, ToolContract):
             raise RegistryError("ToolRegistry requires a ToolContract.")
         return super().register(capability, metadata=metadata)
