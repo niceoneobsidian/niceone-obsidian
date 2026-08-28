@@ -3,6 +3,7 @@
 from .agent_runtime import AgentRunResult, AgentRuntime, AgentSession, AgentWorkspace
 from .execution_backend import (
     ExecutionRecord,
+    PostgreSQLWorkerQueue,
     QueueJob,
     SQLiteExecutionStore,
     SQLiteWorkerQueue,
@@ -16,6 +17,7 @@ __all__ = [
     "AgentWorkspace",
     "ExecutionRecord",
     "FabricRuntime",
+    "PostgreSQLWorkerQueue",
     "QueueJob",
     "SQLiteExecutionStore",
     "SQLiteWorkerQueue",

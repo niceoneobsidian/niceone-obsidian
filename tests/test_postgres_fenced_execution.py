@@ -21,6 +21,7 @@ from ois.kernel import (
     PostgreSQLExecutionCoordinator,
     PostgreSQLIdempotencyStore,
 )
+from ois.runtime.execution_backend import PostgreSQLWorkerQueue
 
 DSN = os.getenv("OIS_POSTGRES_DSN")
 pytestmark = pytest.mark.skipif(not DSN, reason="OIS_POSTGRES_DSN is not configured")
@@ -117,6 +118,54 @@ def test_expired_worker_is_fenced_after_takeover() -> None:
     with pytest.raises(LeaseLost):
         coordinator.assert_current(stale)
     coordinator.assert_current(current)
+
+
+def test_worker_queue_claim_retry_and_acknowledge() -> None:
+    assert DSN
+    queue = PostgreSQLWorkerQueue(DSN)
+    job_id = f"queue-{uuid4()}"
+    queue.enqueue(job_id, "default", {"task": "run"}, tenant_id="conformance")
+
+    claimed = queue.claim("default", "worker-a", tenant_id="conformance")
+    assert claimed is not None
+    assert claimed.lease_owner == "worker-a"
+    assert claimed.lease_epoch == 1
+    assert claimed.attempts == 0
+
+    retried = queue.retry(job_id, "worker-a")
+    assert retried.attempts == 1
+    assert retried.lease_owner is None
+    assert retried.status == "queued"
+
+    claimed_again = queue.claim("default", "worker-b", tenant_id="conformance")
+    assert claimed_again is not None
+    assert claimed_again.lease_owner == "worker-b"
+    completed = queue.acknowledge(job_id, "worker-b")
+    assert completed.lease_owner == "worker-b"
+    assert completed.status == "completed"
+
+
+def test_worker_queue_fences_expired_lease_takeover() -> None:
+    assert DSN
+    queue = PostgreSQLWorkerQueue(DSN, lease_ttl_seconds=30)
+    job_id = f"queue-fence-{uuid4()}"
+    queue.enqueue(job_id, "fenced", {"task": "run"}, tenant_id="conformance")
+
+    stale_queue = PostgreSQLWorkerQueue(DSN, lease_ttl_seconds=-1)
+    stale = stale_queue.claim("fenced", "worker-a", tenant_id="conformance")
+    assert stale is not None
+    assert stale.lease_epoch == 1
+
+    current = queue.claim("fenced", "worker-b", tenant_id="conformance")
+    assert current is not None
+    assert current.lease_epoch == 2
+    assert current.lease_owner == "worker-b"
+    assert current.attempts == 1
+
+    with pytest.raises(LeaseLost):
+        queue.acknowledge(job_id, "worker-a")
+    completed = queue.acknowledge(job_id, "worker-b")
+    assert completed.status == "completed"
 
 
 def test_runtime_honors_lease_and_rejects_stale_worker() -> None:
