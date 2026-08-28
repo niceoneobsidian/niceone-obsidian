@@ -66,6 +66,16 @@ class PlanOrchestrator:
                 except ValueError:
                     failure = FailureClass.UNKNOWN
 
+                self.runtime.evidence.record(
+                    context.identity.execution_id,
+                    "execution.failure",
+                    {
+                        "task_id": task.task_id,
+                        "invocation_id": invocation_id,
+                        "failure_class": failure.value,
+                        "error": dict(result.error or {}),
+                    },
+                )
                 decision = self.runtime.recovery.apply(context, failure)
                 self.runtime.evidence.record(
                     context.identity.execution_id,
