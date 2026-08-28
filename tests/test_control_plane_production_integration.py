@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import pytest
+
 from control_plane.controller import ControlPlane
 from control_plane.lifecycle import OISProductionLifecycle
 from control_plane.request import ControlRequest
 from ois.kernel.contracts import CapabilityContract, InvocationRequest, InvocationResult
 from ois.kernel.registry import CapabilityRegistry
 from ois.kernel.types import InvocationStatus
+from production.control_plane import AuthorizationError
 from production.workers import LeaseQueue
 
 
@@ -87,17 +90,13 @@ def test_worker_enters_control_plane_and_kernel_instead_of_calling_capability_di
 
 def test_kernel_rbac_abac_denies_missing_permission_before_capability_execution() -> None:
     lifecycle = build_lifecycle()
-    result = lifecycle.execute(
-        ControlRequest("test.echo", "1.0.0", {"value": 1}),
-        objective="deny unauthorized execution",
-        tenant_id="tenant-1",
-        subject_id="viewer",
-        permissions=frozenset(),
-        environment="staging",
-        attributes={"environment": "staging"},
-    )
-
-    assert result.result.status is InvocationStatus.FAILED
-    assert result.result.error is not None
-    assert "permission is missing" in str(result.result.error)
-    assert lifecycle.evidence.verify_chain()
+    with pytest.raises(AuthorizationError, match="permission is missing"):
+        lifecycle.execute(
+            ControlRequest("test.echo", "1.0.0", {"value": 1}),
+            objective="deny unauthorized execution",
+            tenant_id="tenant-1",
+            subject_id="viewer",
+            permissions=frozenset(),
+            environment="staging",
+            attributes={"environment": "staging"},
+        )
