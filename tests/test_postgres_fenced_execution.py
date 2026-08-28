@@ -12,7 +12,6 @@ from ois.kernel import (
     EvidenceLedger,
     ExecutionContext,
     ExecutionIdentity,
-    ExecutionLease,
     ExecutionRuntime,
     InvocationResult,
     InvocationStatus,
@@ -50,12 +49,19 @@ class EchoCapability:
 
 
 def context() -> ExecutionContext:
-    return ExecutionContext(identity=ExecutionIdentity(tenant_id="conformance"), objective="postgres conformance")
+    return ExecutionContext(
+        identity=ExecutionIdentity(tenant_id="conformance"),
+        objective="postgres conformance",
+    )
 
 
 def stores():
     assert DSN
-    return PostgreSQLCheckpointStore(DSN), PostgreSQLIdempotencyStore(DSN), PostgreSQLExecutionCoordinator(DSN)
+    return (
+        PostgreSQLCheckpointStore(DSN),
+        PostgreSQLIdempotencyStore(DSN),
+        PostgreSQLExecutionCoordinator(DSN),
+    )
 
 
 def test_checkpoint_survives_restart() -> None:
@@ -72,11 +78,21 @@ def test_concurrent_first_writer_wins() -> None:
     _, idempotency, _ = stores()
     invocation_id = f"conformance-{uuid4()}"
     results = [
-        InvocationResult(invocation_id, "test.echo", InvocationStatus.SUCCEEDED, output={"winner": i})
+        InvocationResult(
+            invocation_id,
+            "test.echo",
+            InvocationStatus.SUCCEEDED,
+            output={"winner": i},
+        )
         for i in range(8)
     ]
     with ThreadPoolExecutor(max_workers=8) as pool:
-        inserted = list(pool.map(lambda result: idempotency.put_if_absent(invocation_id, result), results))
+        inserted = list(
+            pool.map(
+                lambda result: idempotency.put_if_absent(invocation_id, result),
+                results,
+            )
+        )
     assert sum(inserted) == 1
     stored = idempotency.get(invocation_id)
     assert stored is not None
@@ -116,12 +132,28 @@ def test_runtime_honors_lease_and_rejects_stale_worker() -> None:
         coordinator=coordinator,
     )
     execution = context()
-    stale = coordinator.claim(execution.identity.execution_id, "conformance", "worker-a", ttl_seconds=-1)
-    current = coordinator.claim(execution.identity.execution_id, "conformance", "worker-b", ttl_seconds=30)
+    stale = coordinator.claim(
+        execution.identity.execution_id, "conformance", "worker-a", ttl_seconds=-1
+    )
+    current = coordinator.claim(
+        execution.identity.execution_id, "conformance", "worker-b", ttl_seconds=30
+    )
     with pytest.raises(LeaseLost):
-        runtime.execute(execution, "test.echo", "1.0.0", {"value": "stale"}, invocation_id="fenced-1", lease=stale)
+        runtime.execute(
+            execution,
+            "test.echo",
+            "1.0.0",
+            {"value": "stale"},
+            invocation_id="fenced-1",
+            lease=stale,
+        )
     result = runtime.execute(
-        execution, "test.echo", "1.0.0", {"value": "current"}, invocation_id="fenced-1", lease=current
+        execution,
+        "test.echo",
+        "1.0.0",
+        {"value": "current"},
+        invocation_id="fenced-1",
+        lease=current,
     )
     assert result.status == InvocationStatus.SUCCEEDED
     assert capability.calls == 1
@@ -142,12 +174,13 @@ def test_full_durable_runtime_round_trip() -> None:
     )
     execution = context()
     lease = coordinator.claim(execution.identity.execution_id, "conformance", "worker-a")
+    invocation_id = f"round-trip-{execution.identity.execution_id}"
     result = runtime.execute(
         execution,
         "test.echo",
         "1.0.0",
         {"value": "durable"},
-        invocation_id=f"round-trip-{execution.identity.execution_id}",
+        invocation_id=invocation_id,
         lease=lease,
     )
     assert result.status == InvocationStatus.SUCCEEDED
