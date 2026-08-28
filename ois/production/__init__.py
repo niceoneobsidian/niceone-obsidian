@@ -8,7 +8,9 @@ from .control import (
     DeploymentController,
     DeploymentRecord,
     DistributedCoordinator,
+    EnterpriseAuthorizer,
     ExternalConnector,
+    GovernanceError,
     LearningEngine,
     SemanticWorld,
 )
@@ -21,7 +23,9 @@ __all__ = [
     "DeploymentController",
     "DeploymentRecord",
     "DistributedCoordinator",
+    "EnterpriseAuthorizer",
     "ExternalConnector",
+    "GovernanceError",
     "LearningEngine",
     "SemanticWorld",
 ]
