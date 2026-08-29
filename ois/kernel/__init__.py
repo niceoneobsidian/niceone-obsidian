@@ -38,20 +38,10 @@ from .postgres import (
     PostgreSQLCheckpointStore,
     PostgreSQLExecutionCoordinator,
     PostgreSQLIdempotencyStore,
+    PostgreSQLWorkerQueue,
+    QueueJob,
 )
 from .recovery import RecoveryDecision, RecoveryPolicy, RetryLimitExceeded
-from .registry import (
-    AgentRegistry,
-    AgentRoutingDecision,
-    AgentRoutingError,
-    AgentUnavailableError,
-    AmbiguousAgentError,
-    CapabilityNotFoundError,
-    CapabilityRegistry,
-    DuplicateCapabilityError,
-    ToolRegistry,
-)
-from .runtime import ExecutionError, ExecutionRuntime
 from .state import ExecutionContext, ExecutionIdentity
 from .supervisor import (
     AgentSelectionError,
@@ -67,20 +57,39 @@ from .validation import (
     OutputValidationError,
     ValidationError,
     ValidationResult,
+    Validator,
+)
+from ois.registries import (
+    AgentRegistry,
+    AgentRoutingDecision,
+    AgentRoutingError,
+    AgentUnavailableError,
+    AmbiguousAgentError,
+    CapabilityNotFoundError,
+    CapabilityRegistry,
+    CapabilityRegistryEntry,
+    DuplicateCapabilityError,
+    Registry,
+    RegistryEntry,
+    RegistryError,
+    ToolRegistry,
 )
 
 __all__ = [
-    "AgentContract", "CancellationToken", "ExecutionCancellation", "AgentRegistry", "AgentRoutingDecision",
-    "AgentRoutingError", "AgentUnavailableError", "AmbiguousAgentError", "AuthorizationDenied", "Capability",
-    "CapabilityContract", "CapabilityNotFoundError", "CapabilityRegistry", "CheckpointNotFound", "CheckpointStore",
-    "ContractValidator", "DefaultPolicyEngine", "DuplicateCapabilityError", "EvidenceEvent", "EvidenceLedger",
-    "IdempotencyStore", "InMemoryIdempotencyStore", "SQLiteIdempotencyStore", "PostgreSQLCheckpointStore",
-    "PostgreSQLIdempotencyStore", "PostgreSQLExecutionCoordinator", "ExecutionLease", "LeaseLost", "LeaseUnavailable",
-    "ExecutionContext", "ExecutionError", "ExecutionRuntime", "AgentSelectionError", "SupervisionDecision", "Supervisor",
-    "SupervisorError", "SupervisorRequest", "ExecutionIdentity", "ExecutionStatus", "FailureClass", "InputValidationError",
-    "InMemoryCheckpointStore", "JsonFileCheckpointStore", "InvocationRequest", "InvocationResult", "InvocationStatus",
-    "OrchestrationError", "OutputValidationError", "PlanBuilder", "PlanError", "PlanExecutionError", "PolicyDecision",
-    "ExecutionPlan", "TaskNode", "TaskStatus", "CyclicPlanError", "DuplicateTaskError", "UnknownDependencyError",
-    "PolicyEngine", "RecoveryDecision", "RecoveryPolicy", "RetryLimitExceeded", "RiskLevel", "SideEffectLevel",
-    "ToolContract", "ToolRegistry", "ValidationError", "ValidationResult", "Validator",
+    "AgentContract", "AgentRegistry", "AgentRoutingDecision", "AgentRoutingError",
+    "AgentSelectionError", "AgentUnavailableError", "AmbiguousAgentError", "AuthorizationDenied",
+    "Capability", "CapabilityContract", "CapabilityNotFoundError", "CapabilityRegistry",
+    "CapabilityRegistryEntry", "CancellationToken", "CheckpointNotFound", "CheckpointStore",
+    "ContractValidator", "DefaultPolicyEngine", "DuplicateCapabilityError", "DuplicateTaskError",
+    "EvidenceEvent", "EvidenceLedger", "ExecutionContext", "ExecutionError", "ExecutionIdentity",
+    "ExecutionLease", "ExecutionPlan", "ExecutionRuntime", "ExecutionStatus", "FailureClass",
+    "IdempotencyStore", "InMemoryCheckpointStore", "InMemoryIdempotencyStore", "InputValidationError",
+    "InvocationRequest", "InvocationResult", "InvocationStatus", "JsonFileCheckpointStore", "LeaseLost",
+    "LeaseUnavailable", "OrchestrationError", "OutputValidationError", "PlanBuilder", "PlanError",
+    "PlanExecutionError", "PolicyDecision", "PolicyEngine", "PostgreSQLCheckpointStore",
+    "PostgreSQLExecutionCoordinator", "PostgreSQLIdempotencyStore", "PostgreSQLWorkerQueue", "QueueJob",
+    "RecoveryDecision", "RecoveryPolicy", "Registry", "RegistryEntry", "RegistryError", "RiskLevel",
+    "RetryLimitExceeded", "SQLiteIdempotencyStore", "SideEffectLevel", "SupervisionDecision", "Supervisor",
+    "SupervisorError", "SupervisorRequest", "TaskNode", "TaskStatus", "ToolContract", "ToolRegistry",
+    "UnknownDependencyError", "ValidationError", "ValidationResult", "Validator",
 ]
