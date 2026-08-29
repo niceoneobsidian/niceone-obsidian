@@ -27,11 +27,8 @@ def test_tiktok_vertical_slice_proves_kernel_path() -> None:
     assert result.context.working_memory
 
     event_types = [event.event_type for event in result.evidence]
-    assert "agent.selection.selected" in event_types
-    assert event_types.index("agent.selection.selected") < event_types.index(
-        "execution.received"
-    )
-    assert event_types[:4] == [
+    assert event_types[:1] == ["agent.selection.selected"]
+    assert event_types[1:5] == [
         "execution.received",
         "execution.input_validated",
         "execution.authorized",
@@ -41,6 +38,9 @@ def test_tiktok_vertical_slice_proves_kernel_path() -> None:
     assert "execution.checkpointed" in event_types
     assert "execution.idempotency_recorded" in event_types
     assert "execution.completed" in event_types
+    assert event_types.index("agent.selection.selected") < event_types.index("execution.received")
+    assert event_types.index("execution.authorized") < event_types.index("capability.started")
+    assert event_types.index("capability.completed") < event_types.index("execution.completed")
 
 
 def test_tiktok_vertical_slice_emits_provenance() -> None:
