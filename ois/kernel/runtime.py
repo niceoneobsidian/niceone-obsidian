@@ -10,10 +10,10 @@ from .idempotency import IdempotencyStore, InMemoryIdempotencyStore
 from .policy import DefaultPolicyEngine, PolicyEngine
 from .postgres import ExecutionLease, PostgreSQLExecutionCoordinator
 from .recovery import RecoveryPolicy
-from .registry import CapabilityRegistry
 from .state import ExecutionContext
 from .types import ExecutionStatus, FailureClass, InvocationStatus
 from .validation import ContractValidator
+from ois.registries import CapabilityRegistry
 
 
 class ExecutionError(Exception):
@@ -65,7 +65,6 @@ class ExecutionRuntime:
             raise ExecutionAlreadyCompleted(
                 f"Execution cannot continue from {context.status.value}."
             )
-
         execution_id = context.identity.execution_id
         logical_invocation_id = invocation_id or str(uuid4())
         self._assert_lease(lease)
@@ -77,7 +76,6 @@ class ExecutionRuntime:
                 {"capability_id": capability_id, "version": version, "invocation_id": logical_invocation_id},
             )
             return cached
-
         self.evidence.record(
             execution_id,
             "execution.received",
@@ -87,12 +85,10 @@ class ExecutionRuntime:
         entry = self.registry.get(capability_id, version)
         context.set_status(ExecutionStatus.PLAN_VALIDATED)
         self._assert_lease(lease)
-
         try:
             self.cancellation.raise_if_cancelled()
         except ExecutionCancellation as exc:
             return self._handle_cancellation(context, capability_id, exc, logical_invocation_id, lease)
-
         request = InvocationRequest(
             invocation_id=logical_invocation_id,
             capability_id=capability_id,
@@ -112,14 +108,12 @@ class ExecutionRuntime:
             execution_id, "execution.authorized",
             {"capability_id": capability_id, "invocation_id": request.invocation_id},
         )
-
         self._assert_lease(lease)
         context.set_status(ExecutionStatus.EXECUTING)
         self.evidence.record(
             execution_id, "capability.started",
             {"capability_id": capability_id, "invocation_id": request.invocation_id},
         )
-
         try:
             self.cancellation.raise_if_cancelled()
             result = entry.capability.invoke(request)
@@ -128,11 +122,9 @@ class ExecutionRuntime:
             return self._handle_cancellation(context, capability_id, exc, logical_invocation_id, lease)
         except Exception as exc:
             return self._handle_failure(context, capability_id, logical_invocation_id, exc, lease)
-
         self._assert_lease(lease)
         if result.invocation_id != logical_invocation_id:
             raise ExecutionError("Capability returned an invocation_id that does not match the requested invocation_id.")
-
         context.set_status(ExecutionStatus.OBSERVING)
         context.observations.append({
             "invocation_id": result.invocation_id,
@@ -154,7 +146,6 @@ class ExecutionRuntime:
         context.set_status(ExecutionStatus.UPDATING_STATE)
         if result.status == InvocationStatus.SUCCEEDED:
             context.working_memory[f"result:{result.invocation_id}"] = result.output
-
         self._assert_lease(lease)
         context.set_status(ExecutionStatus.CHECKPOINTING)
         self.checkpoint_store.save(context)
