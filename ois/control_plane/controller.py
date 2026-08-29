@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+from collections.abc import Mapping
 
 from ois.registries import (
     AgentRegistry,
@@ -16,12 +16,7 @@ from .request import ControlRequest
 
 
 class ControlPlane:
-    """Resolve a registered capability before execution.
-
-    The control plane is deliberately small: authorization, policy, routing,
-    validation, and kernel execution remain explicit integration points rather
-    than being silently duplicated here.
-    """
+    """Resolve registered objects before execution without duplicating Kernel policy."""
 
     def __init__(
         self,
@@ -38,17 +33,12 @@ class ControlPlane:
         self.models = models or ModelRegistry()
         self.workflows = workflows or WorkflowRegistry()
 
-    def resolve_capability(self, request: ControlRequest) -> Callable[..., object]:
-        entry = self.capabilities.resolve(
+    def resolve_capability(self, request: ControlRequest) -> object:
+        """Resolve the exact registered version through the canonical registry."""
+        return self.capabilities.resolve(
             request.capability_id,
             request.capability_version,
-        )
-        if not callable(entry.value):
-            raise TypeError(
-                f"registered capability is not callable: "
-                f"{request.capability_id}@{request.capability_version}"
-            )
-        return entry.value
+        ).value
 
     def snapshot(self) -> Mapping[str, tuple[object, ...]]:
         """Return a deterministic registry snapshot for audit/inspection."""
