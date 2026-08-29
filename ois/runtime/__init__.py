@@ -8,6 +8,7 @@ from .execution_backend import (
     SQLiteWorkerQueue,
 )
 from .fabrics import FabricRuntime, register_fabric_capabilities
+from .postgres_queue import PostgreSQLQueueJob, PostgreSQLWorkerQueue
 
 __all__ = [
     "AgentRunResult",
@@ -16,6 +17,8 @@ __all__ = [
     "AgentWorkspace",
     "ExecutionRecord",
     "FabricRuntime",
+    "PostgreSQLQueueJob",
+    "PostgreSQLWorkerQueue",
     "QueueJob",
     "SQLiteExecutionStore",
     "SQLiteWorkerQueue",
