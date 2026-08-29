@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import overload
+from typing import cast, overload
 
 from ois.kernel.contracts import Capability, CapabilityContract
 
@@ -88,12 +88,10 @@ class CapabilityRegistry(Registry[object]):
             if version is None:
                 raise ValueError("registry version is required")
             try:
-                return super().register(
-                    capability_or_id,
-                    version,
-                    value,
-                    metadata=metadata,
-                )  # type: ignore[return-value]
+                return cast(
+                    CapabilityRegistryEntry,
+                    super().register(capability_or_id, version, value, metadata=metadata),
+                )
             except ValueError as exc:
                 if "already registered" in str(exc):
                     raise DuplicateCapabilityError(str(exc)) from exc
@@ -104,12 +102,15 @@ class CapabilityRegistry(Registry[object]):
         if not isinstance(contract, CapabilityContract):
             raise RegistryError("CapabilityRegistry requires a CapabilityContract.")
         try:
-            return super().register(
-                contract.capability_id,
-                contract.version,
-                capability,
-                metadata=metadata,
-            )  # type: ignore[return-value]
+            return cast(
+                CapabilityRegistryEntry,
+                super().register(
+                    contract.capability_id,
+                    contract.version,
+                    capability,
+                    metadata=metadata,
+                ),
+            )
         except ValueError as exc:
             if "already registered" in str(exc):
                 raise DuplicateCapabilityError(str(exc)) from exc
@@ -117,7 +118,7 @@ class CapabilityRegistry(Registry[object]):
 
     def resolve(self, object_id: str, version: str) -> CapabilityRegistryEntry:
         try:
-            return super().resolve(object_id, version)  # type: ignore[return-value]
+            return cast(CapabilityRegistryEntry, super().resolve(object_id, version))
         except KeyError as exc:
             raise CapabilityNotFoundError(
                 f"Capability not found: {object_id}@{version}"
@@ -139,4 +140,4 @@ class CapabilityRegistry(Registry[object]):
         return self.snapshot()
 
     def snapshot(self) -> tuple[CapabilityRegistryEntry, ...]:
-        return super().snapshot()  # type: ignore[return-value]
+        return cast(tuple[CapabilityRegistryEntry, ...], super().snapshot())
