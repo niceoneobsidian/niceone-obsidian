@@ -57,7 +57,9 @@ class PostgreSQLWorkerQueue:
         initialize: bool = True,
     ) -> None:
         self._dsn = dsn
-        self.coordinator = coordinator or PostgreSQLExecutionCoordinator(dsn, initialize=initialize)
+        self.coordinator = coordinator or PostgreSQLExecutionCoordinator(
+            dsn, initialize=initialize
+        )
         if initialize:
             self.initialize()
 
@@ -189,7 +191,12 @@ class PostgreSQLWorkerQueue:
         self.coordinator.release(lease)
         return self.get(job_id)
 
-    def acknowledge(self, job_id: str, worker_id: str, lease_epoch: int) -> PostgreSQLQueueJob:
+    def acknowledge(
+        self,
+        job_id: str,
+        worker_id: str,
+        lease_epoch: int,
+    ) -> PostgreSQLQueueJob:
         job = self.get(job_id)
         lease = self._lease_for(job, worker_id, lease_epoch)
         self.coordinator.assert_current(lease)
@@ -208,8 +215,17 @@ class PostgreSQLWorkerQueue:
         self.coordinator.release(lease)
         return self.get(job_id)
 
-    def _lease_for(self, job: PostgreSQLQueueJob, worker_id: str, lease_epoch: int) -> ExecutionLease:
-        if job.lease_owner != worker_id or job.lease_epoch != lease_epoch or job.lease_expires_at is None:
+    def _lease_for(
+        self,
+        job: PostgreSQLQueueJob,
+        worker_id: str,
+        lease_epoch: int,
+    ) -> ExecutionLease:
+        if (
+            job.lease_owner != worker_id
+            or job.lease_epoch != lease_epoch
+            or job.lease_expires_at is None
+        ):
             raise LeaseLost(f"queue lease lost for job {job.job_id}")
         return ExecutionLease(
             job.execution_id,
@@ -237,4 +253,5 @@ class PostgreSQLWorkerQueue:
 
 def _jsonb(value: dict[str, Any]) -> Any:
     from psycopg.types.json import Jsonb
+
     return Jsonb(value)
