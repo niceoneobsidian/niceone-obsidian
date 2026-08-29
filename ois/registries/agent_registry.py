@@ -2,18 +2,14 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import Any
 
-from ois.kernel.contracts import AgentContract
+from ois.kernel.contracts import AgentContract, Capability
 from ois.kernel.policy import AuthorizationDenied, PolicyEngine
 
-from .capability_registry import (
-    CapabilityRegistry,
-    CapabilityRegistryEntry,
-    RegistryError,
-)
+from .capability_registry import CapabilityRegistry, CapabilityRegistryEntry, RegistryError
 
 
 class AgentRoutingError(RegistryError):
@@ -40,7 +36,14 @@ class AgentRoutingDecision:
 class AgentRegistry(CapabilityRegistry):
     """Registry specialized for governed agent routing."""
 
-    def register(self, capability_or_id, version=None, value=None, *, metadata=None):
+    def register(
+        self,
+        capability_or_id: Capability | str,
+        version: str | None = None,
+        value: object | None = None,
+        *,
+        metadata: Mapping[str, object] | None = None,
+    ) -> CapabilityRegistryEntry:
         registered = value if isinstance(capability_or_id, str) else capability_or_id
         contract = getattr(registered, "contract", None)
         if not isinstance(contract, AgentContract):
