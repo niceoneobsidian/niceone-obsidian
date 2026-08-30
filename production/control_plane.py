@@ -1,8 +1,9 @@
 """Production governance primitives for OIS controlled activation.
 
-These are deterministic control-plane components. They do not claim that a
-cloud deployment or external production service is live; adapters must supply
-real deployment and telemetry evidence before activation can be promoted.
+These components are adapters at the OIS Control Plane boundary. They do not
+replace Kernel policy; execution authorization is composed with the canonical
+Kernel PolicyEngine by control_plane.lifecycle. Deployment authorization is
+kept here because deployment is a Control Plane lifecycle operation.
 """
 from __future__ import annotations
 
@@ -27,6 +28,7 @@ class Subject:
     tenant_id: str
     roles: frozenset[str] = frozenset()
     attributes: dict[str, str] = field(default_factory=dict)
+    permissions: frozenset[str] = frozenset()
 
 
 @dataclass(frozen=True)
@@ -41,11 +43,20 @@ class AuthorizationError(PermissionError):
 
 
 class RBACABAC:
-    """Deny-by-default authorization combining RBAC and ABAC."""
+    """Deny-by-default RBAC + ABAC authorization."""
+
+    ROLE_PERMISSIONS = {
+        "release-manager": frozenset({"deployment.activate", "deployment.rollback"}),
+    }
 
     def authorize(self, subject: Subject, policy: AuthorizationPolicy) -> None:
         if not subject.tenant_id:
             raise AuthorizationError("tenant identity is required")
+        granted = set(subject.permissions)
+        for role in subject.roles:
+            granted.update(self.ROLE_PERMISSIONS.get(role, ()))
+        if policy.permission not in granted:
+            raise AuthorizationError(f"permission is missing: {policy.permission}")
         if policy.required_role and policy.required_role not in subject.roles:
             raise AuthorizationError("required role is missing")
         for key, expected in policy.required_attributes.items():
@@ -134,17 +145,31 @@ class ProductionControlPlane:
         self.deployment = deployment
 
     def activate(self, subject: Subject, candidate: str, environment: str, *, previous: str | None = None) -> DeploymentRecord:
-        self.authorization.authorize(subject, AuthorizationPolicy("deployment.activate", "release-manager", {"environment": environment}))
+        self.authorization.authorize(
+            subject,
+            AuthorizationPolicy(
+                "deployment.activate",
+                "release-manager",
+                {"environment": environment},
+            ),
+        )
         execution_id = str(uuid4())
-        event = self.evidence.append(execution_id, "deployment.approval", {"candidate": candidate, "environment": environment})
-        if not event:
+        approval = self.evidence.append(execution_id, "deployment.approval", {"candidate": candidate, "environment": environment})
+        if not approval:
             raise RuntimeError("approval evidence was not recorded")
         self.deployment.deploy(candidate, environment)
         self.evidence.append(execution_id, "deployment.activated", {"candidate": candidate, "environment": environment})
         return DeploymentRecord(str(uuid4()), candidate, previous, environment, "ACTIVE", tuple(e.event_id for e in self.evidence.events(execution_id)))
 
     def rollback(self, subject: Subject, target: str, environment: str) -> DeploymentRecord:
-        self.authorization.authorize(subject, AuthorizationPolicy("deployment.rollback", "release-manager", {"environment": environment}))
+        self.authorization.authorize(
+            subject,
+            AuthorizationPolicy(
+                "deployment.rollback",
+                "release-manager",
+                {"environment": environment},
+            ),
+        )
         execution_id = str(uuid4())
         self.evidence.append(execution_id, "deployment.rollback.approved", {"target": target, "environment": environment})
         self.deployment.rollback(target, environment)
