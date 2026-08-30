@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from ois.runtime.execution_backend import (
     SQLiteExecutionStore,
     SQLiteWorkerQueue,
@@ -35,3 +37,16 @@ def test_worker_queue_claim_retry_and_acknowledge() -> None:
     assert claimed_again is not None
     completed = queue.acknowledge("job-1", "worker-2")
     assert completed.lease_owner == "worker-2"
+
+
+def test_worker_queue_persists_jobs_across_connections(tmp_path: Path) -> None:
+    database = tmp_path / "worker_queue.sqlite3"
+    first = SQLiteWorkerQueue(str(database))
+    first.enqueue("job-1", "default", {"task": "persist"})
+
+    second = SQLiteWorkerQueue(str(database))
+    claimed = second.claim("default", "worker-1")
+
+    assert claimed is not None
+    assert claimed.job_id == "job-1"
+    assert claimed.payload == {"task": "persist"}

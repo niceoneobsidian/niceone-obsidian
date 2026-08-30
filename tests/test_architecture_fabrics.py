@@ -3,8 +3,8 @@ from ois.architecture.fabrics import (
     FabricKind,
     FabricSpec,
     InMemoryFabricRegistry,
-    LearningCandidate,
     LLMGatewaySpec,
+    LearningCandidate,
     SocialSignal,
     WorkflowSpec,
 )
