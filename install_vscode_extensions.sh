@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+
+extensions=(
+    ms-python.python
+    dbaeumer.vscode-eslint
+    ms-vscode-remote.remote-containers
+    supabase.supabase
+    dummy.extension-01
+    dummy.extension-02
+    dummy.extension-03
+    dummy.extension-04
+    dummy.extension-05
+    dummy.extension-06
+    dummy.extension-07
+    dummy.extension-08
+    dummy.extension-09
+    dummy.extension-10
+    dummy.extension-11
+    dummy.extension-12
+    dummy.extension-13
+    dummy.extension-14
+    dummy.extension-15
+    dummy.extension-16
+    dummy.extension-17
+    dummy.extension-18
+    dummy.extension-19
+    dummy.extension-20
+    dummy.extension-21
+    dummy.extension-22
+    dummy.extension-23
+    dummy.extension-24
+    dummy.extension-25
+    dummy.extension-26
+    dummy.extension-27
+    dummy.extension-28
+    dummy.extension-29
+    dummy.extension-30
+    dummy.extension-31
+    dummy.extension-32
+    dummy.extension-33
+    dummy.extension-34
+)
