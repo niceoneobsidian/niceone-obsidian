@@ -28,7 +28,7 @@ jobs:
       - name: Bandit
         run: bandit -r ois scripts -x ./.git,./.venv,./venv,./tests -lll -iii
       - name: Gitleaks
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: License compliance
