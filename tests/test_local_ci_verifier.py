@@ -24,7 +24,13 @@ def test_python_checks_use_current_interpreter() -> None:
 
 def test_conformance_evidence_can_never_claim_production_activation() -> None:
     results = [
-        {"name": check.name, "command": list(check.command), "status": "PASS", "returncode": 0, "output": ""}
+        {
+            "name": check.name,
+            "command": list(check.command),
+            "status": "PASS",
+            "returncode": 0,
+            "output": "",
+        }
         for check in CHECKS
     ]
     evidence = build_evidence(results)
@@ -37,7 +43,13 @@ def test_conformance_evidence_can_never_claim_production_activation() -> None:
 
 def test_tampered_or_self_attested_promotion_evidence_is_rejected(tmp_path) -> None:
     results = [
-        {"name": check.name, "command": list(check.command), "status": "PASS", "returncode": 0, "output": ""}
+        {
+            "name": check.name,
+            "command": list(check.command),
+            "status": "PASS",
+            "returncode": 0,
+            "output": "",
+        }
         for check in CHECKS
     ]
     evidence = build_evidence(results)
@@ -52,7 +64,13 @@ def test_tampered_or_self_attested_promotion_evidence_is_rejected(tmp_path) -> N
 
 def test_failed_gate_cannot_be_conformance_pass() -> None:
     results = [
-        {"name": check.name, "command": list(check.command), "status": "PASS", "returncode": 0, "output": ""}
+        {
+            "name": check.name,
+            "command": list(check.command),
+            "status": "PASS",
+            "returncode": 0,
+            "output": "",
+        }
         for check in CHECKS
     ]
     results[-1]["status"] = "FAIL"
