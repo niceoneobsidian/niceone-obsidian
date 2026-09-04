@@ -63,7 +63,11 @@ def run_check(check: Check) -> dict[str, Any]:
             "output": "required executable is not installed",
         }
 
-    command = (exe, *check.command[1:]) if check.command[0] == "python" else check.command
+    command = (
+        (exe, *check.command[1:])
+        if check.command[0] == "python"
+        else check.command
+    )
     proc = subprocess.run(
         command,
         cwd=ROOT,
@@ -121,7 +125,11 @@ def build_evidence(results: list[dict[str, Any]]) -> dict[str, Any]:
         "branch": branch,
         "working_tree": "clean" if not status else "dirty",
         "checks": results,
-        "conformance": "PASS" if passed and not status and SHA_RE.fullmatch(commit_sha) else "FAIL",
+        "conformance": (
+            "PASS"
+            if passed and not status and SHA_RE.fullmatch(commit_sha)
+            else "FAIL"
+        ),
         "evidence_class": "CONFORMANCE",
         "production_promotion_eligible": False,
         "activation_eligible": False,
@@ -148,7 +156,13 @@ def verify_artifact(artifact: Path = EVIDENCE_PATH) -> tuple[bool, list[str]]:
         errors.append("conformance evidence cannot be production-promotion eligible")
     if document.get("activation_eligible") is not False:
         errors.append("conformance evidence cannot assert activation eligibility")
-    if any(key in document for key in ("production_promoted", "production_active", "PRODUCTION PROMOTED", "PROD_ACTIVE")):
+    forbidden = (
+        "production_promoted",
+        "production_active",
+        "PRODUCTION PROMOTED",
+        "PROD_ACTIVE",
+    )
+    if any(key in document for key in forbidden):
         errors.append("verification evidence cannot assert production activation")
     if not SHA_RE.fullmatch(str(document.get("commit_sha", ""))):
         errors.append("evidence is not bound to a valid commit SHA")
