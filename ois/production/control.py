@@ -34,7 +34,7 @@ class AuthorizationContext:
 class ABACRule:
     permission: str
     roles: frozenset[str] = frozenset()
-    attributes: dict[str, str] = field(default_factory=dict)
+    attributes: dict[str, str] = frozenset()
     tenant_required: bool = True
 
     def allows(self, context: AuthorizationContext) -> bool:
@@ -61,6 +61,24 @@ class EnterpriseAuthorizer:
 
 
 @dataclass(frozen=True)
+class PromotionEvidence:
+    """Structured evidence that is admissible at the production boundary."""
+
+    source: str
+    reference: str
+    verified: bool = True
+    execution_mode: str = "real"
+
+    def validate(self) -> None:
+        if not self.source or not self.reference:
+            raise GovernanceError("promotion evidence requires source and reference")
+        if not self.verified:
+            raise GovernanceError("promotion evidence must be independently verified")
+        if self.execution_mode != "real":
+            raise GovernanceError("mocked or stub execution cannot produce promotion evidence")
+
+
+@dataclass(frozen=True)
 class DeploymentRecord:
     deployment_id: str
     version: str
@@ -68,41 +86,58 @@ class DeploymentRecord:
     previous_version: str | None
     state: str
     approved_by: str | None
-    evidence: tuple[str, ...] = ()
+    evidence: tuple[PromotionEvidence, ...] = ()
 
 
 class DeploymentController:
-    """Versioned activation controller with explicit approval and rollback evidence."""
+    """Versioned activation controller with explicit approval and verified evidence."""
 
     def __init__(self) -> None:
         self._current: dict[str, str] = {}
         self._records: list[DeploymentRecord] = []
 
-    def deploy(self, version: str, environment: str, *, approved_by: str | None = None,
-               evidence: tuple[str, ...] = ()) -> DeploymentRecord:
+    def deploy(
+        self,
+        version: str,
+        environment: str,
+        *,
+        approved_by: str | None = None,
+        evidence: tuple[PromotionEvidence, ...] = (),
+    ) -> DeploymentRecord:
         if not approved_by:
             raise GovernanceError("deployment requires explicit approval")
         if not evidence:
             raise GovernanceError("deployment requires evidence")
+        for item in evidence:
+            item.validate()
         previous = self._current.get(environment)
-        record = DeploymentRecord(str(uuid.uuid4()), version, environment, previous,
-                                   "active", approved_by, evidence)
+        record = DeploymentRecord(
+            str(uuid.uuid4()), version, environment, previous, "active", approved_by, evidence
+        )
         self._current[environment] = version
         self._records.append(record)
         return record
 
-    def rollback(self, environment: str, *, approved_by: str | None = None,
-                 evidence: tuple[str, ...] = ()) -> DeploymentRecord:
+    def rollback(
+        self,
+        environment: str,
+        *,
+        approved_by: str | None = None,
+        evidence: tuple[PromotionEvidence, ...] = (),
+    ) -> DeploymentRecord:
         if not approved_by:
             raise GovernanceError("rollback requires explicit approval")
         if not evidence:
             raise GovernanceError("rollback requires evidence")
+        for item in evidence:
+            item.validate()
         previous = self._previous(environment)
         current = self._current.get(environment)
         if previous is None:
             raise GovernanceError("no rollback target exists")
-        record = DeploymentRecord(str(uuid.uuid4()), previous, environment, current,
-                                   "rolled_back", approved_by, evidence)
+        record = DeploymentRecord(
+            str(uuid.uuid4()), previous, environment, current, "rolled_back", approved_by, evidence
+        )
         self._current[environment] = previous
         self._records.append(record)
         return record
