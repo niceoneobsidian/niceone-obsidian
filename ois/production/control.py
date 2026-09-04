@@ -1,4 +1,9 @@
-"""Governed production primitives for deployment, evolution, and intelligence."""
+"""Governed production primitives for deployment, evolution, and intelligence.
+
+These components deliberately stop at explicit external boundaries. They provide
+executable control and evidence contracts; platform credentials, infrastructure,
+and human approval remain deployment concerns.
+"""
 
 from __future__ import annotations
 
@@ -360,7 +365,9 @@ class LearningEngine:
     def evaluate(self, candidate_id: str, score: float) -> Candidate:
         candidate = self._candidates[candidate_id]
         state = "evaluated" if 0.0 <= score <= 1.0 else "rejected"
-        updated = Candidate(candidate.candidate_id, candidate.target, candidate.version, candidate.evidence, state)
+        updated = Candidate(
+            candidate.candidate_id, candidate.target, candidate.version, candidate.evidence, state
+        )
         self._candidates[candidate_id] = updated
         return updated
 
@@ -370,7 +377,9 @@ class LearningEngine:
             raise GovernanceError("candidate must be evaluated before approval")
         if not approved_by:
             raise GovernanceError("candidate approval requires identity")
-        updated = Candidate(candidate.candidate_id, candidate.target, candidate.version, candidate.evidence, "approved")
+        updated = Candidate(
+            candidate.candidate_id, candidate.target, candidate.version, candidate.evidence, "approved"
+        )
         self._candidates[candidate_id] = updated
         return updated
 
@@ -379,6 +388,8 @@ class LearningEngine:
         if candidate.state != "approved":
             raise GovernanceError("only approved candidates may activate")
         rollout(candidate)
-        updated = Candidate(candidate.candidate_id, candidate.target, candidate.version, candidate.evidence, "activated")
+        updated = Candidate(
+            candidate.candidate_id, candidate.target, candidate.version, candidate.evidence, "activated"
+        )
         self._candidates[candidate_id] = updated
         return updated
