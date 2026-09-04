@@ -14,16 +14,25 @@ from ois.production import (
 
 
 def _verified(reference: str) -> PromotionEvidence:
-    return PromotionEvidence(source="ois-verifier", reference=reference, verified=True, execution_mode="real")
+    return PromotionEvidence(
+        source="ois-verifier",
+        reference=reference,
+        verified=True,
+        execution_mode="real",
+    )
 
 
 def test_rbac_abac_is_deny_by_default() -> None:
-    authorizer = __import__("ois.production.control", fromlist=["EnterpriseAuthorizer"]).EnterpriseAuthorizer(
-        (ABACRule("deploy", frozenset({"release"}), {"env": "prod"}),)
+    authorizer = __import__(
+        "ois.production.control", fromlist=["EnterpriseAuthorizer"]
+    ).EnterpriseAuthorizer((ABACRule("deploy", frozenset({"release"}), {"env": "prod"}),))
+    context = AuthorizationContext(
+        "u1", "t1", frozenset({"release"}), {"env": "prod"}, frozenset({"deploy"})
     )
-    context = AuthorizationContext("u1", "t1", frozenset({"release"}), {"env": "prod"}, frozenset({"deploy"}))
     assert authorizer.authorize(context, "deploy")
-    bad = AuthorizationContext("u2", "t1", frozenset({"viewer"}), {"env": "prod"}, frozenset({"deploy"}))
+    bad = AuthorizationContext(
+        "u2", "t1", frozenset({"viewer"}), {"env": "prod"}, frozenset({"deploy"})
+    )
     with pytest.raises(GovernanceError):
         authorizer.authorize(bad, "deploy")
 
@@ -33,7 +42,9 @@ def test_deployment_requires_verified_evidence_and_rolls_back() -> None:
     with pytest.raises(GovernanceError):
         controller.deploy("v1", "prod", approved_by="release", evidence=())
     with pytest.raises(GovernanceError):
-        controller.deploy("v1", "prod", approved_by="release", evidence=("ci:green",))  # type: ignore[arg-type]
+        controller.deploy(
+            "v1", "prod", approved_by="release", evidence=("ci:green",)  # type: ignore[arg-type]
+        )
 
     controller.deploy("v1", "prod", approved_by="release", evidence=(_verified("ci:green"),))
     controller.deploy(
@@ -43,15 +54,21 @@ def test_deployment_requires_verified_evidence_and_rolls_back() -> None:
         evidence=(_verified("ci:green"), _verified("canary:pass")),
     )
     assert controller.current("prod") == "v2"
-    controller.rollback("prod", approved_by="release", evidence=(_verified("incident:42"),))
+    controller.rollback(
+        "prod", approved_by="release", evidence=(_verified("incident:42"),)
+    )
     assert controller.current("prod") == "v1"
 
 
 def test_mock_or_stub_execution_can_never_create_promotion_evidence() -> None:
     with pytest.raises(GovernanceError):
-        PromotionEvidence(source="test", reference="mock-run", verified=True, execution_mode="mock").validate()
+        PromotionEvidence(
+            source="test", reference="mock-run", verified=True, execution_mode="mock"
+        ).validate()
     with pytest.raises(GovernanceError):
-        PromotionEvidence(source="test", reference="stub-run", verified=True, execution_mode="stub").validate()
+        PromotionEvidence(
+            source="test", reference="stub-run", verified=True, execution_mode="stub"
+        ).validate()
     with pytest.raises(GovernanceError):
         PromotionEvidence(source="test", reference="unverified", verified=False).validate()
 
@@ -60,7 +77,10 @@ def test_canary_is_deterministic_and_rolls_back_on_bad_metrics() -> None:
     canary = CanaryController()
     canary.start("r1", "v1", "v2", 50)
     assert canary.assign("r1", "same-subject") == canary.assign("r1", "same-subject")
-    assert canary.decide("r1", success_rate=0.90, latency_ratio=1.1, approved_by="release") == "rolled_back"
+    assert (
+        canary.decide("r1", success_rate=0.90, latency_ratio=1.1, approved_by="release")
+        == "rolled_back"
+    )
 
 
 def test_distributed_lease_prevents_double_claim_and_is_idempotent() -> None:
