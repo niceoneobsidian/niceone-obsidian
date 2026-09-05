@@ -134,14 +134,14 @@ class ExecutionRuntime:
         except Exception as exc:
             return self._handle_failure(context, capability_id, logical_invocation_id, exc)
 
-        while result.status == InvocationStatus.FAILED:
-            failure_value = (
-                result.error.get("failure_class") if isinstance(result.error, dict) else None
-            )
+        if (
+            result.status == InvocationStatus.FAILED
+            and isinstance(result.error, dict)
+            and "failure_class" in result.error
+        ):
+            failure_value = result.error.get("failure_class")
             try:
-                failure_class = (
-                    FailureClass(failure_value) if failure_value else FailureClass.UNKNOWN
-                )
+                failure_class = FailureClass(failure_value)
             except ValueError:
                 failure_class = FailureClass.UNKNOWN
             decision = self.recovery.apply(context, failure_class)
@@ -156,16 +156,8 @@ class ExecutionRuntime:
                 },
             )
             self.checkpoint_store.save(context)
-            if decision.action != "retry":
-                break
-            try:
-                self.cancellation.raise_if_cancelled()
-                result = entry.capability.invoke(request)
-                self.cancellation.raise_if_cancelled()
-            except ExecutionCancellation as exc:
-                return self._handle_cancellation(context, capability_id, exc, logical_invocation_id)
-            except Exception as exc:
-                return self._handle_failure(context, capability_id, logical_invocation_id, exc)
+            result.error = {**result.error, "recovery_action": decision.action}
+
         if result.invocation_id != logical_invocation_id:
             raise ExecutionError(
                 "Capability returned an invocation_id that does not match the "

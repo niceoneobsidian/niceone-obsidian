@@ -54,6 +54,19 @@ class PlanOrchestrator:
                         invocation_id=invocation_id,
                     )
 
+                    while (
+                        result.status != InvocationStatus.SUCCEEDED
+                        and isinstance(result.error, dict)
+                        and result.error.get("recovery_action") == "retry"
+                    ):
+                        result = self.runtime.execute(
+                            context=context,
+                            capability_id=task.capability_id,
+                            version=task.capability_version,
+                            input_data=dict(task.input_data),
+                            invocation_id=invocation_id,
+                        )
+                    
                     if result.status != InvocationStatus.SUCCEEDED:
                         task.status = TaskStatus.FAILED
                         task.error = result.error
