@@ -48,6 +48,29 @@ def _agent_for(capability: Any) -> DelegatingSocialAgent:
     return DelegatingSocialAgent(capability, contract)
 
 
+class SocialCapabilityRegistry:
+    """Domain facade over the canonical OIS Kernel CapabilityRegistry.
+
+    The Kernel registry remains authoritative; this facade only makes the Social
+    Intelligence activation boundary explicit and machine-discoverable.
+    """
+
+    capability_ids = (
+        "social.ingest", "social.research.execute", "social.content.intelligence",
+        "social.content.predict", "social.experiment.simulate", "social.learning.compare_outcome",
+        "social.learning.pattern_extract", "social.campaign.optimize", "social.evolution.propose",
+    )
+
+    def __init__(self, kernel_registry: CapabilityRegistry) -> None:
+        self.kernel_registry = kernel_registry
+
+    def activate(self, agents: AgentRegistry, tools: ToolRegistry, *, connectors: Any) -> dict[str, int]:
+        return register_social_runtime(self.kernel_registry, agents, tools, connectors=connectors)
+
+    def entries(self):
+        return tuple(entry for entry in self.kernel_registry.list() if entry.contract.capability_id in self.capability_ids)
+
+
 def register_social_runtime(
     capabilities: CapabilityRegistry,
     agents: AgentRegistry,
