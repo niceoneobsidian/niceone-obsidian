@@ -31,6 +31,7 @@ artifacts/
 outputs/
 tmp/
 temp/
+.ois/
 
 # Databases
 *.db
