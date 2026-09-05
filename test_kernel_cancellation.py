@@ -110,7 +110,8 @@ def test_runtime_stops_before_capability_when_cancelled():
         invocation_id="cancel-before-001",
     )
 
-    assert result.status == InvocationStatus.FAILED
+    assert result.status == InvocationStatus.CANCELLED
+    assert result.error is not None
     assert result.error["failure_class"] == "cancellation"
     assert result.error["recovery_action"] == "stop"
 

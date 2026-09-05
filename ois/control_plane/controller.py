@@ -43,12 +43,13 @@ class ControlPlane:
             request.capability_id,
             request.capability_version,
         )
-        if not callable(entry.value):
+        capability = getattr(entry, "capability", None)
+        if not callable(capability):
             raise TypeError(
                 f"registered capability is not callable: "
                 f"{request.capability_id}@{request.capability_version}"
             )
-        return entry.value
+        return capability
 
     def snapshot(self) -> Mapping[str, tuple[object, ...]]:
         """Return a deterministic registry snapshot for audit/inspection."""

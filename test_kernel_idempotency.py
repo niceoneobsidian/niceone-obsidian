@@ -37,7 +37,7 @@ def test_same_invocation_id_reuses_cached_result():
     store.put("inv-1", first)
     store.put("inv-1", second)
 
-    assert store.get("inv-1") is second
+    assert store.get("inv-1") is first
 
 
 def test_different_invocation_ids_are_distinct():

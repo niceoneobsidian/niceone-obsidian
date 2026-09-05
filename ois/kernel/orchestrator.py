@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from .checkpoint import CheckpointStore
 from .planning import ExecutionPlan, TaskStatus
 from .runtime import ExecutionRuntime
 from .state import ExecutionContext
@@ -28,14 +27,14 @@ class PlanOrchestrator:
         context.plan = plan.to_dict()
         self.runtime.checkpoint_store.save(context)
 
-        self._normalize_interrupted_tasks(plan)
-
         while not plan.is_complete():
             ready = plan.ready_tasks()
 
             if not ready:
                 if plan.has_failed():
                     raise PlanExecutionError("Plan contains failed tasks and cannot continue.")
+                if any(task.status == TaskStatus.RUNNING for task in plan.tasks.values()):
+                    raise PlanExecutionError("No executable tasks remain. The plan may be blocked.")
                 raise PlanExecutionError("No executable tasks remain. The plan may be blocked.")
 
             for task in ready:

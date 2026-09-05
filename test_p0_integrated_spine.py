@@ -1,15 +1,17 @@
 from __future__ import annotations
 
+from typing import Any, cast
+
 from ois.control_plane import ControlPlane, ControlRequest, IntegratedExecution
 from ois.kernel import (
     CapabilityContract,
+    CapabilityRegistry,
     EvidenceLedger,
     ExecutionRuntime,
+    FailureClass,
     InMemoryCheckpointStore,
     InvocationResult,
     InvocationStatus,
-    FailureClass,
-    CapabilityRegistry,
 )
 
 
@@ -53,7 +55,7 @@ def test_p0_integrated_spine_recovers_and_records_evidence() -> None:
     evidence = EvidenceLedger()
     checkpoints = InMemoryCheckpointStore()
     runtime = ExecutionRuntime(registry, checkpoints, evidence)
-    spine = IntegratedExecution(ControlPlane(capabilities=registry), runtime)
+    spine = IntegratedExecution(ControlPlane(capabilities=cast(Any, registry)), runtime)
 
     context = spine.execute(
         objective="prove the integrated P0 execution spine",

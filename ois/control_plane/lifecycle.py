@@ -3,16 +3,22 @@
 Production concerns are adapters around the existing OIS Control Plane and
 Kernel. This module deliberately contains no alternate execution runtime.
 """
+
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, cast
 from uuid import UUID, uuid4
 
 from ois.kernel.checkpoint import CheckpointStore, InMemoryCheckpointStore
-from ois.kernel.contracts import CapabilityContract, InvocationRequest, InvocationResult, PolicyEngine
+from ois.kernel.contracts import (
+    CapabilityContract,
+    InvocationRequest,
+    InvocationResult,
+    PolicyEngine,
+)
 from ois.kernel.evidence import EvidenceEvent as KernelEvidenceEvent
 from ois.kernel.evidence import EvidenceStore as KernelEvidenceStore
 from ois.kernel.policy import DefaultPolicyEngine
@@ -22,12 +28,12 @@ from ois.kernel.state import ExecutionContext, ExecutionIdentity
 from ois.kernel.types import InvocationStatus
 from ois.registries import CapabilityRegistry
 from production.control_plane import (
+    RBACABAC,
     AuthorizationPolicy,
     DeploymentAdapter,
     EvidenceLedger,
     InMemoryDeploymentAdapter,
     ProductionControlPlane,
-    RBACABAC,
     Subject,
 )
 from production.evolution import CanaryController, CanaryDecision, LearningLoop, Measurement
@@ -38,10 +44,10 @@ from .controller import ControlPlane
 from .request import ControlRequest
 
 
-class KernelRegistryAdapter:
+class KernelRegistryAdapter(CapabilityRegistry):
     """Adapt the canonical Control Plane registry to the Kernel registry contract."""
 
-    def __init__(self, registry: CapabilityRegistry) -> None:
+    def __init__(self, registry: CapabilityRegistry | KernelRegistryAdapter) -> None:
         self.registry = registry
 
     def get(self, capability_id: str, version: str) -> KernelRegistryEntry:
@@ -50,7 +56,7 @@ class KernelRegistryAdapter:
         contract = getattr(capability, "contract", None)
         if contract is None:
             raise TypeError(f"registered capability has no contract: {capability_id}@{version}")
-        return KernelRegistryEntry(capability=capability, contract=contract)
+        return KernelRegistryEntry(capability=cast(Any, capability), contract=contract)
 
 
 class KernelEvidenceBridge(KernelEvidenceStore):
@@ -174,7 +180,7 @@ class OISProductionLifecycle:
         self.kernel_evidence = KernelEvidenceBridge(self.evidence)
         self.policy = policy or ProductionPolicyAdapter(self.authorization)
         self.runtime = ExecutionRuntime(
-            self.kernel_registry,
+            cast(Any, self.kernel_registry),
             self.checkpoints,
             evidence=self.kernel_evidence,
             policy=self.policy,
@@ -223,7 +229,11 @@ class OISProductionLifecycle:
         self.evidence.append(
             execution_id,
             "control_plane.request.accepted",
-            {"capability_id": request.capability_id, "version": request.capability_version, "tenant_id": tenant_id},
+            {
+                "capability_id": request.capability_id,
+                "version": request.capability_version,
+                "tenant_id": tenant_id,
+            },
         )
         self.world.assert_fact(entity.entity_id, "execution.accepted", True, source="control_plane")
 
@@ -235,7 +245,12 @@ class OISProductionLifecycle:
             invocation_id=invocation_id,
         )
         succeeded = result.status == InvocationStatus.SUCCEEDED
-        self.world.assert_fact(entity.entity_id, "execution.succeeded", succeeded, source=f"kernel:{result.invocation_id}")
+        self.world.assert_fact(
+            entity.entity_id,
+            "execution.succeeded",
+            succeeded,
+            source=f"kernel:{result.invocation_id}",
+        )
         evaluation = self.learning.evaluate(
             f"capability:{request.capability_id}@{request.capability_version}",
             [Measurement("execution_success", 1.0 if succeeded else 0.0)],
@@ -250,7 +265,9 @@ class OISProductionLifecycle:
         return LifecycleResult(
             result=result,
             execution_id=execution_id,
-            evidence_event_ids=tuple(event.event_id for event in self.evidence.events(execution_id)),
+            evidence_event_ids=tuple(
+                event.event_id for event in self.evidence.events(execution_id)
+            ),
             semantic_entity_id=entity.entity_id,
             learning_state=learning_state,
         )
@@ -274,7 +291,11 @@ class OISProductionLifecycle:
         self.evidence.append(
             rollout_id,
             "rollout.canary.started",
-            {"candidate": candidate, "traffic_percent": traffic_percent, "execution_ids": list(execution_ids)},
+            {
+                "candidate": candidate,
+                "traffic_percent": traffic_percent,
+                "execution_ids": list(execution_ids),
+            },
         )
         decision = self.canary.decide(
             candidate,
@@ -284,14 +305,32 @@ class OISProductionLifecycle:
             latency_ms=latency_ms,
         )
         if not decision.passed:
-            self.evidence.append(rollout_id, "rollout.canary.failed", {"success_rate": decision.success_rate, "latency_ms": latency_ms})
+            self.evidence.append(
+                rollout_id,
+                "rollout.canary.failed",
+                {"success_rate": decision.success_rate, "latency_ms": latency_ms},
+            )
             rollback = self.deployment.rollback(release_subject, previous, environment)
-            self.evidence.append(rollout_id, "rollout.rollback.verified", {"target": previous, "deployment_evidence": list(rollback.evidence_ids)})
+            self.evidence.append(
+                rollout_id,
+                "rollout.rollback.verified",
+                {"target": previous, "deployment_evidence": list(rollback.evidence_ids)},
+            )
             state = "ROLLED_BACK"
         else:
-            self.evidence.append(rollout_id, "rollout.canary.passed", {"success_rate": decision.success_rate, "latency_ms": latency_ms})
-            activation = self.deployment.activate(release_subject, candidate, environment, previous=previous)
-            self.evidence.append(rollout_id, "rollout.promoted", {"candidate": candidate, "deployment_evidence": list(activation.evidence_ids)})
+            self.evidence.append(
+                rollout_id,
+                "rollout.canary.passed",
+                {"success_rate": decision.success_rate, "latency_ms": latency_ms},
+            )
+            activation = self.deployment.activate(
+                release_subject, candidate, environment, previous=previous
+            )
+            self.evidence.append(
+                rollout_id,
+                "rollout.promoted",
+                {"candidate": candidate, "deployment_evidence": list(activation.evidence_ids)},
+            )
             state = "PROMOTED"
         return RolloutResult(
             candidate=candidate,
@@ -303,6 +342,7 @@ class OISProductionLifecycle:
 
     def worker(self, queue: LeaseQueue, worker_id: str) -> Worker:
         """Create a worker whose handler re-enters the canonical Control Plane."""
+
         def handle(payload: dict[str, Any]) -> LifecycleResult:
             request = ControlRequest(
                 capability_id=str(payload["capability_id"]),
@@ -316,7 +356,9 @@ class OISProductionLifecycle:
                 invocation_id=payload.get("invocation_id"),
                 subject_id=str(payload.get("subject_id", "worker")),
                 roles=frozenset(str(role) for role in payload.get("roles", ())),
-                permissions=frozenset(str(permission) for permission in payload.get("permissions", ())),
+                permissions=frozenset(
+                    str(permission) for permission in payload.get("permissions", ())
+                ),
                 environment=str(payload.get("environment", "staging")),
                 attributes={str(k): str(v) for k, v in dict(payload.get("attributes", {})).items()},
             )

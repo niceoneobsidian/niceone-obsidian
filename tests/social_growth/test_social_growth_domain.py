@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+import datetime
 
 from ois.domains.social_growth.algorithms import (
     engagement_rate,
@@ -19,7 +19,7 @@ def event(text: str, **metrics) -> SocialEvent:
     return SocialEvent(
         platform="tiktok",
         event_type="post",
-        occurred_at=datetime.now(UTC),
+        occurred_at=datetime.datetime.now(datetime.UTC),
         text=text,
         metrics=metrics,
     )

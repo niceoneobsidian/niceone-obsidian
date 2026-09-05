@@ -6,8 +6,8 @@ from ois.control_plane.controller import ControlPlane
 from ois.control_plane.lifecycle import OISProductionLifecycle
 from ois.control_plane.request import ControlRequest
 from ois.kernel.contracts import CapabilityContract, InvocationRequest, InvocationResult
-from ois.kernel.registry import CapabilityRegistry
 from ois.kernel.types import InvocationStatus
+from ois.registries.capability_registry import CapabilityRegistry
 from production.control_plane import AuthorizationError, Subject
 from production.workers import LeaseQueue
 
@@ -46,8 +46,8 @@ class FailingCapability:
 
 def build_lifecycle() -> OISProductionLifecycle:
     registry = CapabilityRegistry()
-    registry.register(EchoCapability())
-    registry.register(FailingCapability())
+    registry.register("test.echo", "1.0.0", EchoCapability())
+    registry.register("test.fail", "1.0.0", FailingCapability())
     return OISProductionLifecycle(ControlPlane(capabilities=registry), registry)
 
 
@@ -149,6 +149,5 @@ def test_canary_decision_uses_actual_kernel_execution_outcomes() -> None:
     assert len(rollout.execution_ids) == 2
     assert lifecycle.evidence.verify_chain()
     assert any(
-        event.event_type == "rollout.rollback.verified"
-        for event in lifecycle.evidence.events()
+        event.event_type == "rollout.rollback.verified" for event in lifecycle.evidence.events()
     )
