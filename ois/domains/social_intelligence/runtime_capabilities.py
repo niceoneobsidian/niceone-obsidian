@@ -31,14 +31,18 @@ def _ok(request: InvocationRequest, contract: CapabilityContract, output: Any) -
 
 
 def _genome(payload: Mapping[str, Any]) -> ContentGenome:
-    observations = [
-        ModalityObservation(modality=modality, features=dict(payload.get(key, {})))
-        for modality, key in (
-            ("text", "hook"), ("image", "visual"), ("video", "temporal"),
-            ("audio", "audio"), ("text", "emotion"), ("text", "audience_signals"),
-        )
+    text_features = {
+        key: dict(payload.get(key, {}))
+        for key in ("hook", "narrative", "emotion", "audience_signals", "brand_signals")
         if payload.get(key)
-    ]
+    }
+    observations = []
+    if text_features:
+        observations.append(ModalityObservation(modality="text", features=text_features))
+    for modality, key in (("image", "visual"), ("video", "temporal"), ("audio", "audio")):
+        features = payload.get(key, {})
+        if features:
+            observations.append(ModalityObservation(modality=modality, features=dict(features)))
     return build_content_genome(
         content_id=str(payload.get("content_id", "")),
         observations=observations,
