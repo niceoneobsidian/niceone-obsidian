@@ -44,7 +44,7 @@ def trend_velocity(events: Iterable[SocialEvent], bucket_seconds: int = 3600) ->
     buckets: defaultdict[str, Counter[int]] = defaultdict(Counter)
     for event in events:
         bucket = int(event.occurred_at.timestamp()) // bucket_seconds
-        for token in set(tokenize(event.text or "")):
+        for token in tokenize(event.text or ""):
             buckets[token][bucket] += 1
     if not buckets:
         return {}

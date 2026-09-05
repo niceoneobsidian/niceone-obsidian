@@ -37,6 +37,7 @@ class PlanOrchestrator:
                     raise PlanExecutionError("No executable tasks remain. The plan may be blocked.")
                 raise PlanExecutionError("No executable tasks remain. The plan may be blocked.")
 
+            batch_failed = False
             for task in ready:
                 task.status = TaskStatus.RUNNING
                 context.current_node = task.task_id
@@ -58,7 +59,10 @@ class PlanOrchestrator:
                         task.error = result.error
                         context.plan = plan.to_dict()
                         self.runtime.checkpoint_store.save(context)
-                        return plan
+                        batch_failed = True
+                        # Independent siblings in this batch have no dependency
+                        # on the failed task, so they still get a chance to run.
+                        continue
 
                     task.output = result.output
                     task.status = TaskStatus.SUCCEEDED
@@ -70,7 +74,11 @@ class PlanOrchestrator:
                     task.error = {"type": type(exc).__name__, "message": str(exc)}
                     context.plan = plan.to_dict()
                     self.runtime.checkpoint_store.save(context)
-                    return plan
+                    batch_failed = True
+                    continue
+
+            if batch_failed:
+                return plan
 
         self.runtime.complete(context)
         return plan

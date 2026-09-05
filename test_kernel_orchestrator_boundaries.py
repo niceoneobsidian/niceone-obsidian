@@ -137,19 +137,13 @@ def test_single_failed_task_halts_plan_without_completing():
     assert downstream.invocations == 1
 
 
-def test_sibling_branch_does_not_run_after_earlier_branch_fails_in_same_batch():
+def test_sibling_branch_runs_independently_after_earlier_branch_fails_in_same_batch():
     """
-    KNOWN GAP: branch-fail and branch-ok have NO dependency relationship
-    and are both ready in the same batch. Because PlanOrchestrator.execute()
-    returns as soon as ANY task in the current ready batch fails, branch-ok
-    never runs even though nothing depends on branch-fail.
-
-    This documents current (non-isolated) behavior: the sibling is
-    flipped to READY by ready_tasks() but never actually invoked, and
-    stays parked in READY indefinitely. If branch isolation is
-    implemented later, this test should be updated to expect
-    branch_ok.invocations == 1 and result.tasks["branch-ok"].status ==
-    TaskStatus.SUCCEEDED.
+    Branch isolation is implemented: branch-fail and branch-ok have NO
+    dependency relationship and are both ready in the same batch.
+    PlanOrchestrator.execute() now continues processing independent
+    siblings in the batch instead of returning on the first failure, so
+    branch-ok still runs and succeeds even though branch-fail failed.
     """
     failing = RecordingCapability("test.branch-fail", should_fail=True)
     independent = RecordingCapability("test.branch-ok")
@@ -178,12 +172,11 @@ def test_sibling_branch_does_not_run_after_earlier_branch_fails_in_same_batch():
 
     assert result.tasks["branch-fail"].status == TaskStatus.FAILED
     assert failing.invocations == 1
-    assert independent.invocations == 0
 
-    # The sibling is marked READY (ready_tasks() flips status for the
-    # whole batch up front) but never actually invoked -- it is left
-    # permanently parked in READY, neither run nor failed nor skipped.
-    assert result.tasks["branch-ok"].status == TaskStatus.READY
+    # The independent sibling has no dependency on the failed task, so it
+    # still runs to completion within the same batch.
+    assert independent.invocations == 1
+    assert result.tasks["branch-ok"].status == TaskStatus.SUCCEEDED
 
 
 def test_blocked_plan_raises_when_no_task_is_ready_and_none_failed():

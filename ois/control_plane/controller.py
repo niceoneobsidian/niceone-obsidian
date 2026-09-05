@@ -39,20 +39,32 @@ class ControlPlane:
         self.workflows = workflows or WorkflowRegistry()
 
     def resolve_capability(self, request: ControlRequest) -> Callable[..., object]:
-        # Keep registry lookup compatible with registries whose public API is
-        # supplied dynamically (and therefore not exposed to the type checker).
-        get_entry = getattr(self.capabilities, "get", None)
-        if not callable(get_entry):
-            raise TypeError("capability registry does not provide a callable get")
-        entry = get_entry(
-            request.capability_id,
-            request.capability_version,
-        )
-        capability = getattr(entry, "capability", None)
-        if callable(capability):
-            return capability
+        # Registries in this codebase expose two different lookup APIs:
+        # ois.kernel.registry.CapabilityRegistry.get() -> RegistryEntry(capability=...)
+        # ois.registries.base.Registry.resolve() -> RegistryEntry(value=...)
+        # Support both rather than assuming the kernel-style API.
+        lookup = getattr(self.capabilities, "get", None)
+        if not callable(lookup):
+            lookup = getattr(self.capabilities, "resolve", None)
+        if not callable(lookup):
+            raise TypeError("capability registry does not provide a callable get/resolve")
 
-        execute = getattr(capability, "execute", None)
+        entry = lookup(request.capability_id, request.capability_version)
+
+        candidate = getattr(entry, "capability", None)
+        if candidate is None:
+            candidate = getattr(entry, "value", None)
+
+        if callable(candidate):
+            return candidate
+
+        # Capabilities implement the Kernel Capability protocol (`invoke`),
+        # not necessarily a bare `execute` method.
+        invoke = getattr(candidate, "invoke", None)
+        if callable(invoke):
+            return invoke
+
+        execute = getattr(candidate, "execute", None)
         if callable(execute):
             return execute
 

@@ -58,6 +58,7 @@ def test_connector_registry_and_validation():
 def test_workflows_are_versioned_and_side_effects_are_explicit():
     assert RESEARCH_WORKFLOW.version == 1
     assert CONTENT_PUBLISH_WORKFLOW.version == 1
+    approve = CONTENT_PUBLISH_WORKFLOW.steps[-4]
     publish = CONTENT_PUBLISH_WORKFLOW.steps[-3]
+    assert approve.requires_approval is True
     assert publish.requires_approval is True
-    assert CONTENT_PUBLISH_WORKFLOW.steps[-2].requires_approval is True

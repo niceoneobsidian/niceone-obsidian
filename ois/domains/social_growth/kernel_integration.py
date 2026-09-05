@@ -43,8 +43,10 @@ class SocialIngestCapability:
         self._evidence_ledger = evidence_ledger or SQLiteEvidenceLedger()
         self._contract = CapabilityContract(
             capability_id="social.ingest",
-            version="1.1.0",
-            description="Normalize and persist social platform payloads as canonical SocialEvent records.",
+            version="1.0.0",
+            description=(
+                "Normalize and persist social platform payloads as canonical SocialEvent records."
+            ),
             input_schema={"platform": "string", "payloads": "array"},
             output_schema={
                 "events": "array",
@@ -64,7 +66,7 @@ class SocialIngestCapability:
     def invoke(self, request: InvocationRequest) -> InvocationResult:
         platform = str(request.input.get("platform", ""))
         payloads = request.input.get("payloads", [])
-        if not isinstance(payloads, Sequence) or isinstance(payloads, (str, bytes)):
+        if not isinstance(payloads, Sequence) or isinstance(payloads, str | bytes):
             raise TypeError("payloads must be a sequence")
 
         connector = self._connectors.get(platform)
@@ -92,7 +94,9 @@ class SocialResearchCapability:
         self._contract = CapabilityContract(
             capability_id="social.research.execute",
             version="1.0.0",
-            description="Analyze canonical social events and produce an evidence-backed research brief.",
+            description=(
+                "Analyze canonical social events and produce an evidence-backed research brief."
+            ),
             input_schema={"query": "string", "events": "array"},
             output_schema={"brief": "object"},
             risk_level=RiskLevel.LOW,
@@ -110,7 +114,7 @@ class SocialResearchCapability:
         raw_events = request.input.get("events", [])
         if not query:
             raise ValueError("query is required")
-        if not isinstance(raw_events, Sequence) or isinstance(raw_events, (str, bytes)):
+        if not isinstance(raw_events, Sequence) or isinstance(raw_events, str | bytes):
             raise TypeError("events must be a sequence")
 
         events = [SocialEvent.model_validate(event) for event in raw_events]
