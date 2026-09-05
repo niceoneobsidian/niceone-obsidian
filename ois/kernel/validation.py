@@ -34,16 +34,7 @@ class ValidationResult:
 
 
 class ContractValidator:
-    """
-    Deterministic validator for the foundational Kernel contracts.
-
-    Supported schema vocabulary intentionally starts small:
-    - object
-    - required
-    - properties
-    - type
-    - enum
-    """
+    """Deterministic validator for foundational Kernel contracts."""
 
     def validate_input(
         self,
@@ -70,7 +61,6 @@ class ContractValidator:
         path: str,
     ) -> list[str]:
         errors: list[str] = []
-
         expected_type = schema.get("type")
         type_validators = {
             "string": lambda v: isinstance(v, str),
@@ -80,7 +70,6 @@ class ContractValidator:
             "object": lambda v: isinstance(v, Mapping),
             "array": lambda v: isinstance(v, list | tuple),
         }
-
         if isinstance(expected_type, str):
             validator = type_validators.get(expected_type)
             if validator is not None and not validator(value):
@@ -108,5 +97,8 @@ class ContractValidator:
                             path=f"{path}.{field_name}",
                         )
                     )
-
         return errors
+
+
+# Backwards-compatible public name used by the existing Kernel test suite.
+Validator = ContractValidator
