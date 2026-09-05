@@ -18,6 +18,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v7
@@ -27,8 +29,27 @@ jobs:
       - name: Install Ruff
         run: python -m pip install --upgrade pip "ruff==0.9.10"
 
+      - name: Select changed Python files
+        id: files
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            git diff --name-only "${{ github.event.pull_request.base.sha }}...${{ github.sha }}" -- '*.py' > /tmp/ruff-files
+          else
+            git diff-tree --no-commit-id --name-only -r "${{ github.sha }}" -- '*.py' > /tmp/ruff-files
+          fi
+          if [[ -s /tmp/ruff-files ]]; then
+            echo "has_files=true" >> "$GITHUB_OUTPUT"
+            printf 'Changed Python files:\n'
+            cat /tmp/ruff-files
+          else
+            echo "has_files=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Ruff lint
-        run: ruff check .
+        if: steps.files.outputs.has_files == 'true'
+        run: xargs ruff check < /tmp/ruff-files
 
       - name: Ruff format check
-        run: ruff format --check .
+        if: steps.files.outputs.has_files == 'true'
+        run: xargs ruff format --check < /tmp/ruff-files
