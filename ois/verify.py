@@ -63,11 +63,7 @@ def run_check(check: Check) -> dict[str, Any]:
             "output": "required executable is not installed",
         }
 
-    command = (
-        (exe, *check.command[1:])
-        if check.command[0] == "python"
-        else check.command
-    )
+    command = (exe, *check.command[1:]) if check.command[0] == "python" else check.command
     proc = subprocess.run(
         command,
         cwd=ROOT,
@@ -95,6 +91,19 @@ def git_value(*args: str) -> str:
         check=False,
     )
     return proc.stdout.strip()
+
+
+def git_commit_exists(commit_sha: str) -> bool:
+    if not SHA_RE.fullmatch(commit_sha):
+        return False
+    proc = subprocess.run(
+        ("git", "cat-file", "-e", f"{commit_sha}^{{commit}}"),
+        cwd=ROOT,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        check=False,
+    )
+    return proc.returncode == 0
 
 
 def canonical_json(payload: dict[str, Any]) -> bytes:
@@ -127,7 +136,7 @@ def build_evidence(results: list[dict[str, Any]]) -> dict[str, Any]:
         "checks": results,
         "conformance": (
             "PASS"
-            if passed and not status and SHA_RE.fullmatch(commit_sha)
+            if passed and not status and git_commit_exists(commit_sha)
             else "FAIL"
         ),
         "evidence_class": "CONFORMANCE",
@@ -150,6 +159,9 @@ def verify_artifact(artifact: Path = EVIDENCE_PATH) -> tuple[bool, list[str]]:
     except (OSError, json.JSONDecodeError) as exc:
         return False, [f"unable to read evidence artifact: {exc}"]
 
+    if not isinstance(document, dict):
+        return False, ["verification evidence must be a JSON object"]
+
     if document.get("schema") != SCHEMA:
         errors.append("unsupported evidence schema")
     if document.get("production_promotion_eligible") is not False:
@@ -164,15 +176,27 @@ def verify_artifact(artifact: Path = EVIDENCE_PATH) -> tuple[bool, list[str]]:
     )
     if any(key in document for key in forbidden):
         errors.append("verification evidence cannot assert production activation")
-    if not SHA_RE.fullmatch(str(document.get("commit_sha", ""))):
+
+    commit_sha = str(document.get("commit_sha", ""))
+    if not SHA_RE.fullmatch(commit_sha):
         errors.append("evidence is not bound to a valid commit SHA")
+    elif not git_commit_exists(commit_sha):
+        errors.append("evidence commit SHA does not resolve to a repository commit")
+
     if document.get("working_tree") != "clean":
         errors.append("conformance evidence requires a clean working tree")
+
     checks = document.get("checks")
     if not isinstance(checks, list) or not checks:
         errors.append("evidence contains no checks")
-    elif any(item.get("status") != "PASS" for item in checks):
-        errors.append("evidence contains a failed or missing verification gate")
+    else:
+        for index, item in enumerate(checks):
+            if not isinstance(item, dict):
+                errors.append(f"evidence check {index} is not an object")
+                continue
+            if item.get("status") != "PASS":
+                errors.append(f"evidence check {index} is not PASS")
+
     if document.get("conformance") != "PASS":
         errors.append("conformance result is not PASS")
     if document.get("content_hash") != content_hash(document):
