@@ -16,7 +16,6 @@ from .contracts import (
     InvocationResult,
     PolicyEngine,
     ToolContract,
-    Validator,
 )
 from .evidence import EvidenceEvent, EvidenceLedger, SQLiteEvidenceLedger
 from .idempotency import IdempotencyStore, InMemoryIdempotencyStore, SQLiteIdempotencyStore
@@ -76,13 +75,13 @@ __all__ = [
     "AuthorizationDenied", "CancellationToken", "Capability", "CapabilityContract",
     "CapabilityNotFoundError", "CapabilityRegistry", "CheckpointNotFound", "CheckpointStore",
     "ContractValidator", "CyclicPlanError", "DefaultPolicyEngine", "DuplicateCapabilityError",
-    "DuplicateTaskError", "EvidenceEvent", "EvidenceLedger", "ExecutionContext",
-    "ExecutionError", "ExecutionIdentity", "ExecutionPlan", "ExecutionRuntime", "ExecutionStatus",
-    "FailureClass", "IdempotencyStore", "InMemoryCheckpointStore", "InMemoryIdempotencyStore",
-    "InputValidationError", "InvocationRequest", "InvocationResult", "InvocationStatus",
-    "JsonFileCheckpointStore", "OrchestrationError", "OutputValidationError", "PlanBuilder",
-    "PlanError", "PlanExecutionError", "PlanOrchestrator", "PolicyDecision", "PolicyEngine",
-    "PostgresConfigurationError", "PostgresDurableExecutionStore", "RecoveryDecision",
+    "DuplicateTaskError", "EvidenceEvent", "EvidenceLedger", "ExecutionCancellation",
+    "ExecutionContext", "ExecutionError", "ExecutionIdentity", "ExecutionPlan", "ExecutionRuntime",
+    "ExecutionStatus", "FailureClass", "IdempotencyStore", "InMemoryCheckpointStore",
+    "InMemoryIdempotencyStore", "InputValidationError", "InvocationRequest", "InvocationResult",
+    "InvocationStatus", "JsonFileCheckpointStore", "OrchestrationError", "OutputValidationError",
+    "PlanBuilder", "PlanError", "PlanExecutionError", "PlanOrchestrator", "PolicyDecision",
+    "PolicyEngine", "PostgresConfigurationError", "PostgresDurableExecutionStore", "RecoveryDecision",
     "RecoveryPolicy", "RetryLimitExceeded", "RiskLevel", "SQLiteCheckpointStore",
     "SQLiteEvidenceLedger", "SQLiteIdempotencyStore", "SideEffectCommand", "SideEffectExecutor",
     "SideEffectResult", "SideEffectLevel", "SupervisionDecision", "Supervisor", "SupervisorError",
