@@ -1,14 +1,13 @@
 """Authoritative registration of Social Intelligence in the OIS Kernel."""
 from __future__ import annotations
 
-from collections.abc import Callable
 from typing import Any
 
 from ois.kernel.contracts import AgentContract, InvocationRequest, InvocationResult, ToolContract
 from ois.kernel.registry import AgentRegistry, CapabilityRegistry, ToolRegistry
-from ois.kernel.types import RiskLevel, SideEffectLevel
+from ois.kernel.types import InvocationStatus, RiskLevel, SideEffectLevel
 
-from .kernel_integration import register_social_kernel_capabilities
+from .kernel_integration import SocialIngestCapability, SocialResearchCapability
 from .platform_adapters import SocialConnector
 from .runtime_capabilities import SOCIAL_RUNTIME_CAPABILITIES
 
@@ -57,30 +56,24 @@ def register_social_runtime(
     connectors: Any,
     tokenized_tools: bool = True,
 ) -> dict[str, int]:
-    """Register executable M13-M20 capabilities and social agent/tool providers.
-
-    The function is intentionally explicit and idempotency-safe: duplicate
-    registrations are surfaced by the canonical Kernel registries instead of
-    being silently overwritten.
-    """
-    register_social_kernel_capabilities(capabilities, connectors=connectors)
-    registered_capabilities = 2
+    """Register executable M13-M20 capabilities and social agent/tool providers."""
+    m13_providers = [SocialIngestCapability(connectors), SocialResearchCapability()]
+    for provider in m13_providers:
+        capabilities.register(provider)
+        agents.register(_agent_for(provider))
 
     providers = [capability() for capability in SOCIAL_RUNTIME_CAPABILITIES]
     for provider in providers:
         capabilities.register(provider)
-        registered_capabilities += 1
         agents.register(_agent_for(provider))
 
     if tokenized_tools:
         for platform in connectors.platforms():
-            connector = connectors.get(platform)
-            tool = ConnectorTool(connector)
-            tools.register(tool)
+            tools.register(ConnectorTool(connectors.get(platform)))
 
     return {
-        "capabilities": registered_capabilities,
-        "agents": len(providers),
+        "capabilities": len(m13_providers) + len(providers),
+        "agents": len(m13_providers) + len(providers),
         "tools": len(connectors.platforms()) if tokenized_tools else 0,
     }
 
@@ -117,6 +110,6 @@ class ConnectorTool:
         return InvocationResult(
             invocation_id=request.invocation_id,
             capability_id=self.contract.capability_id,
-            status=__import__("ois.kernel.types", fromlist=["InvocationStatus"]).InvocationStatus.SUCCEEDED,
+            status=InvocationStatus.SUCCEEDED,
             output={"platform_result": result},
         )
