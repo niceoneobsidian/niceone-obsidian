@@ -100,6 +100,9 @@ class CapabilityRegistry:
         with self._lock:
             return tuple(self._entries.values())
 
+    def resolve(self, capability_id: str, version: str) -> RegistryEntry:
+        return self.get(capability_id, version)
+
     def has(self, capability_id: str, version: str) -> bool:
         return (capability_id, version) in self._entries
 

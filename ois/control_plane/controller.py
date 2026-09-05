@@ -39,17 +39,37 @@ class ControlPlane:
         self.workflows = workflows or WorkflowRegistry()
 
     def resolve_capability(self, request: ControlRequest) -> Callable[..., object]:
-        entry = self.capabilities.resolve(
+        # Keep registry lookup compatible with registries whose public API is
+        # supplied dynamically (and therefore not exposed to the type checker).
+        get_entry = getattr(self.capabilities, "get", None)
+        if not callable(get_entry):
+            raise TypeError("capability registry does not provide a callable get")
+        entry = get_entry(
             request.capability_id,
             request.capability_version,
         )
         capability = getattr(entry, "capability", None)
-        if not callable(capability):
-            raise TypeError(
-                f"registered capability is not callable: "
-                f"{request.capability_id}@{request.capability_version}"
-            )
-        return capability
+        if callable(capability):
+            return capability
+
+        execute = getattr(capability, "execute", None)
+        if callable(execute):
+            return execute
+
+        raise TypeError(
+            f"registered capability is not callable: "
+            f"{request.capability_id}@{request.capability_version}"
+        )
+
+    def execute(
+        self,
+        request: ControlRequest,
+        *args: object,
+        **kwargs: object,
+    ) -> object:
+        """Resolve and invoke the capability described by ``request``."""
+        capability = self.resolve_capability(request)
+        return capability(*args, **kwargs)
 
     def snapshot(self) -> Mapping[str, tuple[object, ...]]:
         """Return a deterministic registry snapshot for audit/inspection."""
