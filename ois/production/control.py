@@ -75,7 +75,9 @@ class PromotionEvidence:
         if not self.verified:
             raise GovernanceError("promotion evidence must be independently verified")
         if self.execution_mode != "real":
-            raise GovernanceError("mocked or stub execution cannot produce promotion evidence")
+            raise GovernanceError(
+                "mocked or stub execution cannot produce promotion evidence"
+            )
 
 
 @dataclass(frozen=True)
@@ -366,7 +368,11 @@ class LearningEngine:
         candidate = self._candidates[candidate_id]
         state = "evaluated" if 0.0 <= score <= 1.0 else "rejected"
         updated = Candidate(
-            candidate.candidate_id, candidate.target, candidate.version, candidate.evidence, state
+            candidate.candidate_id,
+            candidate.target,
+            candidate.version,
+            candidate.evidence,
+            state,
         )
         self._candidates[candidate_id] = updated
         return updated
@@ -378,7 +384,11 @@ class LearningEngine:
         if not approved_by:
             raise GovernanceError("candidate approval requires identity")
         updated = Candidate(
-            candidate.candidate_id, candidate.target, candidate.version, candidate.evidence, "approved"
+            candidate.candidate_id,
+            candidate.target,
+            candidate.version,
+            candidate.evidence,
+            "approved",
         )
         self._candidates[candidate_id] = updated
         return updated
@@ -389,7 +399,11 @@ class LearningEngine:
             raise GovernanceError("only approved candidates may activate")
         rollout(candidate)
         updated = Candidate(
-            candidate.candidate_id, candidate.target, candidate.version, candidate.evidence, "activated"
+            candidate.candidate_id,
+            candidate.target,
+            candidate.version,
+            candidate.evidence,
+            "activated",
         )
         self._candidates[candidate_id] = updated
         return updated
