@@ -7,7 +7,7 @@ policy, authorization, execution, validation, checkpointing and evidence.
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from dataclasses import asdict, dataclass
+from dataclasses import asdict
 from typing import Any
 from uuid import uuid4
 
@@ -15,7 +15,7 @@ from ois.kernel.contracts import CapabilityContract, InvocationRequest, Invocati
 from ois.kernel.types import InvocationStatus, RiskLevel, SideEffectLevel
 
 from .experiments import CreativeVariant, Experiment, simulate_variants
-from .intelligence import ModalityObservation, build_content_genome
+from .intelligence import ContentGenome, ModalityObservation, build_content_genome
 from .learning import PerformanceObservation, compare_prediction_to_outcome
 from .prediction import predict_content
 
@@ -30,17 +30,30 @@ def _ok(request: InvocationRequest, contract: CapabilityContract, output: Any) -
     )
 
 
+def _genome(payload: Mapping[str, Any]) -> ContentGenome:
+    observations = [
+        ModalityObservation(modality=modality, features=dict(payload.get(key, {})))
+        for modality, key in (
+            ("text", "hook"), ("image", "visual"), ("video", "temporal"),
+            ("audio", "audio"), ("text", "emotion"), ("text", "audience_signals"),
+        )
+        if payload.get(key)
+    ]
+    return build_content_genome(
+        content_id=str(payload.get("content_id", "")),
+        observations=observations,
+        version=str(payload.get("version", "m14.v1")),
+        topic=payload.get("topic"),
+    )
+
+
 class M14ContentIntelligence:
     contract = CapabilityContract(
-        capability_id="social.content.intelligence",
-        version="1.0.0",
+        capability_id="social.content.intelligence", version="1.0.0",
         description="Build a deterministic multimodal Content Genome from supplied observations.",
         input_schema={"content_id": "string", "observations": "array"},
-        output_schema={"content_genome": "object"},
-        risk_level=RiskLevel.LOW,
-        allowed_domains=("social_intelligence",),
-        side_effects=SideEffectLevel.NONE,
-        idempotent=True,
+        output_schema={"content_genome": "object"}, risk_level=RiskLevel.LOW,
+        allowed_domains=("social_intelligence",), side_effects=SideEffectLevel.NONE, idempotent=True,
     )
 
     def invoke(self, request: InvocationRequest) -> InvocationResult:
@@ -48,104 +61,61 @@ class M14ContentIntelligence:
         raw = request.input.get("observations", [])
         if not content_id or not isinstance(raw, Sequence) or isinstance(raw, (str, bytes)):
             raise ValueError("content_id and observations are required")
-        observations = [ModalityObservation.model_validate(item) for item in raw]
+        observations = [ModalityObservation(**dict(item)) for item in raw]
         genome = build_content_genome(content_id=content_id, observations=observations)
         return _ok(request, self.contract, {"content_genome": asdict(genome)})
 
 
 class M15Prediction:
     contract = CapabilityContract(
-        capability_id="social.content.predict",
-        version="1.0.0",
+        capability_id="social.content.predict", version="1.0.0",
         description="Predict content performance from a Content Genome with bounded confidence.",
-        input_schema={"content_genome": "object"},
-        output_schema={"prediction": "object"},
-        risk_level=RiskLevel.LOW,
-        allowed_domains=("social_intelligence",),
-        side_effects=SideEffectLevel.NONE,
-        idempotent=True,
+        input_schema={"content_genome": "object"}, output_schema={"prediction": "object"},
+        risk_level=RiskLevel.LOW, allowed_domains=("social_intelligence",),
+        side_effects=SideEffectLevel.NONE, idempotent=True,
     )
 
     def invoke(self, request: InvocationRequest) -> InvocationResult:
-        genome = request.input.get("content_genome")
-        if not isinstance(genome, Mapping):
+        payload = request.input.get("content_genome")
+        if not isinstance(payload, Mapping):
             raise TypeError("content_genome must be an object")
-        # Rebuild through the canonical primitive instead of trusting an arbitrary object.
-        observations = []
-        for modality, features in (
-            ("text", genome.get("hook", {})),
-            ("image", genome.get("visual", {})),
-            ("video", genome.get("temporal", {})),
-            ("audio", genome.get("audio", {})),
-        ):
-            if features:
-                observations.append(ModalityObservation(modality=modality, features=dict(features)))
-        for key, features in (("emotion", genome.get("emotion", {})), ("audience_signals", genome.get("audience_signals", {}))):
-            if features:
-                observations.append(ModalityObservation(modality="text", features={key: dict(features)}))
-        content_id = str(genome.get("content_id", ""))
-        canonical = build_content_genome(content_id=content_id, observations=observations)
-        prediction = predict_content(canonical)
+        prediction = predict_content(_genome(payload))
         return _ok(request, self.contract, {"prediction": asdict(prediction)})
 
 
 class M16Experimentation:
     contract = CapabilityContract(
-        capability_id="social.experiment.simulate",
-        version="1.0.0",
+        capability_id="social.experiment.simulate", version="1.0.0",
         description="Simulate and rank controlled creative variants without production mutation.",
-        input_schema={"experiment": "object"},
-        output_schema={"scores": "array"},
-        risk_level=RiskLevel.LOW,
-        allowed_domains=("social_intelligence",),
-        side_effects=SideEffectLevel.NONE,
-        idempotent=True,
+        input_schema={"experiment": "object"}, output_schema={"scores": "array"},
+        risk_level=RiskLevel.LOW, allowed_domains=("social_intelligence",),
+        side_effects=SideEffectLevel.NONE, idempotent=True,
     )
 
     def invoke(self, request: InvocationRequest) -> InvocationResult:
         payload = request.input.get("experiment")
         if not isinstance(payload, Mapping):
             raise TypeError("experiment must be an object")
-        variants = []
-        for item in payload.get("variants", []):
-            variants.append(
-                CreativeVariant(
-                    variant_id=str(item["variant_id"]),
-                    genome=self._genome(item["genome"]),
-                    hypothesis=str(item.get("hypothesis", "")),
-                )
-            )
+        variants = tuple(
+            CreativeVariant(str(item["variant_id"]), _genome(item["genome"]), str(item.get("hypothesis", "")))
+            for item in payload.get("variants", [])
+        )
         experiment = Experiment(
-            experiment_id=str(payload["experiment_id"]),
-            objective=str(payload["objective"]),
-            hypothesis=str(payload["hypothesis"]),
-            control_variant_id=str(payload["control_variant_id"]),
-            variants=tuple(variants),
+            experiment_id=str(payload["experiment_id"]), objective=str(payload["objective"]),
+            hypothesis=str(payload["hypothesis"]), control_variant_id=str(payload["control_variant_id"]),
+            variants=variants,
         )
         scores = simulate_variants(experiment)
         return _ok(request, self.contract, {"scores": [asdict(score) for score in scores]})
 
-    @staticmethod
-    def _genome(payload: Mapping[str, Any]):
-        observations = []
-        for modality, key in (("text", "hook"), ("image", "visual"), ("video", "temporal"), ("audio", "audio"), ("text", "emotion"), ("text", "audience_signals")):
-            features = payload.get(key, {})
-            if features:
-                observations.append(ModalityObservation(modality=modality, features=dict(features)))
-        return build_content_genome(content_id=str(payload.get("content_id", "")), observations=observations)
-
 
 class M17Learning:
     contract = CapabilityContract(
-        capability_id="social.learning.compare_outcome",
-        version="1.0.0",
+        capability_id="social.learning.compare_outcome", version="1.0.0",
         description="Compare predictions to observed outcomes and emit append-only learning evidence.",
         input_schema={"content_id": "string", "prediction_version": "string", "predicted": "object", "observed": "object", "evidence_refs": "array"},
-        output_schema={"learning_event": "object"},
-        risk_level=RiskLevel.LOW,
-        allowed_domains=("social_intelligence",),
-        side_effects=SideEffectLevel.NONE,
-        idempotent=True,
+        output_schema={"learning_event": "object"}, risk_level=RiskLevel.LOW,
+        allowed_domains=("social_intelligence",), side_effects=SideEffectLevel.NONE, idempotent=True,
     )
 
     def invoke(self, request: InvocationRequest) -> InvocationResult:
@@ -155,30 +125,23 @@ class M17Learning:
         observed = PerformanceObservation(
             content_id=str(request.input["content_id"]),
             metrics={str(k): float(v) for k, v in dict(observed_payload.get("metrics", {})).items()},
-            source=str(observed_payload["source"]),
-            observed_at=str(observed_payload["observed_at"]),
+            source=str(observed_payload["source"]), observed_at=str(observed_payload["observed_at"]),
         )
         event = compare_prediction_to_outcome(
-            content_id=observed.content_id,
-            prediction_version=str(request.input["prediction_version"]),
+            content_id=observed.content_id, prediction_version=str(request.input["prediction_version"]),
             predicted={str(k): float(v) for k, v in dict(request.input.get("predicted", {})).items()},
-            observed=observed,
-            evidence_refs=tuple(str(v) for v in request.input.get("evidence_refs", [])),
+            observed=observed, evidence_refs=tuple(str(v) for v in request.input.get("evidence_refs", [])),
         )
         return _ok(request, self.contract, {"learning_event": asdict(event)})
 
 
 class M18ViralPatternLearning:
     contract = CapabilityContract(
-        capability_id="social.learning.pattern_extract",
-        version="1.0.0",
+        capability_id="social.learning.pattern_extract", version="1.0.0",
         description="Extract evidence-backed creative pattern candidates from observed content outcomes.",
         input_schema={"content_id": "string", "patterns": "array", "learning_event": "object"},
-        output_schema={"candidates": "array"},
-        risk_level=RiskLevel.LOW,
-        allowed_domains=("social_intelligence",),
-        side_effects=SideEffectLevel.NONE,
-        idempotent=True,
+        output_schema={"candidates": "array"}, risk_level=RiskLevel.LOW,
+        allowed_domains=("social_intelligence",), side_effects=SideEffectLevel.NONE, idempotent=True,
     )
 
     def invoke(self, request: InvocationRequest) -> InvocationResult:
@@ -186,84 +149,58 @@ class M18ViralPatternLearning:
         refs = tuple(str(v) for v in event.get("evidence_refs", [])) if isinstance(event, Mapping) else ()
         if not refs:
             return _ok(request, self.contract, {"candidates": []})
-        candidates = []
-        for pattern in request.input.get("patterns", []):
-            if not isinstance(pattern, Mapping):
-                continue
-            candidates.append({
-                "candidate_id": str(uuid4()),
-                "pattern": dict(pattern),
-                "content_id": str(request.input.get("content_id", "")),
-                "evidence_refs": refs,
-                "status": "proposed",
-                "version": 1,
-            })
+        candidates = [
+            {"candidate_id": str(uuid4()), "pattern": dict(pattern),
+             "content_id": str(request.input.get("content_id", "")),
+             "evidence_refs": refs, "status": "proposed", "version": 1}
+            for pattern in request.input.get("patterns", []) if isinstance(pattern, Mapping)
+        ]
         return _ok(request, self.contract, {"candidates": candidates})
 
 
 class M19CampaignOptimization:
     contract = CapabilityContract(
-        capability_id="social.campaign.optimize",
-        version="1.0.0",
+        capability_id="social.campaign.optimize", version="1.0.0",
         description="Produce a ranked optimization recommendation from experiment results and constraints.",
         input_schema={"scores": "array", "objective": "string", "constraints": "object"},
-        output_schema={"recommendation": "object"},
-        risk_level=RiskLevel.MEDIUM,
-        allowed_domains=("social_intelligence",),
-        side_effects=SideEffectLevel.NONE,
-        idempotent=True,
+        output_schema={"recommendation": "object"}, risk_level=RiskLevel.MEDIUM,
+        allowed_domains=("social_intelligence",), side_effects=SideEffectLevel.NONE, idempotent=True,
     )
 
     def invoke(self, request: InvocationRequest) -> InvocationResult:
         scores = [s for s in request.input.get("scores", []) if isinstance(s, Mapping)]
-        ranked = sorted(scores, key=lambda s: float(s.get("expected_metrics", {}).get("overall_performance", 0.0)), reverse=True)
+        ranked = sorted(scores, key=lambda s: float(dict(s.get("expected_metrics", {})).get("overall_performance", 0.0)), reverse=True)
         winner = ranked[0] if ranked else None
-        recommendation = {
+        return _ok(request, self.contract, {"recommendation": {
             "objective": str(request.input.get("objective", "")),
             "recommended_variant_id": winner.get("variant_id") if winner else None,
-            "basis": "highest simulated overall_performance",
-            "simulation_only": True,
+            "basis": "highest simulated overall_performance", "simulation_only": True,
             "constraints": dict(request.input.get("constraints", {})),
-        }
-        return _ok(request, self.contract, {"recommendation": recommendation})
+        }})
 
 
 class M20ControlledEvolution:
     contract = CapabilityContract(
-        capability_id="social.evolution.propose",
-        version="1.0.0",
+        capability_id="social.evolution.propose", version="1.0.0",
         description="Create a versioned, evidence-backed social evolution candidate; never mutate production directly.",
         input_schema={"hypothesis": "string", "evidence_refs": "array", "target": "object"},
-        output_schema={"candidate": "object"},
-        risk_level=RiskLevel.HIGH,
-        allowed_domains=("social_intelligence",),
-        permissions=("social.evolution.propose",),
-        side_effects=SideEffectLevel.NONE,
-        idempotent=True,
+        output_schema={"candidate": "object"}, risk_level=RiskLevel.HIGH,
+        allowed_domains=("social_intelligence",), permissions=("social.evolution.propose",),
+        side_effects=SideEffectLevel.NONE, idempotent=True,
     )
 
     def invoke(self, request: InvocationRequest) -> InvocationResult:
         refs = tuple(str(v) for v in request.input.get("evidence_refs", []))
         if not str(request.input.get("hypothesis", "")).strip() or not refs:
             raise ValueError("hypothesis and evidence_refs are required")
-        candidate = {
-            "candidate_id": str(uuid4()),
-            "version": "m20.v1",
-            "hypothesis": str(request.input["hypothesis"]),
-            "target": dict(request.input.get("target", {})),
-            "evidence_refs": refs,
-            "status": "proposed",
-            "production_mutation": False,
-        }
-        return _ok(request, self.contract, {"candidate": candidate})
+        return _ok(request, self.contract, {"candidate": {
+            "candidate_id": str(uuid4()), "version": "m20.v1",
+            "hypothesis": str(request.input["hypothesis"]), "target": dict(request.input.get("target", {})),
+            "evidence_refs": refs, "status": "proposed", "production_mutation": False,
+        }})
 
 
 SOCIAL_RUNTIME_CAPABILITIES = (
-    M14ContentIntelligence,
-    M15Prediction,
-    M16Experimentation,
-    M17Learning,
-    M18ViralPatternLearning,
-    M19CampaignOptimization,
-    M20ControlledEvolution,
+    M14ContentIntelligence, M15Prediction, M16Experimentation, M17Learning,
+    M18ViralPatternLearning, M19CampaignOptimization, M20ControlledEvolution,
 )
