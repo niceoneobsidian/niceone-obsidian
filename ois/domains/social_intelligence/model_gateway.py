@@ -22,10 +22,9 @@ class OpenAIResponsesProvider:
 
     def invoke(self, model: str, request: dict[str, object]) -> object:
         payload = {"model": model, "input": str(request["prompt"])}
-        body = json.dumps(payload).encode("utf-8")
         http_request = Request(
             self.base_url,
-            data=body,
+            data=json.dumps(payload).encode("utf-8"),
             method="POST",
             headers={
                 "Authorization": f"Bearer {self.api_key}",
@@ -73,3 +72,48 @@ def build_openai_social_gateway(
         )
     )
     return gateway
+
+
+class GatewayBackedM15Prediction:
+    """M15 provider that obtains predictions through the registered gateway."""
+
+    def __init__(self, gateway: LLMGateway) -> None:
+        from .runtime_capabilities import M15Prediction
+
+        self._gateway = gateway
+        self.contract = M15Prediction.contract
+
+    def invoke(self, request: object) -> object:
+        from ois.kernel.contracts import InvocationRequest, InvocationResult
+        from ois.kernel.types import InvocationStatus
+
+        if not isinstance(request, InvocationRequest):
+            raise TypeError("M15 gateway adapter requires InvocationRequest")
+        genome = request.input.get("content_genome")
+        if not isinstance(genome, Mapping):
+            raise TypeError("content_genome must be an object")
+        prompt = (
+            "Return JSON only with numeric fields: scroll_stop_probability, "
+            "retention_probability, completion_probability, rewatch_probability, "
+            "share_probability, save_probability, comment_probability, "
+            "follow_probability, profile_visit_probability, conversion_probability, confidence. "
+            f"Content Genome: {json.dumps(dict(genome), sort_keys=True)}"
+        )
+        raw = self._gateway.invoke(
+            str(request.invocation_id),
+            prompt,
+            capabilities={"social_prediction"},
+        )
+        if isinstance(raw, str):
+            raw = json.loads(raw)
+        if not isinstance(raw, Mapping):
+            raise TypeError("model gateway prediction must be a JSON object")
+        prediction = dict(raw)
+        prediction["model_version"] = "gateway"
+        return InvocationResult(
+            invocation_id=request.invocation_id,
+            capability_id=self.contract.capability_id,
+            status=InvocationStatus.SUCCEEDED,
+            output={"prediction": prediction},
+            metadata={"model_gateway": "ois.social.model-gateway"},
+        )
