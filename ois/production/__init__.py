@@ -12,6 +12,7 @@ from .control import (
     ExternalConnector,
     GovernanceError,
     LearningEngine,
+    PromotionEvidence,
     SemanticWorld,
 )
 
@@ -27,5 +28,6 @@ __all__ = [
     "ExternalConnector",
     "GovernanceError",
     "LearningEngine",
+    "PromotionEvidence",
     "SemanticWorld",
 ]
