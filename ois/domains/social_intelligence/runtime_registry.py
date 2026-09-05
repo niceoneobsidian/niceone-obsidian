@@ -1,4 +1,5 @@
 """Authoritative registration of Social Intelligence in the OIS Kernel."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -6,10 +7,12 @@ from typing import Any
 from ois.kernel.contracts import AgentContract, InvocationRequest, InvocationResult, ToolContract
 from ois.kernel.registry import AgentRegistry, CapabilityRegistry, ToolRegistry
 from ois.kernel.types import InvocationStatus, RiskLevel, SideEffectLevel
+from ois.runtime.llm_gateway import LLMGateway
 
 from .kernel_integration import SocialIngestCapability, SocialResearchCapability
+from .model_gateway import GatewayBackedM15Prediction
 from .platform_adapters import SocialConnector
-from .runtime_capabilities import SOCIAL_RUNTIME_CAPABILITIES
+from .runtime_capabilities import M15Prediction, SOCIAL_RUNTIME_CAPABILITIES
 
 
 class DelegatingSocialAgent:
@@ -49,11 +52,7 @@ def _agent_for(capability: Any) -> DelegatingSocialAgent:
 
 
 class SocialCapabilityRegistry:
-    """Domain facade over the canonical OIS Kernel CapabilityRegistry.
-
-    The Kernel registry remains authoritative; this facade only makes the Social
-    Intelligence activation boundary explicit and machine-discoverable.
-    """
+    """Domain facade over the canonical OIS Kernel CapabilityRegistry."""
 
     capability_ids = (
         "social.ingest", "social.research.execute", "social.content.intelligence",
@@ -64,11 +63,28 @@ class SocialCapabilityRegistry:
     def __init__(self, kernel_registry: CapabilityRegistry) -> None:
         self.kernel_registry = kernel_registry
 
-    def activate(self, agents: AgentRegistry, tools: ToolRegistry, *, connectors: Any) -> dict[str, int]:
-        return register_social_runtime(self.kernel_registry, agents, tools, connectors=connectors)
+    def activate(
+        self,
+        agents: AgentRegistry,
+        tools: ToolRegistry,
+        *,
+        connectors: Any,
+        model_gateway: LLMGateway | None = None,
+    ) -> dict[str, int]:
+        return register_social_runtime(
+            self.kernel_registry,
+            agents,
+            tools,
+            connectors=connectors,
+            model_gateway=model_gateway,
+        )
 
     def entries(self):
-        return tuple(entry for entry in self.kernel_registry.list() if entry.contract.capability_id in self.capability_ids)
+        return tuple(
+            entry
+            for entry in self.kernel_registry.list()
+            if entry.contract.capability_id in self.capability_ids
+        )
 
 
 def register_social_runtime(
@@ -78,6 +94,7 @@ def register_social_runtime(
     *,
     connectors: Any,
     tokenized_tools: bool = True,
+    model_gateway: LLMGateway | None = None,
 ) -> dict[str, int]:
     """Register executable M13-M20 capabilities and social agent/tool providers."""
     m13_providers = [SocialIngestCapability(connectors), SocialResearchCapability()]
@@ -85,8 +102,14 @@ def register_social_runtime(
         capabilities.register(provider)
         agents.register(_agent_for(provider))
 
-    providers = [capability() for capability in SOCIAL_RUNTIME_CAPABILITIES]
-    for provider in providers:
+    providers: list[Any] = []
+    for capability in SOCIAL_RUNTIME_CAPABILITIES:
+        provider = (
+            GatewayBackedM15Prediction(model_gateway)
+            if capability is M15Prediction and model_gateway is not None
+            else capability()
+        )
+        providers.append(provider)
         capabilities.register(provider)
         agents.register(_agent_for(provider))
 
@@ -128,6 +151,7 @@ class ConnectorTool:
 
     def invoke(self, request: InvocationRequest) -> InvocationResult:
         from .schemas import PublishIntent
+
         intent = PublishIntent.model_validate(request.input.get("publish_intent"))
         result = self._connector.publish(intent)
         return InvocationResult(
