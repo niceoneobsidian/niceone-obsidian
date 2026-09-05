@@ -1,0 +1,33 @@
+{
+  "manifest_version": "1.0.0",
+  "domain": "social_intelligence",
+  "status": "IMPLEMENTED",
+  "runtime": {
+    "kernel_registry": "ois.kernel.registry.CapabilityRegistry",
+    "agent_registry": "ois.kernel.registry.AgentRegistry",
+    "tool_registry": "ois.kernel.registry.ToolRegistry",
+    "execution_path": "Supervisor -> Agent -> Tool -> Model Gateway -> Kernel",
+    "evidence_required_before_activation": true
+  },
+  "capabilities": [
+    {"id": "social.ingest", "version": "1.1.0", "milestone": "M13", "status": "IMPLEMENTED"},
+    {"id": "social.research.execute", "version": "1.0.0", "milestone": "M13", "status": "IMPLEMENTED"},
+    {"id": "social.content.intelligence", "version": "1.0.0", "milestone": "M14", "status": "IMPLEMENTED"},
+    {"id": "social.content.predict", "version": "1.0.0", "milestone": "M15", "status": "IMPLEMENTED", "model_status": "DETERMINISTIC_BASELINE"},
+    {"id": "social.experiment.simulate", "version": "1.0.0", "milestone": "M16", "status": "IMPLEMENTED"},
+    {"id": "social.learning.compare_outcome", "version": "1.0.0", "milestone": "M17", "status": "IMPLEMENTED"},
+    {"id": "social.learning.pattern_extract", "version": "1.0.0", "milestone": "M18", "status": "IMPLEMENTED"},
+    {"id": "social.campaign.optimize", "version": "1.0.0", "milestone": "M19", "status": "IMPLEMENTED"},
+    {"id": "social.evolution.propose", "version": "1.0.0", "milestone": "M20", "status": "IMPLEMENTED", "production_mutation": false}
+  ],
+  "platform_adapters": [
+    {"platform": "tiktok", "adapter": "TikTokContentPostingAdapter", "api": "Content Posting API Direct Post", "status": "IMPLEMENTED", "runtime_credentials": "REQUIRED"},
+    {"platform": "configured_oauth_json", "adapter": "OAuthJSONPlatformAdapter", "status": "IMPLEMENTED", "endpoint_mapping": "DEPLOYMENT_CONFIGURED"}
+  ],
+  "governance": {
+    "publishing_permission": "social.publish",
+    "publishing_approval_required": true,
+    "publishing_side_effect": "irreversible",
+    "evolution_production_mutation": false
+  }
+}
