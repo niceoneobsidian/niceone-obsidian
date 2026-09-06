@@ -9,6 +9,7 @@ from ois.kernel import (
     ExecutionIdentity,
     ExecutionPlan,
     ExecutionRuntime,
+    ExecutionStatus,
     FailureClass,
     PlanBuilder,
     PlanOrchestrator,
@@ -48,8 +49,6 @@ class IntegratedExecution:
         objective: str,
         request: ControlRequest,
     ) -> ExecutionPlan:
-        # Resolution happens before a plan is admitted, while authorization
-        # remains authoritative inside the Kernel runtime.
         self.control_plane.resolve_capability(request)
         return (
             PlanBuilder(objective)
@@ -109,7 +108,7 @@ class IntegratedExecution:
             raw_failure_class = (failed_task.error or {}).get("failure_class")
             try:
                 failure_class = FailureClass(raw_failure_class)
-            except ValueError:
+            except (ValueError, TypeError):
                 failure_class = FailureClass.UNKNOWN
 
             recovery_preview = self.recovery.classify(failure_class, context)
@@ -136,7 +135,7 @@ class IntegratedExecution:
             )
 
             if supervision.action == SupervisionAction.STOP:
-                context.set_status(context.status.STOPPED)
+                context.set_status(ExecutionStatus.STOPPED)
                 self.runtime.checkpoint_store.save(context)
                 return context
 
