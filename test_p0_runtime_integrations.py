@@ -18,7 +18,7 @@ from ois.runtime.redis_coordination import RedisCoordination
 
 class RuntimeEcho:
     @property
-    def contract(self):
+    def contract(self) -> CapabilityContract:
         return CapabilityContract(
             capability_id="test.runtime.echo",
             version="1.0.0",
@@ -36,13 +36,13 @@ class RuntimeEcho:
         )
 
 
-def make_spine():
+def make_spine() -> OISSpine:
     registry = CapabilityRegistry()
     registry.register("test.runtime.echo", "1.0.0", RuntimeEcho())
     return OISSpine(registry)
 
 
-def test_langgraph_adapter_executes_through_ois_spine():
+def test_langgraph_adapter_executes_through_ois_spine() -> None:
     graph = build_ois_graph(make_spine())
     state = graph.invoke(
         {
@@ -62,7 +62,7 @@ def test_langgraph_adapter_executes_through_ois_spine():
     not os.getenv("OIS_REDIS_URL"),
     reason="OIS_REDIS_URL not configured",
 )
-def test_redis_coordination_lease():
+def test_redis_coordination_lease() -> None:
     coordination = RedisCoordination(os.environ["OIS_REDIS_URL"])
     assert coordination.ping() is True
     with coordination.lease("p0-test", ttl_seconds=10) as token:
