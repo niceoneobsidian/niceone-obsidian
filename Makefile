@@ -9,16 +9,16 @@ infra-up:
 infra-down:
 	docker compose -f infra/docker-compose.yml down
 
-# Fast deterministic tests; does not require Docker services.
+# Fast deterministic repository tests; Docker services are not required.
 test:
-	python -m pytest -q tests/unit tests/integration -m 'not runtime'
+	python -m pytest -q
 
-# Real PostgreSQL + Redis conformance. The integration test is skipped when URLs are absent.
+# Real PostgreSQL + Redis conformance lifecycle.
 integration: infra-up
 	python -m pytest -q tests/integration/test_persistence_coordination.py
 
 verify-all: infra-up
-	python -m pytest -q tests/integration/test_persistence_coordination.py
+	python -m pytest -q
 
-clean: infra-down
+clean:
 	docker compose -f infra/docker-compose.yml down -v
