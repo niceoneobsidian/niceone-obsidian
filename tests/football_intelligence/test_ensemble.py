@@ -8,7 +8,9 @@ def test_ensemble_produces_auditable_prediction():
     match = MatchState(
         competition="EPL",
         kickoff_at=datetime(2026, 8, 30, 15, tzinfo=UTC),
-        home=TeamSnapshot(team_id="h", name="Home", elo=1650, attack_strength=1.3, defense_strength=0.9, home_advantage=0.08, lineup_confidence=0.9),
+        home=TeamSnapshot(
+            team_id="h", name="Home", elo=1650, attack_strength=1.3, defense_strength=0.9, home_advantage=0.08, lineup_confidence=0.9
+        ),
         away=TeamSnapshot(team_id="a", name="Away", elo=1450, attack_strength=0.9, defense_strength=1.2, lineup_confidence=0.9),
     )
     result = FootballEnsemble().predict(match)

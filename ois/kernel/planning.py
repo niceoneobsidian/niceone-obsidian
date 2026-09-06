@@ -94,9 +94,7 @@ class ExecutionPlan:
         for task in self.tasks.values():
             for dependency in task.dependencies:
                 if dependency not in self.tasks:
-                    raise UnknownDependencyError(
-                        f"Task {task.task_id} depends on unknown task {dependency}"
-                    )
+                    raise UnknownDependencyError(f"Task {task.task_id} depends on unknown task {dependency}")
 
     def _validate_cycles(self) -> None:
         visiting: set[str] = set()
@@ -121,19 +119,13 @@ class ExecutionPlan:
         for task in self.tasks.values():
             if task.status != TaskStatus.PENDING:
                 continue
-            if all(
-                self.tasks[dependency].status == TaskStatus.SUCCEEDED
-                for dependency in task.dependencies
-            ):
+            if all(self.tasks[dependency].status == TaskStatus.SUCCEEDED for dependency in task.dependencies):
                 task.status = TaskStatus.READY
                 ready.append(task)
         return ready
 
     def is_complete(self) -> bool:
-        return all(
-            task.status in {TaskStatus.SUCCEEDED, TaskStatus.SKIPPED}
-            for task in self.tasks.values()
-        )
+        return all(task.status in {TaskStatus.SUCCEEDED, TaskStatus.SKIPPED} for task in self.tasks.values())
 
     def has_failed(self) -> bool:
         return any(task.status == TaskStatus.FAILED for task in self.tasks.values())

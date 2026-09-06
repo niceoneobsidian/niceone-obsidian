@@ -1,4 +1,5 @@
 """Football domain manifest for integration with the existing OIS registries."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass

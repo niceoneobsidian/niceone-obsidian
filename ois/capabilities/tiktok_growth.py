@@ -58,9 +58,7 @@ def build_tiktok_plan(brief: TikTokContentBrief) -> TikTokContentPlan:
     hook_templates = {
         "problem_first": f"If you are struggling with {brief.topic}, start here.",
         "mistake_correction": f"The biggest mistake with {brief.topic} is doing this first.",
-        "specific_outcome": (
-            f"Here is a practical way to improve {brief.topic} without adding complexity."
-        ),
+        "specific_outcome": (f"Here is a practical way to improve {brief.topic} without adding complexity."),
         "step_by_step": f"Here are the essential steps for {brief.topic}.",
     }
     hook = hook_templates[pattern]

@@ -1,4 +1,5 @@
 """Kernel-neutral workflow specifications for football intelligence."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -13,16 +14,27 @@ class FootballWorkflow:
 
 FOOTBALL_WORKFLOWS: tuple[FootballWorkflow, ...] = (
     FootballWorkflow(
-        "football.predict", 1,
-        ("football.ingest", "football.team_state", "football.player_state", "football.features",
-         "football.predict_1x2", "football.simulate", "football.calibrate", "football.abstain"),
+        "football.predict",
+        1,
+        (
+            "football.ingest",
+            "football.team_state",
+            "football.player_state",
+            "football.features",
+            "football.predict_1x2",
+            "football.simulate",
+            "football.calibrate",
+            "football.abstain",
+        ),
     ),
     FootballWorkflow(
-        "football.backtest", 1,
+        "football.backtest",
+        1,
         ("football.ingest", "football.features", "football.backtest", "football.calibrate"),
     ),
     FootballWorkflow(
-        "football.live_prediction", 1,
+        "football.live_prediction",
+        1,
         ("football.live_update", "football.simulate", "football.calibrate", "football.abstain"),
     ),
 )

@@ -1,4 +1,5 @@
 """Football model federation with deterministic weighting and abstention."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass

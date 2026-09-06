@@ -64,11 +64,7 @@ class RecoveryPolicy:
                 action="retry" if allowed else "escalate",
                 retry_allowed=allowed,
                 terminal=not allowed,
-                reason=(
-                    "Transient failure is retryable."
-                    if allowed
-                    else "Transient retry limit exhausted."
-                ),
+                reason=("Transient failure is retryable." if allowed else "Transient retry limit exhausted."),
             )
 
         if failure == FailureClass.PARAMETER:
@@ -106,9 +102,7 @@ class RecoveryPolicy:
                 action="recover" if allowed else "escalate",
                 retry_allowed=False,
                 terminal=not allowed,
-                reason=(
-                    "State recovery is permitted." if allowed else "State recovery limit exhausted."
-                ),
+                reason=("State recovery is permitted." if allowed else "State recovery limit exhausted."),
             )
 
         if failure == FailureClass.PERMISSION:

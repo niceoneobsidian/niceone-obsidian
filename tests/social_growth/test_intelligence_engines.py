@@ -31,9 +31,7 @@ def test_quality_accepts_evidenced_events():
 
 
 def test_entity_resolution_groups_normalized_labels():
-    result = resolve_entities(
-        [event("brand", entities=["Acme Brand"]), event("brand", entities=["Acme Brand"])]
-    )
+    result = resolve_entities([event("brand", entities=["Acme Brand"]), event("brand", entities=["Acme Brand"])])
     assert result["acme brand"] == ("Acme Brand",)
 
 
@@ -66,9 +64,7 @@ def test_trend_detection_returns_rising_signal():
 
 
 def test_audience_profiles_group_by_platform():
-    profiles = build_audience_profiles(
-        [event("ai strategy", "tiktok"), event("ai tools", "tiktok"), event("seo", "youtube")]
-    )
+    profiles = build_audience_profiles([event("ai strategy", "tiktok"), event("ai tools", "tiktok"), event("seo", "youtube")])
     assert {p.audience_id for p in profiles} == {"platform:tiktok", "platform:youtube"}
 
 

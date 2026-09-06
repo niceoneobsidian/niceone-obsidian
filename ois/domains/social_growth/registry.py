@@ -39,9 +39,7 @@ SOCIAL_AGENTS: tuple[SocialAgentSpec, ...] = (
         "Trend and velocity intelligence",
         ("social.topic_clustering", "social.trend_detection"),
     ),
-    SocialAgentSpec(
-        "social.audience_agent", "Audience intelligence", ("social.audience_intelligence",)
-    ),
+    SocialAgentSpec("social.audience_agent", "Audience intelligence", ("social.audience_intelligence",)),
     SocialAgentSpec(
         "social.competitor_agent",
         "Competitor intelligence",

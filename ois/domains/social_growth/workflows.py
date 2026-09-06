@@ -47,22 +47,16 @@ RESEARCH_WORKFLOW = SocialWorkflow(
         WorkflowStep("entities", "social.entity_resolution", "SocialEventBatch", "EntityMap"),
         WorkflowStep("topics", "social.topic_clustering", "SocialEventBatch", "TopicClusters"),
         WorkflowStep("trends", "social.trend_detection", "SocialEventBatch", "TrendSignalBatch"),
-        WorkflowStep(
-            "audience", "social.audience_intelligence", "SocialEventBatch", "AudienceProfileBatch"
-        ),
+        WorkflowStep("audience", "social.audience_intelligence", "SocialEventBatch", "AudienceProfileBatch"),
         WorkflowStep(
             "competitors",
             "social.competitor_intelligence",
             "SocialEventBatch",
             "CompetitorProfileBatch",
         ),
-        WorkflowStep(
-            "creative", "social.creative_intelligence", "SocialEventBatch", "CreativePatternBatch"
-        ),
+        WorkflowStep("creative", "social.creative_intelligence", "SocialEventBatch", "CreativePatternBatch"),
         WorkflowStep("analyze", "social.signal_analysis", "SocialEventBatch", "SocialSignalBatch"),
-        WorkflowStep(
-            "synthesize", "social.research_brief", "SocialSignalBatch", "SocialResearchBrief"
-        ),
+        WorkflowStep("synthesize", "social.research_brief", "SocialSignalBatch", "SocialResearchBrief"),
     ),
 )
 
@@ -72,13 +66,9 @@ CONTENT_PUBLISH_WORKFLOW = SocialWorkflow(
     steps=(
         WorkflowStep("generate", "social.content.generate", "ContentBrief", "ContentDraft"),
         WorkflowStep("validate", "social.content.validate", "ContentDraft", "ValidationReport"),
-        WorkflowStep(
-            "approve", "social.publish.approve", "PublishIntent", "ApprovalDecision", True
-        ),
+        WorkflowStep("approve", "social.publish.approve", "PublishIntent", "ApprovalDecision", True),
         WorkflowStep("publish", "social.publish", "PublishIntent", "ExternalActionResult", True),
-        WorkflowStep(
-            "measure", "social.analytics.collect", "PublicationRef", "PerformanceSnapshot"
-        ),
+        WorkflowStep("measure", "social.analytics.collect", "PublicationRef", "PerformanceSnapshot"),
         WorkflowStep("learn", "social.learning.update", "PerformanceSnapshot", "LearningUpdate"),
     ),
 )
@@ -112,9 +102,7 @@ def build_research_brief(query: str, events: Iterable[SocialEvent]) -> SocialRes
         findings.append("Emerging trends: " + ", ".join(s.value for s in trend_signals[:5]))
     audience = build_audience_profiles(materialized)
     if audience:
-        findings.append(
-            "Audience platforms: " + ", ".join(p.platforms[0] for p in audience if p.platforms)
-        )
+        findings.append("Audience platforms: " + ", ".join(p.platforms[0] for p in audience if p.platforms))
     competitors = build_competitor_profiles(materialized)
     if competitors:
         findings.append("Observed entities: " + ", ".join(c.name for c in competitors[:5]))

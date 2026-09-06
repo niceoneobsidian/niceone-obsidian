@@ -14,7 +14,6 @@ from typing import Any
 from uuid import uuid4
 
 from ois.kernel.checkpoint import CheckpointStore, InMemoryCheckpointStore
-from ois.kernel.contracts import InvocationResult
 from ois.kernel.evidence import EvidenceLedger, EvidenceStore
 from ois.kernel.policy import AuthorizationDenied, DefaultPolicyEngine, PolicyEngine
 from ois.kernel.runtime import ExecutionRuntime

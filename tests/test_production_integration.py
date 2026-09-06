@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from production.control_plane import (
+    RBACABAC,
     AuthorizationError,
     EvidenceLedger,
     InMemoryDeploymentAdapter,
     ProductionControlPlane,
-    RBACABAC,
     Subject,
 )
 from production.evolution import CanaryController, LearningLoop, Measurement

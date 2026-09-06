@@ -3,6 +3,7 @@
 These are deliberately dependency-light reference models. More complex ML models
 can implement the same probability contract and be registered later.
 """
+
 from __future__ import annotations
 
 import math
@@ -48,8 +49,14 @@ class EloModel:
         draw = max(0.05, 0.28 - abs(rating_gap) / 1800.0)
         away = max(0.0, 1.0 - home - draw)
         home, draw, away = _normalize(home, draw, away)
-        return ModelProbability(model_id=self.model_id, home=home, draw=draw, away=away,
-                                expected_home_goals=match.home.xg_for, expected_away_goals=match.away.xg_for)
+        return ModelProbability(
+            model_id=self.model_id,
+            home=home,
+            draw=draw,
+            away=away,
+            expected_home_goals=match.home.xg_for,
+            expected_away_goals=match.away.xg_for,
+        )
 
 
 @dataclass(frozen=True)
@@ -64,8 +71,9 @@ class PoissonModel:
         home_xg *= 1.0 + match.home.home_advantage + match.tactical_factor * 0.05
         away_xg *= 1.0 - match.tactical_factor * 0.05
         home, draw, away = _result_from_goals(max(home_xg, 0.05), max(away_xg, 0.05))
-        return ModelProbability(model_id=self.model_id, home=home, draw=draw, away=away,
-                                expected_home_goals=home_xg, expected_away_goals=away_xg)
+        return ModelProbability(
+            model_id=self.model_id, home=home, draw=draw, away=away, expected_home_goals=home_xg, expected_away_goals=away_xg
+        )
 
 
 @dataclass(frozen=True)

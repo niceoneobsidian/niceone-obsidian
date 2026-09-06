@@ -57,9 +57,7 @@ class ExecutionRuntime:
         invocation_id: str | None = None,
     ) -> InvocationResult:
         if context.status in {ExecutionStatus.COMPLETED, ExecutionStatus.STOPPED}:
-            raise ExecutionAlreadyCompleted(
-                f"Execution cannot continue from {context.status.value}."
-            )
+            raise ExecutionAlreadyCompleted(f"Execution cannot continue from {context.status.value}.")
 
         execution_id = context.identity.execution_id
         logical_invocation_id = invocation_id or str(uuid4())
@@ -134,11 +132,7 @@ class ExecutionRuntime:
         except Exception as exc:
             return self._handle_failure(context, capability_id, logical_invocation_id, exc)
 
-        if (
-            result.status == InvocationStatus.FAILED
-            and isinstance(result.error, dict)
-            and "failure_class" in result.error
-        ):
+        if result.status == InvocationStatus.FAILED and isinstance(result.error, dict) and "failure_class" in result.error:
             failure_value = result.error.get("failure_class")
             try:
                 failure_class = FailureClass(failure_value)
@@ -159,10 +153,7 @@ class ExecutionRuntime:
             result.error = {**result.error, "recovery_action": decision.action}
 
         if result.invocation_id != logical_invocation_id:
-            raise ExecutionError(
-                "Capability returned an invocation_id that does not match the "
-                "requested invocation_id."
-            )
+            raise ExecutionError("Capability returned an invocation_id that does not match the requested invocation_id.")
 
         context.set_status(ExecutionStatus.OBSERVING)
         context.observations.append(

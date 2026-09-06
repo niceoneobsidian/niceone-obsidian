@@ -1,3 +1,5 @@
+import pytest
+
 from ois.capabilities.tiktok_growth import TikTokContentAgent
 from ois.kernel.checkpoint import InMemoryCheckpointStore
 from ois.kernel.contracts import AgentContract, InvocationRequest, InvocationResult
@@ -8,17 +10,25 @@ from ois.kernel.runtime import ExecutionRuntime
 from ois.kernel.state import ExecutionContext, ExecutionIdentity
 from ois.kernel.types import ExecutionStatus, InvocationStatus, RiskLevel, SideEffectLevel
 from ois.workflows.tiktok_content_vertical_slice import execute_tiktok_vertical_slice
-import pytest
 
 
 class FailingCapability:
     contract = AgentContract(
-        capability_id="test.failing.capability", version="1.0.0",
-        description="Synthetic failure capability", input_schema={"type": "object"},
-        output_schema={"type": "object"}, risk_level=RiskLevel.LOW,
-        permissions=(), allowed_domains=(), timeout_seconds=1.0, max_retries=0,
-        side_effects=SideEffectLevel.NONE, idempotent=True, required_tools=(),
-        model_requirements={"external_model": False}, max_iterations=1,
+        capability_id="test.failing.capability",
+        version="1.0.0",
+        description="Synthetic failure capability",
+        input_schema={"type": "object"},
+        output_schema={"type": "object"},
+        risk_level=RiskLevel.LOW,
+        permissions=(),
+        allowed_domains=(),
+        timeout_seconds=1.0,
+        max_retries=0,
+        side_effects=SideEffectLevel.NONE,
+        idempotent=True,
+        required_tools=(),
+        model_requirements={"external_model": False},
+        max_iterations=1,
     )
 
     def invoke(self, request: InvocationRequest) -> InvocationResult:
@@ -27,20 +37,31 @@ class FailingCapability:
 
 class RestrictedCapability:
     contract = AgentContract(
-        capability_id="test.restricted.capability", version="1.0.0",
-        description="Synthetic policy-denied capability", input_schema={"type": "object"},
-        output_schema={"type": "object"}, risk_level=RiskLevel.LOW,
-        permissions=("restricted.execute",), allowed_domains=(), timeout_seconds=1.0,
-        max_retries=0, side_effects=SideEffectLevel.NONE, idempotent=True,
-        required_tools=(), model_requirements={"external_model": False}, max_iterations=1,
+        capability_id="test.restricted.capability",
+        version="1.0.0",
+        description="Synthetic policy-denied capability",
+        input_schema={"type": "object"},
+        output_schema={"type": "object"},
+        risk_level=RiskLevel.LOW,
+        permissions=("restricted.execute",),
+        allowed_domains=(),
+        timeout_seconds=1.0,
+        max_retries=0,
+        side_effects=SideEffectLevel.NONE,
+        idempotent=True,
+        required_tools=(),
+        model_requirements={"external_model": False},
+        max_iterations=1,
     )
     invoked = False
 
     def invoke(self, request: InvocationRequest) -> InvocationResult:
         self.invoked = True
         return InvocationResult(
-            invocation_id=request.invocation_id, capability_id=self.contract.capability_id,
-            status=InvocationStatus.SUCCEEDED, output={"unexpected": True},
+            invocation_id=request.invocation_id,
+            capability_id=self.contract.capability_id,
+            status=InvocationStatus.SUCCEEDED,
+            output={"unexpected": True},
         )
 
 
@@ -67,7 +88,16 @@ def test_vertical_slice_contract_is_canonical() -> None:
     assert result.context.validation_results[-1]["valid"] is True
     assert result.context.working_memory
     event_types = {event.event_type for event in result.evidence}
-    assert {"execution.received", "execution.input_validated", "execution.authorized", "capability.started", "capability.completed", "execution.checkpointed", "execution.idempotency_recorded", "execution.completed"}.issubset(event_types)
+    assert {
+        "execution.received",
+        "execution.input_validated",
+        "execution.authorized",
+        "capability.started",
+        "capability.completed",
+        "execution.checkpointed",
+        "execution.idempotency_recorded",
+        "execution.completed",
+    }.issubset(event_types)
 
 
 def test_idempotency_returns_cached_result_for_same_invocation() -> None:

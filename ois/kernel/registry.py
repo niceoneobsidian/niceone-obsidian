@@ -67,9 +67,7 @@ class CapabilityRegistry:
 
         with self._lock:
             if key in self._entries:
-                raise DuplicateCapabilityError(
-                    f"Capability already registered: {contract.capability_id}@{contract.version}"
-                )
+                raise DuplicateCapabilityError(f"Capability already registered: {contract.capability_id}@{contract.version}")
 
             self._entries[key] = RegistryEntry(
                 capability=capability,
@@ -92,9 +90,7 @@ class CapabilityRegistry:
             try:
                 return self._entries[key]
             except KeyError as exc:
-                raise CapabilityNotFoundError(
-                    f"Capability not found: {capability_id}@{version}"
-                ) from exc
+                raise CapabilityNotFoundError(f"Capability not found: {capability_id}@{version}") from exc
 
     def list(self) -> tuple[RegistryEntry, ...]:
         with self._lock:
@@ -154,9 +150,7 @@ class AgentRegistry(CapabilityRegistry):
                 continue
 
             if availability is not None and not availability(entry):
-                rejected.append(
-                    f"Agent unavailable: {entry.contract.capability_id}@{entry.contract.version}"
-                )
+                rejected.append(f"Agent unavailable: {entry.contract.capability_id}@{entry.contract.version}")
                 continue
 
             eligible.append(entry)
@@ -166,10 +160,7 @@ class AgentRegistry(CapabilityRegistry):
             raise AgentRoutingError(reason)
 
         if len(eligible) > 1:
-            raise AmbiguousAgentError(
-                f"Ambiguous agent routing for {capability_id}@{version}: "
-                f"{len(eligible)} eligible agents"
-            )
+            raise AmbiguousAgentError(f"Ambiguous agent routing for {capability_id}@{version}: {len(eligible)} eligible agents")
 
         return AgentRoutingDecision(
             capability_id=capability_id,

@@ -148,6 +148,4 @@ def test_canary_decision_uses_actual_kernel_execution_outcomes() -> None:
     assert rollout.decision.success_rate == 0.5
     assert len(rollout.execution_ids) == 2
     assert lifecycle.evidence.verify_chain()
-    assert any(
-        event.event_type == "rollout.rollback.verified" for event in lifecycle.evidence.events()
-    )
+    assert any(event.event_type == "rollout.rollback.verified" for event in lifecycle.evidence.events())

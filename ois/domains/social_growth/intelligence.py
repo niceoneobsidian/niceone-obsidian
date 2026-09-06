@@ -50,9 +50,7 @@ def resolve_entities(events: Iterable[SocialEvent]) -> dict[str, tuple[str, ...]
     return {key: tuple(sorted(values)) for key, values in sorted(aliases.items())}
 
 
-def cluster_topics(
-    events: Iterable[SocialEvent], top_k: int = 20
-) -> list[tuple[str, tuple[str, ...], int]]:
+def cluster_topics(events: Iterable[SocialEvent], top_k: int = 20) -> list[tuple[str, tuple[str, ...], int]]:
     """Group events by their strongest normalized lexical topic."""
     groups: defaultdict[str, list[str]] = defaultdict(list)
     for event in events:
@@ -88,18 +86,14 @@ def build_audience_profiles(events: Iterable[SocialEvent]) -> list[AudienceProfi
         by_platform[event.platform].append(event)
     profiles: list[AudienceProfile] = []
     for platform, items in sorted(by_platform.items()):
-        interests = Counter(
-            t for e in items for t in tokenize(e.text or "") if not t.startswith(("@", "#"))
-        )
+        interests = Counter(t for e in items for t in tokenize(e.text or "") if not t.startswith(("@", "#")))
         mean_sentiment = sum(sentiment_score(e.text or "") for e in items) / max(len(items), 1)
         profiles.append(
             AudienceProfile(
                 audience_id=f"platform:{platform}",
                 label=f"{platform} audience",
                 interests=[term for term, _ in interests.most_common(10)],
-                behaviors=[
-                    "engaged" if sum(e.metrics.values()) > 0 else "observational" for e in items[:5]
-                ],
+                behaviors=["engaged" if sum(e.metrics.values()) > 0 else "observational" for e in items[:5]],
                 platforms=[platform],
                 sentiment=mean_sentiment,
                 confidence=min(1.0, 0.3 + sqrt(len(items)) / 10),
@@ -117,9 +111,7 @@ def build_competitor_profiles(events: Iterable[SocialEvent]) -> list[CompetitorP
     profiles: list[CompetitorProfile] = []
     for name, items in sorted(by_entity.items()):
         voice = len(items) / total
-        terms = Counter(
-            t for e in items for t in tokenize(e.text or "") if not t.startswith(("@", "#"))
-        )
+        terms = Counter(t for e in items for t in tokenize(e.text or "") if not t.startswith(("@", "#")))
         profiles.append(
             CompetitorProfile(
                 competitor_id=f"entity:{name.lower().replace(' ', '-')}",

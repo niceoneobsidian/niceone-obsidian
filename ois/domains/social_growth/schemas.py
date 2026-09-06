@@ -37,9 +37,7 @@ class SocialEvent(BaseModel):
 class SocialSignal(BaseModel):
     model_config = ConfigDict(extra="forbid")
     signal_id: str = Field(default_factory=lambda: str(uuid4()))
-    signal_type: Literal[
-        "sentiment", "topic", "trend", "entity", "engagement", "anomaly", "influence"
-    ]
+    signal_type: Literal["sentiment", "topic", "trend", "entity", "engagement", "anomaly", "influence"]
     value: str
     score: float = Field(ge=0, le=1)
     velocity: float = 0.0
@@ -72,9 +70,7 @@ class CompetitorProfile(BaseModel):
 class CreativePattern(BaseModel):
     model_config = ConfigDict(extra="forbid")
     pattern_id: str
-    pattern_type: Literal[
-        "hook", "narrative", "emotion", "pacing", "visual", "cta", "format", "offer"
-    ]
+    pattern_type: Literal["hook", "narrative", "emotion", "pacing", "visual", "cta", "format", "offer"]
     pattern: str
     platform: str | None = None
     audience: str | None = None

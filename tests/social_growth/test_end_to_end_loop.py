@@ -45,9 +45,7 @@ def test_research_publish_measure_attribute_learn_loop() -> None:
     evidence = EvidenceLedger()
     runtime = ExecutionRuntime(registry, checkpoints, evidence, policy=policy)
     context = ExecutionContext(
-        identity=ExecutionIdentity(
-            tenant_id="test-tenant", workflow_id="social.e2e", workflow_version="1.0"
-        ),
+        identity=ExecutionIdentity(tenant_id="test-tenant", workflow_id="social.e2e", workflow_version="1.0"),
         objective="research, publish and measure",
     )
 

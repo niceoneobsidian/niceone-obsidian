@@ -15,7 +15,5 @@ class AgentContext:
 
 
 class AgentPlane:
-    def context(
-        self, agent_id: str, version: str, permissions: frozenset[str] = frozenset()
-    ) -> AgentContext:
+    def context(self, agent_id: str, version: str, permissions: frozenset[str] = frozenset()) -> AgentContext:
         return AgentContext(agent_id, version, permissions)

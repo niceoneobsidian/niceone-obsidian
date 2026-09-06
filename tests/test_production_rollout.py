@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from production.control_plane import EvidenceLedger, InMemoryDeploymentAdapter, ProductionControlPlane, RBACABAC, Subject
+from production.control_plane import RBACABAC, EvidenceLedger, InMemoryDeploymentAdapter, ProductionControlPlane, Subject
 from production.evolution import CanaryController, Measurement
 from production.rollout import RolloutController
 
@@ -16,8 +16,14 @@ def test_failed_canary_rolls_back_and_records_evidence() -> None:
     rollout = RolloutController(control, CanaryController(minimum_success_rate=0.99, maximum_latency_ms=500), ledger)
 
     result = rollout.evaluate_and_rollout(
-        release_operator(), "v2", "staging", previous="v1", traffic_percent=5,
-        successes=95, total=100, latency_ms=800,
+        release_operator(),
+        "v2",
+        "staging",
+        previous="v1",
+        traffic_percent=5,
+        successes=95,
+        total=100,
+        latency_ms=800,
     )
     assert result.state == "ROLLED_BACK"
     assert adapter.active["staging"] == "v1"
@@ -32,8 +38,14 @@ def test_healthy_canary_promotes_and_records_measurement() -> None:
     rollout = RolloutController(control, CanaryController(minimum_success_rate=0.99, maximum_latency_ms=500), ledger)
 
     result = rollout.evaluate_and_rollout(
-        release_operator(), "v3", "staging", previous="v1", traffic_percent=5,
-        successes=100, total=100, latency_ms=120,
+        release_operator(),
+        "v3",
+        "staging",
+        previous="v1",
+        traffic_percent=5,
+        successes=100,
+        total=100,
+        latency_ms=120,
         measurements=[Measurement("reward", 0.92)],
     )
     assert result.state == "PROMOTED"

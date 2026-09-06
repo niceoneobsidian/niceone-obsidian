@@ -49,29 +49,11 @@ def predict_content(genome: ContentGenome) -> Prediction:
     audience_fit = _feature(genome, genome.audience_signals, "fit")
     shareability = _feature(genome, genome.emotion, "shareability")
 
-    retention = _bounded(
-        0.30 * hook
-        + 0.20 * pacing
-        + 0.20 * visual
-        + 0.15 * curiosity
-        + 0.15 * emotion
-    )
-    engagement = _bounded(
-        0.25 * emotion
-        + 0.25 * curiosity
-        + 0.20 * shareability
-        + 0.30 * audience_fit
-    )
-    follow = _bounded(
-        0.45 * audience_fit + 0.25 * emotion + 0.15 * hook + 0.15 * curiosity
-    )
+    retention = _bounded(0.30 * hook + 0.20 * pacing + 0.20 * visual + 0.15 * curiosity + 0.15 * emotion)
+    engagement = _bounded(0.25 * emotion + 0.25 * curiosity + 0.20 * shareability + 0.30 * audience_fit)
+    follow = _bounded(0.45 * audience_fit + 0.25 * emotion + 0.15 * hook + 0.15 * curiosity)
     scroll_stop = _bounded(0.60 * hook + 0.25 * visual + 0.15 * curiosity)
-    overall = _bounded(
-        0.30 * scroll_stop
-        + 0.35 * retention
-        + 0.20 * engagement
-        + 0.15 * follow
-    )
+    overall = _bounded(0.30 * scroll_stop + 0.35 * retention + 0.20 * engagement + 0.15 * follow)
 
     available = sum(
         bool(group)
