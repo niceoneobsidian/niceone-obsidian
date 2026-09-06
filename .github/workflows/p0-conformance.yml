@@ -51,7 +51,7 @@ jobs:
       - name: Apply safe Ruff fixes
         if: github.event_name == 'pull_request' && github.head_ref == 'feat/p0-production-spine'
         run: |
-          ruff check --fix ois scripts tests
+          ruff check --fix ois scripts tests || true
           ruff format ois scripts tests
           if git diff --quiet; then
             exit 0
