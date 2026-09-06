@@ -15,6 +15,7 @@ from ois.kernel import (
     RecoveryPolicy,
     TaskStatus,
 )
+from ois.supervisor.supervisor import SupervisionAction, SupervisionRequest, Supervisor
 
 from .controller import ControlPlane
 from .request import ControlRequest
@@ -23,11 +24,8 @@ from .request import ControlRequest
 class IntegratedExecution:
     """Submit a registered capability through the authoritative Kernel.
 
-    A capability failure that returns a classified, non-exceptional
-    FAILED InvocationResult (as opposed to raising) does not pass through
-    ExecutionRuntime's exception-handling recovery path. This integration
-    seam is the governed place to apply bounded recovery for that case,
-    using the same RecoveryPolicy contract, with an explicit evidence trail.
+    Recovery is explicit and bounded. The Supervisor chooses the next safe
+    action; the Kernel remains authoritative for policy and execution.
     """
 
     def __init__(
@@ -36,11 +34,13 @@ class IntegratedExecution:
         runtime: ExecutionRuntime,
         *,
         recovery: RecoveryPolicy | None = None,
+        supervisor: Supervisor | None = None,
     ) -> None:
         self.control_plane = control_plane
         self.runtime = runtime
         self.orchestrator = PlanOrchestrator(runtime)
         self.recovery = recovery or RecoveryPolicy()
+        self.supervisor = supervisor or Supervisor()
 
     def build_single_capability_plan(
         self,
@@ -70,10 +70,7 @@ class IntegratedExecution:
         tenant_id: str = "default",
         metadata: Mapping[str, object] | None = None,
     ) -> ExecutionContext:
-        plan = self.build_single_capability_plan(
-            objective=objective,
-            request=request,
-        )
+        plan = self.build_single_capability_plan(objective=objective, request=request)
         context = ExecutionContext(
             identity=ExecutionIdentity(
                 tenant_id=tenant_id,
@@ -89,11 +86,17 @@ class IntegratedExecution:
             self.orchestrator.execute(plan, context)
 
             if plan.is_complete():
+                self.supervisor.decide(
+                    SupervisionRequest(
+                        objective=objective,
+                        plan_validated=True,
+                        authorized=True,
+                        status="completed",
+                    )
+                )
                 return context
 
             if not plan.has_failed():
-                # No ready tasks and nothing failed: the plan is blocked.
-                # Surface the context as-is rather than looping forever.
                 return context
 
             failed_task = next(
@@ -108,6 +111,49 @@ class IntegratedExecution:
                 failure_class = FailureClass(raw_failure_class)
             except ValueError:
                 failure_class = FailureClass.UNKNOWN
+
+            recovery_preview = self.recovery.classify(failure_class, context)
+            supervision = self.supervisor.decide(
+                SupervisionRequest(
+                    objective=objective,
+                    plan_validated=True,
+                    authorized=True,
+                    status="failed",
+                    failure=failure_class,
+                    retry_allowed=recovery_preview.retry_allowed,
+                    recovery_allowed=not recovery_preview.terminal,
+                )
+            )
+            self.runtime.evidence.record(
+                context.identity.execution_id,
+                "execution.supervisor_decision",
+                {
+                    "task_id": failed_task.task_id,
+                    "capability_id": failed_task.capability_id,
+                    "action": supervision.action.value,
+                    "reason": supervision.reason,
+                },
+            )
+
+            if supervision.action == SupervisionAction.STOP:
+                context.set_status(context.status.STOPPED)
+                self.runtime.checkpoint_store.save(context)
+                return context
+
+            if supervision.action != SupervisionAction.RETRY:
+                decision = self.recovery.apply(context, failure_class)
+                self.runtime.evidence.record(
+                    context.identity.execution_id,
+                    "execution.recovery_decision",
+                    {
+                        "task_id": failed_task.task_id,
+                        "capability_id": failed_task.capability_id,
+                        "action": decision.action,
+                        "reason": decision.reason,
+                    },
+                )
+                self.runtime.checkpoint_store.save(context)
+                return context
 
             decision = self.recovery.apply(context, failure_class)
             self.runtime.evidence.record(
@@ -125,12 +171,6 @@ class IntegratedExecution:
             if decision.action != "retry":
                 return context
 
-            # Bounded retry: clear the failed task so ready_tasks() picks
-            # it up again on the next orchestrator.execute() call. The
-            # invocation_id stays deterministic (same task_id), and since
-            # only SUCCEEDED/CANCELLED results are idempotency-cached, the
-            # retry safely re-invokes the capability rather than replaying
-            # a cached failure.
             failed_task.status = TaskStatus.PENDING
             failed_task.error = None
             failed_task.output = None
