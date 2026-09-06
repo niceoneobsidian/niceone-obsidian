@@ -1,6 +1,13 @@
 """Durable persistence and transient coordination adapters for OIS."""
 
-from .postgres_checkpoints import PostgreSQLCheckpointStore
+from ois.kernel.postgres import PostgresDurableExecutionStore
+
 from .redis_coordinator import RedisTransientCoordinator
 
-__all__ = ["PostgreSQLCheckpointStore", "RedisTransientCoordinator"]
+PostgreSQLCheckpointStore = PostgresDurableExecutionStore
+
+__all__ = [
+    "PostgreSQLCheckpointStore",
+    "PostgresDurableExecutionStore",
+    "RedisTransientCoordinator",
+]
