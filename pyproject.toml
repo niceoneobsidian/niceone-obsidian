@@ -1,15 +1,22 @@
 # Canonical OIS Python tooling configuration; TOML regexes use literal-string syntax.
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "niceone-obsidian"
 version = "0.0.0"
 requires-python = ">=3.12"
 dependencies = [
   "psycopg[binary]>=3.3.4,<4",
-  "pydantic>=2.7,<3",
+  "pydantic>=2.13.5,<3",
   "langgraph>=1.2.11,<2",
   "redis>=8.1,<9",
   "opentelemetry-api>=1.44,<2",
 ]
+
+[tool.setuptools.packages.find]
+include = ["ois*", "production*"]
 
 [tool.ruff]
 target-version = "py312"
