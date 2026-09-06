@@ -4,7 +4,14 @@ import pytest
 
 from ois.integration.langgraph_runtime import build_ois_graph
 from ois.integration.spine import OISSpine, SpineRequest
-from ois.kernel import CapabilityContract, InvocationRequest, InvocationResult, InvocationStatus, RiskLevel, SideEffectLevel
+from ois.kernel import (
+    CapabilityContract,
+    InvocationRequest,
+    InvocationResult,
+    InvocationStatus,
+    RiskLevel,
+    SideEffectLevel,
+)
 from ois.registries import CapabilityRegistry
 from ois.runtime.redis_coordination import RedisCoordination
 
@@ -51,7 +58,10 @@ def test_langgraph_adapter_executes_through_ois_spine():
     assert state["output"] == {"ok": True}
 
 
-@pytest.mark.skipif(not os.getenv("OIS_REDIS_URL"), reason="OIS_REDIS_URL not configured")
+@pytest.mark.skipif(
+    not os.getenv("OIS_REDIS_URL"),
+    reason="OIS_REDIS_URL not configured",
+)
 def test_redis_coordination_lease():
     coordination = RedisCoordination(os.environ["OIS_REDIS_URL"])
     assert coordination.ping() is True
