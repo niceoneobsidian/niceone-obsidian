@@ -43,7 +43,7 @@ def _builder(spine: OISSpine) -> StateGraph:
     return graph
 
 
-def build_ois_graph(spine: OISSpine, *, checkpointer: Any = None):
+def build_ois_graph(spine: OISSpine, *, checkpointer: Any = None) -> Any:
     """Build the canonical OIS graph with an optional durable checkpointer."""
     return _builder(spine).compile(checkpointer=checkpointer)
 
