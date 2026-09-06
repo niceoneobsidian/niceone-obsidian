@@ -67,7 +67,9 @@ class ContentGenome:
 
     def fingerprint(self) -> str:
         """Return a deterministic fingerprint for provenance and caching."""
-        encoded = json.dumps(self.canonical_payload(), sort_keys=True, separators=(",", ":")).encode()
+        encoded = json.dumps(
+            self.canonical_payload(), sort_keys=True, separators=(",", ":")
+        ).encode()
         return sha256(encoded).hexdigest()
 
 

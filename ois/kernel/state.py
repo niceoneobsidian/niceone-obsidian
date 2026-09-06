@@ -61,7 +61,9 @@ class ExecutionContext:
             ExecutionStatus.STOPPED,
             ExecutionStatus.ESCALATED,
         }:
-            raise ValueError(f"Terminal execution status {self.status.value} cannot transition to {status.value}.")
+            raise ValueError(
+                f"Terminal execution status {self.status.value} cannot transition to {status.value}."
+            )
         self.status = status
         self.touch()
 

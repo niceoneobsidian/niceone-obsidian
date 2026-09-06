@@ -135,7 +135,9 @@ def build_evidence(results: list[dict[str, Any]]) -> dict[str, Any]:
         "branch": branch,
         "working_tree": "clean" if not status else "dirty",
         "checks": results,
-        "conformance": ("PASS" if passed and not status and git_commit_exists(commit_sha) else "FAIL"),
+        "conformance": (
+            "PASS" if passed and not status and git_commit_exists(commit_sha) else "FAIL"
+        ),
         "evidence_class": "CONFORMANCE",
         "production_promotion_eligible": False,
         "activation_eligible": False,

@@ -116,7 +116,11 @@ class WebResearchService:
         if not normalized:
             return ClaimCheck(claim, ClaimStatus.NON_FACTUAL)
 
-        matches = tuple(item.evidence_id for item in evidence if normalized in item.claim.casefold() or item.claim.casefold() in normalized)
+        matches = tuple(
+            item.evidence_id
+            for item in evidence
+            if normalized in item.claim.casefold() or item.claim.casefold() in normalized
+        )
         return ClaimCheck(
             claim=claim,
             status=ClaimStatus.VERIFIED if matches else ClaimStatus.UNSUPPORTED,

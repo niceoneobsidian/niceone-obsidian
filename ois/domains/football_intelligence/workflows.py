@@ -41,4 +41,7 @@ FOOTBALL_WORKFLOWS: tuple[FootballWorkflow, ...] = (
 
 
 def workflow_manifest() -> list[dict[str, object]]:
-    return [{"workflow_id": w.workflow_id, "version": w.version, "steps": list(w.steps)} for w in FOOTBALL_WORKFLOWS]
+    return [
+        {"workflow_id": w.workflow_id, "version": w.version, "steps": list(w.steps)}
+        for w in FOOTBALL_WORKFLOWS
+    ]

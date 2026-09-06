@@ -66,7 +66,9 @@ class GenericSocialConnector(SocialConnector):
             event_type=str(payload.get("event_type", "unknown")),
             occurred_at=occurred_at,
             external_id=str(payload.get("id")) if payload.get("id") is not None else None,
-            author_id=str(payload.get("author_id")) if payload.get("author_id") is not None else None,
+            author_id=str(payload.get("author_id"))
+            if payload.get("author_id") is not None
+            else None,
             text=payload.get("text"),
             language=payload.get("language"),
             metrics=dict(payload.get("metrics", {})),

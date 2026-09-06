@@ -72,7 +72,11 @@ def detect_anomalies(values: list[float], z_threshold: float = 2.5) -> list[int]
 def engagement_rate(event: SocialEvent, denominator: float | None = None) -> float:
     metrics = event.metrics
     numerator = sum(float(metrics.get(k, 0)) for k in ("likes", "comments", "shares", "saves"))
-    base = denominator if denominator is not None else float(metrics.get("impressions", metrics.get("reach", 0)))
+    base = (
+        denominator
+        if denominator is not None
+        else float(metrics.get("impressions", metrics.get("reach", 0)))
+    )
     return numerator / base if base > 0 else 0.0
 
 

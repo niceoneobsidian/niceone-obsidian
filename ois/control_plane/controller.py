@@ -68,7 +68,9 @@ class ControlPlane:
         if callable(execute):
             return execute
 
-        raise TypeError(f"registered capability is not callable: {request.capability_id}@{request.capability_version}")
+        raise TypeError(
+            f"registered capability is not callable: {request.capability_id}@{request.capability_version}"
+        )
 
     def execute(
         self,

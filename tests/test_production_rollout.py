@@ -1,19 +1,29 @@
 from __future__ import annotations
 
-from production.control_plane import RBACABAC, EvidenceLedger, InMemoryDeploymentAdapter, ProductionControlPlane, Subject
+from production.control_plane import (
+    RBACABAC,
+    EvidenceLedger,
+    InMemoryDeploymentAdapter,
+    ProductionControlPlane,
+    Subject,
+)
 from production.evolution import CanaryController, Measurement
 from production.rollout import RolloutController
 
 
 def release_operator() -> Subject:
-    return Subject("release-1", "tenant-1", frozenset({"release-manager"}), {"environment": "staging"})
+    return Subject(
+        "release-1", "tenant-1", frozenset({"release-manager"}), {"environment": "staging"}
+    )
 
 
 def test_failed_canary_rolls_back_and_records_evidence() -> None:
     ledger = EvidenceLedger()
     adapter = InMemoryDeploymentAdapter()
     control = ProductionControlPlane(authorization=RBACABAC(), evidence=ledger, deployment=adapter)
-    rollout = RolloutController(control, CanaryController(minimum_success_rate=0.99, maximum_latency_ms=500), ledger)
+    rollout = RolloutController(
+        control, CanaryController(minimum_success_rate=0.99, maximum_latency_ms=500), ledger
+    )
 
     result = rollout.evaluate_and_rollout(
         release_operator(),
@@ -35,7 +45,9 @@ def test_healthy_canary_promotes_and_records_measurement() -> None:
     ledger = EvidenceLedger()
     adapter = InMemoryDeploymentAdapter()
     control = ProductionControlPlane(authorization=RBACABAC(), evidence=ledger, deployment=adapter)
-    rollout = RolloutController(control, CanaryController(minimum_success_rate=0.99, maximum_latency_ms=500), ledger)
+    rollout = RolloutController(
+        control, CanaryController(minimum_success_rate=0.99, maximum_latency_ms=500), ledger
+    )
 
     result = rollout.evaluate_and_rollout(
         release_operator(),

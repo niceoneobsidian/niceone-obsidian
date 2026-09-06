@@ -16,7 +16,9 @@ class CalibrationReport:
     accuracy: float
 
 
-def evaluate_predictions(predictions: list[FootballPrediction], outcomes: list[str]) -> CalibrationReport:
+def evaluate_predictions(
+    predictions: list[FootballPrediction], outcomes: list[str]
+) -> CalibrationReport:
     """Evaluate aligned predictions without fitting or using future outcomes during prediction."""
     if len(predictions) != len(outcomes):
         raise ValueError("predictions and outcomes must have equal length")

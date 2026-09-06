@@ -16,6 +16,8 @@ def domain_manifest() -> dict[str, Any]:
     return manifest()
 
 
-def predict_match(match: MatchState, ensemble: FootballEnsemble | None = None) -> FootballPrediction:
+def predict_match(
+    match: MatchState, ensemble: FootballEnsemble | None = None
+) -> FootballPrediction:
     """Pure prediction entrypoint suitable for a governed OIS capability adapter."""
     return (ensemble or FootballEnsemble()).predict(match)

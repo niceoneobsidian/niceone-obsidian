@@ -19,7 +19,9 @@ class MemoryRecord:
 
 class MemorySink(Protocol):
     def append(self, record: MemoryRecord) -> None: ...
-    def search(self, query: str, *, kind: str | None = None, limit: int = 20) -> list[MemoryRecord]: ...
+    def search(
+        self, query: str, *, kind: str | None = None, limit: int = 20
+    ) -> list[MemoryRecord]: ...
 
 
 class InMemoryMemoryAdapter:
@@ -36,7 +38,8 @@ class InMemoryMemoryAdapter:
         matches = [
             record
             for record in reversed(self._records)
-            if query_lower in f"{record.key} {record.value}".lower() and (kind is None or record.kind == kind)
+            if query_lower in f"{record.key} {record.value}".lower()
+            and (kind is None or record.kind == kind)
         ]
         return matches[:limit]
 

@@ -54,7 +54,9 @@ def postgres_ois_graph(spine: OISSpine, dsn: str) -> Iterator[Any]:
     try:
         from langgraph.checkpoint.postgres import PostgresSaver
     except ImportError as exc:  # pragma: no cover - dependency contract
-        raise RuntimeError("langgraph-checkpoint-postgres is required for PostgreSQL LangGraph persistence") from exc
+        raise RuntimeError(
+            "langgraph-checkpoint-postgres is required for PostgreSQL LangGraph persistence"
+        ) from exc
 
     with PostgresSaver.from_conn_string(dsn) as checkpointer:
         checkpointer.setup()

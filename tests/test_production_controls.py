@@ -11,12 +11,16 @@ from ois.production import (
 
 
 def test_rbac_abac_is_deny_by_default() -> None:
-    authorizer = __import__("ois.production.control", fromlist=["EnterpriseAuthorizer"]).EnterpriseAuthorizer(
-        (ABACRule("deploy", frozenset({"release"}), {"env": "prod"}),)
+    authorizer = __import__(
+        "ois.production.control", fromlist=["EnterpriseAuthorizer"]
+    ).EnterpriseAuthorizer((ABACRule("deploy", frozenset({"release"}), {"env": "prod"}),))
+    context = AuthorizationContext(
+        "u1", "t1", frozenset({"release"}), {"env": "prod"}, frozenset({"deploy"})
     )
-    context = AuthorizationContext("u1", "t1", frozenset({"release"}), {"env": "prod"}, frozenset({"deploy"}))
     assert authorizer.authorize(context, "deploy")
-    bad = AuthorizationContext("u2", "t1", frozenset({"viewer"}), {"env": "prod"}, frozenset({"deploy"}))
+    bad = AuthorizationContext(
+        "u2", "t1", frozenset({"viewer"}), {"env": "prod"}, frozenset({"deploy"})
+    )
     try:
         authorizer.authorize(bad, "deploy")
     except GovernanceError:
@@ -44,7 +48,10 @@ def test_canary_is_deterministic_and_rolls_back_on_bad_metrics() -> None:
     canary = CanaryController()
     canary.start("r1", "v1", "v2", 50)
     assert canary.assign("r1", "same-subject") == canary.assign("r1", "same-subject")
-    assert canary.decide("r1", success_rate=0.90, latency_ratio=1.1, approved_by="release") == "rolled_back"
+    assert (
+        canary.decide("r1", success_rate=0.90, latency_ratio=1.1, approved_by="release")
+        == "rolled_back"
+    )
 
 
 def test_distributed_lease_prevents_double_claim_and_is_idempotent() -> None:

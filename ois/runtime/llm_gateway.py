@@ -65,7 +65,8 @@ class LLMGateway:
         candidates = [
             route
             for route in self.routes
-            if capabilities.issubset(route.capabilities) and all(route.constraints.get(key) == value for key, value in constraints.items())
+            if capabilities.issubset(route.capabilities)
+            and all(route.constraints.get(key) == value for key, value in constraints.items())
         ]
         if not candidates:
             raise LookupError(f"no model route satisfies capabilities={sorted(capabilities)}")
@@ -92,7 +93,10 @@ class LLMGateway:
                 for route in self.routes
                 if route != selected
                 and capabilities.issubset(route.capabilities)
-                and all(route.constraints.get(key) == value for key, value in options.get("constraints", {}).items())
+                and all(
+                    route.constraints.get(key) == value
+                    for key, value in options.get("constraints", {}).items()
+                )
             )
 
         last_error: Exception | None = None

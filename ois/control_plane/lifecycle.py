@@ -257,13 +257,17 @@ class OISProductionLifecycle:
             baseline=0.0,
             minimum_score=0.5,
         )
-        learning_state = self.learning.candidate(f"capability:{request.capability_id}@{request.capability_version}", evaluation)
+        learning_state = self.learning.candidate(
+            f"capability:{request.capability_id}@{request.capability_version}", evaluation
+        )
         if succeeded:
             self.runtime.complete(context)
         return LifecycleResult(
             result=result,
             execution_id=execution_id,
-            evidence_event_ids=tuple(event.event_id for event in self.evidence.events(execution_id)),
+            evidence_event_ids=tuple(
+                event.event_id for event in self.evidence.events(execution_id)
+            ),
             semantic_entity_id=entity.entity_id,
             learning_state=learning_state,
         )
@@ -319,7 +323,9 @@ class OISProductionLifecycle:
                 "rollout.canary.passed",
                 {"success_rate": decision.success_rate, "latency_ms": latency_ms},
             )
-            activation = self.deployment.activate(release_subject, candidate, environment, previous=previous)
+            activation = self.deployment.activate(
+                release_subject, candidate, environment, previous=previous
+            )
             self.evidence.append(
                 rollout_id,
                 "rollout.promoted",
@@ -350,7 +356,9 @@ class OISProductionLifecycle:
                 invocation_id=payload.get("invocation_id"),
                 subject_id=str(payload.get("subject_id", "worker")),
                 roles=frozenset(str(role) for role in payload.get("roles", ())),
-                permissions=frozenset(str(permission) for permission in payload.get("permissions", ())),
+                permissions=frozenset(
+                    str(permission) for permission in payload.get("permissions", ())
+                ),
                 environment=str(payload.get("environment", "staging")),
                 attributes={str(k): str(v) for k, v in dict(payload.get("attributes", {})).items()},
             )

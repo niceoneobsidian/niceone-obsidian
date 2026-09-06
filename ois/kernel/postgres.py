@@ -78,7 +78,9 @@ class PostgresDurableExecutionStore:
 
     def __init__(self, dsn: str | Callable[[], Any]) -> None:
         if psycopg is None:
-            raise PostgresConfigurationError("psycopg is required for PostgresDurableExecutionStore")
+            raise PostgresConfigurationError(
+                "psycopg is required for PostgresDurableExecutionStore"
+            )
         self._connect = (lambda: psycopg.connect(dsn)) if isinstance(dsn, str) else dsn
 
     @contextmanager

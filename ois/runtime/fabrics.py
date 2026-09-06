@@ -153,7 +153,8 @@ class InMemoryModelRouter:
         candidates = [
             route
             for route in self.routes
-            if required.issubset(route.capabilities) and all(route.constraints.get(key) == value for key, value in constraints.items())
+            if required.issubset(route.capabilities)
+            and all(route.constraints.get(key) == value for key, value in constraints.items())
         ]
         if not candidates:
             raise LookupError(f"no model route satisfies capabilities={sorted(required)}")
@@ -262,9 +263,13 @@ class InMemoryContextEngine:
     def assemble(self, request: ContextRequest) -> dict[str, Any]:
         context: dict[str, Any] = {
             "objective": request.objective,
-            "evidence": [self.evidence[ref] for ref in request.evidence_refs if ref in self.evidence],
+            "evidence": [
+                self.evidence[ref] for ref in request.evidence_refs if ref in self.evidence
+            ],
             "memory": [self.memory[ref] for ref in request.memory_refs if ref in self.memory],
-            "knowledge": [self.knowledge[ref] for ref in request.knowledge_refs if ref in self.knowledge],
+            "knowledge": [
+                self.knowledge[ref] for ref in request.knowledge_refs if ref in self.knowledge
+            ],
             "skills": [self.skills[ref] for ref in request.skill_refs if ref in self.skills],
         }
         if request.token_budget is not None:
@@ -290,7 +295,9 @@ class InMemoryKnowledgeEngine:
         for artifact in self.artifacts.values():
             if artifact_type and artifact.artifact_type != artifact_type:
                 continue
-            haystack = " ".join((artifact.source_ref, artifact.content_ref, str(artifact.metadata))).lower()
+            haystack = " ".join(
+                (artifact.source_ref, artifact.content_ref, str(artifact.metadata))
+            ).lower()
             score = sum(term in haystack for term in terms)
             if score:
                 scored.append((score, artifact))
@@ -301,7 +308,9 @@ class InMemoryKnowledgeEngine:
 @dataclass
 class InMemoryMiddleware:
     spec: MiddlewareSpec
-    hooks: dict[str, list[Callable[[dict[str, Any]], dict[str, Any]]]] = field(default_factory=lambda: defaultdict(list))
+    hooks: dict[str, list[Callable[[dict[str, Any]], dict[str, Any]]]] = field(
+        default_factory=lambda: defaultdict(list)
+    )
 
     def add(
         self,
@@ -337,7 +346,8 @@ class InMemoryReasoningRegistry:
         candidates = [
             pattern
             for pattern in self.patterns.values()
-            if objective_class in pattern.objective_classes and set(pattern.prerequisites).issubset(available)
+            if objective_class in pattern.objective_classes
+            and set(pattern.prerequisites).issubset(available)
         ]
         if not candidates:
             raise LookupError(f"no reasoning pattern for objective={objective_class}")
@@ -360,7 +370,10 @@ class InMemoryStudio:
     def validate(self, artifact_id: str) -> None:
         artifact = self.artifacts[artifact_id]
         components = set(artifact.component_refs)
-        if any(source not in components or target not in components for source, target in artifact.graph):
+        if any(
+            source not in components or target not in components
+            for source, target in artifact.graph
+        ):
             raise ValueError("studio graph references unknown components")
 
 
@@ -411,7 +424,8 @@ class InMemorySocialFabric:
         return tuple(
             signal
             for signal in self.signals
-            if (platform is None or signal.platform == platform) and (topic is None or topic in signal.topic_refs)
+            if (platform is None or signal.platform == platform)
+            and (topic is None or topic in signal.topic_refs)
         )
 
 
@@ -457,7 +471,9 @@ class FabricRuntime:
     agents: InMemoryAgentRuntime = field(default_factory=InMemoryAgentRuntime)
     context: InMemoryContextEngine = field(default_factory=InMemoryContextEngine)
     knowledge: InMemoryKnowledgeEngine = field(default_factory=InMemoryKnowledgeEngine)
-    middleware: InMemoryMiddleware = field(default_factory=lambda: InMemoryMiddleware(MiddlewareSpec("ois.middleware")))
+    middleware: InMemoryMiddleware = field(
+        default_factory=lambda: InMemoryMiddleware(MiddlewareSpec("ois.middleware"))
+    )
     reasoning: InMemoryReasoningRegistry = field(default_factory=InMemoryReasoningRegistry)
     studio: InMemoryStudio = field(default_factory=InMemoryStudio)
     components: InMemoryComponentRegistry = field(default_factory=InMemoryComponentRegistry)

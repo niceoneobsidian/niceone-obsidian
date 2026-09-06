@@ -283,7 +283,9 @@ class SQLiteExecutionStore(_SQLiteBase):
             (execution_id,),
         )
         if existing:
-            raise DuplicateExecutionError(f"Execution '{execution_id}' already exists. Execution store is append-only.")
+            raise DuplicateExecutionError(
+                f"Execution '{execution_id}' already exists. Execution store is append-only."
+            )
 
         now = _now()
         with self._write() as conn:
@@ -726,10 +728,14 @@ class SQLiteWorkerQueue(_SQLiteBase):
         job = self.get(job_id)
 
         if job.lease_owner != worker_id:
-            raise JobOwnershipError(f"Worker '{worker_id}' does not own the lease for job '{job_id}'. Current owner: '{job.lease_owner}'.")
+            raise JobOwnershipError(
+                f"Worker '{worker_id}' does not own the lease for job '{job_id}'. Current owner: '{job.lease_owner}'."
+            )
 
         if job.status != expected_status:
-            raise InvalidStatusTransitionError(f"Job '{job_id}' is in status '{job.status}', expected '{expected_status}'.")
+            raise InvalidStatusTransitionError(
+                f"Job '{job_id}' is in status '{job.status}', expected '{expected_status}'."
+            )
 
         return job
 

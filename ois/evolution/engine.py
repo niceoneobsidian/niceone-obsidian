@@ -17,4 +17,6 @@ class EvolutionPlane:
     def approve(self, candidate: EvolutionCandidate) -> EvolutionCandidate:
         if not candidate.evidence:
             raise ValueError("evolution requires evidence")
-        return EvolutionCandidate(candidate.candidate_id, candidate.version, candidate.evidence, True)
+        return EvolutionCandidate(
+            candidate.candidate_id, candidate.version, candidate.evidence, True
+        )

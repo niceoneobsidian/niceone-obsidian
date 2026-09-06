@@ -14,7 +14,9 @@ from production.workers import LeaseQueue, Worker
 
 
 def operator(environment: str = "staging") -> Subject:
-    return Subject("release-1", "tenant-1", frozenset({"release-manager"}), {"environment": environment})
+    return Subject(
+        "release-1", "tenant-1", frozenset({"release-manager"}), {"environment": environment}
+    )
 
 
 def test_evidence_ledger_is_hash_linked() -> None:
@@ -27,7 +29,9 @@ def test_evidence_ledger_is_hash_linked() -> None:
 
 def test_production_activation_requires_rbac_abac() -> None:
     ledger = EvidenceLedger()
-    cp = ProductionControlPlane(authorization=RBACABAC(), evidence=ledger, deployment=InMemoryDeploymentAdapter())
+    cp = ProductionControlPlane(
+        authorization=RBACABAC(), evidence=ledger, deployment=InMemoryDeploymentAdapter()
+    )
     denied = Subject("viewer", "tenant-1", frozenset({"viewer"}), {"environment": "staging"})
     try:
         cp.activate(denied, "v2", "staging")
@@ -96,7 +100,9 @@ def test_canary_failure_and_learning_gate() -> None:
     failed = canary.decide("v2", 5, successes=95, total=100, latency_ms=600)
     assert not failed.passed
     loop = LearningLoop()
-    evaluation = loop.evaluate("strategy-v2", [Measurement("reward", 0.8)], baseline=0.7, minimum_score=0.75)
+    evaluation = loop.evaluate(
+        "strategy-v2", [Measurement("reward", 0.8)], baseline=0.7, minimum_score=0.75
+    )
     assert evaluation.passed
     assert loop.candidate("strategy-v2", evaluation) == "PENDING_APPROVAL"
     assert loop.candidate("strategy-v2", evaluation, approved=True) == "APPROVED"

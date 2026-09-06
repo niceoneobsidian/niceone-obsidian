@@ -76,14 +76,18 @@ class SQLiteSocialEventStore:
         return sum(self.append(event) for event in events)
 
     def get(self, event_id: str) -> SocialEvent | None:
-        row = self._connection.execute("SELECT payload FROM social_events WHERE event_id = ?", (event_id,)).fetchone()
+        row = self._connection.execute(
+            "SELECT payload FROM social_events WHERE event_id = ?", (event_id,)
+        ).fetchone()
         return None if row is None else SocialEvent.model_validate(json.loads(row["payload"]))
 
     def list(self, *, platform: str | None = None, limit: int = 100) -> list[SocialEvent]:
         if limit <= 0:
             return []
         if platform is None:
-            rows = self._connection.execute("SELECT payload FROM social_events ORDER BY occurred_at DESC LIMIT ?", (limit,)).fetchall()
+            rows = self._connection.execute(
+                "SELECT payload FROM social_events ORDER BY occurred_at DESC LIMIT ?", (limit,)
+            ).fetchall()
         else:
             rows = self._connection.execute(
                 "SELECT payload FROM social_events WHERE platform = ? ORDER BY occurred_at DESC LIMIT ?",
