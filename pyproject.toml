@@ -20,7 +20,7 @@ include = ["ois*", "production*"]
 
 [tool.ruff]
 target-version = "py312"
-line-length = 100
+line-length = 140
 extend-exclude = [
   ".git",
   ".venv",
@@ -44,6 +44,7 @@ select = [
 
 [tool.ruff.lint.per-file-ignores]
 "ois/domains/social_intelligence/inventory.py" = ["E501"]
+"ois/production/control.py" = ["E501"]
 
 [tool.ruff.format]
 quote-style = "double"
