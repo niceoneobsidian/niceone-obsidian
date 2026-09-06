@@ -20,7 +20,7 @@ include = ["ois*", "production*"]
 
 [tool.ruff]
 target-version = "py312"
-line-length = 140
+line-length = 100
 extend-exclude = [
   ".git",
   ".venv",
