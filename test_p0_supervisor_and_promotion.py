@@ -12,7 +12,7 @@ from ois.supervisor.supervisor import (
 )
 
 
-def test_supervisor_executes_only_after_validated_authorized_plan():
+def test_supervisor_executes_only_after_validated_authorized_plan() -> None:
     decision = Supervisor().decide(
         SupervisionRequest(
             objective="run capability",
@@ -24,7 +24,7 @@ def test_supervisor_executes_only_after_validated_authorized_plan():
     assert decision.action == SupervisionAction.EXECUTE
 
 
-def test_supervisor_escalates_missing_approval():
+def test_supervisor_escalates_missing_approval() -> None:
     decision = Supervisor().decide(
         SupervisionRequest(
             objective="publish",
@@ -38,7 +38,7 @@ def test_supervisor_escalates_missing_approval():
     assert decision.action == SupervisionAction.ESCALATE
 
 
-def test_supervisor_stops_safety_failure():
+def test_supervisor_stops_safety_failure() -> None:
     decision = Supervisor().decide(
         SupervisionRequest(
             objective="execute",
@@ -51,7 +51,7 @@ def test_supervisor_stops_safety_failure():
     assert decision.action == SupervisionAction.STOP
 
 
-def test_supervisor_retries_only_when_recovery_policy_allows_it():
+def test_supervisor_retries_only_when_recovery_policy_allows_it() -> None:
     decision = Supervisor().decide(
         SupervisionRequest(
             objective="execute",
@@ -65,7 +65,7 @@ def test_supervisor_retries_only_when_recovery_policy_allows_it():
     assert decision.action == SupervisionAction.RETRY
 
 
-def test_promotion_gate_blocks_missing_runtime_evidence():
+def test_promotion_gate_blocks_missing_runtime_evidence() -> None:
     evidence = PromotionEvidence(
         implementation=True,
         tests=True,
@@ -83,22 +83,25 @@ def test_promotion_gate_blocks_missing_runtime_evidence():
     assert "runtime" in decision.missing
 
 
-def test_promotion_gate_requires_provenance():
+def test_promotion_gate_requires_provenance() -> None:
     evidence = PromotionEvidence(*([True] * 8))
     decision = EvidencePromotionGate().evaluate(evidence)
     assert decision.allowed is False
     assert decision.missing == ("provenance",)
 
 
-def test_promotion_gate_allows_verified_change():
+def test_promotion_gate_allows_verified_change() -> None:
     evidence = PromotionEvidence(*([True] * 8), provenance=("ci://run/456",))
     decision = EvidencePromotionGate().require(evidence)
     assert decision.allowed is True
     assert decision.status == EvidenceStatus.PRODUCTION_VERIFIED
 
 
-def test_promotion_gate_raises_with_missing_evidence():
-    evidence = PromotionEvidence(*([True] * 7 + [False]), provenance=("ci://run/789",))
+def test_promotion_gate_raises_with_missing_evidence() -> None:
+    evidence = PromotionEvidence(
+        *([True] * 7 + [False]),
+        provenance=("ci://run/789",),
+    )
     try:
         EvidencePromotionGate().require(evidence)
     except PromotionBlocked as exc:
