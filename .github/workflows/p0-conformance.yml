@@ -2,7 +2,7 @@ name: OIS P0 conformance
 
 on:
   push:
-    branches: [feat/p0-integrated-spine]
+    branches: [feat/p0-integrated-spine, feat/persistence-coordination-conformance]
   pull_request:
     branches: [main]
 
@@ -39,3 +39,13 @@ jobs:
         run: python -m pytest -q
       - name: P0 deliberate failure and recovery
         run: python -m pytest -q test_p0_integrated_spine.py
+      - name: Start PostgreSQL and Redis
+        run: docker compose -f infra/docker-compose.yml up -d --wait
+      - name: Real persistence and coordination conformance
+        env:
+          OIS_DATABASE_URL: postgresql://ois_admin:ois_local_only@localhost:5432/ois_kernel_db
+          OIS_REDIS_URL: redis://localhost:6379/0
+        run: python -m pytest -q tests/integration/test_persistence_coordination.py
+      - name: Tear down infrastructure
+        if: always()
+        run: docker compose -f infra/docker-compose.yml down -v
