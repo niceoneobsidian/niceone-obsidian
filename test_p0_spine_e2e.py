@@ -12,7 +12,7 @@ from ois.registries import CapabilityRegistry
 
 class EchoCapability:
     @property
-    def contract(self):
+    def contract(self) -> CapabilityContract:
         return CapabilityContract(
             capability_id="test.echo",
             version="1.0.0",
@@ -30,7 +30,7 @@ class EchoCapability:
         )
 
 
-def test_real_control_plane_to_kernel_vertical_path():
+def test_real_control_plane_to_kernel_vertical_path() -> None:
     registry = CapabilityRegistry()
     registry.register("test.echo", "1.0.0", EchoCapability())
 
@@ -51,7 +51,7 @@ def test_real_control_plane_to_kernel_vertical_path():
     assert any(event["event_type"] == "spine.verified" for event in result.evidence)
 
 
-def test_vertical_path_rejects_unknown_capability_without_execution():
+def test_vertical_path_rejects_unknown_capability_without_execution() -> None:
     spine = OISSpine(CapabilityRegistry())
 
     try:
