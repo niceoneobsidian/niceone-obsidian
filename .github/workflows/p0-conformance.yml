@@ -41,11 +41,11 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e .
-          pip install ruff mypy bandit gitleaks pip-licenses pytest
+          pip install langgraph-checkpoint-postgres ruff mypy bandit gitleaks pip-licenses pytest
       - name: Ruff lint
-        run: ruff check ois scripts tests test_p0_integrated_spine.py test_p0_spine_e2e.py test_p0_supervisor_and_promotion.py
+        run: ruff check ois scripts tests test_p0_integrated_spine.py test_p0_spine_e2e.py test_p0_supervisor_and_promotion.py test_p0_runtime_integrations.py
       - name: Ruff format
-        run: ruff format --check ois scripts tests test_p0_integrated_spine.py test_p0_spine_e2e.py test_p0_supervisor_and_promotion.py
+        run: ruff format --check ois scripts tests test_p0_integrated_spine.py test_p0_spine_e2e.py test_p0_supervisor_and_promotion.py test_p0_runtime_integrations.py
       - name: Mypy
         run: python -m mypy ois
       - name: Bandit
@@ -80,7 +80,7 @@ jobs:
           {
             "status": "TESTED",
             "production_promotable": false,
-            "reason": "CI verifies implementation, tests, static security checks, and service reachability. Production runtime, deployment, rollback, and operational evidence are still required."
+            "reason": "CI verifies implementation, tests, static security checks, service reachability, and LangGraph PostgreSQL checkpoint dependencies. Production runtime, deployment, rollback, and operational evidence are still required."
           }
           JSON
       - uses: actions/upload-artifact@v4
