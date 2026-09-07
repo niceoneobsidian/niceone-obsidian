@@ -18,6 +18,7 @@ from .contracts import (
     ToolContract,
     Validator,
 )
+from .dlq import DLQEscalationPayload, OISDeadLetterInterceptor
 from .evidence import EvidenceEvent, EvidenceLedger, SQLiteEvidenceLedger
 from .idempotency import IdempotencyStore, InMemoryIdempotencyStore, SQLiteIdempotencyStore
 from .orchestrator import OrchestrationError, PlanExecutionError, PlanOrchestrator
@@ -68,6 +69,7 @@ from .validation import (
     ValidationError,
     ValidationResult,
 )
+from .visualization import OISGraphVisualizer
 
 __all__ = [
     "AgentContract",
@@ -87,6 +89,7 @@ __all__ = [
     "CheckpointStore",
     "ContractValidator",
     "CyclicPlanError",
+    "DLQEscalationPayload",
     "DefaultPolicyEngine",
     "DuplicateCapabilityError",
     "DuplicateTaskError",
@@ -108,6 +111,8 @@ __all__ = [
     "InvocationResult",
     "InvocationStatus",
     "JsonFileCheckpointStore",
+    "OISDeadLetterInterceptor",
+    "OISGraphVisualizer",
     "OrchestrationError",
     "OutputValidationError",
     "PlanBuilder",

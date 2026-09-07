@@ -1,0 +1,241 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ois-kernel-system
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ois-kernel-config
+  namespace: ois-kernel-system
+data:
+  OIS_DATABASE_DB: "ois_kernel_db"
+  OIS_DATABASE_USER: "ois_admin"
+  OIS_DATABASE_HOST: "ois-postgres-service"
+  OIS_DATABASE_PORT: "5432"
+  OIS_REDIS_URL: "redis://ois-redis-service:6379/0"
+---
+# The Secret is intentionally not populated in Git. Provision it through the
+# deployment secret manager / sealed-secret mechanism before applying this stack.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ois-kernel-secrets
+  namespace: ois-kernel-system
+type: Opaque
+stringData:
+  OIS_DATABASE_PASSWORD: "REPLACE_AT_DEPLOYMENT_TIME"
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: ois-postgres
+  namespace: ois-kernel-system
+spec:
+  serviceName: ois-postgres-service
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ois-postgres
+  template:
+    metadata:
+      labels:
+        app: ois-postgres
+    spec:
+      securityContext:
+        fsGroup: 999
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: ois-kernel-config
+                  key: OIS_DATABASE_DB
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: ois-kernel-config
+                  key: OIS_DATABASE_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ois-kernel-secrets
+                  key: OIS_DATABASE_PASSWORD
+          ports:
+            - name: pgport
+              containerPort: 5432
+          resources:
+            requests:
+              cpu: "500m"
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "ois_admin", "-d", "ois_kernel_db"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "ois_admin", "-d", "ois_kernel_db"]
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          volumeMounts:
+            - name: pg-storage
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: pg-storage
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 10Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ois-postgres-service
+  namespace: ois-kernel-system
+spec:
+  ports:
+    - name: pgport
+      port: 5432
+      targetPort: pgport
+  selector:
+    app: ois-postgres
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: ois-redis
+  namespace: ois-kernel-system
+spec:
+  serviceName: ois-redis-service
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ois-redis
+  template:
+    metadata:
+      labels:
+        app: ois-redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:7.2-alpine
+          imagePullPolicy: IfNotPresent
+          command: ["redis-server", "--appendonly", "yes"]
+          ports:
+            - name: redisport
+              containerPort: 6379
+          resources:
+            requests:
+              cpu: "250m"
+              memory: 256Mi
+            limits:
+              cpu: "500m"
+              memory: 512Mi
+          readinessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          volumeMounts:
+            - name: redis-storage
+              mountPath: /data
+  volumeClaimTemplates:
+    - metadata:
+        name: redis-storage
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ois-redis-service
+  namespace: ois-kernel-system
+spec:
+  ports:
+    - name: redisport
+      port: 6379
+      targetPort: redisport
+  selector:
+    app: ois-redis
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ois-kernel-worker
+  namespace: ois-kernel-system
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ois-kernel-worker
+  template:
+    metadata:
+      labels:
+        app: ois-kernel-worker
+    spec:
+      containers:
+        - name: worker
+          image: your-registry/ois-kernel:REPLACE_WITH_IMMUTABLE_DIGEST
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: OIS_DATABASE_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: ois-kernel-config
+                  key: OIS_DATABASE_USER
+            - name: OIS_DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ois-kernel-secrets
+                  key: OIS_DATABASE_PASSWORD
+            - name: OIS_DATABASE_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: ois-kernel-config
+                  key: OIS_DATABASE_HOST
+            - name: OIS_DATABASE_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: ois-kernel-config
+                  key: OIS_DATABASE_PORT
+            - name: OIS_DATABASE_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: ois-kernel-config
+                  key: OIS_DATABASE_DB
+            - name: OIS_REDIS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: ois-kernel-config
+                  key: OIS_REDIS_URL
+            - name: OIS_DATABASE_URL
+              value: "postgresql://$(OIS_DATABASE_USER):$(OIS_DATABASE_PASSWORD)@$(OIS_DATABASE_HOST):$(OIS_DATABASE_PORT)/$(OIS_DATABASE_DB)"
+          resources:
+            requests:
+              cpu: "1"
+              memory: 1Gi
+            limits:
+              cpu: "2"
+              memory: 2Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
