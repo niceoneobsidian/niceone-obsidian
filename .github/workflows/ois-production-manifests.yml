@@ -1,0 +1,42 @@
+name: OIS Production Manifests
+
+on:
+  pull_request:
+    paths:
+      - "deploy/helm/ois-kernel-core/**"
+      - "security/ois_audit_scan.py"
+      - "tests/test_ois_audit_scan.py"
+      - ".github/workflows/ois-production-manifests.yml"
+  push:
+    branches: [main]
+    paths:
+      - "deploy/helm/ois-kernel-core/**"
+      - "security/ois_audit_scan.py"
+      - "tests/test_ois_audit_scan.py"
+      - ".github/workflows/ois-production-manifests.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate-helm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - name: Helm lint
+        run: helm lint deploy/helm/ois-kernel-core
+      - name: Helm template
+        run: helm template ois deploy/helm/ois-kernel-core --namespace ois-system --set vault.enabled=false
+
+  validate-security-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install test dependency
+        run: python -m pip install --upgrade pytest
+      - name: Run evidence scanner tests
+        run: python -m pytest -q tests/test_ois_audit_scan.py
