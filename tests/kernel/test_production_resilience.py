@@ -9,11 +9,11 @@ import pytest
 from ois.kernel.production_resilience import (
     FencingTokenMismatch,
     KernelPanicException,
+    KernelTaskContext,
     OISProductionResilience,
     RECOVERY_SCENARIO_IDS,
     RetryExhaustedException,
     validate_recovery_matrix,
-    KernelTaskContext,
 )
 
 
@@ -50,10 +50,18 @@ async def test_rc04_bounds_retries_and_routes_to_separate_recovery_pool(monkeypa
     redis_client.eval.side_effect = [
         [1, 7],
         [1, b"owner", 7],
+        [1, b"owner", 7],
+        [1, b"owner", 7],
         [0],
     ]
 
-    kernel = OISProductionResilience(db_pool, redis_client, b"test-secret", recovery_pool=recovery_pool, lease_ttl_ms=100)
+    kernel = OISProductionResilience(
+        db_pool,
+        redis_client,
+        b"test-secret",
+        recovery_pool=recovery_pool,
+        lease_ttl_ms=100,
+    )
     kernel.evidence.append = AsyncMock()
     monkeypatch.setattr("ois.kernel.production_resilience.asyncio.sleep", AsyncMock())
 
@@ -103,13 +111,10 @@ async def test_rc05_stale_owner_is_rejected_before_side_effect():
 
 
 @pytest.mark.asyncio
-async def test_rc05_release_cannot_delete_new_owner_lock():
+async def test_rc05_release_is_conditional_on_nonce():
     db_pool = AsyncMock()
     redis_client = AsyncMock()
-    redis_client.eval.side_effect = [
-        [1, 1],
-        [0],
-    ]
+    redis_client.eval.side_effect = [[1, 1], [0]]
     kernel = OISProductionResilience(db_pool, redis_client, b"secret", lease_ttl_ms=100)
     lease = await kernel.leases.acquire("lease:test")
     await kernel.leases.release(lease)
