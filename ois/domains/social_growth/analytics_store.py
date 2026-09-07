@@ -61,7 +61,7 @@ class SQLiteAnalyticsStore:
                 )
             )
             for metric, value in event.metrics.items()
-            if isinstance(value, (int, float))
+            if isinstance(value, (int, float)) and not isinstance(value, bool)
         )
 
     def latest(self, entity_id: str, metric: str) -> MetricObservation | None:

@@ -22,9 +22,25 @@ def postgres_store() -> PostgresDurableExecutionStore:
     dsn = os.getenv("OIS_POSTGRES_TEST_DSN")
     if not dsn:
         pytest.skip("OIS_POSTGRES_TEST_DSN is not configured")
+
     store = PostgresDurableExecutionStore(dsn)
     store.initialize()
-    return store
+
+    # Isolate each integration test from prior outbox state.
+    with store.connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute("TRUNCATE TABLE ois_side_effect_outbox;")
+        connection.commit()
+
+    try:
+        yield store
+    finally:
+        # Prevent this test's durable side effects from contaminating
+        # subsequent tests or later local runs.
+        with store.connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute("TRUNCATE TABLE ois_side_effect_outbox;")
+            connection.commit()
 
 
 def test_postgres_checkpoint_survives_new_connection(
@@ -81,6 +97,7 @@ def test_outbox_reuses_idempotency_key_and_completes(
     claimed = boundary.claim(worker_id="test-worker")
 
     assert claimed == command
+    assert claimed is not None
     assert claimed.idempotency_key == command.idempotency_key
 
     boundary.complete(
@@ -114,7 +131,4 @@ def test_checkpoint_and_outbox_are_committed_as_one_transaction(
 
     postgres_store.commit_checkpoint_and_side_effect(context, command)
 
-    assert (
-        postgres_store.load(context.identity.execution_id).status
-        == ExecutionStatus.EXECUTING
-    )
+    assert postgres_store.load(context.identity.execution_id).status == ExecutionStatus.EXECUTING
