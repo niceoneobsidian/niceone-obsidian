@@ -5,7 +5,7 @@ import logging
 import random
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Awaitable, Callable, Optional, Protocol, Sequence
+from typing import Any, Awaitable, Callable, Protocol, Sequence
 
 logger = logging.getLogger("ois.chaos_interceptor")
 
@@ -21,12 +21,18 @@ class ChaosConfig:
     timeout_min_seconds: float = 2.5
     timeout_max_seconds: float = 6.0
     enabled: bool = False
-    modes: Sequence[ChaosMode] = (ChaosMode.NETWORK_SPLIT, ChaosMode.DATABASE_TIMEOUT)
+    modes: Sequence[ChaosMode] = (
+        ChaosMode.NETWORK_SPLIT,
+        ChaosMode.DATABASE_TIMEOUT,
+    )
 
     def __post_init__(self) -> None:
         if not 0 <= self.failure_probability <= 1:
             raise ValueError("failure_probability must be between 0 and 1")
-        if self.timeout_min_seconds < 0 or self.timeout_max_seconds < self.timeout_min_seconds:
+        if (
+            self.timeout_min_seconds < 0
+            or self.timeout_max_seconds < self.timeout_min_seconds
+        ):
             raise ValueError("invalid chaos timeout bounds")
         if not self.modes:
             raise ValueError("at least one chaos mode is required")
@@ -39,8 +45,11 @@ class AsyncPool(Protocol):
 class ChaosInjectionEngine:
     """Fail-closed, deterministic-testable DB fault interceptor; disabled by default."""
 
-    def __init__(self, config: Optional[ChaosConfig] = None,
-                 rng: Optional[random.Random] = None) -> None:
+    def __init__(
+        self,
+        config: ChaosConfig | None = None,
+        rng: random.Random | None = None,
+    ) -> None:
         self.config = config or ChaosConfig()
         self.rng = rng or random.Random()
         self._enabled = self.config.enabled
@@ -57,7 +66,7 @@ class ChaosInjectionEngine:
         self._enabled = False
         logger.info("CHAOS_INJECTION_DISABLED")
 
-    def choose_fault(self) -> Optional[ChaosMode]:
+    def choose_fault(self) -> ChaosMode | None:
         if not self._enabled or self.rng.random() >= self.config.failure_probability:
             return None
         return self.rng.choice(list(self.config.modes))
@@ -77,8 +86,10 @@ class ChaosInjectionEngine:
 
         async with pool.connection() as conn:
             if fault is ChaosMode.DATABASE_TIMEOUT:
-                delay = self.rng.uniform(self.config.timeout_min_seconds,
-                                         self.config.timeout_max_seconds)
+                delay = self.rng.uniform(
+                    self.config.timeout_min_seconds,
+                    self.config.timeout_max_seconds,
+                )
                 logger.warning("CHAOS_DATABASE_TIMEOUT delay=%.2f", delay)
                 await asyncio.sleep(delay)
 
