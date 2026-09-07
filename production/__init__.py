@@ -10,6 +10,7 @@ from production.control_plane import (
 )
 from production.evolution import CanaryController, LearningLoop, Measurement
 from production.semantic_world import SemanticWorld
+from production.telemetry import initialize_production_telemetry, shutdown_production_telemetry
 from production.workers import LeaseQueue, Worker
 
 __all__ = [
@@ -25,4 +26,6 @@ __all__ = [
     "SemanticWorld",
     "Subject",
     "Worker",
+    "initialize_production_telemetry",
+    "shutdown_production_telemetry",
 ]
