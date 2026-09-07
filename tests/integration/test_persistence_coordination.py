@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import os
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import psycopg
 import pytest
@@ -90,16 +90,13 @@ def test_real_persistence_coordination_and_recovery(runtime_urls: tuple[str, str
     assert owner is not None
     assert redis.acquire_execution_lock(str(execution_id), lock_timeout_sec=30) is None
 
-    cancelled_execution_id: object | None = None
+    cancelled_execution_id: UUID | None = None
     try:
-        # Persist two real checkpoints; recovery must fall back from the newest one.
         postgres.save_checkpoint(first_checkpoint_id, state)
         state.metadata["step_index"] = 1
         state.working_memory["checkpoint"] = "newest"
         postgres.save_checkpoint(second_checkpoint_id, state)
 
-        # The database trigger protects the immutable history. A controlled fault
-        # injector temporarily disables that trigger only to simulate storage corruption.
         with pytest.raises(psycopg.Error):
             with postgres.connection() as connection:
                 with connection.cursor() as cursor:
@@ -146,8 +143,6 @@ def test_real_persistence_coordination_and_recovery(runtime_urls: tuple[str, str
         assert recovery_evidence["outcome"] == "RECOVERED"
         assert recovery_evidence["restored_checkpoint_id"] != recovery_evidence["failed_checkpoint_id"]
 
-        # Redis idempotency is exercised through the actual runtime adapter, not only
-        # through a direct cache write.
         registry = CapabilityRegistry()
         capability = CountingEchoCapability()
         registry.register(capability)
@@ -187,9 +182,11 @@ def test_real_persistence_coordination_and_recovery(runtime_urls: tuple[str, str
         assert first_result.status == InvocationStatus.SUCCEEDED
         assert second_result.output == first_result.output
         assert capability.calls == 1
-        assert any(event.event_type == "execution.idempotency_hit" for event in evidence_two.list(runtime_state.identity.execution_id))
+        assert any(
+            event.event_type == "execution.idempotency_hit"
+            for event in evidence_two.list(runtime_state.identity.execution_id)
+        )
 
-        # Cancellation is also consumed through the runtime's cancellation boundary.
         cancelled_execution_id = uuid4()
         cancellation = RedisCancellationToken(redis, str(cancelled_execution_id))
         cancellation.cancel("operator requested stop")
@@ -218,7 +215,10 @@ def test_real_persistence_coordination_and_recovery(runtime_urls: tuple[str, str
         assert cancelled_context.status.value == "stopped"
         assert "operator requested stop" in cancelled_result.error["message"]
         assert capability.calls == 1
-        assert any(event.event_type == "execution.cancelled" for event in cancellation_evidence.list(cancelled_execution_id))
+        assert any(
+            event.event_type == "execution.cancelled"
+            for event in cancellation_evidence.list(cancelled_execution_id)
+        )
 
         assert redis.cache_json_result(
             transaction_id, {"status": "SUCCESS", "processed_records": 42}
@@ -230,5 +230,5 @@ def test_real_persistence_coordination_and_recovery(runtime_urls: tuple[str, str
     finally:
         assert redis.release_execution_lock(str(execution_id), owner)
         redis.clear_cancellation_signal(str(execution_id))
-        if isinstance(cancelled_execution_id, UUID):
+        if cancelled_execution_id is not None:
             redis.clear_cancellation_signal(str(cancelled_execution_id))
