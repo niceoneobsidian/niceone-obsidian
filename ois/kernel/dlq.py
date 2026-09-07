@@ -8,7 +8,6 @@ import logging
 import time
 from datetime import UTC, datetime
 from typing import Any, Protocol
-from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
@@ -76,7 +75,9 @@ class OISDeadLetterInterceptor:
         """Freeze state, enqueue it, publish an event, and return the exact record."""
         snapshot = self._canonical_snapshot(state)
         identity = state.identity
-        fault_class = state.last_failure.value if state.last_failure else "CRITICAL_POLICY_VIOLATION"
+        fault_class = (
+            state.last_failure.value if state.last_failure else "CRITICAL_POLICY_VIOLATION"
+        )
 
         base = {
             "schema_version": "1.0",
