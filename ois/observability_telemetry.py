@@ -14,7 +14,7 @@ import os
 from contextlib import contextmanager
 from dataclasses import dataclass
 from time import perf_counter
-from typing import Any, Iterator
+from typing import Iterator
 
 from opentelemetry import metrics, trace
 from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
@@ -130,7 +130,6 @@ class SupervisorExecutionTracker:
             span.set_attribute("ois.thread_id", thread_id)
             span.set_attribute("ois.transition.from", from_state)
             span.set_attribute("ois.transition.to", to_state)
-            # Do not place tenant_id/thread_id in metric attributes: cardinality is unbounded.
             self.transition_counter.add(
                 1,
                 {"from_state": from_state, "to_state": to_state},
