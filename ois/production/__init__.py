@@ -3,8 +3,8 @@
 from .control import (
     ABACRule,
     AuthorizationContext,
-    Candidate,
     CanaryController,
+    Candidate,
     DeploymentController,
     DeploymentRecord,
     DistributedCoordinator,

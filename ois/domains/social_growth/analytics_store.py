@@ -66,8 +66,7 @@ class SQLiteAnalyticsStore:
 
     def latest(self, entity_id: str, metric: str) -> MetricObservation | None:
         row = self._db.execute(
-            "SELECT * FROM metric_observations WHERE entity_id=? AND metric=? "
-            "ORDER BY observed_at DESC LIMIT 1",
+            "SELECT * FROM metric_observations WHERE entity_id=? AND metric=? ORDER BY observed_at DESC LIMIT 1",
             (entity_id, metric),
         ).fetchone()
         if row is None:

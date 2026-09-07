@@ -69,8 +69,7 @@ class ControlPlane:
             return execute
 
         raise TypeError(
-            f"registered capability is not callable: "
-            f"{request.capability_id}@{request.capability_version}"
+            f"registered capability is not callable: {request.capability_id}@{request.capability_version}"
         )
 
     def execute(

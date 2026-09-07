@@ -41,8 +41,7 @@ class SQLiteAttributionStore:
 
     def get(self, conversion_id: str) -> list[tuple[str, float]]:
         rows = self._db.execute(
-            "SELECT touchpoint_id, credit FROM attribution_results "
-            "WHERE conversion_id=? ORDER BY touchpoint_id",
+            "SELECT touchpoint_id, credit FROM attribution_results WHERE conversion_id=? ORDER BY touchpoint_id",
             (conversion_id,),
         ).fetchall()
         return [(str(row[0]), float(row[1])) for row in rows]

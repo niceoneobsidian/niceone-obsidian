@@ -88,8 +88,7 @@ class PostgreSQLSocialEventStore:
                 )
             else:
                 cursor.execute(
-                    "SELECT payload FROM social_events WHERE platform = %s "
-                    "ORDER BY occurred_at DESC LIMIT %s",
+                    "SELECT payload FROM social_events WHERE platform = %s ORDER BY occurred_at DESC LIMIT %s",
                     (platform, limit),
                 )
             rows = cursor.fetchall()

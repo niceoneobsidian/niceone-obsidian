@@ -160,8 +160,7 @@ class ExecutionRuntime:
 
         if result.invocation_id != logical_invocation_id:
             raise ExecutionError(
-                "Capability returned an invocation_id that does not match the "
-                "requested invocation_id."
+                "Capability returned an invocation_id that does not match the requested invocation_id."
             )
 
         context.set_status(ExecutionStatus.OBSERVING)

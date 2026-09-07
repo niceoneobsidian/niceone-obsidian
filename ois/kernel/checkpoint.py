@@ -4,7 +4,6 @@ import hashlib
 import json
 import sqlite3
 from copy import deepcopy
-from dataclasses import asdict
 from pathlib import Path
 from threading import RLock
 from typing import Protocol
@@ -171,8 +170,7 @@ class SQLiteCheckpointStore:
     def load(self, execution_id: UUID) -> ExecutionContext:
         with self._lock:
             row = self._connection.execute(
-                "SELECT schema_version, state_json, state_hash FROM execution_checkpoints "
-                "WHERE execution_id = ?",
+                "SELECT schema_version, state_json, state_hash FROM execution_checkpoints WHERE execution_id = ?",
                 (str(execution_id),),
             ).fetchone()
         if row is None:

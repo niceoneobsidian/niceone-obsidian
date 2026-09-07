@@ -57,8 +57,7 @@ class SQLiteEvidenceLedger:
             return []
         if source_id is None:
             rows = self._connection.execute(
-                "SELECT source_id, uri, excerpt, observed_at, confidence "
-                "FROM evidence ORDER BY evidence_id DESC LIMIT ?",
+                "SELECT source_id, uri, excerpt, observed_at, confidence FROM evidence ORDER BY evidence_id DESC LIMIT ?",
                 (limit,),
             ).fetchall()
         else:

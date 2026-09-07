@@ -1,0 +1,9 @@
+Metadata-Version: 2.4
+Name: niceone-obsidian
+Version: 0.0.0
+Requires-Python: >=3.12
+Requires-Dist: psycopg[binary]<4,>=3.3.4
+Requires-Dist: pydantic<3,>=2.13.5
+Requires-Dist: langgraph<2,>=1.2.11
+Requires-Dist: redis<9,>=8.1
+Requires-Dist: opentelemetry-api<2,>=1.44

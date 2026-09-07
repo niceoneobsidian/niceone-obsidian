@@ -113,8 +113,7 @@ def _validate_execution_transition(current: str, target: str) -> None:
     allowed = _VALID_EXECUTION_TRANSITIONS.get(current, set())
     if target not in allowed:
         raise InvalidStatusTransitionError(
-            f"Execution status transition '{current}' → '{target}' is not permitted. "
-            f"Allowed: {allowed or 'none (terminal state)'}."
+            f"Execution status transition '{current}' → '{target}' is not permitted. Allowed: {allowed or 'none (terminal state)'}."
         )
 
 
@@ -122,8 +121,7 @@ def _validate_job_transition(current: str, target: str) -> None:
     allowed = _VALID_JOB_TRANSITIONS.get(current, set())
     if target not in allowed:
         raise InvalidStatusTransitionError(
-            f"Job status transition '{current}' → '{target}' is not permitted. "
-            f"Allowed: {allowed or 'none (terminal state)'}."
+            f"Job status transition '{current}' → '{target}' is not permitted. Allowed: {allowed or 'none (terminal state)'}."
         )
 
 
@@ -731,8 +729,7 @@ class SQLiteWorkerQueue(_SQLiteBase):
 
         if job.lease_owner != worker_id:
             raise JobOwnershipError(
-                f"Worker '{worker_id}' does not own the lease for job '{job_id}'. "
-                f"Current owner: '{job.lease_owner}'."
+                f"Worker '{worker_id}' does not own the lease for job '{job_id}'. Current owner: '{job.lease_owner}'."
             )
 
         if job.status != expected_status:
