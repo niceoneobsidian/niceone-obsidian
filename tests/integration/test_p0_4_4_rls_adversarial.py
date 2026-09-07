@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
 
 import pytest
-from psycopg import AsyncConnection
+import pytest_asyncio
+from psycopg import errors
 from psycopg_pool import AsyncConnectionPool
 
 from ois.integration.postgres_pool import create_tenant_pool
@@ -14,7 +14,7 @@ DB_DSN = os.getenv("OIS_TEST_DATABASE_URL")
 pytestmark = [pytest.mark.asyncio]
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def pool() -> AsyncConnectionPool:
     if not DB_DSN:
         pytest.skip("OIS_TEST_DATABASE_URL is required for PostgreSQL integration tests")
@@ -93,7 +93,7 @@ async def test_pool_reset_removes_sticky_tenant_context(pool: AsyncConnectionPoo
 async def test_cross_tenant_write_is_rejected(pool: AsyncConnectionPool) -> None:
     async with pool.connection() as conn:
         set_local_tenant(conn, "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
-        with pytest.raises(Exception):
+        with pytest.raises(errors.InsufficientPrivilege):
             await conn.execute(
                 "INSERT INTO ois_rls_adversarial_fixture (id, tenant_id, secret) VALUES (%s, %s, %s)",
                 ("forbidden", "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", "leak"),
