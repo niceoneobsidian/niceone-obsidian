@@ -34,14 +34,22 @@ async def pool() -> AsyncConnectionPool:
                 "USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid) "
                 "WITH CHECK (tenant_id = current_setting('app.current_tenant_id', true)::uuid)"
             )
-            await conn.execute("TRUNCATE ois_rls_adversarial_fixture")
+            await conn.commit()
+
+        async with pool.connection() as conn:
+            set_local_tenant(conn, "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+            await conn.execute("DELETE FROM ois_rls_adversarial_fixture")
             await conn.execute(
-                "INSERT INTO ois_rls_adversarial_fixture (id, tenant_id, secret) "
-                "VALUES (%s, %s, %s), (%s, %s, %s)",
-                (
-                    "tenant-a-record", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "A-secret",
-                    "tenant-b-record", "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", "B-secret",
-                ),
+                "INSERT INTO ois_rls_adversarial_fixture (id, tenant_id, secret) VALUES (%s, %s, %s)",
+                ("tenant-a-record", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "A-secret"),
+            )
+            await conn.commit()
+
+        async with pool.connection() as conn:
+            set_local_tenant(conn, "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
+            await conn.execute(
+                "INSERT INTO ois_rls_adversarial_fixture (id, tenant_id, secret) VALUES (%s, %s, %s)",
+                ("tenant-b-record", "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", "B-secret"),
             )
             await conn.commit()
         yield pool
