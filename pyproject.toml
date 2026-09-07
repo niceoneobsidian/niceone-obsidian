@@ -45,6 +45,12 @@ exclude = [
   "ois/domains/social_intelligence/inventory.py",
 ]
 
+[tool.pytest.ini_options]
+markers = [
+  "integration: requires live PostgreSQL or Redis infrastructure",
+  "sandbox: must execute inside the OIS gVisor runtime",
+]
+
 [tool.mypy]
 python_version = "3.12"
 warn_return_any = true
