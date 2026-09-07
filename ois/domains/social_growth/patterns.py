@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Protocol
+from typing import Any, Literal, Protocol
 
 from .schemas import CreativePattern, Evidence
 
@@ -27,7 +27,9 @@ class ViralPatternLearner:
     def learn_from_performance(
         self,
         pattern_id: str,
-        pattern_type: str,
+        pattern_type: Literal[
+            "hook", "narrative", "emotion", "pacing", "visual", "cta", "format", "offer"
+        ],
         pattern_text: str,
         performance_score: float,
         evidence: list[Evidence] | None = None,

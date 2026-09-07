@@ -119,7 +119,7 @@ FOOTBALL_AGENTS: tuple[FootballAgentSpec, ...] = (
 
 def manifest() -> dict[str, list[dict[str, Any]]]:
     return {
-        "domain": "football_intelligence",
+        "domain": "football_intelligence",  # type: ignore
         "capabilities": [c.__dict__.copy() for c in FOOTBALL_CAPABILITIES],
         "agents": [a.__dict__.copy() for a in FOOTBALL_AGENTS],
         "workflows": [
@@ -127,6 +127,6 @@ def manifest() -> dict[str, list[dict[str, Any]]]:
             {"workflow_id": "football.backtest", "version": 1},
             {"workflow_id": "football.live_prediction", "version": 1},
         ],
-        "model_registry_namespace": "football",
-        "connector_contract": "FootballDataConnector",
+        "model_registry_namespace": "football",  # type: ignore
+        "connector_contract": "FootballDataConnector",  # type: ignore
     }

@@ -99,4 +99,4 @@ def verified_from(checks: Iterable[bool], provenance: Iterable[str]) -> Promotio
     values = tuple(checks)
     if len(values) != len(_REQUIRED):
         raise ValueError(f"expected {len(_REQUIRED)} checks, got {len(values)}")
-    return PromotionEvidence(*values, provenance=tuple(provenance))
+    return PromotionEvidence(*values, provenance=tuple(provenance))  # type: ignore

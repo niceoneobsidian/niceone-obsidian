@@ -183,4 +183,4 @@ class TransactionalSideEffectBoundary:
                 )
                 count = cursor.rowcount
             connection.commit()
-        return count
+        return count  # type: ignore

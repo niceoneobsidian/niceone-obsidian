@@ -30,7 +30,7 @@ class PostgreSQLSocialAnalytics:
             )
             inserted = cursor.rowcount == 1
         self._connection.commit()
-        return inserted
+        return inserted  # type: ignore
 
     def append_attribution(self, result: AttributionResult) -> int:
         inserted = 0

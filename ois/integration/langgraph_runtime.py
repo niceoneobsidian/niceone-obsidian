@@ -26,7 +26,10 @@ class OISGraphState(TypedDict, total=False):
 
 def _builder(spine: OISSpine) -> StateGraph:
     def execute(state: OISGraphState) -> OISGraphState:
-        result = spine.submit(state["request"])
+        request = state.get("request")
+        if request is None:
+            raise ValueError("OIS graph state is missing a request")
+        result = spine.submit(request)
         return {
             **state,
             "execution_id": result.execution_id,

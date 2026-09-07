@@ -41,8 +41,8 @@ def register_social_domain(
                 "requires_approval": spec.requires_approval,
             },
         )
-    for spec in SOCIAL_AGENTS:
-        agents.register(spec.agent_id, "1.0.0", spec, metadata={"domain": "social_growth"})
+    for spec in SOCIAL_AGENTS:  # type: ignore
+        agents.register(spec.agent_id, "1.0.0", spec, metadata={"domain": "social_growth"})  # type: ignore
     for workflow in (RESEARCH_WORKFLOW, CONTENT_PUBLISH_WORKFLOW):
         workflows.register(
             workflow.workflow_id,

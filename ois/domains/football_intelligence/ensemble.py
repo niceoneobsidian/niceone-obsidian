@@ -11,7 +11,7 @@ from .schemas import FootballPrediction, MatchState, ModelProbability
 
 def _weighted(values: list[tuple[ModelProbability, float]], field: str) -> float:
     total = sum(weight for _, weight in values)
-    return sum(getattr(model, field) * weight for model, weight in values) / max(total, 1e-12)
+    return sum(getattr(model, field) * weight for model, weight in values) / max(total, 1e-12)  # type: ignore
 
 
 @dataclass(frozen=True)

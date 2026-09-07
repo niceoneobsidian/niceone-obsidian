@@ -66,7 +66,7 @@ class PostgreSQLSocialEventStore:
             )
             inserted = cursor.rowcount == 1
         self._connection.commit()
-        return inserted
+        return inserted  # type: ignore
 
     def append_many(self, events: Iterable[SocialEvent]) -> int:
         return sum(self.append(event) for event in events)
@@ -88,7 +88,8 @@ class PostgreSQLSocialEventStore:
                 )
             else:
                 cursor.execute(
-                    "SELECT payload FROM social_events WHERE platform = %s ORDER BY occurred_at DESC LIMIT %s",
+                    "SELECT payload FROM social_events WHERE platform = %s "
+                    "ORDER BY occurred_at DESC LIMIT %s",
                     (platform, limit),
                 )
             rows = cursor.fetchall()

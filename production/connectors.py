@@ -17,7 +17,7 @@ class ConnectorError(RuntimeError):
 class ConnectorRequest:
     operation: str
     url: str
-    payload: Mapping[str, object] = None
+    payload: Mapping[str, object] = None  # type: ignore
     timeout_seconds: float = 10.0
     max_retries: int = 2
 
@@ -49,7 +49,7 @@ class Connector(Protocol):
 class HTTPConnector:
     """Minimal HTTPS-only adapter boundary; concrete transports are injectable."""
 
-    def __init__(self, transport, *, evidence=None) -> None:
+    def __init__(self, transport, *, evidence=None) -> None:  # type: ignore
         self.transport, self.evidence = transport, evidence
 
     def request(self, request: ConnectorRequest) -> ConnectorResponse:

@@ -153,7 +153,7 @@ class CanaryController:
     def assign(self, rollout_id: str, subject: str) -> str:
         rollout = self._rollouts[rollout_id]
         bucket = int(hashlib.sha256(subject.encode()).hexdigest()[:8], 16) % 100
-        return rollout["candidate"] if bucket < rollout["percentage"] else rollout["stable"]
+        return rollout["candidate"] if bucket < rollout["percentage"] else rollout["stable"]  # type: ignore
 
     def decide(
         self,
@@ -294,7 +294,7 @@ class SemanticWorld:
             (subject, predicate, obj, source, version),
         )
         self._db.commit()
-        return int(cursor.lastrowid)
+        return int(cursor.lastrowid)  # type: ignore
 
     def facts(self, subject: str) -> tuple[dict[str, Any], ...]:
         rows = self._db.execute(

@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from uuid import uuid4
 
 import redis
+from redis.exceptions import LockError
 
 
 class RedisCoordination:
@@ -35,9 +36,5 @@ class RedisCoordination:
         try:
             yield token
         finally:
-            try:
+            with suppress(LockError):
                 lock.release()
-            except redis.exceptions.LockError:
-                # TTL expiry is an explicit recovery boundary; never mask the
-                # completed work with a secondary lease-release failure.
-                pass

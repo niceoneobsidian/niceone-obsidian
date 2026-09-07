@@ -78,5 +78,5 @@ def manifest() -> dict[str, list[dict[str, Any]]]:
             {"workflow_id": "social.research", "version": 1},
             {"workflow_id": "social.content_publish", "version": 1},
         ],
-        "connector_contract": "SocialConnector",
+        "connector_contract": "SocialConnector",  # type: ignore
     }
