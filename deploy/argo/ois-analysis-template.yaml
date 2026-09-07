@@ -1,0 +1,58 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: ois-kernel-telemetry-analysis
+  namespace: ois-worker-sandbox
+spec:
+  args:
+    - name: canary-service
+  metrics:
+    - name: global-success-rate
+      interval: 30s
+      failureLimit: 1
+      inconclusiveLimit: 1
+      successCondition: result[0] >= 0.999
+      provider:
+        prometheus:
+          address: http://prometheus.monitoring.svc.cluster.local:9090
+          query: |
+            sum(rate(http_requests_total{service="{{args.canary-service}}",status!~"5..|423"}[2m]))
+            /
+            clamp_min(sum(rate(http_requests_total{service="{{args.canary-service}}"}[2m])), 0.001)
+
+    - name: tenant-lock-collisions
+      interval: 1m
+      failureLimit: 1
+      inconclusiveLimit: 1
+      successCondition: result[0] <= 0.10
+      provider:
+        prometheus:
+          address: http://prometheus.monitoring.svc.cluster.local:9090
+          query: |
+            sum(rate(http_requests_total{service="{{args.canary-service}}",status="423"}[2m]))
+            /
+            clamp_min(sum(rate(http_requests_total{service="{{args.canary-service}}"}[2m])), 0.001)
+
+    - name: timeout-expiration-rate
+      interval: 1m
+      failureLimit: 1
+      inconclusiveLimit: 1
+      successCondition: result[0] <= 0.05
+      provider:
+        prometheus:
+          address: http://prometheus.monitoring.svc.cluster.local:9090
+          query: |
+            sum(rate(ois_workflow_state_transitions_total{service="{{args.canary-service}}",to_state="EXPIRED"}[2m]))
+            /
+            clamp_min(sum(rate(ois_workflow_state_transitions_total{service="{{args.canary-service}}"}[2m])), 0.001)
+
+    - name: worker-panics
+      interval: 30s
+      failureLimit: 1
+      inconclusiveLimit: 1
+      successCondition: result[0] == 0
+      provider:
+        prometheus:
+          address: http://prometheus.monitoring.svc.cluster.local:9090
+          query: |
+            sum(increase(ois_worker_panics_total{service="{{args.canary-service}}"}[2m]))
