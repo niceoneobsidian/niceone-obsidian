@@ -4,7 +4,11 @@ import uuid
 
 from locust import HttpUser, between, task
 
-TENANT_POOL = [x.strip() for x in os.getenv("OIS_STRESS_TENANTS", "").split(",") if x.strip()]
+TENANT_POOL = [
+    x.strip()
+    for x in os.getenv("OIS_STRESS_TENANTS", "").split(",")
+    if x.strip()
+]
 EXECUTION_PATH = os.getenv("OIS_EXECUTION_PATH", "/v1/kernel/execute")
 HITL_PATH = os.getenv("OIS_HITL_PATH", "/v1/control-plane/hitl/resolve")
 
@@ -38,8 +42,13 @@ class OISKernelStressUser(HttpUser):
                 "payload_complexity_factor": 4.5,
             },
         }
-        with self.client.post(EXECUTION_PATH, json=payload, headers=self.headers,
-                              name="kernel_execute", catch_response=True) as response:
+        with self.client.post(
+            EXECUTION_PATH,
+            json=payload,
+            headers=self.headers,
+            name="kernel_execute",
+            catch_response=True,
+        ) as response:
             if response.status_code in (200, 202):
                 response.success()
             else:
@@ -52,8 +61,13 @@ class OISKernelStressUser(HttpUser):
             "gate_id": str(uuid.uuid4()),
             "decision": random.choice(["APPROVED", "REJECTED"]),
         }
-        with self.client.post(HITL_PATH, json=payload, headers=self.headers,
-                              name="hitl_resolve_contention", catch_response=True) as response:
+        with self.client.post(
+            HITL_PATH,
+            json=payload,
+            headers=self.headers,
+            name="hitl_resolve_contention",
+            catch_response=True,
+        ) as response:
             if response.status_code in (200, 423):
                 response.success()
             else:
