@@ -2,13 +2,35 @@ name: OIS P0 conformance
 
 on:
   push:
-    branches: [feat/p0-integrated-spine]
+    branches: [main, "feat/**"]
   pull_request:
     branches: [main]
 
 jobs:
   conformance:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ois
+          POSTGRES_PASSWORD: ois
+          POSTGRES_DB: ois_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U ois -d ois_test"
+          --health-interval=10s --health-timeout=5s --health-retries=5
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s --health-timeout=5s --health-retries=5
+    env:
+      OIS_TEST_DATABASE_URL: postgresql://ois:ois@localhost:5432/ois_test
+      OIS_TEST_REDIS_URL: redis://localhost:6379/0
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -18,7 +40,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e .
-          pip install ruff mypy bandit gitleaks pip-licenses pytest
+          pip install ruff mypy bandit gitleaks pip-licenses pytest pytest-asyncio
       - name: Ruff lint
         run: ruff check ois scripts tests test_p0_integrated_spine.py
       - name: Ruff format
@@ -37,5 +59,23 @@ jobs:
         run: python scripts/ois_governance_check.py
       - name: Full test suite
         run: python -m pytest -q
+      - name: PostgreSQL RLS adversarial suite
+        run: python -m pytest -q tests/integration/test_p0_4_4_rls_adversarial.py
+      - name: Redis crash recovery suite
+        run: python -m pytest -q tests/integration/test_p0_4_5_crash_recovery.py
       - name: P0 deliberate failure and recovery
         run: python -m pytest -q test_p0_integrated_spine.py
+
+  gvisor-conformance:
+    if: ${{ vars.OIS_GVISOR_RUNNER == 'true' }}
+    runs-on: [self-hosted, linux, gvisor]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e . pytest pytest-asyncio
+      - name: gVisor sandbox conformance
+        env:
+          OIS_SANDBOX_RUNTIME: gvisor
+        run: python -m pytest -q -m sandbox tests/sandbox/test_gvisor_conformance.py
