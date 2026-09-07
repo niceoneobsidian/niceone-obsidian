@@ -47,7 +47,32 @@ class Supervisor:
     state. It does not perform authorization, invoke tools, or mutate policy.
     """
 
-    def decide(self, request: SupervisionRequest) -> SupervisionDecision:
+    def decide(
+        self,
+        request: SupervisionRequest | None = None,
+        *,
+        objective: str = "objective",
+        plan_validated: bool = True,
+        authorized: bool = True,
+        status: str = "pending",
+        failure: FailureClass | None = None,
+        retry_allowed: bool = False,
+        recovery_allowed: bool = False,
+        approval_required: bool = False,
+        approval_granted: bool = False,
+    ) -> SupervisionDecision:
+        if request is None:
+            request = SupervisionRequest(
+                objective=objective,
+                plan_validated=plan_validated,
+                authorized=authorized,
+                status=status,
+                failure=failure,
+                retry_allowed=retry_allowed,
+                recovery_allowed=recovery_allowed,
+                approval_required=approval_required,
+                approval_granted=approval_granted,
+            )
         if not request.objective.strip():
             return SupervisionDecision(SupervisionAction.STOP, "objective is required")
 
