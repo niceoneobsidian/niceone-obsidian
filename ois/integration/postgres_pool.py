@@ -14,7 +14,7 @@ async def reset_connection(connection: Any) -> None:
     await connection.execute("DISCARD TEMP")
 
 
-def create_tenant_pool(dsn: str, **kwargs: Any) -> AsyncConnectionPool[Any]:
+def create_tenant_pool(dsn: str, **kwargs: Any) -> AsyncConnectionPool:
     """Create an OIS pool whose reset hook prevents sticky tenant context."""
     return AsyncConnectionPool(dsn, reset=reset_connection, **kwargs)
 
