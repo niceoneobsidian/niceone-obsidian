@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ois-hardened-worker-node
+  namespace: ois-worker-sandbox
+  labels:
+    tier: kernel-execution-layer
+    component: agent-worker
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: ois-agent-worker
+  template:
+    metadata:
+      labels:
+        app: ois-agent-worker
+      annotations:
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/role: "ois-tenant-worker-role"
+        vault.hashicorp.com/agent-pre-populate-only: "false"
+        vault.hashicorp.com/agent-run-as-user: "2000"
+        vault.hashicorp.com/agent-run-as-group: "2000"
+        vault.hashicorp.com/secret-volume-path: "/vault/secrets"
+
+        vault.hashicorp.com/agent-inject-secret-database: "database/creds/ois-tenant-pool"
+        vault.hashicorp.com/agent-inject-file-database: "database.env"
+        vault.hashicorp.com/agent-inject-perms-database: "0400"
+        vault.hashicorp.com/agent-inject-template-database: |
+          {{- with secret "database/creds/ois-tenant-pool" -}}
+          OIS_DB_USER={{ printf "%q" .Data.username }}
+          OIS_DB_PASSWORD={{ printf "%q" .Data.password }}
+          {{- end }}
+
+        vault.hashicorp.com/agent-inject-secret-supervisor: "secret/data/ois/kernel/signing"
+        vault.hashicorp.com/agent-inject-file-supervisor: "supervisor.env"
+        vault.hashicorp.com/agent-inject-perms-supervisor: "0400"
+        vault.hashicorp.com/agent-inject-template-supervisor: |
+          {{- with secret "secret/data/ois/kernel/signing" -}}
+          SUPERVISOR_HMAC_SECRET={{ printf "%q" .Data.data.signing_key }}
+          {{- end }}
+    spec:
+      runtimeClassName: gvisor-sandbox
+      serviceAccountName: ois-worker-sa
+      automountServiceAccountToken: true
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 2000
+        runAsGroup: 2000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: worker-runtime
+          image: ois-registry.internal/kernel/worker:v1.0.0
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "-ec"]
+          args:
+            - |
+              set -eu
+              test -r /vault/secrets/database.env
+              test -r /vault/secrets/supervisor.env
+              . /vault/secrets/database.env
+              . /vault/secrets/supervisor.env
+              exec python3 -m ois_worker.run
+          env:
+            - name: OIS_SECRET_DIR
+              value: /vault/secrets
+          resources:
+            limits:
+              cpu: "1"
+              memory: "512Mi"
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 2000
+            runAsGroup: 2000
+            capabilities:
+              drop: ["ALL"]
