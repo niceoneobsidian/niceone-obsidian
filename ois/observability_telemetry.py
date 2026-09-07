@@ -11,8 +11,10 @@ from __future__ import annotations
 
 import hashlib
 import os
+from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Any
+from time import perf_counter
+from typing import Any, Iterator
 
 from opentelemetry import metrics, trace
 from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
@@ -85,7 +87,7 @@ class OpenTelemetryTelemetryEngine:
 
 
 class SupervisorExecutionTracker:
-    """Instruments workflow transitions and human-approval latency."""
+    """Instruments workflow transitions, executions, and human-approval latency."""
 
     def __init__(self) -> None:
         self.tracer = trace.get_tracer("ois.supervisor.tracker")
@@ -94,6 +96,16 @@ class SupervisorExecutionTracker:
             "ois_workflow_state_transitions_total",
             description="Workflow state transitions observed by the supervisor.",
             unit="1",
+        )
+        self.execution_counter: Counter = self.meter.create_counter(
+            "ois_workflow_executions_total",
+            description="Workflow executions observed by the supervisor.",
+            unit="1",
+        )
+        self.execution_timer: Histogram = self.meter.create_histogram(
+            "ois_workflow_execution_duration_seconds",
+            description="End-to-end supervisor execution duration.",
+            unit="s",
         )
         self.hitl_wait_timer: Histogram = self.meter.create_histogram(
             "ois_hitl_human_latency_seconds",
@@ -123,6 +135,32 @@ class SupervisorExecutionTracker:
                 1,
                 {"from_state": from_state, "to_state": to_state},
             )
+
+    @contextmanager
+    def track_execution(
+        self,
+        tenant_id: str,
+        thread_id: str,
+        workflow_id: str,
+    ) -> Iterator[None]:
+        """Create one execution span and bounded-cardinality execution metrics."""
+        started = perf_counter()
+        with self.tracer.start_as_current_span("ois.workflow.execution") as span:
+            span.set_attribute("ois.tenant_fingerprint", self._tenant_fingerprint(tenant_id))
+            span.set_attribute("ois.thread_id", thread_id)
+            span.set_attribute("ois.workflow_id", workflow_id)
+            try:
+                yield
+            except Exception as exc:
+                span.record_exception(exc)
+                span.set_attribute("ois.execution.status", "error")
+                raise
+            else:
+                span.set_attribute("ois.execution.status", "success")
+            finally:
+                duration = perf_counter() - started
+                self.execution_counter.add(1, {"workflow_id": workflow_id})
+                self.execution_timer.record(duration, {"workflow_id": workflow_id})
 
     def record_hitl_resolution_latency(
         self,
