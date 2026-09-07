@@ -66,11 +66,15 @@ def runtime_urls() -> tuple[str, str]:
     postgres_url = os.getenv("OIS_DATABASE_URL")
     redis_url = os.getenv("OIS_REDIS_URL")
     if not postgres_url or not redis_url:
-        pytest.skip("OIS_DATABASE_URL and OIS_REDIS_URL are required for runtime conformance")
+        pytest.skip(
+            "OIS_DATABASE_URL and OIS_REDIS_URL are required for runtime conformance"
+        )
     return postgres_url, redis_url
 
 
-def test_real_persistence_coordination_and_recovery(runtime_urls: tuple[str, str]) -> None:
+def test_real_persistence_coordination_and_recovery(
+    runtime_urls: tuple[str, str],
+) -> None:
     postgres_url, redis_url = runtime_urls
     postgres = PostgreSQLCheckpointStore(postgres_url)
     postgres.initialize()
@@ -80,7 +84,10 @@ def test_real_persistence_coordination_and_recovery(runtime_urls: tuple[str, str
     execution_id = uuid4()
     transaction_id = f"ois-test-{uuid4()}"
     state = ExecutionContext(
-        identity=ExecutionIdentity(execution_id=execution_id, tenant_id="conformance"),
+        identity=ExecutionIdentity(
+            execution_id=execution_id,
+            tenant_id="conformance",
+        ),
         objective="recovery conformance",
         metadata={"step_index": 0},
     )
@@ -88,7 +95,9 @@ def test_real_persistence_coordination_and_recovery(runtime_urls: tuple[str, str
     second_checkpoint_id = uuid4()
     owner = redis.acquire_execution_lock(str(execution_id), lock_timeout_sec=30)
     assert owner is not None
-    assert redis.acquire_execution_lock(str(execution_id), lock_timeout_sec=30) is None
+    assert redis.acquire_execution_lock(
+        str(execution_id), lock_timeout_sec=30
+    ) is None
 
     cancelled_execution_id: UUID | None = None
     try:
@@ -97,11 +106,14 @@ def test_real_persistence_coordination_and_recovery(runtime_urls: tuple[str, str
         state.working_memory["checkpoint"] = "newest"
         postgres.save_checkpoint(second_checkpoint_id, state)
 
+        # The database trigger protects immutable history. The controlled fault
+        # injector temporarily disables it only to simulate storage corruption.
         with pytest.raises(psycopg.Error):
             with postgres.connection() as connection:
                 with connection.cursor() as cursor:
                     cursor.execute(
-                        "UPDATE ois_execution_checkpoint_history SET state = state WHERE checkpoint_id = %s",
+                        "UPDATE ois_execution_checkpoint_history "
+                        "SET state = state WHERE checkpoint_id = %s",
                         (second_checkpoint_id,),
                     )
                 connection.commit()
@@ -109,18 +121,22 @@ def test_real_persistence_coordination_and_recovery(runtime_urls: tuple[str, str
         with postgres.connection() as connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "ALTER TABLE ois_execution_checkpoint_history DISABLE TRIGGER trg_ois_checkpoint_history_immutable"
+                    "ALTER TABLE ois_execution_checkpoint_history "
+                    "DISABLE TRIGGER trg_ois_checkpoint_history_immutable"
                 )
                 cursor.execute(
                     """
                     UPDATE ois_execution_checkpoint_history
-                    SET state = jsonb_set(state, '{objective}', '"CORRUPTED"'::jsonb)
+                    SET state = jsonb_set(
+                        state, '{objective}', '"CORRUPTED"'::jsonb
+                    )
                     WHERE checkpoint_id = %s
                     """,
                     (second_checkpoint_id,),
                 )
                 cursor.execute(
-                    "ALTER TABLE ois_execution_checkpoint_history ENABLE TRIGGER trg_ois_checkpoint_history_immutable"
+                    "ALTER TABLE ois_execution_checkpoint_history "
+                    "ENABLE TRIGGER trg_ois_checkpoint_history_immutable"
                 )
             connection.commit()
 
@@ -141,7 +157,10 @@ def test_real_persistence_coordination_and_recovery(runtime_urls: tuple[str, str
             "outcome": "RECOVERED",
         }
         assert recovery_evidence["outcome"] == "RECOVERED"
-        assert recovery_evidence["restored_checkpoint_id"] != recovery_evidence["failed_checkpoint_id"]
+        assert (
+            recovery_evidence["restored_checkpoint_id"]
+            != recovery_evidence["failed_checkpoint_id"]
+        )
 
         registry = CapabilityRegistry()
         capability = CountingEchoCapability()
@@ -162,7 +181,10 @@ def test_real_persistence_coordination_and_recovery(runtime_urls: tuple[str, str
             idempotency=RedisIdempotencyStore(redis),
         )
         runtime_state = ExecutionContext(
-            identity=ExecutionIdentity(execution_id=uuid4(), tenant_id="conformance"),
+            identity=ExecutionIdentity(
+                execution_id=uuid4(),
+                tenant_id="conformance",
+            ),
             objective="duplicate execution",
         )
         first_result = runtime_one.execute(
@@ -188,7 +210,9 @@ def test_real_persistence_coordination_and_recovery(runtime_urls: tuple[str, str
         )
 
         cancelled_execution_id = uuid4()
-        cancellation = RedisCancellationToken(redis, str(cancelled_execution_id))
+        cancellation = RedisCancellationToken(
+            redis, str(cancelled_execution_id)
+        )
         cancellation.cancel("operator requested stop")
         cancellation_evidence = EvidenceLedger()
         cancelled_runtime = ExecutionRuntime(
@@ -200,7 +224,8 @@ def test_real_persistence_coordination_and_recovery(runtime_urls: tuple[str, str
         )
         cancelled_context = ExecutionContext(
             identity=ExecutionIdentity(
-                execution_id=cancelled_execution_id, tenant_id="conformance"
+                execution_id=cancelled_execution_id,
+                tenant_id="conformance",
             ),
             objective="cancellation conformance",
         )
@@ -221,9 +246,12 @@ def test_real_persistence_coordination_and_recovery(runtime_urls: tuple[str, str
         )
 
         assert redis.cache_json_result(
-            transaction_id, {"status": "SUCCESS", "processed_records": 42}
+            transaction_id,
+            {"status": "SUCCESS", "processed_records": 42},
         )
-        assert not redis.cache_json_result(transaction_id, {"status": "duplicate"})
+        assert not redis.cache_json_result(
+            transaction_id, {"status": "duplicate"}
+        )
         cached = redis.check_idempotency_cache(transaction_id)
         assert cached is not None
         assert json.loads(cached)["processed_records"] == 42
