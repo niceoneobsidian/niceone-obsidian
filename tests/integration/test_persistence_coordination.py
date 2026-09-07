@@ -4,10 +4,62 @@ import json
 import os
 from uuid import uuid4
 
+import psycopg
 import pytest
 
-from ois.kernel.state import ExecutionContext, ExecutionIdentity
-from ois.persistence import PostgreSQLCheckpointStore, RedisTransientCoordinator
+from ois.kernel import (
+    CapabilityContract,
+    CapabilityRegistry,
+    ExecutionContext,
+    ExecutionIdentity,
+    ExecutionRuntime,
+    InMemoryCheckpointStore,
+    InvocationRequest,
+    InvocationResult,
+    InvocationStatus,
+    RiskLevel,
+    SideEffectLevel,
+)
+from ois.kernel.evidence import EvidenceLedger
+from ois.persistence import (
+    PostgreSQLCheckpointStore,
+    RedisCancellationToken,
+    RedisIdempotencyStore,
+    RedisTransientCoordinator,
+)
+
+
+class CountingEchoCapability:
+    calls = 0
+
+    @property
+    def contract(self) -> CapabilityContract:
+        return CapabilityContract(
+            capability_id="conformance.echo",
+            version="1.0.0",
+            description="Deterministic integration capability.",
+            input_schema={
+                "type": "object",
+                "required": ["message"],
+                "properties": {"message": {"type": "string"}},
+            },
+            output_schema={
+                "type": "object",
+                "required": ["message"],
+                "properties": {"message": {"type": "string"}},
+            },
+            risk_level=RiskLevel.LOW,
+            side_effects=SideEffectLevel.NONE,
+        )
+
+    def invoke(self, request: InvocationRequest) -> InvocationResult:
+        self.calls += 1
+        return InvocationResult(
+            invocation_id=request.invocation_id,
+            capability_id=request.capability_id,
+            status=InvocationStatus.SUCCEEDED,
+            output={"message": request.input["message"]},
+        )
 
 
 @pytest.fixture()
@@ -19,7 +71,7 @@ def runtime_urls() -> tuple[str, str]:
     return postgres_url, redis_url
 
 
-def test_real_persistence_and_coordination_lifecycle(runtime_urls: tuple[str, str]) -> None:
+def test_real_persistence_coordination_and_recovery(runtime_urls: tuple[str, str]) -> None:
     postgres_url, redis_url = runtime_urls
     postgres = PostgreSQLCheckpointStore(postgres_url)
     postgres.initialize()
@@ -33,30 +85,145 @@ def test_real_persistence_and_coordination_lifecycle(runtime_urls: tuple[str, st
         objective="recovery conformance",
         metadata={"step_index": 0},
     )
-    checkpoint_id = uuid4()
+    first_checkpoint_id = uuid4()
+    second_checkpoint_id = uuid4()
     owner = redis.acquire_execution_lock(str(execution_id), lock_timeout_sec=30)
     assert owner is not None
     assert redis.acquire_execution_lock(str(execution_id), lock_timeout_sec=30) is None
 
     try:
-        postgres.save_checkpoint(checkpoint_id, state)
+        # Persist two real checkpoints; recovery must fall back from the newest one.
+        postgres.save_checkpoint(first_checkpoint_id, state)
+        state.metadata["step_index"] = 1
+        state.working_memory["checkpoint"] = "newest"
+        postgres.save_checkpoint(second_checkpoint_id, state)
+
+        # The database trigger protects the immutable history. A controlled fault
+        # injector temporarily disables that trigger only to simulate storage corruption.
+        with pytest.raises(psycopg.Error):
+            with postgres.connection() as connection:
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        "UPDATE ois_execution_checkpoint_history SET state = state WHERE checkpoint_id = %s",
+                        (second_checkpoint_id,),
+                    )
+                connection.commit()
+
+        with postgres.connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "ALTER TABLE ois_execution_checkpoint_history DISABLE TRIGGER trg_ois_checkpoint_history_immutable"
+                )
+                cursor.execute(
+                    """
+                    UPDATE ois_execution_checkpoint_history
+                    SET state = jsonb_set(state, '{objective}', '"CORRUPTED"'::jsonb)
+                    WHERE checkpoint_id = %s
+                    """,
+                    (second_checkpoint_id,),
+                )
+                cursor.execute(
+                    "ALTER TABLE ois_execution_checkpoint_history ENABLE TRIGGER trg_ois_checkpoint_history_immutable"
+                )
+            connection.commit()
+
         recovered = postgres.fetch_last_valid_checkpoint(
             execution_id, tenant_id="conformance"
         )
         assert recovered is not None
-        assert recovered.objective == state.objective
-        assert recovered.identity.execution_id == execution_id
+        assert recovered.objective == "recovery conformance"
+        assert recovered.metadata["step_index"] == 0
+        assert recovered.working_memory == {}
 
-        result = {"status": "SUCCESS", "processed_records": 42}
-        assert redis.cache_json_result(transaction_id, result)
-        assert not redis.cache_json_result(transaction_id, {"status": "DUPLICATE"})
+        recovery_evidence = {
+            "execution_id": str(execution_id),
+            "fault": "CORRUPT_CHECKPOINT",
+            "failed_checkpoint_id": str(second_checkpoint_id),
+            "restored_checkpoint_id": str(first_checkpoint_id),
+            "action": "RESTORE_LAST_VALID_CHECKPOINT",
+            "outcome": "RECOVERED",
+        }
+        assert recovery_evidence["outcome"] == "RECOVERED"
+        assert recovery_evidence["restored_checkpoint_id"] != recovery_evidence["failed_checkpoint_id"]
+
+        # Redis idempotency is exercised through the actual runtime adapter, not only
+        # through a direct cache write.
+        registry = CapabilityRegistry()
+        capability = CountingEchoCapability()
+        registry.register(capability)
+        invocation_id = f"invocation-{uuid4()}"
+        runtime_one = ExecutionRuntime(
+            registry=registry,
+            checkpoint_store=postgres,
+            evidence=EvidenceLedger(),
+            idempotency=RedisIdempotencyStore(redis),
+        )
+        runtime_two = ExecutionRuntime(
+            registry=registry,
+            checkpoint_store=postgres,
+            evidence=EvidenceLedger(),
+            idempotency=RedisIdempotencyStore(redis),
+        )
+        runtime_state = ExecutionContext(
+            identity=ExecutionIdentity(
+                execution_id=uuid4(), tenant_id="conformance"
+            ),
+            objective="duplicate execution",
+        )
+        first_result = runtime_one.execute(
+            runtime_state,
+            "conformance.echo",
+            "1.0.0",
+            {"message": "exactly once"},
+            invocation_id=invocation_id,
+        )
+        second_result = runtime_two.execute(
+            runtime_state,
+            "conformance.echo",
+            "1.0.0",
+            {"message": "must not execute twice"},
+            invocation_id=invocation_id,
+        )
+        assert first_result.status == InvocationStatus.SUCCEEDED
+        assert second_result.output == first_result.output
+        assert capability.calls == 1
+
+        # Cancellation is also consumed through the runtime's cancellation boundary.
+        cancelled_execution_id = uuid4()
+        cancellation = RedisCancellationToken(
+            redis, str(cancelled_execution_id)
+        )
+        cancellation.cancel("operator requested stop")
+        cancelled_runtime = ExecutionRuntime(
+            registry=registry,
+            checkpoint_store=postgres,
+            evidence=EvidenceLedger(),
+            cancellation=cancellation,
+            idempotency=RedisIdempotencyStore(redis),
+        )
+        cancelled_context = ExecutionContext(
+            identity=ExecutionIdentity(
+                execution_id=cancelled_execution_id, tenant_id="conformance"
+            ),
+            objective="cancellation conformance",
+        )
+        cancelled_result = cancelled_runtime.execute(
+            cancelled_context,
+            "conformance.echo",
+            "1.0.0",
+            {"message": "should never run"},
+            invocation_id=f"cancel-{uuid4()}",
+        )
+        assert cancelled_result.status == InvocationStatus.CANCELLED
+        assert cancelled_context.status.value == "stopped"
+        assert "operator requested stop" in cancelled_result.error["message"]
+        assert capability.calls == 1
+        assert not redis.cache_json_result(transaction_id, {"status": "duplicate"})
+        assert redis.cache_json_result(transaction_id, {"status": "SUCCESS", "processed_records": 42})
         cached = redis.check_idempotency_cache(transaction_id)
         assert cached is not None
         assert json.loads(cached)["processed_records"] == 42
-
-        redis.set_cancellation_signal(str(execution_id), ttl_sec=30)
-        assert redis.is_cancelled(str(execution_id))
-        assert redis.clear_cancellation_signal(str(execution_id))
-        assert not redis.is_cancelled(str(execution_id))
     finally:
         assert redis.release_execution_lock(str(execution_id), owner)
+        redis.clear_cancellation_signal(str(execution_id))
+        redis.clear_cancellation_signal(str(cancelled_execution_id)) if "cancelled_execution_id" in locals() else None
