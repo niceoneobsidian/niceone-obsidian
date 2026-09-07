@@ -137,7 +137,10 @@ class RedisIdempotencyStore:
         )
 
     def put(self, invocation_id: str, result: InvocationResult) -> None:
-        if result.status not in {InvocationStatus.SUCCEEDED, InvocationStatus.CANCELLED}:
+        if result.status not in {
+            InvocationStatus.SUCCEEDED,
+            InvocationStatus.CANCELLED,
+        }:
             return
         payload = {
             "invocation_id": result.invocation_id,
