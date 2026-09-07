@@ -47,8 +47,8 @@ async def test_stranded_message_is_reclaimed_and_processed() -> None:
         assert processed == [{"task_id": "crash-1"}]
         assert await client.xpending(stream, group) == 0
     finally:
-        await client.delete(stream)
         await client.xgroup_destroy(stream, group)
+        await client.delete(stream)
         await client.aclose()
 
 
