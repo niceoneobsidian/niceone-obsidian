@@ -21,5 +21,5 @@ class ToolResult:
 
 class ToolPlane:
     def invoke(self, request: ToolRequest, tool: object) -> ToolResult:
-        invoke = tool.invoke
+        invoke = tool.invoke  # type: ignore
         return ToolResult("success", invoke(request.input))

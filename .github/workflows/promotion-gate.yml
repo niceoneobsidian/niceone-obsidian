@@ -1,0 +1,62 @@
+name: OIS Evidence Promotion Gate
+
+on:
+  workflow_dispatch:
+    inputs:
+      runtime_verified:
+        description: "Staging/runtime verification has been independently completed"
+        required: true
+        type: boolean
+      security_verified:
+        description: "Security verification has been independently completed"
+        required: true
+        type: boolean
+      rollback_verified:
+        description: "Rollback has been independently verified"
+        required: true
+        type: boolean
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install project
+        run: pip install -e .
+      - name: Enforce evidence gate
+        env:
+          RUNTIME_VERIFIED: ${{ inputs.runtime_verified }}
+          SECURITY_VERIFIED: ${{ inputs.security_verified }}
+          ROLLBACK_VERIFIED: ${{ inputs.rollback_verified }}
+          PROMOTION_PROVENANCE: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          python - <<'PY'
+          import os
+          from ois.governance.promotion import EvidencePromotionGate, PromotionEvidence
+
+          evidence = PromotionEvidence(
+              implementation=True,
+              tests=True,
+              integration=True,
+              runtime=os.environ["RUNTIME_VERIFIED"] == "true",
+              security=os.environ["SECURITY_VERIFIED"] == "true",
+              observability=True,
+              recovery=True,
+              rollback=os.environ["ROLLBACK_VERIFIED"] == "true",
+              provenance=(os.environ["PROMOTION_PROVENANCE"],),
+          )
+          decision = EvidencePromotionGate().require(evidence)
+          print(decision)
+          PY
+      - name: Record promotion evidence
+        run: |
+          mkdir -p artifacts
+          printf '{"status":"PRODUCTION_VERIFIED","run":"%s"}\n' "$GITHUB_RUN_ID" > artifacts/promotion-evidence.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: production-promotion-evidence
+          path: artifacts/promotion-evidence.json

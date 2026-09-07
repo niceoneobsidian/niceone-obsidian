@@ -47,7 +47,9 @@ class SQLiteEvidenceLedger:
             ),
         )
         self._connection.commit()
-        return int(cursor.lastrowid)
+        if cursor.lastrowid is None:
+            raise RuntimeError("Failed to retrieve the recorded evidence ID")
+        return cursor.lastrowid
 
     def record_many(self, evidence: list[Evidence]) -> list[int]:
         return [self.record(item) for item in evidence]
@@ -57,8 +59,7 @@ class SQLiteEvidenceLedger:
             return []
         if source_id is None:
             rows = self._connection.execute(
-                "SELECT source_id, uri, excerpt, observed_at, confidence "
-                "FROM evidence ORDER BY evidence_id DESC LIMIT ?",
+                "SELECT source_id, uri, excerpt, observed_at, confidence FROM evidence ORDER BY evidence_id DESC LIMIT ?",
                 (limit,),
             ).fetchall()
         else:

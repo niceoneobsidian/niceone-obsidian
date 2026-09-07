@@ -61,12 +61,13 @@ class SQLiteAnalyticsStore:
                 )
             )
             for metric, value in event.metrics.items()
-            if isinstance(value, (int, float))
+            if isinstance(value, int | float) and not isinstance(value, bool)
         )
 
     def latest(self, entity_id: str, metric: str) -> MetricObservation | None:
         row = self._db.execute(
-            "SELECT * FROM metric_observations WHERE entity_id=? AND metric=? "
+            "SELECT * FROM metric_observations "
+            "WHERE entity_id=? AND metric=? "
             "ORDER BY observed_at DESC LIMIT 1",
             (entity_id, metric),
         ).fetchone()

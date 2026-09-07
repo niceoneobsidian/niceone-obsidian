@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any, Protocol
 from uuid import UUID, uuid4
 
@@ -183,4 +183,4 @@ class TransactionalSideEffectBoundary:
                 )
                 count = cursor.rowcount
             connection.commit()
-        return count
+        return count  # type: ignore

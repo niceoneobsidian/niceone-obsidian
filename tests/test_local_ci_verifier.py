@@ -17,4 +17,4 @@ def test_local_ci_covers_all_repository_ci_gates() -> None:
 
 def test_python_checks_use_current_interpreter() -> None:
     python_checks = [check for check in CHECKS if check.command[0] == "python"]
-    assert {check.required_tool for check in python_checks} == {"python"}
+    assert {check.required_tool for check in python_checks} == {"mypy", "pytest", "python"}

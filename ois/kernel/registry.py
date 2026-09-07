@@ -167,8 +167,7 @@ class AgentRegistry(CapabilityRegistry):
 
         if len(eligible) > 1:
             raise AmbiguousAgentError(
-                f"Ambiguous agent routing for {capability_id}@{version}: "
-                f"{len(eligible)} eligible agents"
+                f"Ambiguous agent routing for {capability_id}@{version}: {len(eligible)} eligible agents"
             )
 
         return AgentRoutingDecision(

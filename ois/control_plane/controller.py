@@ -69,7 +69,7 @@ class ControlPlane:
             return execute
 
         raise TypeError(
-            f"registered capability is not callable: "
+            "registered capability is not callable: "
             f"{request.capability_id}@{request.capability_version}"
         )
 

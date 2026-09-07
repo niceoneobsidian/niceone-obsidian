@@ -25,7 +25,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from threading import RLock
-from typing import Any
+from typing import Any, cast
 
 # =====================================================================
 # LOGGING
@@ -206,7 +206,7 @@ class _SQLiteBase:
     def _read_one(self, sql: str, params: tuple = ()) -> sqlite3.Row | None:
         """Thread-safe read returning the first matching row or None."""
         with self._lock:
-            return self._conn.execute(sql, params).fetchone()
+            return self._conn.execute(sql, params).fetchone()  # type: ignore
 
     def close(self) -> None:
         """Closes the underlying SQLite connection."""
@@ -713,7 +713,7 @@ class SQLiteWorkerQueue(_SQLiteBase):
             "SELECT COUNT(*) AS cnt FROM worker_jobs WHERE queue = ? AND status = ?",
             (queue, status),
         )
-        return row["cnt"] if row else 0
+        return cast(Any, row)["cnt"] if row else 0
 
     # ── Internal helpers ──────────────────────────────────────────────
 

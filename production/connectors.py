@@ -1,9 +1,11 @@
 """Governed external connector contract with retries, limits and secret isolation."""
+
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from time import monotonic, sleep
-from typing import Protocol, Mapping
+from typing import Protocol
 from urllib.parse import urlparse
 
 
@@ -15,7 +17,7 @@ class ConnectorError(RuntimeError):
 class ConnectorRequest:
     operation: str
     url: str
-    payload: Mapping[str, object] = None
+    payload: Mapping[str, object] = None  # type: ignore
     timeout_seconds: float = 10.0
     max_retries: int = 2
 
@@ -47,7 +49,7 @@ class Connector(Protocol):
 class HTTPConnector:
     """Minimal HTTPS-only adapter boundary; concrete transports are injectable."""
 
-    def __init__(self, transport, *, evidence=None) -> None:
+    def __init__(self, transport, *, evidence=None) -> None:  # type: ignore
         self.transport, self.evidence = transport, evidence
 
     def request(self, request: ConnectorRequest) -> ConnectorResponse:
@@ -59,13 +61,21 @@ class HTTPConnector:
         last_error: Exception | None = None
         for attempts in range(1, request.max_retries + 2):
             try:
-                status, payload = self.transport(request.url, request.payload, request.timeout_seconds)
+                status, payload = self.transport(
+                    request.url, request.payload, request.timeout_seconds
+                )
                 response = ConnectorResponse(status, payload, attempts, monotonic() - start)
                 if self.evidence:
-                    self.evidence.append("connector", "connector.completed", {"operation": request.operation, "status": status, "attempts": attempts})
+                    self.evidence.append(
+                        "connector",
+                        "connector.completed",
+                        {"operation": request.operation, "status": status, "attempts": attempts},
+                    )
                 return response
             except Exception as exc:
                 last_error = exc
                 if attempts <= request.max_retries:
                     sleep(min(0.25 * attempts, 1.0))
-        raise ConnectorError(f"connector failed after {attempts} attempts: {last_error}") from last_error
+        raise ConnectorError(
+            f"connector failed after {attempts} attempts: {last_error}"
+        ) from last_error

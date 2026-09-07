@@ -90,8 +90,7 @@ class SQLiteSocialEventStore:
             ).fetchall()
         else:
             rows = self._connection.execute(
-                "SELECT payload FROM social_events WHERE platform = ? "
-                "ORDER BY occurred_at DESC LIMIT ?",
+                "SELECT payload FROM social_events WHERE platform = ? ORDER BY occurred_at DESC LIMIT ?",
                 (platform, limit),
             ).fetchall()
         return [SocialEvent.model_validate(json.loads(row["payload"])) for row in rows]

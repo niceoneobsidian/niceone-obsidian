@@ -1,4 +1,5 @@
 """Football model federation with deterministic weighting and abstention."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -10,7 +11,7 @@ from .schemas import FootballPrediction, MatchState, ModelProbability
 
 def _weighted(values: list[tuple[ModelProbability, float]], field: str) -> float:
     total = sum(weight for _, weight in values)
-    return sum(getattr(model, field) * weight for model, weight in values) / max(total, 1e-12)
+    return sum(getattr(model, field) * weight for model, weight in values) / max(total, 1e-12)  # type: ignore
 
 
 @dataclass(frozen=True)
@@ -30,7 +31,11 @@ class FootballEnsemble:
             PoissonModel().predict(match),
             DixonColesModel().predict(match),
         ]
-        weighted = list(zip(models, (self.elo_weight, self.poisson_weight, self.dixon_coles_weight), strict=True))
+        weighted = list(
+            zip(
+                models, (self.elo_weight, self.poisson_weight, self.dixon_coles_weight), strict=True
+            )
+        )
         home = _weighted(weighted, "home")
         draw = _weighted(weighted, "draw")
         away = _weighted(weighted, "away")
@@ -41,7 +46,10 @@ class FootballEnsemble:
         agreement = max(0.0, min(1.0, 1.0 - pstdev(probabilities) / 0.25))
         data_completeness = self._data_completeness(match)
         confidence = max(0.0, min(1.0, 0.55 * agreement + 0.45 * data_completeness))
-        abstain = confidence < self.abstain_confidence_threshold or (1.0 - agreement) > self.max_model_disagreement
+        abstain = (
+            confidence < self.abstain_confidence_threshold
+            or (1.0 - agreement) > self.max_model_disagreement
+        )
         reason = None
         if abstain:
             reason = "low_confidence_or_high_model_disagreement"
