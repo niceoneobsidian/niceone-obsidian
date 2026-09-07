@@ -23,16 +23,16 @@ def test_negative_hitl_latency_is_rejected() -> None:
         tracker.record_hitl_resolution_latency("tenant-a", -0.01, "approved")
 
 
-def test_telemetry_engine_initializes_only_once() -> None:
+def test_telemetry_engine_initialize_is_idempotent() -> None:
     engine = OpenTelemetryTelemetryEngine(
         TelemetryConfig(endpoint="http://localhost:4317", export_interval_ms=60_000)
     )
 
-    # The provider registration is process-global. This test verifies the engine's
-    # own lifecycle guard without requiring a live collector.
-    engine._trace_provider = object()  # type: ignore[assignment]
-    engine._meter_provider = object()  # type: ignore[assignment]
+    engine.initialize()
+    trace_provider = engine._trace_provider
+    meter_provider = engine._meter_provider
     engine.initialize()
 
-    assert engine._trace_provider is not None
-    assert engine._meter_provider is not None
+    assert engine._trace_provider is trace_provider
+    assert engine._meter_provider is meter_provider
+    engine.shutdown()
