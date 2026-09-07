@@ -11,6 +11,7 @@ from .checkpoint import CheckpointNotFound
 from .contracts import InvocationResult
 from .side_effects import SideEffectCommand
 from .state import ExecutionContext
+from .tenant import normalize_tenant_id, set_local_tenant
 from .types import InvocationStatus
 
 try:
@@ -26,9 +27,9 @@ class PostgresConfigurationError(RuntimeError):
 class PostgresDurableExecutionStore:
     """PostgreSQL system-of-record for durable execution state.
 
-    Checkpoints and terminal idempotency results are transactionally durable.
-    Side-effect intents can be committed in the same transaction as a checkpoint,
-    closing the application-level dual-write gap before an external effect runs.
+    A tenant-scoped instance binds ``app.current_tenant_id`` with SET LOCAL on
+    every transaction, making RLS the database enforcement boundary rather than
+    an application-only convention.
     """
 
     SCHEMA = """
@@ -76,20 +77,28 @@ class PostgresDurableExecutionStore:
         ON ois_side_effect_outbox (status, created_at);
     """
 
-    def __init__(self, dsn: str | Callable[[], Any]) -> None:
+    def __init__(self, dsn: str | Callable[[], Any], tenant_id: str | UUID | None = None) -> None:
         if psycopg is None:
             raise PostgresConfigurationError(
                 "psycopg is required for PostgresDurableExecutionStore"
             )
+        self.tenant_id = normalize_tenant_id(tenant_id) if tenant_id is not None else None
         self._connect = (lambda: psycopg.connect(dsn)) if isinstance(dsn, str) else dsn
 
     @contextmanager
     def connection(self) -> Iterator[Any]:
         connection = self._connect()
         try:
+            if self.tenant_id is not None:
+                set_local_tenant(connection, self.tenant_id)
             yield connection
         finally:
             connection.close()
+
+    def _assert_context(self, tenant_id: str) -> None:
+        normalized = normalize_tenant_id(tenant_id)
+        if self.tenant_id is not None and normalized != self.tenant_id:
+            raise ValueError("execution tenant does not match store tenant scope")
 
     def initialize(self) -> None:
         with self.connection() as connection:
@@ -121,6 +130,7 @@ class PostgresDurableExecutionStore:
         """
 
     def save(self, context: ExecutionContext) -> None:
+        self._assert_context(context.identity.tenant_id)
         context.touch()
         payload, digest = self._state_payload(context)
         with self.connection() as connection:
@@ -147,6 +157,8 @@ class PostgresDurableExecutionStore:
         command: SideEffectCommand,
     ) -> None:
         """Atomically persist execution state and its side-effect intent."""
+        self._assert_context(context.identity.tenant_id)
+        self._assert_context(command.tenant_id)
         context.touch()
         payload, digest = self._state_payload(context)
         with self.connection() as connection:
@@ -242,6 +254,7 @@ class PostgresDurableExecutionStore:
         tenant_id: str,
         result: InvocationResult,
     ) -> None:
+        self._assert_context(tenant_id)
         if result.status not in {InvocationStatus.SUCCEEDED, InvocationStatus.CANCELLED}:
             return
         payload = {
