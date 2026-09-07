@@ -1,11 +1,11 @@
 """Governed production integration primitives for OIS."""
 
 from production.control_plane import (
+    RBACABAC,
     AuthorizationError,
     EvidenceLedger,
     InMemoryDeploymentAdapter,
     ProductionControlPlane,
-    RBACABAC,
     Subject,
 )
 from production.evolution import CanaryController, LearningLoop, Measurement
