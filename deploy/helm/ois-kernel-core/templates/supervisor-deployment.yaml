@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ois.fullname" . }}-supervisor
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "ois.labels" . | nindent 4 }}
+    component: supervisor
+spec:
+  replicas: {{ .Values.supervisor.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "ois.selectorLabels" . | nindent 6 }}
+      component: supervisor
+  template:
+    metadata:
+      labels:
+        {{- include "ois.selectorLabels" . | nindent 8 }}
+        component: supervisor
+      {{- if .Values.vault.enabled }}
+      annotations:
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/role: {{ .Values.vault.role | quote }}
+        vault.hashicorp.com/agent-inject-secret-supervisor: {{ .Values.vault.secretPath | quote }}
+        vault.hashicorp.com/agent-inject-template-supervisor: |
+          {{`{{- with secret "`}}{{ .Values.vault.secretPath }}{{`" -}}`}}
+          export OIS_SIGNING_KEY={{`{{ .Data.data.signing_key | quote }}`}}
+          {{`{{- end }}`}}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "ois.serviceAccountName" . }}
+      {{- if .Values.runtimeClassName }}
+      runtimeClassName: {{ .Values.runtimeClassName }}
+      {{- end }}
+      imagePullSecrets:
+        {{- toYaml .Values.imagePullSecrets | nindent 8 }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: supervisor-engine
+          image: "{{ .Values.supervisor.image.repository }}:{{ .Values.supervisor.image.tag }}"
+          imagePullPolicy: {{ .Values.supervisor.image.pullPolicy }}
+          command: {{- toYaml .Values.supervisor.command | nindent 12 }}
+          env:
+            - name: REDIS_URI
+              value: {{ .Values.redis.uri | quote }}
+            - name: DB_HOST
+              value: {{ .Values.database.host | quote }}
+            - name: DB_PORT
+              value: {{ .Values.database.port | quote }}
+            - name: DB_NAME
+              value: {{ .Values.database.name | quote }}
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.secretName }}
+                  key: {{ .Values.database.usernameKey }}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.secretName }}
+                  key: {{ .Values.database.passwordKey }}
+          resources:
+            {{- toYaml .Values.supervisor.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
