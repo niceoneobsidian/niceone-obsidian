@@ -94,11 +94,7 @@ return {1, nonce, token}
 
 
 class FencedLeaseManager:
-    """Redis lease with owner nonce plus monotonic fencing token.
-
-    The nonce protects lease mutation (renew/release). The fencing token is the
-    value that downstream state stores must enforce on every protected mutation.
-    """
+    """Redis lease with owner nonce plus monotonic fencing token."""
 
     def __init__(self, client: redis.Redis, ttl_ms: int = 10_000) -> None:
         if ttl_ms < 100:
@@ -109,8 +105,7 @@ class FencedLeaseManager:
     async def acquire(self, key: str) -> Lease:
         nonce = secrets.token_hex(32)
         result = await self.client.eval(ACQUIRE_LUA, 1, key, nonce, self.ttl_ms)
-        acquired = int(result[0]) == 1
-        if not acquired:
+        if int(result[0]) != 1:
             raise LeaseAcquisitionFailed(f"RC-05 lease is already held: {key}")
         return Lease(key, nonce, int(result[1]), self.ttl_ms)
 
@@ -121,14 +116,49 @@ class FencedLeaseManager:
 
     async def assert_current(self, lease: Lease) -> None:
         result = await self.client.eval(READ_LEASE_LUA, 1, lease.key)
-        if int(result[0]) != 1 or str(result[1], "utf-8") if isinstance(result[1], bytes) else str(result[1]) != lease.owner_nonce:
+        if int(result[0]) != 1:
+            raise FencingTokenMismatch("RC-05 lease no longer exists")
+        current_nonce = result[1].decode("utf-8") if isinstance(result[1], bytes) else str(result[1])
+        if current_nonce != lease.owner_nonce:
             raise FencingTokenMismatch("RC-05 lease is no longer owned by this worker")
-        current = int(result[2])
-        if current != lease.fencing_token:
+        if int(result[2]) != lease.fencing_token:
             raise FencingTokenMismatch("RC-05 fencing token changed")
 
     async def release(self, lease: Lease) -> None:
         await self.client.eval(RELEASE_LUA, 1, lease.key, lease.owner_nonce)
+
+
+class LeaseHeartbeat:
+    """Renews a lease before expiry and surfaces ownership loss to the caller."""
+
+    def __init__(self, manager: FencedLeaseManager, lease: Lease) -> None:
+        self.manager = manager
+        self.lease = lease
+        self.lost = asyncio.Event()
+        self._task: asyncio.Task[None] | None = None
+
+    async def __aenter__(self) -> LeaseHeartbeat:
+        self._task = asyncio.create_task(self._run())
+        return self
+
+    async def __aexit__(self, exc_type: Any, exc: Any, tb: Any) -> None:
+        if self._task is not None:
+            self._task.cancel()
+            await asyncio.gather(self._task, return_exceptions=True)
+
+    async def _run(self) -> None:
+        interval = max(self.lease.ttl_ms / 3000.0, 0.1)
+        try:
+            while True:
+                await asyncio.sleep(interval)
+                try:
+                    await self.manager.renew(self.lease)
+                except Exception:
+                    self.lost.set()
+                    logger.exception("RC-05 lease heartbeat lost")
+                    return
+        except asyncio.CancelledError:
+            raise
 
 
 class PostgresEvidenceChain:
@@ -204,7 +234,7 @@ DbOperation = Callable[[psycopg.AsyncCursor[Any], int], Awaitable[Any]]
 
 
 class OISProductionResilience:
-    """Infrastructure adapter for RC-04 and RC-05 around the existing Kernel."""
+    """RC-04/RC-05 infrastructure adapter around the existing OIS Kernel."""
 
     def __init__(
         self,
@@ -269,66 +299,71 @@ class OISProductionResilience:
         db_operation: DbOperation,
         state_dump: dict[str, Any],
     ) -> Any:
-        """Acquire RC-05 lease, execute with bounded RC-04 retries, and fail closed.
+        """Run one protected operation with bounded retries and fencing.
 
-        ``db_operation`` receives the monotonic fencing token and MUST include that
-        token in every protected side-effect predicate. Checking Redis alone is not
-        sufficient because ownership can change between the Redis read and commit.
+        The operation MUST apply the supplied fencing token to its protected
+        mutation predicate. Redis ownership checks alone cannot prevent a stale
+        worker from racing a downstream commit.
         """
         lock_key = f"ois:lease:{ctx.tenant_id}:{ctx.thread_id}"
         lease = await self.leases.acquire(lock_key)
         started = asyncio.get_running_loop().time()
         retry_count = 0
         try:
-            while True:
-                try:
-                    await self.leases.assert_current(lease)
-                    async with self.db_pool.connection() as conn:
-                        async with conn.cursor() as cur:
-                            await self._set_tenant(cur, ctx.tenant_id)
-                            await self.leases.assert_current(lease)
-                            result = await db_operation(cur, lease.fencing_token)
-                            await self.leases.assert_current(lease)
-                            await conn.commit()
-                    await self.evidence.append(
-                        ctx.tenant_id,
-                        ctx.thread_id,
-                        "TRANSACTION_SUCCESS",
-                        {"scenario_id": scenario_id, "fencing_token": lease.fencing_token},
-                    )
-                    return result
-                except (psycopg.OperationalError, OSError) as exc:
-                    retry_count += 1
-                    recovery_counter.add(1, {"scenario_id": scenario_id})
-                    elapsed = asyncio.get_running_loop().time() - started
-                    if retry_count > ctx.max_retries or elapsed >= ctx.retry_deadline_s:
-                        await self._write_dlq(ctx, scenario_id, state_dump, str(exc))
-                        dlq_counter.add(1, {"scenario_id": scenario_id})
+            async with LeaseHeartbeat(self.leases, lease) as heartbeat:
+                while True:
+                    try:
+                        await self.leases.assert_current(lease)
+                        async with self.db_pool.connection() as conn:
+                            async with conn.cursor() as cur:
+                                await self._set_tenant(cur, ctx.tenant_id)
+                                await self.leases.assert_current(lease)
+                                result = await db_operation(cur, lease.fencing_token)
+                                if heartbeat.lost.is_set():
+                                    raise FencingTokenMismatch("RC-05 heartbeat lost during protected operation")
+                                await self.leases.assert_current(lease)
+                                await conn.commit()
                         await self.evidence.append(
                             ctx.tenant_id,
                             ctx.thread_id,
-                            "RECOVERY_DLQ",
-                            {"scenario_id": scenario_id, "retry_count": retry_count},
+                            "TRANSACTION_SUCCESS",
+                            {"scenario_id": scenario_id, "fencing_token": lease.fencing_token},
                         )
-                        raise RetryExhaustedException("RC-04 retry/deadline budget exhausted") from exc
-                    ceiling = min(ctx.max_backoff_s, ctx.base_backoff_s * (2**retry_count))
-                    delay = random.uniform(0.0, ceiling)
-                    await self.evidence.append(
-                        ctx.tenant_id,
-                        ctx.thread_id,
-                        "RECOVERY_RETRY",
-                        {"scenario_id": scenario_id, "retry_count": retry_count, "delay_s": delay},
-                    )
-                    await asyncio.sleep(delay)
-                except FencingTokenMismatch:
-                    lease_collision_counter.add(1, {"scenario_id": scenario_id})
-                    await self.evidence.append(
-                        ctx.tenant_id,
-                        ctx.thread_id,
-                        "RC05_FENCING_REJECTED",
-                        {"scenario_id": scenario_id, "fencing_token": lease.fencing_token},
-                    )
-                    raise
+                        return result
+                    except (psycopg.OperationalError, OSError) as exc:
+                        retry_count += 1
+                        recovery_counter.add(1, {"scenario_id": scenario_id})
+                        elapsed = asyncio.get_running_loop().time() - started
+                        if retry_count > ctx.max_retries or elapsed >= ctx.retry_deadline_s:
+                            await self._write_dlq(ctx, scenario_id, state_dump, str(exc))
+                            dlq_counter.add(1, {"scenario_id": scenario_id})
+                            await self.evidence.append(
+                                ctx.tenant_id,
+                                ctx.thread_id,
+                                "RECOVERY_DLQ",
+                                {"scenario_id": scenario_id, "retry_count": retry_count},
+                            )
+                            raise RetryExhaustedException(
+                                "RC-04 retry/deadline budget exhausted"
+                            ) from exc
+                        ceiling = min(ctx.max_backoff_s, ctx.base_backoff_s * (2**retry_count))
+                        delay = random.uniform(0.0, ceiling)
+                        await self.evidence.append(
+                            ctx.tenant_id,
+                            ctx.thread_id,
+                            "RECOVERY_RETRY",
+                            {"scenario_id": scenario_id, "retry_count": retry_count, "delay_s": delay},
+                        )
+                        await asyncio.sleep(delay)
+                    except FencingTokenMismatch:
+                        lease_collision_counter.add(1, {"scenario_id": scenario_id})
+                        await self.evidence.append(
+                            ctx.tenant_id,
+                            ctx.thread_id,
+                            "RC05_FENCING_REJECTED",
+                            {"scenario_id": scenario_id, "fencing_token": lease.fencing_token},
+                        )
+                        raise
         finally:
             try:
                 await self.leases.release(lease)
