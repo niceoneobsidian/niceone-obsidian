@@ -1,10 +1,8 @@
-"""Sovereign OIS control architecture.
+"""Sovereign OIS control architecture."""
 
-OIS owns governance, contracts, authorization, evidence, and lifecycle control.
-External runtimes are replaceable providers behind explicit interfaces.
-"""
-
+from .backup import BackupManager, BackupManifest
 from .contracts import ExecutionRequest, ExecutionResult, ExecutionState
 from .control_plane import SovereignControlPlane
+from .production import E2ERunner, EvidenceLedger, RecoveryEngine, SecurityGate
 
-__all__ = ["ExecutionRequest", "ExecutionResult", "ExecutionState", "SovereignControlPlane"]
+__all__ = ["BackupManager", "BackupManifest", "E2ERunner", "EvidenceLedger", "ExecutionRequest", "ExecutionResult", "ExecutionState", "RecoveryEngine", "SecurityGate", "SovereignControlPlane"]
