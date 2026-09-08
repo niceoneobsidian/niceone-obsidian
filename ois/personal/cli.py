@@ -1,8 +1,4 @@
-"""Minimal personal control interface for OIS.
-
-The CLI intentionally exposes inspection and approval primitives before allowing
-unattended side effects. It is an application shell over PersonalPlatform.
-"""
+"""Minimal personal control interface for OIS."""
 from __future__ import annotations
 
 import argparse
@@ -25,8 +21,8 @@ def build_parser() -> argparse.ArgumentParser:
 def main(platform=None, argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if platform is None:
-        from .platform import PersonalPlatform
-        platform = PersonalPlatform()
+        from .bootstrap import build_personal_platform
+        platform = build_personal_platform()
 
     if args.command == "status":
         print(json.dumps(platform.health(), indent=2, sort_keys=True))
