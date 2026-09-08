@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
+from typing import cast
 
 from ois.registries import (
     AgentRegistry,
@@ -39,10 +40,6 @@ class ControlPlane:
         self.workflows = workflows or WorkflowRegistry()
 
     def resolve_capability(self, request: ControlRequest) -> Callable[..., object]:
-        # Registries in this codebase expose two different lookup APIs:
-        # ois.kernel.registry.CapabilityRegistry.get() -> RegistryEntry(capability=...)
-        # ois.registries.base.Registry.resolve() -> RegistryEntry(value=...)
-        # Support both rather than assuming the kernel-style API.
         lookup = getattr(self.capabilities, "get", None)
         if not callable(lookup):
             lookup = getattr(self.capabilities, "resolve", None)
@@ -50,23 +47,20 @@ class ControlPlane:
             raise TypeError("capability registry does not provide a callable get/resolve")
 
         entry = lookup(request.capability_id, request.capability_version)
-
         candidate = getattr(entry, "capability", None)
         if candidate is None:
             candidate = getattr(entry, "value", None)
 
         if callable(candidate):
-            return candidate
+            return cast(Callable[..., object], candidate)
 
-        # Capabilities implement the Kernel Capability protocol (`invoke`),
-        # not necessarily a bare `execute` method.
         invoke = getattr(candidate, "invoke", None)
         if callable(invoke):
-            return invoke
+            return cast(Callable[..., object], invoke)
 
         execute = getattr(candidate, "execute", None)
         if callable(execute):
-            return execute
+            return cast(Callable[..., object], execute)
 
         raise TypeError(
             "registered capability is not callable: "
