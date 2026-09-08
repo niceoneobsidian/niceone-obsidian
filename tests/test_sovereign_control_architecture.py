@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from ois.sovereign.contracts import ExecutionRequest, ExecutionResult, ExecutionState
+from ois.sovereign.contracts import (
+    AuthorizationDecision,
+    ExecutionRequest,
+    ExecutionResult,
+    ExecutionState,
+)
 from ois.sovereign.control_plane import SovereignControlPlane
 
 
@@ -14,8 +19,7 @@ class StubBackend:
 def test_control_plane_authorizes_before_execution() -> None:
     seen: list[dict[str, object]] = []
 
-    def deny(request: ExecutionRequest):
-        from ois.sovereign.contracts import AuthorizationDecision
+    def deny(request: ExecutionRequest) -> AuthorizationDecision:
         return AuthorizationDecision(False, "denied by test policy")
 
     result = SovereignControlPlane(StubBackend(), policy=deny, evidence_sink=seen.append).execute(
