@@ -54,6 +54,7 @@ select = [
 "ois/kernel/state.py" = ["E501"]
 "ois/runtime/intelligence_fabrics.py" = ["E501"]
 "ois/workflows/tiktok_content_vertical_slice.py" = ["E501"]
+"ois/control_plane/lifecycle.py" = ["E501"]
 "ois/domains/social_intelligence/inventory.py" = ["E501"]
 "ois/production/control.py" = ["E501"]
 
