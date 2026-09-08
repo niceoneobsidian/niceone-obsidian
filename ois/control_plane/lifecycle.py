@@ -13,12 +13,7 @@ from typing import Any, cast
 from uuid import UUID, uuid4
 
 from ois.kernel.checkpoint import CheckpointStore, InMemoryCheckpointStore
-from ois.kernel.contracts import (
-    CapabilityContract,
-    InvocationRequest,
-    InvocationResult,
-    PolicyEngine,
-)
+from ois.kernel.contracts import CapabilityContract, InvocationRequest, InvocationResult, PolicyEngine
 from ois.kernel.evidence import EvidenceEvent as KernelEvidenceEvent
 from ois.kernel.evidence import EvidenceStore as KernelEvidenceStore
 from ois.kernel.policy import DefaultPolicyEngine
@@ -44,10 +39,10 @@ from .controller import ControlPlane
 from .request import ControlRequest
 
 
-class KernelRegistryAdapter(CapabilityRegistry):
+class KernelRegistryAdapter:
     """Adapt the canonical Control Plane registry to the Kernel registry contract."""
 
-    def __init__(self, registry: CapabilityRegistry | KernelRegistryAdapter) -> None:
+    def __init__(self, registry: CapabilityRegistry) -> None:
         self.registry = registry
 
     def get(self, capability_id: str, version: str) -> KernelRegistryEntry:
