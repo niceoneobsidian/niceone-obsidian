@@ -140,9 +140,12 @@ class ExecutionRuntime:
             and "failure_class" in result.error
         ):
             failure_value = result.error.get("failure_class")
-            try:
-                failure_class = FailureClass(failure_value)
-            except ValueError:
+            if isinstance(failure_value, str):
+                try:
+                    failure_class = FailureClass(failure_value)
+                except ValueError:
+                    failure_class = FailureClass.UNKNOWN
+            else:
                 failure_class = FailureClass.UNKNOWN
             decision = self.recovery.apply(context, failure_class)
             self.evidence.record(
@@ -160,7 +163,8 @@ class ExecutionRuntime:
 
         if result.invocation_id != logical_invocation_id:
             raise ExecutionError(
-                "Capability returned an invocation_id that does not match the requested invocation_id."
+                "Capability returned an invocation_id that does not match the requested "
+                "invocation_id."
             )
 
         context.set_status(ExecutionStatus.OBSERVING)
