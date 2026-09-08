@@ -4,50 +4,28 @@ name = "niceone-obsidian"
 version = "0.0.0"
 requires-python = ">=3.12"
 dependencies = [
-  "psycopg[binary]>=3.2,<4",
-  "pydantic>=2.7,<3",
   "psycopg[binary]>=3.3.4,<4",
+  "pydantic>=2.7,<3",
+  "langgraph>=1.2,<2",
+  "mcp>=1,<2",
+  "temporalio>=1,<2",
+  "fastapi>=0.115,<1",
+  "uvicorn[standard]>=0.34,<1",
 ]
 
 [tool.ruff]
 target-version = "py312"
 line-length = 100
-extend-exclude = [
-  ".git",
-  ".venv",
-  "venv",
-  "build",
-  "dist",
-  ".mypy_cache",
-  ".pytest_cache",
-  ".ruff_cache",
-]
-
+extend-exclude = [".git", ".venv", "venv", "build", "dist", ".mypy_cache", ".pytest_cache", ".ruff_cache"]
 [tool.ruff.lint]
-select = [
-  "E",
-  "F",
-  "I",
-  "B",
-  "UP",
-  "SIM",
-]
-
-# The Social Intelligence inventory is a declarative, machine-maintained manifest.
-# Its long structure lists are intentionally kept readable as grouped data rather
-# than reformatted into generated noise. Keep normal linting and type checking for
-# the module, while allowing the manifest's long data rows and formatting to remain stable.
+select = ["E", "F", "I", "B", "UP", "SIM"]
 [tool.ruff.lint.per-file-ignores]
 "ois/domains/social_intelligence/inventory.py" = ["E501"]
-
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
 line-ending = "auto"
-exclude = [
-  "ois/domains/social_intelligence/inventory.py",
-]
-
+exclude = ["ois/domains/social_intelligence/inventory.py"]
 [tool.mypy]
 python_version = "3.12"
 warn_return_any = true
@@ -58,13 +36,4 @@ disallow_untyped_defs = true
 check_untyped_defs = true
 no_implicit_optional = true
 strict_equality = true
-exclude = [
-  '^\\.git/',
-  '^\\.venv/',
-  '^venv/',
-  '^build/',
-  '^dist/',
-  '^\\.mypy_cache/',
-  '^\\.pytest_cache/',
-  '^\\.ruff_cache/',
-]
+exclude = ['^\\.git/', '^\\.venv/', '^venv/', '^build/', '^dist/', '^\\.mypy_cache/', '^\\.pytest_cache/', '^\\.ruff_cache/']
