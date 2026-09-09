@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from .checkpoint import CheckpointStore
 from .planning import ExecutionPlan, TaskStatus
 from .runtime import ExecutionRuntime
 from .state import ExecutionContext
@@ -27,8 +26,6 @@ class PlanOrchestrator:
         plan.validate()
         context.plan = plan.to_dict()
         self.runtime.checkpoint_store.save(context)
-
-        self._normalize_interrupted_tasks(plan)
 
         while not plan.is_complete():
             ready = plan.ready_tasks()

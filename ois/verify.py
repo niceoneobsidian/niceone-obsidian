@@ -2,6 +2,7 @@
 
 Runs the repository's CI gates locally and reports explicit verification states.
 """
+
 from __future__ import annotations
 
 import shutil
@@ -12,21 +13,27 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
+
 @dataclass(frozen=True)
 class Check:
     name: str
     command: tuple[str, ...]
     required_tool: str
 
+
 CHECKS = (
     Check("Ruff lint", ("ruff", "check", "."), "ruff"),
     Check("Ruff format", ("ruff", "format", "--check", "."), "ruff"),
-    Check("Mypy", ("python", "-m", "mypy", "ois"), "mypy"),
-    Check("Bandit", ("bandit", "-r", ".", "-x", "./.git,./.venv,./venv,./tests", "-lll", "-iii"), "bandit"),
+    Check("Mypy", ("python", "-m", "mypy", "ois"), "python"),
+    Check(
+        "Bandit",
+        ("bandit", "-r", ".", "-x", "./.git,./.venv,./venv,./tests", "-lll", "-iii"),
+        "bandit",
+    ),
     Check("Gitleaks", ("gitleaks", "detect", "--no-banner", "--redact"), "gitleaks"),
     Check("License compliance", ("pip-licenses", "--format=csv"), "pip-licenses"),
     Check("OIS governance", ("python", "scripts/ois_governance_check.py"), "python"),
-    Check("Tests", ("python", "-m", "pytest", "-q"), "pytest"),
+    Check("Tests", ("python", "-m", "pytest", "-q"), "python"),
 )
 
 
@@ -41,7 +48,9 @@ def run_check(check: Check) -> tuple[str, int | None, str]:
     if exe is None:
         return "NOT_INSTALLED", None, "required executable is not installed"
     command = (exe, *check.command[1:]) if check.command[0] == "python" else check.command
-    proc = subprocess.run(command, cwd=ROOT, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False)
+    proc = subprocess.run(
+        command, cwd=ROOT, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False
+    )
     return ("PASS" if proc.returncode == 0 else "FAIL"), proc.returncode, proc.stdout.strip()
 
 

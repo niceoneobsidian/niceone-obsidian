@@ -28,7 +28,7 @@ class InMemoryIdempotencyStore:
 
     def put(self, invocation_id: str, result: InvocationResult) -> None:
         with self._lock:
-            self._store.setdefault(invocation_id, result)
+            self._store[invocation_id] = result
 
     def exists(self, invocation_id: str) -> bool:
         with self._lock:

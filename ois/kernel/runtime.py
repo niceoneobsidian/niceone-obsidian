@@ -68,16 +68,22 @@ class ExecutionRuntime:
             self.evidence.record(
                 execution_id,
                 "execution.idempotency_hit",
-                {"capability_id": capability_id, "version": version,
-                 "invocation_id": logical_invocation_id},
+                {
+                    "capability_id": capability_id,
+                    "version": version,
+                    "invocation_id": logical_invocation_id,
+                },
             )
             return cached
 
         self.evidence.record(
             execution_id,
             "execution.received",
-            {"capability_id": capability_id, "version": version,
-             "invocation_id": logical_invocation_id},
+            {
+                "capability_id": capability_id,
+                "version": version,
+                "invocation_id": logical_invocation_id,
+            },
         )
         context.set_status(ExecutionStatus.NORMALIZED)
         entry = self.registry.get(capability_id, version)
@@ -130,26 +136,37 @@ class ExecutionRuntime:
 
         if result.invocation_id != logical_invocation_id:
             raise ExecutionError(
-                "Capability returned an invocation_id that does not match the requested invocation_id."
+                "Capability returned an invocation_id that does not match the "
+                "requested invocation_id."
             )
 
         context.set_status(ExecutionStatus.OBSERVING)
         context.observations.append(
-            {"invocation_id": result.invocation_id, "capability_id": result.capability_id,
-             "status": result.status.value, "output": result.output}
+            {
+                "invocation_id": result.invocation_id,
+                "capability_id": result.capability_id,
+                "status": result.status.value,
+                "output": result.output,
+            }
         )
         self.evidence.record(
             execution_id,
             "capability.completed",
-            {"capability_id": capability_id, "invocation_id": result.invocation_id,
-             "status": result.status.value},
+            {
+                "capability_id": capability_id,
+                "invocation_id": result.invocation_id,
+                "status": result.status.value,
+            },
         )
 
         context.set_status(ExecutionStatus.VALIDATING)
         if result.status == InvocationStatus.SUCCEEDED:
             self.validator.validate_output(result, entry.contract)
         context.validation_results.append(
-            {"invocation_id": result.invocation_id, "valid": result.status == InvocationStatus.SUCCEEDED}
+            {
+                "invocation_id": result.invocation_id,
+                "valid": result.status == InvocationStatus.SUCCEEDED,
+            }
         )
         context.set_status(ExecutionStatus.UPDATING_STATE)
         if result.status == InvocationStatus.SUCCEEDED:
@@ -159,8 +176,11 @@ class ExecutionRuntime:
         self.evidence.record(
             execution_id,
             "execution.idempotency_recorded",
-            {"capability_id": capability_id, "invocation_id": logical_invocation_id,
-             "status": result.status.value},
+            {
+                "capability_id": capability_id,
+                "invocation_id": logical_invocation_id,
+                "status": result.status.value,
+            },
         )
         context.set_status(ExecutionStatus.CHECKPOINTING)
         self.checkpoint_store.save(context)
@@ -191,22 +211,29 @@ class ExecutionRuntime:
     ) -> InvocationResult:
         execution_id = context.identity.execution_id
         context.set_status(ExecutionStatus.STOPPED)
-        context.error = {"type": "ExecutionCancellation", "message": str(error),
-                         "failure_class": "cancellation", "recovery_action": "stop"}
+        context.error = {
+            "type": "ExecutionCancellation",
+            "message": str(error),
+            "failure_class": "cancellation",
+            "recovery_action": "stop",
+        }
         context.current_node = capability_id
         self.evidence.record(
             execution_id,
             "execution.cancelled",
-            {"capability_id": capability_id, "invocation_id": invocation_id,
-             "reason": str(error)},
+            {"capability_id": capability_id, "invocation_id": invocation_id, "reason": str(error)},
         )
         self.checkpoint_store.save(context)
         return InvocationResult(
             invocation_id=invocation_id,
             capability_id=capability_id,
-            status=InvocationStatus.CANCELLED,
-            error={"type": "ExecutionCancellation", "message": str(error),
-                   "failure_class": "cancellation", "recovery_action": "stop"},
+            status=InvocationStatus.FAILED,
+            error={
+                "type": "ExecutionCancellation",
+                "message": str(error),
+                "failure_class": "cancellation",
+                "recovery_action": "stop",
+            },
         )
 
     def _handle_failure(
@@ -222,15 +249,23 @@ class ExecutionRuntime:
         self.evidence.record(
             execution_id,
             "execution.failure",
-            {"capability_id": capability_id, "error": str(error),
-             "failure_class": failure_class.value, "recovery_action": decision.action,
-             "invocation_id": invocation_id},
+            {
+                "capability_id": capability_id,
+                "error": str(error),
+                "failure_class": failure_class.value,
+                "recovery_action": decision.action,
+                "invocation_id": invocation_id,
+            },
         )
         self.checkpoint_store.save(context)
         return InvocationResult(
             invocation_id=invocation_id,
             capability_id=capability_id,
             status=InvocationStatus.FAILED,
-            error={"type": type(error).__name__, "message": str(error),
-                   "failure_class": failure_class.value, "recovery_action": decision.action},
+            error={
+                "type": type(error).__name__,
+                "message": str(error),
+                "failure_class": failure_class.value,
+                "recovery_action": decision.action,
+            },
         )
