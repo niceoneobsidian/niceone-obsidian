@@ -1,4 +1,5 @@
 """Append-only local backup/restore for personal OIS state."""
+
 from __future__ import annotations
 
 import hashlib
@@ -36,7 +37,15 @@ def create_backup(platform: PersonalPlatform, destination: str) -> BackupManifes
         created_at=__import__("datetime").datetime.now(__import__("datetime").UTC).isoformat(),
         tenant_id=platform.tenant.tenant_id,
         schema_version=1,
-        included_domains=("sessions", "executions", "approvals", "knowledge", "memory", "semantic", "learning"),
+        included_domains=(
+            "sessions",
+            "executions",
+            "approvals",
+            "knowledge",
+            "memory",
+            "semantic",
+            "learning",
+        ),
         artifact_root=str(root),
         checksum=checksum,
     )

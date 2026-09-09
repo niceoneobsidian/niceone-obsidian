@@ -1,4 +1,5 @@
 """Minimal personal control interface for OIS."""
+
 from __future__ import annotations
 
 import argparse
@@ -22,6 +23,7 @@ def main(platform=None, argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if platform is None:
         from .bootstrap import build_personal_platform
+
         platform = build_personal_platform()
 
     if args.command == "status":

@@ -4,6 +4,7 @@ This layer integrates the existing OIS kernel/registries without replacing them.
 It provides the stable application boundary needed by a personal control surface,
 while keeping provider-specific implementations behind adapters.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -125,9 +126,7 @@ class PersonalPlatform:
     ) -> None:
         self.config = config or PlatformConfig()
         self.tenant = tenant or TenantContext()
-        self.security = security or SecurityPolicy(
-            approval_policy=self.config.approval_policy
-        )
+        self.security = security or SecurityPolicy(approval_policy=self.config.approval_policy)
         self.durable_store = durable_store
         self.executions: dict[str, ExecutionRecord] = {}
         self.approvals: dict[str, Approval] = {}
@@ -196,9 +195,12 @@ class PersonalPlatform:
             raise ValueError("approval is already decided")
         status = "approved" if approved else "rejected"
         updated = Approval(
-            **{**current.__dict__, "status": status,
-               "decided_at": datetime.now(UTC).isoformat(),
-               "decided_by": self.tenant.principal_id}
+            **{
+                **current.__dict__,
+                "status": status,
+                "decided_at": datetime.now(UTC).isoformat(),
+                "decided_by": self.tenant.principal_id,
+            }
         )
         self.approvals[approval_id] = updated
         self.trace(current.execution_id, "approval.decided", {"status": status})
@@ -209,33 +211,52 @@ class PersonalPlatform:
 
     def remember(self, ref_id: str, payload: dict[str, Any], *, memory_type: str) -> None:
         self.memory[ref_id] = {
-            **payload, "ref_id": ref_id, "memory_type": memory_type,
+            **payload,
+            "ref_id": ref_id,
+            "memory_type": memory_type,
             "tenant_id": self.tenant.tenant_id,
             "recorded_at": datetime.now(UTC).isoformat(),
         }
 
     def add_entity(self, entity_id: str, entity_type: str, **attributes: Any) -> None:
         self.entities[entity_id] = {
-            "entity_id": entity_id, "entity_type": entity_type,
-            "attributes": dict(attributes), "tenant_id": self.tenant.tenant_id,
+            "entity_id": entity_id,
+            "entity_type": entity_type,
+            "attributes": dict(attributes),
+            "tenant_id": self.tenant.tenant_id,
         }
 
     def relate(self, source: str, relation: str, target: str, **metadata: Any) -> None:
         if source not in self.entities or target not in self.entities:
             raise KeyError("semantic relationship requires registered entities")
-        self.relationships.append({
-            "source": source, "relation": relation, "target": target,
-            "metadata": dict(metadata), "tenant_id": self.tenant.tenant_id,
-        })
+        self.relationships.append(
+            {
+                "source": source,
+                "relation": relation,
+                "target": target,
+                "metadata": dict(metadata),
+                "tenant_id": self.tenant.tenant_id,
+            }
+        )
 
-    def propose_learning(self, candidate_id: str, hypothesis: str, evidence_refs: list[str]) -> None:
+    def propose_learning(
+        self, candidate_id: str, hypothesis: str, evidence_refs: list[str]
+    ) -> None:
         self.learning_candidates[candidate_id] = {
-            "candidate_id": candidate_id, "hypothesis": hypothesis,
-            "evidence_refs": list(evidence_refs), "state": "candidate",
+            "candidate_id": candidate_id,
+            "hypothesis": hypothesis,
+            "evidence_refs": list(evidence_refs),
+            "state": "candidate",
             "tenant_id": self.tenant.tenant_id,
         }
 
-    def promote_learning(self, candidate_id: str, *, approved: bool, evaluation: dict[str, Any]) -> None:
+    def promote_learning(
+        self,
+        candidate_id: str,
+        *,
+        approved: bool,
+        evaluation: dict[str, Any],
+    ) -> None:
         candidate = self.learning_candidates[candidate_id]
         if not approved:
             candidate["state"] = "rejected"
@@ -246,20 +267,28 @@ class PersonalPlatform:
         candidate["promoted_at"] = datetime.now(UTC).isoformat()
         candidate["evaluation"] = dict(evaluation)
 
-    def register_federation_peer(self, peer_id: str, endpoint: str, capabilities: list[str]) -> None:
+    def register_federation_peer(
+        self, peer_id: str, endpoint: str, capabilities: list[str]
+    ) -> None:
         if not self.config.enable_federation:
             raise PermissionError("agent federation is disabled by configuration")
         self.federation_peers[peer_id] = {
-            "peer_id": peer_id, "endpoint": endpoint,
-            "capabilities": list(capabilities), "status": "registered",
+            "peer_id": peer_id,
+            "endpoint": endpoint,
+            "capabilities": list(capabilities),
+            "status": "registered",
         }
 
     def trace(self, execution_id: str, event: str, payload: dict[str, Any]) -> None:
-        self.traces.append({
-            "execution_id": execution_id, "tenant_id": self.tenant.tenant_id,
-            "event": event, "payload": dict(payload),
-            "timestamp": datetime.now(UTC).isoformat(),
-        })
+        self.traces.append(
+            {
+                "execution_id": execution_id,
+                "tenant_id": self.tenant.tenant_id,
+                "event": event,
+                "payload": dict(payload),
+                "timestamp": datetime.now(UTC).isoformat(),
+            }
+        )
 
     def health(self) -> dict[str, Any]:
         return {

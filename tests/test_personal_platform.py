@@ -1,4 +1,5 @@
 """Personal platform contract tests."""
+
 from ois.personal import PersonalPlatform, PlatformConfig
 
 
@@ -21,9 +22,7 @@ def test_personal_platform_requires_durable_store():
 
 def test_personal_platform_core_state_and_approval():
     store = FakeDurableStore()
-    platform = PersonalPlatform(
-        config=PlatformConfig(require_postgres=True), durable_store=store
-    )
+    platform = PersonalPlatform(config=PlatformConfig(require_postgres=True), durable_store=store)
     platform.initialize()
     assert store.initialized
     session_id = platform.open_session()

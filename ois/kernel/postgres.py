@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterator, Mapping
 from contextlib import contextmanager
-from typing import Any, Iterator
+from typing import Any
 from uuid import UUID
 
 from .checkpoint import CheckpointNotFound
@@ -186,13 +186,12 @@ class PostgresDurableExecutionStore:
             connection.commit()
 
     def load(self, execution_id: UUID) -> ExecutionContext:
-        with self.connection() as connection:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    "SELECT state, state_hash FROM ois_execution_checkpoints WHERE execution_id = %s",
-                    (execution_id,),
-                )
-                row = cursor.fetchone()
+        with self.connection() as connection, connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT state, state_hash FROM ois_execution_checkpoints WHERE execution_id = %s",
+                (execution_id,),
+            )
+            row = cursor.fetchone()
         if row is None:
             raise CheckpointNotFound(f"No PostgreSQL checkpoint for execution {execution_id}")
         state = row[0]
@@ -214,13 +213,12 @@ class PostgresDurableExecutionStore:
             connection.commit()
 
     def get_idempotency(self, invocation_id: str) -> InvocationResult | None:
-        with self.connection() as connection:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    "SELECT result FROM ois_idempotency_results WHERE invocation_id = %s",
-                    (invocation_id,),
-                )
-                row = cursor.fetchone()
+        with self.connection() as connection, connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT result FROM ois_idempotency_results WHERE invocation_id = %s",
+                (invocation_id,),
+            )
+            row = cursor.fetchone()
         if row is None:
             return None
         data: Mapping[str, Any] = row[0]

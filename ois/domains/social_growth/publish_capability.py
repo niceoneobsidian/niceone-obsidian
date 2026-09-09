@@ -17,7 +17,9 @@ class SocialPublishCapability:
     contract = CapabilityContract(
         capability_id="social.publish",
         version="1.0.0",
-        description="Publish an approved social content intent through a registered platform connector.",
+        description=(
+            "Publish an approved social content intent through a registered platform connector."
+        ),
         input_schema={"type": "object", "required": ["intent"]},
         output_schema={"type": "object"},
         risk_level=RiskLevel.HIGH,

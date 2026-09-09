@@ -44,7 +44,9 @@ class SocialIngestCapability:
         self._contract = CapabilityContract(
             capability_id="social.ingest",
             version="1.1.0",
-            description="Normalize and persist social platform payloads as canonical SocialEvent records.",
+            description=(
+                "Normalize and persist social platform payloads as canonical SocialEvent records."
+            ),
             input_schema={"platform": "string", "payloads": "array"},
             output_schema={
                 "events": "array",
@@ -92,7 +94,9 @@ class SocialResearchCapability:
         self._contract = CapabilityContract(
             capability_id="social.research.execute",
             version="1.0.0",
-            description="Analyze canonical social events and produce an evidence-backed research brief.",
+            description=(
+                "Analyze canonical social events and produce an evidence-backed research brief."
+            ),
             input_schema={"query": "string", "events": "array"},
             output_schema={"brief": "object"},
             risk_level=RiskLevel.LOW,

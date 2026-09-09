@@ -14,7 +14,15 @@ from .platform import (
 )
 
 __all__ = [
-    "Approval", "ApprovalPolicy", "BackupManifest", "ExecutionRecord",
-    "PersonalPlatform", "PlatformConfig", "SecurityPolicy", "TenantContext",
-    "build_personal_platform", "create_backup", "verify_backup",
+    "Approval",
+    "ApprovalPolicy",
+    "BackupManifest",
+    "ExecutionRecord",
+    "PersonalPlatform",
+    "PlatformConfig",
+    "SecurityPolicy",
+    "TenantContext",
+    "build_personal_platform",
+    "create_backup",
+    "verify_backup",
 ]

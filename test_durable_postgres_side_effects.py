@@ -114,7 +114,4 @@ def test_checkpoint_and_outbox_are_committed_as_one_transaction(
 
     postgres_store.commit_checkpoint_and_side_effect(context, command)
 
-    assert (
-        postgres_store.load(context.identity.execution_id).status
-        == ExecutionStatus.EXECUTING
-    )
+    assert postgres_store.load(context.identity.execution_id).status == ExecutionStatus.EXECUTING
