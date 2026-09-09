@@ -4,11 +4,7 @@ import uuid
 
 from locust import HttpUser, between, task
 
-TENANT_POOL = [
-    x.strip()
-    for x in os.getenv("OIS_STRESS_TENANTS", "").split(",")
-    if x.strip()
-]
+TENANT_POOL = [x.strip() for x in os.getenv("OIS_STRESS_TENANTS", "").split(",") if x.strip()]
 EXECUTION_PATH = os.getenv("OIS_EXECUTION_PATH", "/v1/kernel/execute")
 HITL_PATH = os.getenv("OIS_HITL_PATH", "/v1/control-plane/hitl/resolve")
 

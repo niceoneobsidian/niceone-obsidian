@@ -3,9 +3,10 @@ from __future__ import annotations
 import asyncio
 import logging
 import random
+from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Awaitable, Callable, Protocol, Sequence
+from typing import Any, Protocol
 
 logger = logging.getLogger("ois.chaos_interceptor")
 
@@ -29,10 +30,7 @@ class ChaosConfig:
     def __post_init__(self) -> None:
         if not 0 <= self.failure_probability <= 1:
             raise ValueError("failure_probability must be between 0 and 1")
-        if (
-            self.timeout_min_seconds < 0
-            or self.timeout_max_seconds < self.timeout_min_seconds
-        ):
+        if self.timeout_min_seconds < 0 or self.timeout_max_seconds < self.timeout_min_seconds:
             raise ValueError("invalid chaos timeout bounds")
         if not self.modes:
             raise ValueError("at least one chaos mode is required")

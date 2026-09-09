@@ -25,9 +25,7 @@ class RedisTransientCoordinator:
     """
 
     def __init__(self, redis_url: str) -> None:
-        self.client: redis.Redis[str] = redis.Redis.from_url(
-            redis_url, decode_responses=True
-        )
+        self.client: redis.Redis = redis.Redis.from_url(redis_url, decode_responses=True)
 
     def ping(self) -> bool:
         return bool(self.client.ping())
@@ -37,9 +35,7 @@ class RedisTransientCoordinator:
         if lock_timeout_sec <= 0:
             raise ValueError("lock_timeout_sec must be positive")
         token = str(uuid4())
-        acquired = self.client.set(
-            f"ois:lock:{execution_id}", token, nx=True, ex=lock_timeout_sec
-        )
+        acquired = self.client.set(f"ois:lock:{execution_id}", token, nx=True, ex=lock_timeout_sec)
         return token if acquired else None
 
     def release_execution_lock(self, execution_id: str, owner_token: str) -> bool:
@@ -50,7 +46,10 @@ class RedisTransientCoordinator:
         return bool(result)
 
     def check_idempotency_cache(self, transaction_id: str) -> str | None:
-        return self.client.get(f"ois:idempotency:{transaction_id}")
+        cached_result = self.client.get(f"ois:idempotency:{transaction_id}")
+        if isinstance(cached_result, bytes):
+            return cached_result.decode()
+        return cached_result
 
     def write_idempotency_cache(
         self, transaction_id: str, serialized_result: str, ttl_sec: int = 86_400
@@ -67,9 +66,7 @@ class RedisTransientCoordinator:
         )
         return bool(result)
 
-    def cache_json_result(
-        self, transaction_id: str, result: object, ttl_sec: int = 86_400
-    ) -> bool:
+    def cache_json_result(self, transaction_id: str, result: object, ttl_sec: int = 86_400) -> bool:
         return self.write_idempotency_cache(
             transaction_id,
             json.dumps(result, sort_keys=True, separators=(",", ":")),

@@ -8,19 +8,18 @@ execution, checkpointing, idempotency and evidence.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, cast
 from uuid import uuid4
 
 from ois.kernel.checkpoint import CheckpointStore, InMemoryCheckpointStore
-from ois.kernel.contracts import InvocationResult
 from ois.kernel.evidence import EvidenceLedger, EvidenceStore
 from ois.kernel.policy import AuthorizationDenied, DefaultPolicyEngine, PolicyEngine
+from ois.kernel.registry import CapabilityRegistry
 from ois.kernel.runtime import ExecutionRuntime
 from ois.kernel.state import ExecutionContext, ExecutionIdentity
 from ois.kernel.types import ExecutionStatus
-from ois.registries import CapabilityRegistry
 
 
 @dataclass(frozen=True)
@@ -82,7 +81,8 @@ class OISSpine:
             objective=request.objective,
             metadata={"integration": "ois.spine", "schema_version": 1},
         )
-        execution_id = str(context.identity.execution_id)
+        execution_uuid = context.identity.execution_id
+        execution_id = str(execution_uuid)
         context.intent = {
             "objective": request.objective,
             "capability_id": request.capability_id,
@@ -92,7 +92,7 @@ class OISSpine:
             "type": "single_capability",
             "nodes": [request.capability_id],
         }
-        self.evidence.record(execution_id, "spine.intent.accepted", context.intent)
+        self.evidence.record(execution_uuid, "spine.intent.accepted", context.intent)
         self.checkpoints.save(context)
 
         try:
@@ -107,31 +107,41 @@ class OISSpine:
             context.error = {"type": type(exc).__name__, "message": str(exc)}
             context.set_status(ExecutionStatus.STOPPED)
             self.evidence.record(
-                execution_id,
+                execution_uuid,
                 "spine.authorization.denied",
                 {"capability_id": request.capability_id, "reason": str(exc)},
             )
             self.checkpoints.save(context)
+            events = getattr(self.evidence, "events", None)
             return SpineResult(
                 execution_id=execution_id,
                 invocation_id=invocation_id or "",
                 status="denied",
                 error={"type": type(exc).__name__, "message": str(exc)},
-                evidence=tuple(self.evidence.events(execution_id)),
+                evidence=(
+                    tuple(cast(Callable[[str], Iterable[Mapping[str, Any]]], events)(execution_id))
+                    if callable(events)
+                    else ()
+                ),
             )
 
         if result.status.value == "succeeded":
             self.runtime.complete(context)
         self.evidence.record(
-            execution_id,
+            execution_uuid,
             "spine.verified",
             {"status": result.status.value, "capability_id": request.capability_id},
         )
+        events = getattr(self.evidence, "events", None)
         return SpineResult(
             execution_id=execution_id,
             invocation_id=result.invocation_id,
             status=result.status.value,
             output=result.output,
             error=result.error,
-            evidence=tuple(self.evidence.events(execution_id)),
+            evidence=(
+                tuple(cast(Callable[[str], Iterable[Mapping[str, Any]]], events)(execution_id))
+                if callable(events)
+                else ()
+            ),
         )

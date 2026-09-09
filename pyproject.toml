@@ -4,9 +4,19 @@ name = "niceone-obsidian"
 version = "0.0.0"
 requires-python = ">=3.12"
 dependencies = [
-  "psycopg[binary]>=3.2,<4",
   "pydantic>=2.7,<3",
   "psycopg[binary]>=3.3.4,<4",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = [
+  "ois*",
+  "ops*",
+  "production*",
 ]
 
 [tool.ruff]
@@ -58,13 +68,14 @@ disallow_untyped_defs = true
 check_untyped_defs = true
 no_implicit_optional = true
 strict_equality = true
+explicit_package_bases = true
 exclude = [
-  '^\\.git/',
-  '^\\.venv/',
+  '^\.git/',
+  '^\.venv/',
   '^venv/',
   '^build/',
   '^dist/',
-  '^\\.mypy_cache/',
-  '^\\.pytest_cache/',
-  '^\\.ruff_cache/',
+  '^\.mypy_cache/',
+  '^\.pytest_cache/',
+  '^\.ruff_cache/',
 ]

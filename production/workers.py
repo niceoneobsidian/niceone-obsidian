@@ -1,15 +1,17 @@
 """Lease-based distributed worker runtime primitives."""
+
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from threading import Lock
-from typing import Callable, Any
+from typing import Any
 from uuid import uuid4
 
 
 def _now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 @dataclass
@@ -97,7 +99,9 @@ class LeaseQueue:
 
 
 class Worker:
-    def __init__(self, worker_id: str, queue: LeaseQueue, handler: Callable[[dict[str, Any]], Any]) -> None:
+    def __init__(
+        self, worker_id: str, queue: LeaseQueue, handler: Callable[[dict[str, Any]], Any]
+    ) -> None:
         self.worker_id, self.queue, self.handler = worker_id, queue, handler
 
     def run_once(self) -> bool:
