@@ -1,0 +1,25 @@
+#!/data/data/com.termux/files/usr/bin/bash
+
+case "$1" in
+    status)
+        echo "===== OBSIDIAN INTELLIGENCE SYSTEM ====="
+        echo
+        echo "Device:   $(getprop ro.product.model)"
+        echo "Kernel:   $(uname -r)"
+        echo "Python:   $(python --version 2>&1)"
+        echo "Node:     $(node --version 2>&1)"
+        echo "Git:      $(git --version)"
+        echo "Neovim:   $(nvim --version | head -1)"
+        echo "Tmux:     $(tmux -V)"
+        echo
+        echo "Storage:"
+        df -h "$HOME" | tail -1
+        echo
+        echo "Memory:"
+        free -h
+        ;;
+    *)
+        echo "OIS commands:"
+        echo "  ois status"
+        ;;
+esac
