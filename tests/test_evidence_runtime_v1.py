@@ -18,7 +18,12 @@ def test_ledger_hash_chain_verifies() -> None:
 def test_observation_cannot_expand_authorization_root() -> None:
     runtime = EvidenceRuntimeV1()
     run_id = uuid4()
-    evidence = runtime.ingest(run_id, evidence_type="observation", source_id="test", payload={"x": 1})
+    evidence = runtime.ingest(
+        run_id,
+        evidence_type="observation",
+        source_id="test",
+        payload={"x": 1},
+    )
     allowed = {"capability": "read", "resource": "fixture"}
     injected = {"capability": "write", "resource": "money"}
     decision = runtime.admissible(
@@ -58,7 +63,12 @@ def test_stale_evidence_is_denied() -> None:
 def test_authorization_is_single_use_and_digest_bound() -> None:
     runtime = EvidenceRuntimeV1()
     run_id = uuid4()
-    evidence = runtime.ingest(run_id, evidence_type="observation", source_id="test", payload={"x": 1})
+    evidence = runtime.ingest(
+        run_id,
+        evidence_type="observation",
+        source_id="test",
+        payload={"x": 1},
+    )
     action = {"capability": "read"}
     policy = {"deny": False}
     decision = runtime.admissible(
