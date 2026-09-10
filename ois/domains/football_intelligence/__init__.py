@@ -20,6 +20,7 @@ from .feeds import (
 )
 from .models import DixonColesModel, EloModel, PoissonModel
 from .schemas import FootballPrediction, MatchState, TeamSnapshot
+from .statsbomb import StatsBombObservation, StatsBombOpenDataProvider
 
 __all__ = [
     "APIFootballProvider",
@@ -40,6 +41,8 @@ __all__ = [
     "PoissonModel",
     "ReconciledMatch",
     "SportmonksProvider",
+    "StatsBombObservation",
+    "StatsBombOpenDataProvider",
     "TeamSnapshot",
     "TeamStatFeed",
 ]
