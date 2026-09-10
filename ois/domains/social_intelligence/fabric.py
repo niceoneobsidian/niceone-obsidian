@@ -6,7 +6,7 @@ contracts, state, provenance, policy boundary, and execution lifecycle.
 
 from __future__ import annotations
 
-from collections import Counter, defaultdict
+from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from hashlib import sha256
@@ -21,9 +21,19 @@ class EvidenceRef:
     fingerprint: str = ""
 
     @classmethod
-    def from_payload(cls, source: str, payload: Mapping[str, Any], uri: str | None = None) -> "EvidenceRef":
+    def from_payload(
+        cls,
+        source: str,
+        payload: Mapping[str, Any],
+        uri: str | None = None,
+    ) -> "EvidenceRef":
         encoded = repr(sorted((str(k), repr(v)) for k, v in payload.items())).encode()
-        return cls(source=source, uri=uri, captured_at=datetime.now(UTC).isoformat(), fingerprint=sha256(encoded).hexdigest())
+        return cls(
+            source=source,
+            uri=uri,
+            captured_at=datetime.now(UTC).isoformat(),
+            fingerprint=sha256(encoded).hexdigest(),
+        )
 
 
 @dataclass(frozen=True)
@@ -43,14 +53,32 @@ class SocialEvent:
 
     @classmethod
     def from_payload(cls, platform: str, payload: Mapping[str, Any]) -> "SocialEvent":
-        raw_id = str(payload.get("id") or payload.get("uri") or sha256(repr(sorted(payload.items())).encode()).hexdigest())
-        occurred = str(payload.get("occurred_at") or payload.get("created_at") or datetime.now(UTC).isoformat())
+        raw_id = str(
+            payload.get("id")
+            or payload.get("uri")
+            or sha256(repr(sorted(payload.items())).encode()).hexdigest()
+        )
+        occurred = str(
+            payload.get("occurred_at")
+            or payload.get("created_at")
+            or datetime.now(UTC).isoformat()
+        )
         entities = tuple(str(x) for x in payload.get("entities", ()) if x is not None)
         topics = tuple(str(x).lower() for x in payload.get("topics", ()) if x is not None)
-        engagement = {str(k): float(v) for k, v in dict(payload.get("engagement", {})).items() if isinstance(v, (int, float))}
+        engagement = {
+            str(k): float(v)
+            for k, v in dict(payload.get("engagement", {})).items()
+            if isinstance(v, (int, float))
+        }
         evidence = tuple(payload.get("evidence", ()))
         if not evidence:
-            evidence = (EvidenceRef.from_payload(platform, payload, str(payload.get("url")) if payload.get("url") else None),)
+            evidence = (
+                EvidenceRef.from_payload(
+                    platform,
+                    payload,
+                    str(payload.get("url")) if payload.get("url") else None,
+                ),
+            )
         return cls(
             event_id=f"{platform}:{raw_id}",
             platform=platform,
@@ -89,6 +117,7 @@ class Trend:
 
 class SocialSource(Protocol):
     source_id: str
+
     def collect(self, query: str = "") -> Iterable[Mapping[str, Any]]: ...
 
 
@@ -129,11 +158,18 @@ class InMemorySocialEventStore:
         return tuple(event for event in self.list() if event.platform == platform)
 
 
-def normalize_events(platform: str, payloads: Iterable[Mapping[str, Any]]) -> tuple[SocialEvent, ...]:
+def normalize_events(
+    platform: str,
+    payloads: Iterable[Mapping[str, Any]],
+) -> tuple[SocialEvent, ...]:
     return tuple(SocialEvent.from_payload(platform, payload) for payload in payloads)
 
 
-def detect_trends(events: Iterable[SocialEvent], *, min_count: int = 2) -> tuple[Trend, ...]:
+def detect_trends(
+    events: Iterable[SocialEvent],
+    *,
+    min_count: int = 2,
+) -> tuple[Trend, ...]:
     grouped: dict[str, list[SocialEvent]] = defaultdict(list)
     for event in events:
         for topic in event.topics:
@@ -145,8 +181,19 @@ def detect_trends(events: Iterable[SocialEvent], *, min_count: int = 2) -> tuple
             continue
         timestamps = sorted(item.occurred_at for item in items)
         velocity = len(items) / max(1, len(set(timestamps)))
-        score = min(1.0, (len(items) / total) * 0.7 + min(velocity / 10.0, 0.3))
-        trends.append(Trend(topic=topic, score=score, velocity=velocity, event_count=len(items), event_ids=tuple(item.event_id for item in items)))
+        score = min(
+            1.0,
+            (len(items) / total) * 0.7 + min(velocity / 10.0, 0.3),
+        )
+        trends.append(
+            Trend(
+                topic=topic,
+                score=score,
+                velocity=velocity,
+                event_count=len(items),
+                event_ids=tuple(item.event_id for item in items),
+            )
+        )
     return tuple(sorted(trends, key=lambda item: (-item.score, item.topic)))
 
 
@@ -157,20 +204,26 @@ def build_signals(events: Iterable[SocialEvent]) -> tuple[SocialSignal, ...]:
         for topic in event.topics:
             topic_events[topic].append(event)
     total = max(len(materialized), 1)
-    signals = []
+    signals: list[SocialSignal] = []
     for topic, items in sorted(topic_events.items()):
         score = min(1.0, len(items) / total)
         evidence = tuple(ref for event in items for ref in event.evidence)
-        signals.append(SocialSignal(
-            signal_id=f"topic:{topic}", signal_type="topic", value=topic,
-            score=score, confidence=min(1.0, 0.4 + 0.1 * len(items)),
-            source_event_ids=tuple(event.event_id for event in items), evidence=evidence,
-        ))
+        signals.append(
+            SocialSignal(
+                signal_id=f"topic:{topic}",
+                signal_type="topic",
+                value=topic,
+                score=score,
+                confidence=min(1.0, 0.4 + 0.1 * len(items)),
+                source_event_ids=tuple(event.event_id for event in items),
+                evidence=evidence,
+            )
+        )
     return tuple(signals)
 
 
 def aggregate_engagement(events: Iterable[SocialEvent]) -> Mapping[str, float]:
-    totals: Counter[str] = Counter()
+    totals: dict[str, float] = defaultdict(float)
     for event in events:
         for key, value in event.engagement.items():
             totals[key] += value
