@@ -1,0 +1,45 @@
+{
+  "manifest_version": "1.0",
+  "domain": "social_content",
+  "status": "implemented_foundation",
+  "activation": "shadow",
+  "capabilities": [
+    {"id": "social.content.research", "status": "implemented", "risk": "low"},
+    {"id": "social.content.generate", "status": "implemented", "risk": "medium"},
+    {"id": "social.content.validate", "status": "implemented", "risk": "low"},
+    {"id": "social.content.publish", "status": "connector_boundary_only", "risk": "high"}
+  ],
+  "agents": [
+    "social.research_agent",
+    "social.content_strategy_agent",
+    "social.content_generation_agent",
+    "social.validation_agent"
+  ],
+  "frameworks": {
+    "orchestration": {"name": "LangGraph", "mode": "optional_boundary"},
+    "agent_teams": {"name": "CrewAI", "mode": "replaceable_provider"},
+    "multi_agent": {"name": "AutoGen", "mode": "replaceable_provider"}
+  },
+  "research": {
+    "empty_results": "retry_or_block",
+    "contested_claims": "qualify_or_block",
+    "claim_level_provenance": true
+  },
+  "publishing": {
+    "llm_direct_publish": false,
+    "authorization_required": true,
+    "official_api_preferred": true
+  },
+  "connectors": [
+    {"platform": "tiktok", "provider": "TikTok Content Posting API", "status": "configured_not_verified"},
+    {"platform": "instagram", "provider": "Instagram Graph API", "status": "configured_not_verified"},
+    {"platform": "x", "provider": "X API", "status": "configured_not_verified"},
+    {"platform": "linkedin", "provider": "LinkedIn API", "status": "configured_not_verified"},
+    {"platform": "youtube", "provider": "YouTube API", "status": "configured_not_verified"}
+  ],
+  "fallback_research": {
+    "apify": "optional_external_provider",
+    "instaloader": "optional_unofficial_provider",
+    "tiktoklive": "optional_unofficial_provider"
+  }
+}
