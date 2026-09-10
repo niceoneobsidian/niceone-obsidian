@@ -23,6 +23,25 @@ class RecoveryDecision:
     reason: str
 
 
+@dataclass(frozen=True)
+class RecoveryBackoff:
+    """Pure exponential backoff calculation with a deterministic upper bound."""
+
+    base_seconds: float = 1.0
+    max_seconds: float = 60.0
+
+    def __post_init__(self) -> None:
+        if self.base_seconds < 0:
+            raise ValueError("base_seconds must be >= 0")
+        if self.max_seconds < self.base_seconds:
+            raise ValueError("max_seconds must be >= base_seconds")
+
+    def delay(self, retry_number: int) -> float:
+        if retry_number < 1:
+            raise ValueError("retry_number must be >= 1")
+        return min(self.max_seconds, self.base_seconds * (2 ** (retry_number - 1)))
+
+
 class RecoveryPolicy:
     """
     Conservative deterministic recovery policy.
