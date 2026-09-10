@@ -115,3 +115,5 @@ def test_manifest_contains_market_capabilities() -> None:
     assert "football.market_translate" in ids
     assert "football.market_settle" in ids
     assert "football.market_evaluate" in ids
+    assert "football.market_web_ingest" in ids
+    assert "football.market_web_health" in ids
