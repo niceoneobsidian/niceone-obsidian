@@ -16,15 +16,12 @@ class SocialIngestCapability:
     """Ingest normalized platform payloads into the canonical event store."""
 
     contract = CapabilityContract(
-        capability_id="social.ingest",
-        version="1.0.0",
+        capability_id="social.ingest", version="1.0.0",
         description="Normalize social source payloads into canonical SocialEvent records.",
         input_schema={"platform": "string", "payloads": "array"},
         output_schema={"events": "array", "persisted": "integer"},
-        risk_level=RiskLevel.LOW,
-        allowed_domains=("social_intelligence",),
-        side_effects=SideEffectLevel.NONE,
-        idempotent=True,
+        risk_level=RiskLevel.LOW, allowed_domains=("social_intelligence",),
+        side_effects=SideEffectLevel.NONE, idempotent=True,
     )
 
     def __init__(self, platforms: PlatformRegistry, store: InMemorySocialEventStore | None = None) -> None:
@@ -40,8 +37,7 @@ class SocialIngestCapability:
         events = normalize_events(platform, payloads)
         persisted = sum(self.store.append(event) for event in events)
         return InvocationResult(
-            invocation_id=request.invocation_id,
-            capability_id=self.contract.capability_id,
+            invocation_id=request.invocation_id, capability_id=self.contract.capability_id,
             status=InvocationStatus.SUCCEEDED,
             output={"events": [event.__dict__ for event in events], "persisted": persisted},
         )
@@ -51,15 +47,12 @@ class SocialSignalCapability:
     """Derive deterministic, evidence-linked signals and trends from stored events."""
 
     contract = CapabilityContract(
-        capability_id="social.signal_analysis",
-        version="1.0.0",
+        capability_id="social.signal_analysis", version="1.0.0",
         description="Analyze canonical social events into ranked signals and trends.",
         input_schema={"min_trend_count": "integer"},
         output_schema={"signals": "array", "trends": "array"},
-        risk_level=RiskLevel.LOW,
-        allowed_domains=("social_intelligence",),
-        side_effects=SideEffectLevel.NONE,
-        idempotent=True,
+        risk_level=RiskLevel.LOW, allowed_domains=("social_intelligence",),
+        side_effects=SideEffectLevel.NONE, idempotent=True,
     )
 
     def __init__(self, store: InMemorySocialEventStore) -> None:
@@ -71,8 +64,7 @@ class SocialSignalCapability:
         signals = build_signals(events)
         trends = detect_trends(events, min_count=minimum)
         return InvocationResult(
-            invocation_id=request.invocation_id,
-            capability_id=self.contract.capability_id,
+            invocation_id=request.invocation_id, capability_id=self.contract.capability_id,
             status=InvocationStatus.SUCCEEDED,
             output={
                 "signals": [signal.__dict__ for signal in signals],
@@ -86,16 +78,13 @@ class SocialPublishCapability:
     """Governed publish boundary; real adapters must be explicitly registered."""
 
     contract = CapabilityContract(
-        capability_id="social.publish",
-        version="1.0.0",
+        capability_id="social.publish", version="1.0.0",
         description="Publish content through an authorized platform adapter.",
         input_schema={"platform": "string", "content": "object"},
         output_schema={"publication": "object"},
-        risk_level=RiskLevel.HIGH,
-        permissions=("social.publish",),
+        risk_level=RiskLevel.HIGH, permissions=("social.publish",),
         allowed_domains=("social_intelligence",),
-        side_effects=SideEffectLevel.EXTERNAL,
-        idempotent=False,
+        side_effects=SideEffectLevel.IRREVERSIBLE, idempotent=False,
     )
 
     def __init__(self, platforms: PlatformRegistry) -> None:
@@ -108,15 +97,13 @@ class SocialPublishCapability:
             raise ValueError("platform and content are required")
         result = self.platforms.get(platform).publish(content)
         return InvocationResult(
-            invocation_id=request.invocation_id,
-            capability_id=self.contract.capability_id,
-            status=InvocationStatus.SUCCEEDED,
-            output={"publication": dict(result)},
+            invocation_id=request.invocation_id, capability_id=self.contract.capability_id,
+            status=InvocationStatus.SUCCEEDED, output={"publication": dict(result)},
         )
 
 
 def register_social_capabilities(registry: Any, platforms: PlatformRegistry, store: InMemorySocialEventStore | None = None) -> InMemorySocialEventStore:
-    """Register the social capabilities in the supplied authoritative OIS registry."""
+    """Register social capabilities in the supplied authoritative OIS registry."""
     event_store = store or InMemorySocialEventStore()
     registry.register(SocialIngestCapability(platforms, event_store))
     registry.register(SocialSignalCapability(event_store))
