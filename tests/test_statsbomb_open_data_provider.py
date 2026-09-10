@@ -3,7 +3,16 @@ from datetime import UTC, datetime
 from ois.domains.football_intelligence.providers import StatsBombOpenDataProvider
 
 
-def _record(match_id: int, date: str, home_id: int, home: str, away_id: int, away: str, hs: int, aws: int) -> dict:
+def _record(
+    match_id: int,
+    date: str,
+    home_id: int,
+    home: str,
+    away_id: int,
+    away: str,
+    hs: int,
+    aws: int,
+) -> dict:
     return {
         "match_id": match_id,
         "match_date": date,
@@ -30,7 +39,9 @@ def test_statsbomb_provider_uses_only_pre_match_results_for_features() -> None:
     assert result.match.home.recent_form == 1.0
     assert result.match.away.recent_form == 0.5
     assert result.source_id == "statsbomb.open-data:11:1:3"
-    assert result.raw_match["home_score"] == 0
+    assert result.raw_match["target_match"]["home_score"] == 0
+    assert result.raw_match["pre_match_history"] == [prior]
+    assert result.raw_match["derivation"]["post_match_data_excluded"] is True
 
 
 def test_statsbomb_provider_rejects_unknown_match() -> None:
