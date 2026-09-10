@@ -22,9 +22,9 @@ PREDICTION-TIME FEATURE BUILDER
 │ Result     → 1X2, DNB, double chance │
 │ Corner     → O/U, handicaps           │
 │ Card       → O/U, player cards       │
-│ Shot       → player shots / SOT      │
-│ PlayerGoal → anytime scorer          │
-│ LiveState  → live totals / next goal │
+│ Shot       → player shots / SOT       │
+│ PlayerGoal → anytime scorer           │
+│ LiveState  → live totals / next goal  │
 └──────────────────────────────────────┘
                     ↓
 INDEPENDENT EMPIRICAL FITTING
@@ -50,9 +50,7 @@ The `football_intelligence` domain supplies the provider adapters used here:
 
 Provider observations carry timestamps, payload hashes and evidence identifiers. Live snapshots are appended to the market feature store through `provider_bridge.py` rather than being treated as immutable historical truth.
 
-API-Football's current documentation describes fixtures as the master key for events, lineups, statistics, players and odds, and notes that live fixture/event data updates every 15 seconds while fixture statistics and player statistics update approximately every minute. Its live-odds endpoint does not retain historical snapshots, so OIS must capture those observations in real time if line movement is to be learned. citeturn1search0turn1search2
-
-StatsBomb Open Data provides competitions, matches, events and lineups as JSON archives. The event surface contains shot, player, team and timing fields used by the historical corpus builder. citeturn0search3turn3search0
+The provider integration follows the current public API contracts: API-Football fixtures are the master key for match events, lineups, statistics and player data; live fixture/event data is refreshed frequently; fixture statistics and player statistics are updated during live matches; and live odds must be captured in real time because the provider does not retain an in-play odds history. StatsBomb Open Data provides competitions, matches, events and lineups as JSON archives suitable for reproducible historical training.
 
 ## Empirical fitting
 
@@ -68,7 +66,7 @@ StatsBomb Open Data provides competitions, matches, events and lineups as JSON a
 6. PlayerGoal — independent scoring hazard estimate.
 7. LiveState — independent per-minute goal hazard.
 
-These are empirical baselines, not a claim that all seven models are already calibrated or profitable. A model becomes eligible for promotion only after chronological out-of-sample evaluation and calibration. Public football modelling projects likewise emphasize walk-forward testing, proper scoring rules and calibration rather than accuracy alone. citeturn0search0turn0search2turn0search4
+These are empirical baselines, not a claim that all seven models are already calibrated or profitable. A model becomes eligible for promotion only after chronological out-of-sample evaluation and calibration. The research basis favors walk-forward evaluation and proper scoring rules such as log loss and Brier score over raw accuracy.
 
 ## Training entry point
 
