@@ -52,7 +52,10 @@ class OddsObservation(WebObservation):
     provider: str
     match_id: str
     bookmaker: str
-    market_type: str
+    provider_market_key: str
+    market_description: str | None = None
+    canonical_market_key: str | None = None
+    period: str = "match"
     selection: str
     line: float | None = None
     decimal_odds: float = Field(gt=1)
