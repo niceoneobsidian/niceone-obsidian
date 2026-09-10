@@ -26,12 +26,7 @@ def ingest_provider_snapshot(
     *,
     as_of: datetime | None = None,
 ) -> FeatureSnapshot:
-    """Normalize one provider observation and append it to the feature store.
-
-    The resulting snapshot is prediction-time safe only when ``as_of`` is the
-    actual observation time supplied by the caller. Historical training must
-    pass a pre-match timestamp, never the final-match observation timestamp.
-    """
+    """Normalize one provider observation and append it to the market feature store."""
     observed_at = as_of or snapshot.observed_at
     features = _features(snapshot)
     evidence_ids = tuple(
@@ -40,7 +35,7 @@ def ingest_provider_snapshot(
         for evidence in row.evidence
     )
     feature_snapshot = FeatureSnapshot(
-        match_id=snapshot.match.provider_match_id,
+        match_id=snapshot.match.match.provider_match_id,
         as_of=observed_at,
         features=features,
         evidence_ids=evidence_ids,
@@ -50,8 +45,9 @@ def ingest_provider_snapshot(
 
 
 def _features(snapshot: MatchFeatureSnapshot) -> MatchFeatures:
-    home = snapshot.match.match.home_team_id
-    away = snapshot.match.match.away_team_id
+    match = snapshot.match.match
+    home = match.home_team_id
+    away = match.away_team_id
     home_stats = next((row for row in snapshot.team_statistics if row.team_id == home), None)
     away_stats = next((row for row in snapshot.team_statistics if row.team_id == away), None)
     home_shots = _number(home_stats, _STAT_KEYS["shots"])
@@ -73,10 +69,10 @@ def _features(snapshot: MatchFeatureSnapshot) -> MatchFeatures:
         player_shot_rate=max(0.01, player_shots),
         player_sot_rate=max(0.01, player_sot),
         player_goal_rate=max(0.0, player_goal_rate),
-        elapsed_minute=snapshot.match.minute or 0,
-        remaining_minutes=max(0, 90 - (snapshot.match.minute or 0)),
-        home_goals=snapshot.match.home_score or 0,
-        away_goals=snapshot.match.away_score or 0,
+        elapsed_minute=match.minute or 0,
+        remaining_minutes=max(0, 90 - (match.minute or 0)),
+        home_goals=match.home_score or 0,
+        away_goals=match.away_score or 0,
     )
 
 
@@ -84,8 +80,7 @@ def _number(row: TeamStatFeed | None, keys: tuple[str, ...]) -> float:
     if row is None:
         return 0.0
     for key in keys:
-        value = row.statistics.get(key)
-        parsed = _to_float(value)
+        parsed = _to_float(row.statistics.get(key))
         if parsed is not None:
             return parsed
     return 0.0
