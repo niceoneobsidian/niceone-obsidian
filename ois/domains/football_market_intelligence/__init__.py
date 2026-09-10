@@ -5,6 +5,7 @@ attribution primitives. Execution, policy, persistence and promotion remain owne
 by OIS platform services.
 """
 
+from .coverage import BookmakerMarketCoverage, build_market_coverage
 from .evaluation import evaluate_market_event
 from .integration import translate_market
 from .market_catalog import MarketDefinition, MarketFamily, catalog, normalize_market_key, provider_market_mapping
@@ -16,6 +17,7 @@ from .web_normalization import assert_temporal_integrity, check_provider_health,
 from .web_sources import MatchObservation, NormalizationResult, OddsObservation, ProviderHealth, WebObservation, WebSource, WebTransport
 
 __all__ = [
+    "BookmakerMarketCoverage",
     "FOOTBALL_DATA",
     "ODDS_API",
     "SPORTMONKS",
@@ -33,6 +35,7 @@ __all__ = [
     "WebSource",
     "WebTransport",
     "assert_temporal_integrity",
+    "build_market_coverage",
     "catalog",
     "check_provider_health",
     "evaluate_market_event",
