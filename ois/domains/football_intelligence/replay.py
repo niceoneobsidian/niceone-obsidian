@@ -11,6 +11,7 @@ from ois.runtime.evidence import EvidenceRuntimeV1
 
 from .evaluation import CalibrationReport, evaluate_predictions
 from .integration import predict_match
+from .providers import StatsBombOpenDataProvider, StatsBombReplayInput
 from .schemas import FootballPrediction, MatchState
 
 
@@ -37,19 +38,24 @@ class FootballReplay:
         *,
         actual_outcome: str,
         source_id: str = "football.replay.fixture",
+        source_uri: str | None = None,
+        raw_source_payload: dict[str, Any] | None = None,
         max_evidence_age_seconds: float | None = None,
     ) -> FootballReplayResult:
         run_id = uuid4()
-        match_payload = match.model_dump(mode="json")
         observed_at = datetime.now(UTC)
+        match_payload = match.model_dump(mode="json")
+        source_payload = raw_source_payload or match_payload
         evidence = self.runtime.ingest(
             run_id,
             evidence_type="football.match_state",
             source_id=source_id,
-            payload=match_payload,
+            payload=source_payload,
             provenance={
                 "mode": "replay",
-                "source_type": "fixture",
+                "source_type": "provider" if raw_source_payload else "fixture",
+                "source_uri": source_uri,
+                "normalized_match_digest": match_payload,
                 "observed_at": observed_at.isoformat(),
             },
             observed_at=observed_at,
@@ -59,7 +65,7 @@ class FootballReplay:
             evidence_type="football.match_outcome",
             source_id=source_id,
             payload={"match_id": match.match_id, "outcome": actual_outcome},
-            provenance={"mode": "replay", "source_type": "fixture"},
+            provenance={"mode": "replay", "source_type": "provider" if raw_source_payload else "fixture"},
             observed_at=observed_at,
         )
 
@@ -124,4 +130,23 @@ class FootballReplay:
             execution_id=receipt.execution_id,
             authorization_id=authorization.authorization_id,
             evidence_ids=(evidence.evidence_id, outcome_evidence.evidence_id),
+        )
+
+    def run_statsbomb(
+        self,
+        competition_id: int,
+        season_id: int,
+        match_id: int,
+        *,
+        provider: StatsBombOpenDataProvider | None = None,
+    ) -> FootballReplayResult:
+        """Run a real StatsBomb Open Data match through the same runtime boundary."""
+        source = provider or StatsBombOpenDataProvider()
+        replay_input: StatsBombReplayInput = source.load_replay(competition_id, season_id, match_id)
+        return self.run(
+            replay_input.match,
+            actual_outcome=replay_input.actual_outcome,
+            source_id=replay_input.source_id,
+            source_uri=replay_input.source_uri,
+            raw_source_payload=replay_input.raw_match,
         )
