@@ -10,7 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from math import exp, log
 from statistics import mean
-from typing import Iterable, Sequence
+from typing import Iterable, NoReturn, Sequence
 
 from .models import MatchFeatures, MarketFamily, _clamp, poisson_cdf, score_matrix
 from .pipeline import FeatureSnapshot
@@ -39,7 +39,7 @@ class FittedGoalModel:
     away_rate: float
     model_id: str = "football-goals-fitted-v1"
 
-    def predict(self, features: MatchFeatures, line: float = 2.5) -> dict[str, float]:
+    def predict(self, _: MatchFeatures, line: float = 2.5) -> dict[str, float]:
         matrix = score_matrix(self.home_rate, self.away_rate)
         over = sum(p for h, row in enumerate(matrix) for a, p in enumerate(row) if h + a > line)
         btts = sum(p for h, row in enumerate(matrix) for a, p in enumerate(row) if h > 0 and a > 0)
@@ -146,12 +146,7 @@ def fit_seven_models(rows: Sequence[TrainingRow]) -> FittedFootballModels:
     if not rows:
         raise ValueError("at least one training row is required")
     ordered = sorted(rows, key=lambda row: row.as_of_rank)
-
-    goal = FittedGoalModel(
-        home_rate=max(0.01, mean(row.home_goals for row in ordered)),
-        away_rate=max(0.01, mean(row.away_goals for row in ordered)),
-    )
-
+    goal = FittedGoalModel(max(0.01, mean(row.home_goals for row in ordered)), max(0.01, mean(row.away_goals for row in ordered)))
     counts = {"home": 1.0, "draw": 1.0, "away": 1.0}
     for row in ordered:
         key = "home" if row.home_goals > row.away_goals else "draw" if row.home_goals == row.away_goals else "away"
@@ -161,25 +156,28 @@ def fit_seven_models(rows: Sequence[TrainingRow]) -> FittedFootballModels:
     def fitted_count(values: Iterable[int | None], family: MarketFamily, model_id: str) -> FittedCountModel:
         observed = [float(value) for value in values if value is not None]
         if not observed:
-            raise ValueError(f"no observations for {family.value}")
+            _raise_missing(family.value)
         return FittedCountModel(family, max(0.01, mean(observed)), model_id)
 
     corner = fitted_count((row.corners for row in ordered), MarketFamily.CORNERS, "football-corners-fitted-v1")
     card = fitted_count((row.cards for row in ordered), MarketFamily.CARDS, "football-cards-fitted-v1")
     shot_values = [float(row.player_shots) for row in ordered if row.player_shots is not None]
     sot_values = [float(row.player_sot) for row in ordered if row.player_sot is not None]
-    shot = FittedShotModel(max(0.01, mean(shot_values)), max(0.01, mean(sot_values))) if shot_values and sot_values else _raise_missing("shot")
-
+    if not shot_values or not sot_values:
+        _raise_missing("shot")
+    shot = FittedShotModel(max(0.01, mean(shot_values)), max(0.01, mean(sot_values)))
     scored = [int(row.player_scored) for row in ordered if row.player_scored is not None]
-    player_goal = FittedPlayerGoalModel(max(0.0, sum(scored) / max(1, len(scored)))) if scored else _raise_missing("player goal")
-
+    if not scored:
+        _raise_missing("player goal")
+    player_goal = FittedPlayerGoalModel(max(0.0, sum(scored) / len(scored)))
     live = [int(row.live_goal) for row in ordered if row.live_goal is not None]
-    live_model = FittedLiveModel(max(1e-6, sum(live) / max(1, len(live) * 90))) if live else _raise_missing("live")
-
+    if not live:
+        _raise_missing("live")
+    live_model = FittedLiveModel(max(1e-6, sum(live) / max(1, len(live) * 90)))
     return FittedFootballModels(goal, result, corner, card, shot, player_goal, live_model, len(ordered), ("provider-snapshots-v1",))
 
 
-def _raise_missing(name: str):
+def _raise_missing(name: str) -> NoReturn:
     raise ValueError(f"no observations for {name} market")
 
 
