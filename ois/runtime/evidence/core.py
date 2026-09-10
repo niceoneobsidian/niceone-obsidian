@@ -9,10 +9,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from threading import RLock
-from typing import Any, Mapping
+from typing import Any
 from uuid import UUID, uuid4
 
 
@@ -21,7 +22,9 @@ def utc_now() -> datetime:
 
 
 def _canonical(value: Any) -> bytes:
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    return json.dumps(
+        value, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    ).encode("utf-8")
 
 
 def canonical_digest(value: Any) -> str:
@@ -53,7 +56,7 @@ class EvidenceEnvelope:
         parent_evidence_ids: tuple[str, ...] = (),
         trust_class: str = "observation",
         observed_at: datetime | None = None,
-    ) -> "EvidenceEnvelope":
+    ) -> EvidenceEnvelope:
         observed = observed_at or utc_now()
         payload_digest = canonical_digest(payload)
         identity = canonical_digest(
@@ -126,7 +129,15 @@ class EvidenceLedgerV1:
                     "previous_digest": previous,
                 }
             )
-            event = LedgerEvent(sequence, event_type, run_id, dict(payload), timestamp, previous, digest)
+            event = LedgerEvent(
+                sequence,
+                event_type,
+                run_id,
+                dict(payload),
+                timestamp,
+                previous,
+                digest,
+            )
             self._events.append(event)
             return event
 
@@ -179,7 +190,7 @@ class SingleUseAuthorization:
     expires_at: datetime
     consumed: bool = False
 
-    def consume(self, now: datetime | None = None) -> "SingleUseAuthorization":
+    def consume(self, now: datetime | None = None) -> SingleUseAuthorization:
         if self.consumed:
             raise ValueError("authorization_replay")
         if (now or utc_now()) >= self.expires_at:
