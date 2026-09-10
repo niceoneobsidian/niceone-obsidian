@@ -25,11 +25,13 @@ class AgentSpec:
 
 CAPABILITIES: tuple[DomainCapability, ...] = (
     DomainCapability("football.market_translate", "Translate football prediction into an atomic market event", "FootballPrediction", "MarketEvent"),
+    DomainCapability("football.market_price", "Compute fair probabilities, market edge and best available price", "ModelProbabilities+Odds", "MarketPricingReport"),
+    DomainCapability("football.market_signal", "Generate ranked positive-value market signals", "ModelProbabilities+Odds+Thresholds", "MarketSignalSet"),
     DomainCapability("football.market_settle", "Deterministically settle a market event from final score", "MarketEvent+FinalScore", "MarketOutcome"),
     DomainCapability("football.market_evaluate", "Evaluate a settled market prediction", "MarketEvent+MarketOutcome", "MarketEvaluation"),
     DomainCapability("football.market_attribute", "Attribute market performance to prediction versions", "MarketEvaluationSet", "AttributionReport"),
     DomainCapability("football.market_record", "Record market events and outcomes through governed persistence", "MarketRecord", "MarketRecordReceipt", side_effect=True),
-    DomainCapability("football.market_backtest", "Run leakage-safe market backtests", "MarketBacktestSpec", "MarketBacktestReport"),
+    DomainCapability("football.market_backtest", "Run chronological, leakage-safe market backtests", "MarketBacktestSpec", "MarketBacktestReport"),
     DomainCapability("football.market_web_ingest", "Ingest provider-neutral fixture, result and odds observations", "WebSource+URI", "NormalizationResult"),
     DomainCapability("football.market_web_health", "Check availability and latency of a registered market data provider", "WebSource+URI", "ProviderHealth"),
     DomainCapability("football.market_catalog", "Resolve provider market keys into canonical football market families", "ProviderMarketKey", "MarketDefinition"),
@@ -37,7 +39,7 @@ CAPABILITIES: tuple[DomainCapability, ...] = (
 )
 
 AGENTS: tuple[AgentSpec, ...] = (
-    AgentSpec("football.market_agent", "Market taxonomy and translation", ("football.market_translate", "football.market_catalog")),
+    AgentSpec("football.market_agent", "Market taxonomy, pricing and value translation", ("football.market_translate", "football.market_catalog", "football.market_price", "football.market_signal")),
     AgentSpec("football.market_settlement_agent", "Deterministic market settlement", ("football.market_settle",)),
     AgentSpec("football.market_evaluation_agent", "Market evaluation and attribution", ("football.market_evaluate", "football.market_attribute")),
     AgentSpec("football.market_learning_agent", "Market backtesting and learning orchestration", ("football.market_backtest",)),
@@ -55,6 +57,7 @@ def manifest() -> dict[str, Any]:
             {"workflow_id": "football.market_evaluation", "version": 1},
             {"workflow_id": "football.market_backtest", "version": 1},
             {"workflow_id": "football.market_data_ingestion", "version": 1},
+            {"workflow_id": "football.market_value_scan", "version": 1},
         ],
         "depends_on": "football_intelligence",
         "persistence_owner": "ois_platform",
