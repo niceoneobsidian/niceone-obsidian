@@ -84,10 +84,11 @@ def test_evaluation_preserves_edge_and_roi() -> None:
 
 
 def test_aggregate_metrics() -> None:
-    market = event(MarketType.RESULT, Selection.HOME_WIN)
+    winning_market = event(MarketType.RESULT, Selection.HOME_WIN)
+    losing_market = event(MarketType.RESULT, Selection.HOME_WIN)
     evaluations = [
-        evaluate_market_event(market, settle_market(market, 2, 0)),
-        evaluate_market_event(event(MarketType.RESULT, Selection.HOME_WIN), settle_market(event(MarketType.RESULT, Selection.HOME_WIN), 0, 2)),
+        evaluate_market_event(winning_market, settle_market(winning_market, 2, 0)),
+        evaluate_market_event(losing_market, settle_market(losing_market, 0, 2)),
     ]
     metrics = aggregate_market_evaluations(evaluations)
     assert metrics["count"] == 2
