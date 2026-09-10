@@ -42,7 +42,7 @@ class StatsBombOpenDataProvider:
     @staticmethod
     def _fetch(url: str) -> Any:
         request = Request(url, headers={"User-Agent": "niceone-obsidian/football-runtime"})
-        with urlopen(request, timeout=20) as response:  # noqa: S310 - URL is provider-configured.
+        with urlopen(request, timeout=20) as response:  # noqa: S310 - provider URL is explicit/configured.
             return json.load(response)
 
     def _matches_url(self, competition_id: int, season_id: int) -> str:
@@ -163,5 +163,13 @@ class StatsBombOpenDataProvider:
             actual_outcome=self._outcome(target),
             source_id=source_id,
             source_uri=source_uri,
-            raw_match=target,
+            raw_match={
+                "target_match": target,
+                "pre_match_history": historical,
+                "derivation": {
+                    "feature_cutoff": kickoff.isoformat(),
+                    "lookback_matches_per_team": 5,
+                    "post_match_data_excluded": True,
+                },
+            },
         )
