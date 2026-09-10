@@ -14,8 +14,22 @@ from .statistics_client import (
     api_football_player_statistics,
     sportmonks_fixture,
 )
-from .statistics_features import PlayerFeatureVector, TeamFeatureVector, player_features, player_market_features, team_features
-from .statistics_sources import MatchFeed, MatchStatistics, PlayerMatchStatistics, parse_api_football_fixture, parse_api_football_players, parse_api_football_statistics, parse_sportmonks_fixture
+from .statistics_features import (
+    PlayerFeatureVector,
+    TeamFeatureVector,
+    player_features,
+    player_market_features,
+    team_features,
+)
+from .statistics_sources import (
+    MatchFeed,
+    MatchStatistics,
+    PlayerMatchStatistics,
+    parse_api_football_fixture,
+    parse_api_football_players,
+    parse_api_football_statistics,
+    parse_sportmonks_fixture,
+)
 
 __all__ = [
     "DixonColesModel",
