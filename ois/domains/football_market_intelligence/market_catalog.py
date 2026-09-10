@@ -1,9 +1,4 @@
-"""Canonical football market catalog and bookmaker normalization.
-
-The catalog is deliberately broader than the deterministic MarketEvent settlement
-families. Provider feeds can expose dynamic selections and lines without requiring
-a code change for every bookmaker-specific outcome label.
-"""
+"""Canonical football market catalog and bookmaker normalization."""
 
 from __future__ import annotations
 
@@ -104,20 +99,19 @@ _PROVIDER_MARKET_KEYS: dict[str, dict[str, str]] = {
     "the-odds-api": {
         "h2h": "1x2", "double_chance": "double_chance", "draw_no_bet": "draw_no_bet",
         "spreads": "asian_handicap", "alternate_spreads": "asian_handicap",
-        "totals": "totals", "alternate_totals": "totals",
-        "team_totals": "team_totals", "alternate_team_totals": "team_totals",
-        "btts": "btts", "correct_score": "correct_score", "correct_score_h1": "correct_score",
-        "corners_1x2": "corners_1x2", "alternate_spreads_corners": "corners",
-        "alternate_totals_corners": "corners", "alternate_team_totals_corners": "team_corners",
-        "alternate_spreads_cards": "cards", "alternate_totals_cards": "cards",
-        "halftime_fulltime": "halftime_fulltime", "to_qualify": "to_qualify",
-        "player_shots": "player_shots", "player_assists": "player_assists",
+        "totals": "totals", "alternate_totals": "totals", "team_totals": "team_totals",
+        "alternate_team_totals": "team_totals", "btts": "btts", "correct_score": "correct_score",
+        "correct_score_h1": "correct_score", "corners_1x2": "corners_1x2",
+        "alternate_spreads_corners": "corners", "alternate_totals_corners": "corners",
+        "alternate_team_totals_corners": "team_corners", "alternate_spreads_cards": "cards",
+        "alternate_totals_cards": "cards", "halftime_fulltime": "halftime_fulltime",
+        "to_qualify": "to_qualify", "player_shots": "player_shots", "player_assists": "player_assists",
     },
     "sportybet": {
         "1": "1x2", "10": "double_chance", "11": "draw_no_bet", "14": "handicap",
         "16": "asian_handicap", "18": "totals", "29": "btts", "45": "correct_score",
-        "47": "halftime_fulltime", "60": "halftime_1x2", "219": "1x2",
-        "223": "handicap", "225": "totals", "227": "team_totals", "228": "team_totals",
+        "47": "halftime_fulltime", "60": "halftime_1x2", "219": "1x2", "223": "handicap",
+        "225": "totals", "227": "team_totals", "228": "team_totals",
     },
     "sportmonks": {},
     "stake": {},
@@ -134,9 +128,10 @@ def normalize_market_key(provider: str, provider_key: str, description: str = ""
     provider_keys = _PROVIDER_MARKET_KEYS.get(provider.lower(), {})
     if provider_key in provider_keys:
         return provider_keys[provider_key]
-    haystack = f"{provider_key} {description}".lower()
+    haystack = f"{provider_key} {description}".lower().replace("_", " ")
     for market in MARKET_CATALOG:
-        if haystack == market.key or any(alias in haystack for alias in market.aliases):
+        names = (market.key, market.name, *market.aliases)
+        if any(name.lower().replace("_", " ") in haystack for name in names):
             return market.key
     return None
 
