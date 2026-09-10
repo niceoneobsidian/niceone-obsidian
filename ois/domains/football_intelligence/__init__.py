@@ -1,7 +1,7 @@
 """OIS Football Intelligence domain.
 
-Kernel-agnostic football state, deterministic baselines, ensemble prediction,
-calibration and abstention primitives. Platform registration remains owned by OIS.
+Kernel-agnostic football state, deterministic baselines, market-specific
+probability engines, ensemble prediction, calibration and abstention primitives.
 """
 
 from .ensemble import FootballEnsemble
@@ -18,12 +18,26 @@ from .feeds import (
     SportmonksProvider,
     TeamStatFeed,
 )
+from .market_models import (
+    CardMarketModel,
+    CornerMarketModel,
+    FootballMarketModelSuite,
+    GoalMarketModel,
+    LiveStateModel,
+    MarketPrediction,
+    MarketProbability,
+    PlayerGoalModel,
+    ResultMarketModel,
+    ShotMarketModel,
+)
 from .models import DixonColesModel, EloModel, PoissonModel
 from .schemas import FootballPrediction, MatchState, TeamSnapshot
 from .statsbomb import StatsBombObservation, StatsBombOpenDataProvider
 
 __all__ = [
     "APIFootballProvider",
+    "CardMarketModel",
+    "CornerMarketModel",
     "DixonColesModel",
     "EloModel",
     "FeedConfigurationError",
@@ -33,13 +47,21 @@ __all__ = [
     "FootballEnsemble",
     "FootballFeedProvider",
     "FootballFeedService",
+    "FootballMarketModelSuite",
     "FootballPrediction",
+    "GoalMarketModel",
+    "LiveStateModel",
     "MatchFeed",
     "MatchFeatureSnapshot",
     "MatchState",
+    "MarketPrediction",
+    "MarketProbability",
+    "PlayerGoalModel",
     "PlayerStatFeed",
     "PoissonModel",
     "ReconciledMatch",
+    "ResultMarketModel",
+    "ShotMarketModel",
     "SportmonksProvider",
     "StatsBombObservation",
     "StatsBombOpenDataProvider",
