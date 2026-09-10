@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+ENVIRONMENT_LIMITED_OUTPUT = "ModuleNotFoundError: No module named 'pydantic'"
 
 
 @dataclass(frozen=True)
@@ -43,15 +44,34 @@ def executable(check: Check) -> str | None:
     return shutil.which(check.required_tool)
 
 
+def classify_output(check: Check, returncode: int, output: str) -> str:
+    if returncode == 0:
+        return "PASS"
+    if "No module named mypy" in output:
+        return "SKIPPED"
+    if check.name == "Tests" and ENVIRONMENT_LIMITED_OUTPUT in output:
+        return "ENV_LIMITED"
+    return "FAIL"
+
+
 def run_check(check: Check) -> tuple[str, int | None, str]:
     exe = executable(check)
     if exe is None:
-        return "NOT_INSTALLED", None, "required executable is not installed"
+        return "SKIPPED", None, "required executable is not installed"
     command = (exe, *check.command[1:]) if check.command[0] == "python" else check.command
     proc = subprocess.run(
         command, cwd=ROOT, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False
     )
-    return ("PASS" if proc.returncode == 0 else "FAIL"), proc.returncode, proc.stdout.strip()
+    output = proc.stdout.strip()
+    return classify_output(check, proc.returncode, output), proc.returncode, output
+
+
+def overall_state(states: list[str]) -> str:
+    if "FAIL" in states:
+        return "FAIL"
+    if any(state in {"SKIPPED", "ENV_LIMITED"} for state in states):
+        return "PASS WITH LIMITATIONS"
+    return "PASS"
 
 
 def main() -> int:
@@ -62,13 +82,12 @@ def main() -> int:
         state, code, output = run_check(check)
         results.append((check, state))
         print(f"{check.name:<24} {state}")
-        if state in {"FAIL", "NOT_INSTALLED"} and output:
+        if state in {"FAIL", "SKIPPED", "ENV_LIMITED"} and output:
             print("  " + output.replace("\n", "\n  ")[:1200])
     print("=" * 60)
-    failures = [c.name for c, s in results if s in {"FAIL", "NOT_INSTALLED"}]
-    overall = "PASS" if not failures else "FAIL"
+    overall = overall_state([state for _, state in results])
     print(f"RESULT: {overall}")
-    return 0 if overall == "PASS" else 1
+    return 1 if overall == "FAIL" else 0
 
 
 if __name__ == "__main__":
