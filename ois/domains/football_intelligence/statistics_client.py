@@ -1,9 +1,4 @@
-"""Small provider clients for football statistics.
-
-Credentials are read from the environment by callers and never persisted in OIS
-state. The HTTP transport is injectable for deterministic tests and governed
-runtime execution.
-"""
+"""Small provider clients for football statistics."""
 
 from __future__ import annotations
 
@@ -13,19 +8,34 @@ from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 from typing import Any, Mapping
 
-from .statistics_sources import MatchFeed, MatchStatistics, PlayerMatchStatistics, parse_api_football_fixture, parse_api_football_players, parse_api_football_statistics
+from .statistics_sources import (
+    JsonTransport,
+    MatchFeed,
+    MatchStatistics,
+    PlayerMatchStatistics,
+    parse_api_football_fixture,
+    parse_api_football_players,
+    parse_api_football_statistics,
+    parse_sportmonks_fixture,
+)
 
 
 class StatisticsClientError(RuntimeError):
     """Raised when a provider request cannot be completed or parsed."""
 
 
-def urllib_json_transport(url: str, headers: Mapping[str, str], params: Mapping[str, str]) -> Mapping[str, Any]:
+def urllib_json_transport(
+    url: str,
+    headers: Mapping[str, str],
+    params: Mapping[str, str],
+) -> Mapping[str, Any]:
+    if not url.startswith("https://"):
+        raise StatisticsClientError("statistics transport only permits HTTPS URLs")
     query = urlencode(params)
     target = f"{url}?{query}" if query else url
     request = Request(target, headers=dict(headers), method="GET")
     try:
-        with urlopen(request, timeout=15) as response:  # noqa: S310 - explicit HTTPS allowlist below
+        with urlopen(request, timeout=15) as response:  # noqa: S310
             return json.loads(response.read().decode("utf-8"))
     except Exception as exc:  # pragma: no cover - network failures belong to integration tests
         raise StatisticsClientError(f"football provider request failed: {type(exc).__name__}") from exc
@@ -41,14 +51,9 @@ def _required_env(name: str) -> str:
 def api_football_fixture(
     fixture_id: str,
     *,
-    transport=urllib_json_transport,
+    transport: JsonTransport = urllib_json_transport,
 ) -> MatchFeed:
-    """Fetch one API-Football fixture.
-
-    API-Football documents `/fixtures?id=...` and embedded events, lineups,
-    statistics and players. The caller may separately request statistics and
-    player-performance endpoints when deeper data is required.
-    """
+    """Fetch one API-Football fixture."""
     raw = transport(
         "https://v3.football.api-sports.io/fixtures",
         {"x-apisports-key": _required_env("API_FOOTBALL_KEY")},
@@ -60,7 +65,7 @@ def api_football_fixture(
 def api_football_match_statistics(
     fixture_id: str,
     *,
-    transport=urllib_json_transport,
+    transport: JsonTransport = urllib_json_transport,
 ) -> tuple[MatchStatistics, ...]:
     raw = transport(
         "https://v3.football.api-sports.io/fixtures/statistics",
@@ -73,7 +78,7 @@ def api_football_match_statistics(
 def api_football_player_statistics(
     fixture_id: str,
     *,
-    transport=urllib_json_transport,
+    transport: JsonTransport = urllib_json_transport,
 ) -> tuple[PlayerMatchStatistics, ...]:
     raw = transport(
         "https://v3.football.api-sports.io/fixtures/players",
@@ -86,7 +91,7 @@ def api_football_player_statistics(
 def sportmonks_fixture(
     fixture_id: str,
     *,
-    transport=urllib_json_transport,
+    transport: JsonTransport = urllib_json_transport,
 ) -> MatchFeed:
     """Fetch a Sportmonks fixture with lineup/player detail context."""
     raw = transport(
@@ -97,10 +102,4 @@ def sportmonks_fixture(
             "include": "stats;lineups.details",
         },
     )
-    return _sportmonks_fixture(raw)
-
-
-def _sportmonks_fixture(raw: Mapping[str, Any]) -> MatchFeed:
-    from .statistics_sources import parse_sportmonks_fixture
-
     return parse_sportmonks_fixture(raw)
