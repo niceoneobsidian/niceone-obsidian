@@ -4,11 +4,21 @@
 
 Implemented on branch `feat/evidence-runtime-v1-football-replay`.
 
-This is the first vertical implementation of the evidence-driven runtime. It is deliberately small and deterministic; it does not yet claim production live-data readiness.
+The vertical slice is now connected to the public StatsBomb Open Data repository through a provider adapter. The implementation remains replay-only and deterministic; it does not claim production live-data readiness.
 
 ## Runtime boundary
 
 ```text
+StatsBomb Open Data
+        |
+        | immutable historical source
+        v
+Football Provider Adapter
+  - normalize match
+  - derive pre-match features only
+  - retain source lineage
+        |
+        v
 Football Intelligence
         |
         | proposal: football.replay.predict
@@ -45,8 +55,12 @@ The implementation follows the repository's existing separation between platform
 - `SingleUseAuthorization`: short-lived, digest-bound execution authority.
 - `ExecutionReceipt`: records the governed execution and output digest.
 - `OutcomeReceipt`: records deterministic outcome verification.
+- `StatsBombOpenDataProvider`: public JSON adapter with injectable transport for deterministic tests.
+- `StatsBombReplayInput`: normalized match, outcome, source identity and source lineage.
 
-## Football replay path
+## Football replay paths
+
+### Fixture path
 
 `FootballReplay.run()` executes:
 
@@ -62,6 +76,20 @@ The implementation follows the repository's existing separation between platform
 10. run the existing leakage-safe football evaluation;
 11. append measurement evidence to the ledger.
 
+### Real-data path
+
+`FootballReplay.run_statsbomb()` executes the same runtime path, but first:
+
+1. retrieves the selected competition/season match JSON from StatsBomb Open Data;
+2. identifies the target match;
+3. filters historical matches strictly before kickoff;
+4. derives recent form, goals, attack/defence and Elo-like pre-match features;
+5. excludes post-match records from feature construction;
+6. preserves the target match plus pre-match history as source evidence;
+7. passes the normalized `MatchState` through the exact same admissibility and authorization boundary.
+
+This prevents a replay from using the final result to construct the prediction state.
+
 ## Security invariants covered by tests
 
 - External observations cannot expand the authorization root.
@@ -70,7 +98,15 @@ The implementation follows the repository's existing separation between platform
 - Authorization cannot be replayed.
 - Ledger tampering breaks verification.
 - Football replay produces execution, outcome and measurement evidence.
+- StatsBomb normalization uses only pre-kickoff records for prediction features.
+- Source lineage explicitly records the pre-match feature cutoff and post-match exclusion.
 
-## Known boundary
+## Data source
 
-The current football replay test uses a deterministic fixture rather than a live provider. The next integration phase should replace or supplement the fixture adapter with immutable provider payloads (for example StatsBomb Open Data) and retain the same evidence and authorization boundary. StatsBomb publishes selected historical match events, lineups and competition data as open JSON research data. See the public repository: https://github.com/hudl/open-data
+StatsBomb publishes selected historical football competitions as JSON, including competitions, matches, events, lineups and selected 360 data. The open-data repository requires attribution when publishing research or analysis based on the data. OIS should preserve the source identity and URI in evidence provenance.
+
+Public source: https://github.com/hudl/open-data
+
+## Remaining boundary
+
+The real-data adapter is now implemented, but production football readiness still requires a broader historical replay benchmark, stronger team-state feature engineering, provider-data validation, dataset version pinning, caching/object storage, and multi-season evaluation before any live or promotion-grade claim is made.
