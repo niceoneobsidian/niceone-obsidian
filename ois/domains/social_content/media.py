@@ -7,6 +7,7 @@ import http.server
 import socketserver
 import threading
 from dataclasses import dataclass
+from functools import partial
 from pathlib import Path
 from urllib.parse import quote
 
@@ -33,20 +34,13 @@ class LocalMediaHost:
         if self._httpd is not None:
             return
 
-        root = self.root
-
-        class Handler(http.server.SimpleHTTPRequestHandler):
-            def __init__(self, *args, **kwargs):
-                super().__init__(*args, directory=str(root), **kwargs)
-
-            def log_message(self, format: str, *args: object) -> None:
-                return
+        handler = partial(http.server.SimpleHTTPRequestHandler, directory=str(self.root))
 
         class ReusableTCPServer(socketserver.TCPServer):
             allow_reuse_address = True
 
         try:
-            self._httpd = ReusableTCPServer(("127.0.0.1", self.port), Handler)
+            self._httpd = ReusableTCPServer(("127.0.0.1", self.port), handler)
         except OSError as exc:
             raise MediaHostingError(f"Unable to bind local media server: {exc}") from exc
         self._thread = threading.Thread(target=self._httpd.serve_forever, daemon=True)
