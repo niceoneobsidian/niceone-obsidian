@@ -1,0 +1,55 @@
+"""Declarative registry manifest for Football Market Intelligence."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Any
+
+
+@dataclass(frozen=True)
+class DomainCapability:
+    capability_id: str
+    description: str
+    input_contract: str
+    output_contract: str
+    side_effect: bool = False
+    requires_approval: bool = False
+
+
+@dataclass(frozen=True)
+class AgentSpec:
+    agent_id: str
+    role: str
+    capabilities: tuple[str, ...]
+
+
+CAPABILITIES: tuple[DomainCapability, ...] = (
+    DomainCapability("football.market_translate", "Translate football prediction into an atomic market event", "FootballPrediction", "MarketEvent"),
+    DomainCapability("football.market_settle", "Deterministically settle a market event from final score", "MarketEvent+FinalScore", "MarketOutcome"),
+    DomainCapability("football.market_evaluate", "Evaluate a settled market prediction", "MarketEvent+MarketOutcome", "MarketEvaluation"),
+    DomainCapability("football.market_attribute", "Attribute market performance to prediction versions", "MarketEvaluationSet", "AttributionReport"),
+    DomainCapability("football.market_record", "Record market events and outcomes through governed persistence", "MarketRecord", "MarketRecordReceipt", side_effect=True),
+    DomainCapability("football.market_backtest", "Run leakage-safe market backtests", "MarketBacktestSpec", "MarketBacktestReport"),
+)
+
+AGENTS: tuple[AgentSpec, ...] = (
+    AgentSpec("football.market_agent", "Market taxonomy and translation", ("football.market_translate",)),
+    AgentSpec("football.market_settlement_agent", "Deterministic market settlement", ("football.market_settle",)),
+    AgentSpec("football.market_evaluation_agent", "Market evaluation and attribution", ("football.market_evaluate", "football.market_attribute")),
+    AgentSpec("football.market_learning_agent", "Market backtesting and learning orchestration", ("football.market_backtest",)),
+)
+
+
+def manifest() -> dict[str, Any]:
+    return {
+        "domain": "football_market_intelligence",
+        "capabilities": [c.__dict__.copy() for c in CAPABILITIES],
+        "agents": [a.__dict__.copy() for a in AGENTS],
+        "workflows": [
+            {"workflow_id": "football.market_prediction", "version": 1},
+            {"workflow_id": "football.market_evaluation", "version": 1},
+            {"workflow_id": "football.market_backtest", "version": 1},
+        ],
+        "depends_on": "football_intelligence",
+        "persistence_owner": "ois_platform",
+    }
