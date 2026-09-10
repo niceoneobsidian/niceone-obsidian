@@ -11,7 +11,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import StrEnum
 from math import exp, factorial
-from statistics import mean
 from typing import Iterable, Sequence
 
 
@@ -251,7 +250,7 @@ class IsotonicCalibrator:
             if p <= hi:
                 value = successes / count
                 return CalibratedProbability(p, _clamp(value), "isotonic", self.version)
-        lo, hi, successes, count = self._blocks[-1]
+        _, _, successes, count = self._blocks[-1]
         return CalibratedProbability(p, _clamp(successes / count), "isotonic", self.version)
 
 
