@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Iterable, Sequence
+from typing import Sequence
 
 from ois.domains.football_intelligence.feed_service import FootballFeedService, MatchFeatureSnapshot
 
