@@ -49,15 +49,19 @@ def generate_value_signals(
     if not 0 < kelly_cap <= 1:
         raise ValueError("kelly_cap must be in (0, 1]")
 
-    fair = devig(prices)
-    best = best_prices(prices)
+    eligible_prices = [
+        price for price in prices
+        if price.observed_at is None or price.observed_at <= prediction_timestamp
+    ]
+    if not eligible_prices:
+        return []
+    fair = devig(eligible_prices)
+    best = best_prices(eligible_prices)
     signals: list[MarketSignal] = []
     for selection, model_probability in model_probabilities.items():
         price = best.get(selection)
         fair_probability = fair.probabilities.get(selection)
         if price is None or fair_probability is None:
-            continue
-        if price.observed_at is not None and price.observed_at > prediction_timestamp:
             continue
         probability_edge = edge(model_probability, fair_probability)
         ev = expected_value(model_probability, price.odds)
