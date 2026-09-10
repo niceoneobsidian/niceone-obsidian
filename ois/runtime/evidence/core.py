@@ -1,9 +1,4 @@
-"""Deterministic evidence primitives for the OIS Evidence Runtime v1.
-
-The runtime treats observations as data, never as authority. Authority is minted
-only after an explicit admissibility decision and is bound to the exact action,
-evidence set and policy snapshot.
-"""
+"""Deterministic evidence primitives for the OIS Evidence Runtime v1."""
 
 from __future__ import annotations
 
@@ -22,6 +17,8 @@ def utc_now() -> datetime:
 
 
 def _canonical(value: Any) -> bytes:
+    if hasattr(value, "model_dump"):
+        value = value.model_dump(mode="json")
     return json.dumps(
         value, sort_keys=True, separators=(",", ":"), ensure_ascii=False
     ).encode("utf-8")
@@ -192,9 +189,9 @@ class SingleUseAuthorization:
 
     def consume(self, now: datetime | None = None) -> SingleUseAuthorization:
         if self.consumed:
-            raise ValueError("authorization_replay")
+            raise PermissionError("authorization_replay")
         if (now or utc_now()) >= self.expires_at:
-            raise ValueError("authorization_expired")
+            raise PermissionError("authorization_expired")
         return SingleUseAuthorization(
             self.authorization_id,
             self.run_id,
