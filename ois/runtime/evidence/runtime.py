@@ -76,7 +76,11 @@ class EvidenceRuntimeV1:
         if action_digest not in allowed_action_digests:
             reasons.append("authorization_root_mismatch")
 
-        evidence = [self._evidence[evidence_id] for evidence_id in evidence_ids if evidence_id in self._evidence]
+        evidence = [
+            self._evidence[evidence_id]
+            for evidence_id in evidence_ids
+            if evidence_id in self._evidence
+        ]
         if max_age_seconds is not None:
             now = datetime.now(UTC)
             if any((now - item.observed_at).total_seconds() > max_age_seconds for item in evidence):
@@ -116,12 +120,21 @@ class EvidenceRuntimeV1:
             raise PermissionError("decision_action_mismatch")
         if canonical_digest(sorted(evidence_ids)) != decision.evidence_digest:
             raise PermissionError("decision_evidence_mismatch")
-        authorization = authorization_for(run_id, action, evidence_ids, policy, ttl_seconds=ttl_seconds)
+        authorization = authorization_for(
+            run_id,
+            action,
+            evidence_ids,
+            policy,
+            ttl_seconds=ttl_seconds,
+        )
         self._authorizations[authorization.authorization_id] = authorization
         self.ledger.append(
             run_id,
             "ACTION_AUTHORIZED",
-            {"authorization_id": authorization.authorization_id, "action_digest": decision.action_digest},
+            {
+                "authorization_id": authorization.authorization_id,
+                "action_digest": decision.action_digest,
+            },
         )
         return authorization
 
@@ -149,7 +162,11 @@ class EvidenceRuntimeV1:
         try:
             output = executor(action)
         except Exception as exc:
-            self.ledger.append(run_id, "ACTION_EXECUTION_FAILED", {"error_type": type(exc).__name__})
+            self.ledger.append(
+                run_id,
+                "ACTION_EXECUTION_FAILED",
+                {"error_type": type(exc).__name__},
+            )
             raise
         completed = datetime.now(UTC)
         receipt = ExecutionReceipt(
