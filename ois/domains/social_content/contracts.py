@@ -9,8 +9,6 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class Platform(StrEnum):
-    """Supported platform targets; connectors remain independently gated."""
-
     TIKTOK = "tiktok"
     INSTAGRAM = "instagram"
     X = "x"
@@ -19,8 +17,6 @@ class Platform(StrEnum):
 
 
 class ContentObjective(StrEnum):
-    """Behavioral objective for optimization and measurement."""
-
     AWARENESS = "awareness"
     EDUCATION = "education"
     ENGAGEMENT = "engagement"
@@ -32,7 +28,6 @@ class ResearchEvidence(BaseModel):
     """Claim-level provenance record."""
 
     model_config = ConfigDict(extra="forbid")
-
     source_id: str
     title: str = ""
     url: str = ""
@@ -42,11 +37,19 @@ class ResearchEvidence(BaseModel):
     verification: str = "unverified"
 
 
-class ContentObjectiveRequest(BaseModel):
-    """Normalized request entering the social content workflow."""
+class MediaAsset(BaseModel):
+    """Generated or staged media with provider provenance."""
 
     model_config = ConfigDict(extra="forbid")
+    provider: str
+    model: str = ""
+    url: str
+    request_id: str | None = None
+    status: str = "generated"
 
+
+class ContentObjectiveRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     topic: str = Field(min_length=1)
     platforms: list[Platform] = Field(min_length=1)
     audience: str = "general"
@@ -59,10 +62,7 @@ class ContentObjectiveRequest(BaseModel):
 
 
 class ContentVariant(BaseModel):
-    """Platform-native generated variant plus structured optimization metadata."""
-
     model_config = ConfigDict(extra="forbid")
-
     platform: Platform
     hook: str
     body: str
@@ -70,16 +70,16 @@ class ContentVariant(BaseModel):
     keywords: list[str] = Field(default_factory=list)
     hashtags: list[str] = Field(default_factory=list)
     visual_prompts: list[str] = Field(default_factory=list)
+    media: list[MediaAsset] = Field(default_factory=list)
     evidence: list[ResearchEvidence] = Field(default_factory=list)
     quality_score: float = Field(default=0, ge=0, le=1)
     status: str = "draft"
 
 
 class ContentPackage(BaseModel):
-    """Complete output that can be validated before any publishing side effect."""
+    """Complete output that can be validated before external side effects."""
 
     model_config = ConfigDict(extra="forbid")
-
     request: ContentObjectiveRequest
     research: list[ResearchEvidence] = Field(default_factory=list)
     variants: list[ContentVariant] = Field(default_factory=list)
