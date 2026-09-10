@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from dataclasses import asdict
 from typing import Any
 
 from ois.kernel.contracts import CapabilityContract, InvocationRequest, InvocationResult
@@ -13,8 +14,6 @@ from .platforms import PlatformRegistry
 
 
 class SocialIngestCapability:
-    """Ingest normalized platform payloads into the canonical event store."""
-
     contract = CapabilityContract(
         capability_id="social.ingest", version="1.0.0",
         description="Normalize social source payloads into canonical SocialEvent records.",
@@ -39,13 +38,11 @@ class SocialIngestCapability:
         return InvocationResult(
             invocation_id=request.invocation_id, capability_id=self.contract.capability_id,
             status=InvocationStatus.SUCCEEDED,
-            output={"events": [event.__dict__ for event in events], "persisted": persisted},
+            output={"events": [asdict(event) for event in events], "persisted": persisted},
         )
 
 
 class SocialSignalCapability:
-    """Derive deterministic, evidence-linked signals and trends from stored events."""
-
     contract = CapabilityContract(
         capability_id="social.signal_analysis", version="1.0.0",
         description="Analyze canonical social events into ranked signals and trends.",
@@ -67,15 +64,15 @@ class SocialSignalCapability:
             invocation_id=request.invocation_id, capability_id=self.contract.capability_id,
             status=InvocationStatus.SUCCEEDED,
             output={
-                "signals": [signal.__dict__ for signal in signals],
-                "trends": [trend.__dict__ for trend in trends],
+                "signals": [asdict(signal) for signal in signals],
+                "trends": [asdict(trend) for trend in trends],
                 "event_count": len(events),
             },
         )
 
 
 class SocialPublishCapability:
-    """Governed publish boundary; real adapters must be explicitly registered."""
+    """High-risk publishing boundary; policy and authorization remain upstream."""
 
     contract = CapabilityContract(
         capability_id="social.publish", version="1.0.0",
@@ -103,7 +100,6 @@ class SocialPublishCapability:
 
 
 def register_social_capabilities(registry: Any, platforms: PlatformRegistry, store: InMemorySocialEventStore | None = None) -> InMemorySocialEventStore:
-    """Register social capabilities in the supplied authoritative OIS registry."""
     event_store = store or InMemorySocialEventStore()
     registry.register(SocialIngestCapability(platforms, event_store))
     registry.register(SocialSignalCapability(event_store))
