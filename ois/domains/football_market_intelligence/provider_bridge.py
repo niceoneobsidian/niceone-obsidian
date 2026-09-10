@@ -1,7 +1,7 @@
 """Bridge live/historical football feed observations into the market feature store."""
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Mapping
 
 from ois.domains.football_intelligence.feed_service import MatchFeatureSnapshot
@@ -40,7 +40,7 @@ def ingest_provider_snapshot(
         for evidence in row.evidence
     )
     feature_snapshot = FeatureSnapshot(
-        match_id=snapshot.match.match.provider_match_id,
+        match_id=snapshot.match.provider_match_id,
         as_of=observed_at,
         features=features,
         evidence_ids=evidence_ids,
@@ -54,12 +54,12 @@ def _features(snapshot: MatchFeatureSnapshot) -> MatchFeatures:
     away = snapshot.match.match.away_team_id
     home_stats = next((row for row in snapshot.team_statistics if row.team_id == home), None)
     away_stats = next((row for row in snapshot.team_statistics if row.team_id == away), None)
-    home_shots = _number(home_stats, _STAT_KEYS["shots"]) if home_stats else 0.0
-    away_shots = _number(away_stats, _STAT_KEYS["shots"]) if away_stats else 0.0
-    home_corners = _number(home_stats, _STAT_KEYS["corners"]) if home_stats else 0.0
-    away_corners = _number(away_stats, _STAT_KEYS["corners"]) if away_stats else 0.0
-    home_cards = _number(home_stats, _STAT_KEYS["cards"]) if home_stats else 0.0
-    away_cards = _number(away_stats, _STAT_KEYS["cards"]) if away_stats else 0.0
+    home_shots = _number(home_stats, _STAT_KEYS["shots"])
+    away_shots = _number(away_stats, _STAT_KEYS["shots"])
+    home_corners = _number(home_stats, _STAT_KEYS["corners"])
+    away_corners = _number(away_stats, _STAT_KEYS["corners"])
+    home_cards = _number(home_stats, _STAT_KEYS["cards"])
+    away_cards = _number(away_stats, _STAT_KEYS["cards"])
     player_shots = mean_player_stat(snapshot.player_statistics, "shots")
     player_sot = mean_player_stat(snapshot.player_statistics, "shots_on_target")
     player_goal_rate = mean_player_stat(snapshot.player_statistics, "goals")
@@ -73,10 +73,10 @@ def _features(snapshot: MatchFeatureSnapshot) -> MatchFeatures:
         player_shot_rate=max(0.01, player_shots),
         player_sot_rate=max(0.01, player_sot),
         player_goal_rate=max(0.0, player_goal_rate),
-        elapsed_minute=snapshot.match.match.minute or 0,
-        remaining_minutes=max(0, 90 - (snapshot.match.match.minute or 0)),
-        home_goals=snapshot.match.match.home_score or 0,
-        away_goals=snapshot.match.match.away_score or 0,
+        elapsed_minute=snapshot.match.minute or 0,
+        remaining_minutes=max(0, 90 - (snapshot.match.minute or 0)),
+        home_goals=snapshot.match.home_score or 0,
+        away_goals=snapshot.match.away_score or 0,
     )
 
 
