@@ -117,7 +117,7 @@ def test_sportmonks_fixture_includes_are_used_for_statistics() -> None:
                         {"id": 2, "name": "Napoli", "meta": {"location": "away"}},
                     ],
                     "statistics": [
-                        {"participant_id": 1, "type_id": 34, "data": {"value": 61}},
+                        {"participant_id": 1, "type_id": 34, "data": 61},
                     ],
                     "lineups": [
                         {
@@ -127,7 +127,7 @@ def test_sportmonks_fixture_includes_are_used_for_statistics() -> None:
                             "minutes": 81,
                             "position": "F",
                             "rating": "7.4",
-                            "details": [{"type_id": 52, "data": {"value": 3}}],
+                            "details": [{"type_id": 52, "data": 3}],
                         }
                     ],
                 }
@@ -140,9 +140,9 @@ def test_sportmonks_fixture_includes_are_used_for_statistics() -> None:
     players = provider.player_statistics("10")
 
     assert teams[0].team_id == "1"
-    assert teams[0].statistics["34"] == {"value": 61}
+    assert teams[0].statistics["34"] == 61
     assert players[0].player_name == "Example Player"
-    assert players[0].statistics["52"] == {"value": 3}
+    assert players[0].statistics["52"] == 3
     assert all("include" in params for _, params in transport.calls)
 
 
