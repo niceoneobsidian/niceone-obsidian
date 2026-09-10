@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import hashlib
 import http.server
-import os
 import socketserver
 import threading
 from dataclasses import dataclass
@@ -18,12 +17,7 @@ class MediaHostingError(RuntimeError):
 
 @dataclass
 class LocalMediaHost:
-    """Local asset server with an optional externally managed HTTPS base URL.
-
-    OIS does not create a public tunnel implicitly. An operator or approved
-    infrastructure adapter supplies ``public_base_url`` after authorization.
-    This prevents arbitrary local files from becoming internet-accessible.
-    """
+    """Local asset server with an optional externally managed HTTPS base URL."""
 
     media_folder: str = "./shared_media"
     port: int = 8585
@@ -71,8 +65,7 @@ class LocalMediaHost:
             extension = f".{extension}"
         digest = hashlib.sha256(data).hexdigest()[:20]
         filename = f"asset_{digest}{extension}"
-        path = self.root / filename
-        path.write_bytes(data)
+        (self.root / filename).write_bytes(data)
         return filename
 
     def public_url(self, filename: str) -> str:
