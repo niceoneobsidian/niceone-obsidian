@@ -20,12 +20,7 @@ from .core import (
 
 
 class EvidenceRuntimeV1:
-    """Small, deterministic runtime boundary for governed vertical slices.
-
-    Models/agents can propose actions. This class alone decides whether an action
-    may cross the execution boundary, and every authorization is single-use and
-    digest-bound to the exact action, evidence set and policy snapshot.
-    """
+    """Deterministic runtime boundary for governed vertical slices."""
 
     def __init__(self, ledger: EvidenceLedgerV1 | None = None) -> None:
         self.ledger = ledger or EvidenceLedgerV1()
@@ -75,7 +70,9 @@ class EvidenceRuntimeV1:
 
         action_digest = canonical_digest(action)
         root_actions = authorization_root.get("allowed_actions", ())
-        allowed_action_digests = {canonical_digest(item) for item in root_actions if isinstance(item, Mapping)}
+        allowed_action_digests = {
+            canonical_digest(item) for item in root_actions if isinstance(item, Mapping)
+        }
         if action_digest not in allowed_action_digests:
             reasons.append("authorization_root_mismatch")
 
@@ -108,19 +105,18 @@ class EvidenceRuntimeV1:
         run_id: UUID,
         *,
         decision: AdmissibilityDecision,
+        action: Mapping[str, Any],
+        evidence_ids: tuple[str, ...],
         policy: Mapping[str, Any],
         ttl_seconds: int = 60,
     ) -> SingleUseAuthorization:
         if not decision.allowed:
             raise PermissionError("action_not_admissible")
-        authorization = authorization_for(
-            run_id,
-            {"action_digest": decision.action_digest},
-            (decision.evidence_digest,),
-            policy,
-            ttl_seconds=ttl_seconds,
-        )
-        # Bind the authorization to the decision digest exactly; no re-interpretation later.
+        if canonical_digest(action) != decision.action_digest:
+            raise PermissionError("decision_action_mismatch")
+        if canonical_digest(sorted(evidence_ids)) != decision.evidence_digest:
+            raise PermissionError("decision_evidence_mismatch")
+        authorization = authorization_for(run_id, action, evidence_ids, policy, ttl_seconds=ttl_seconds)
         self._authorizations[authorization.authorization_id] = authorization
         self.ledger.append(
             run_id,
@@ -144,12 +140,10 @@ class EvidenceRuntimeV1:
             raise PermissionError("unknown_authorization")
         if canonical_digest(action) != current.action_digest:
             raise PermissionError("action_digest_mismatch")
-        if canonical_digest(sorted(evidence_ids)) != canonical_digest([current.evidence_digest]):
-            # The v1 contract deliberately rejects re-binding an authorization to another evidence set.
+        if canonical_digest(sorted(evidence_ids)) != current.evidence_digest:
             raise PermissionError("evidence_digest_mismatch")
         consumed = current.consume()
         self._authorizations[consumed.authorization_id] = consumed
-
         started = datetime.now(UTC)
         self.ledger.append(run_id, "ACTION_EXECUTION_STARTED", {"tool": tool})
         try:
@@ -169,7 +163,11 @@ class EvidenceRuntimeV1:
             completed_at=completed,
             evidence_ids=evidence_ids,
         )
-        self.ledger.append(run_id, "ACTION_EXECUTED", {"execution_id": receipt.execution_id, "output_digest": receipt.output_digest})
+        self.ledger.append(
+            run_id,
+            "ACTION_EXECUTED",
+            {"execution_id": receipt.execution_id, "output_digest": receipt.output_digest},
+        )
         return receipt, output
 
     def verify_outcome(
