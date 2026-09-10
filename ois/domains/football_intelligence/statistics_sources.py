@@ -1,19 +1,12 @@
-"""Provider-neutral football match and player statistics ingestion.
-
-The adapters normalize API-Football and Sportmonks responses into deterministic
-OIS evidence. Network access is injected so credentials, retries, caching and
-persistence remain platform-owned concerns.
-"""
+"""Provider-neutral football match and player statistics ingestion."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import UTC, datetime
 from hashlib import sha256
 from typing import Any, Callable, Mapping
 
 from pydantic import BaseModel, ConfigDict, Field
-
 
 JsonTransport = Callable[[str, Mapping[str, str], Mapping[str, str]], Mapping[str, Any]]
 
@@ -102,6 +95,13 @@ def _num(value: Any) -> float | None:
         return None
 
 
+def _lookup(values: Mapping[str, float | None], *names: str) -> float | None:
+    for name in names:
+        if name in values:
+            return values[name]
+    return None
+
+
 def _api_football_stats(raw: Mapping[str, Any], source_id: str) -> tuple[MatchStatistics, ...]:
     response = raw.get("response", [])
     result: list[MatchStatistics] = []
@@ -115,18 +115,18 @@ def _api_football_stats(raw: Mapping[str, Any], source_id: str) -> tuple[MatchSt
             MatchStatistics(
                 match_id=str(raw.get("parameters", {}).get("fixture", "")),
                 team_id=str(team.get("id", "")),
-                shots_total=values.get("total_shots"),
-                shots_on_target=values.get("shots_on_goal"),
-                shots_off_target=values.get("shots_off_goal"),
-                possession_pct=values.get("ball_possession"),
-                corners=values.get("corner_kicks"),
-                offsides=values.get("offsides"),
-                fouls=values.get("fouls"),
-                yellow_cards=values.get("yellow_cards"),
-                red_cards=values.get("red_cards"),
-                saves=values.get("goalkeeper_saves"),
-                passes=values.get("total_passes"),
-                accurate_passes=values.get("passes_accurate"),
+                shots_total=_lookup(values, "total_shots"),
+                shots_on_target=_lookup(values, "shots_on_goal", "shots_on_target"),
+                shots_off_target=_lookup(values, "shots_off_goal", "shots_off_target"),
+                possession_pct=_lookup(values, "ball_possession"),
+                corners=_lookup(values, "corner_kicks"),
+                offsides=_lookup(values, "offsides"),
+                fouls=_lookup(values, "fouls"),
+                yellow_cards=_lookup(values, "yellow_cards"),
+                red_cards=_lookup(values, "red_cards"),
+                saves=_lookup(values, "goalkeeper_saves"),
+                passes=_lookup(values, "total_passes"),
+                accurate_passes=_lookup(values, "passes_accurate"),
                 observed_at=datetime.now(UTC),
                 source_id=source_id,
                 payload_hash=_hash(block),
@@ -183,7 +183,7 @@ def _api_football_players(raw: Mapping[str, Any], source_id: str) -> tuple[Playe
 
 
 def parse_api_football_fixture(raw: Mapping[str, Any], source_id: str = "api-football") -> MatchFeed:
-    """Normalize a `/fixtures?id=...` response with embedded match data."""
+    """Normalize a `/fixtures?id=...` response."""
     response = raw.get("response", [])
     fixture = response[0] if isinstance(response, list) and response else {}
     fixture_info = fixture.get("fixture", {})
@@ -202,25 +202,118 @@ def parse_api_football_fixture(raw: Mapping[str, Any], source_id: str = "api-foo
     )
 
 
-def parse_api_football_statistics(raw: Mapping[str, Any], source_id: str = "api-football") -> tuple[MatchStatistics, ...]:
+def parse_api_football_statistics(
+    raw: Mapping[str, Any], source_id: str = "api-football"
+) -> tuple[MatchStatistics, ...]:
     return _api_football_stats(raw, source_id)
 
 
-def parse_api_football_players(raw: Mapping[str, Any], source_id: str = "api-football") -> tuple[PlayerMatchStatistics, ...]:
+def parse_api_football_players(
+    raw: Mapping[str, Any], source_id: str = "api-football"
+) -> tuple[PlayerMatchStatistics, ...]:
     return _api_football_players(raw, source_id)
 
 
+def _sportmonks_type_values(items: list[Mapping[str, Any]]) -> dict[str, float | None]:
+    values: dict[str, float | None] = {}
+    for item in items:
+        type_data = item.get("type") or {}
+        code = str(type_data.get("code") or type_data.get("developer_name") or "").lower()
+        values[code] = _num((item.get("data") or {}).get("value"))
+    return values
+
+
+def _sportmonks_team_stats(
+    data: Mapping[str, Any], match_id: str, source_id: str
+) -> tuple[MatchStatistics, ...]:
+    result: list[MatchStatistics] = []
+    for block in data.get("statistics", []) or []:
+        team_id = str(block.get("participant_id", ""))
+        values = _sportmonks_type_values(block.get("statistics", block.get("data", [])) or [])
+        result.append(
+            MatchStatistics(
+                match_id=match_id,
+                team_id=team_id,
+                shots_total=_lookup(values, "shots_total", "SHOTS_TOTAL".lower()),
+                shots_on_target=_lookup(values, "shots_on_target", "SHOTS_ON_TARGET".lower()),
+                corners=_lookup(values, "corners", "CORNER_KICKS".lower()),
+                offsides=_lookup(values, "offsides"),
+                fouls=_lookup(values, "fouls"),
+                yellow_cards=_lookup(values, "yellowcards", "yellow_cards"),
+                red_cards=_lookup(values, "redcards", "red_cards"),
+                passes=_lookup(values, "passes"),
+                possession_pct=_lookup(values, "ball_possession", "possession"),
+                xg=_lookup(values, "expected_goals", "xg"),
+                observed_at=datetime.now(UTC),
+                source_id=source_id,
+                payload_hash=_hash(block),
+            )
+        )
+    return tuple(result)
+
+
+def _sportmonks_player_stats(
+    data: Mapping[str, Any], match_id: str, source_id: str
+) -> tuple[PlayerMatchStatistics, ...]:
+    result: list[PlayerMatchStatistics] = []
+    for lineup in data.get("lineups", []) or []:
+        values = _sportmonks_type_values(lineup.get("details", []) or [])
+        result.append(
+            PlayerMatchStatistics(
+                match_id=match_id,
+                player_id=str(lineup.get("player_id", "")),
+                player_name=str(lineup.get("player_name", "")),
+                team_id=str(lineup.get("team_id", "")),
+                position=str(lineup.get("position_id", "")) or None,
+                minutes=_lookup(values, "minutes_played", "minutes"),
+                rating=_lookup(values, "rating"),
+                shots=_lookup(values, "shots_total"),
+                shots_on_target=_lookup(values, "shots_on_target"),
+                goals=_lookup(values, "goals"),
+                assists=_lookup(values, "assists"),
+                key_passes=_lookup(values, "key_passes"),
+                passes=_lookup(values, "passes"),
+                tackles=_lookup(values, "tackles"),
+                interceptions=_lookup(values, "interceptions"),
+                duels_won=_lookup(values, "duels_won"),
+                dribbles_successful=_lookup(values, "dribbles_successful"),
+                fouls_committed=_lookup(values, "fouls"),
+                yellow_cards=_lookup(values, "yellowcards", "yellow_cards"),
+                red_cards=_lookup(values, "redcards", "red_cards"),
+                observed_at=datetime.now(UTC),
+                source_id=source_id,
+                payload_hash=_hash(lineup),
+            )
+        )
+    return tuple(result)
+
+
 def parse_sportmonks_fixture(raw: Mapping[str, Any], source_id: str = "sportmonks") -> MatchFeed:
-    """Normalize a Sportmonks fixture with `stats` and `lineups.details` includes."""
+    """Normalize a fixture with Sportmonks `stats;lineups.details` includes."""
     data = raw.get("data", raw)
     participants = data.get("participants", [])
     home = next((p for p in participants if p.get("meta", {}).get("location") == "home"), {})
     away = next((p for p in participants if p.get("meta", {}).get("location") == "away"), {})
     scores = data.get("scores", [])
-    home_score = next((s.get("score", {}).get("goals") for s in scores if s.get("description") == "CURRENT" and s.get("participant_id") == home.get("id")), None)
-    away_score = next((s.get("score", {}).get("goals") for s in scores if s.get("description") == "CURRENT" and s.get("participant_id") == away.get("id")), None)
+    home_score = next(
+        (
+            s.get("score", {}).get("goals")
+            for s in scores
+            if s.get("description") == "CURRENT" and s.get("participant_id") == home.get("id")
+        ),
+        None,
+    )
+    away_score = next(
+        (
+            s.get("score", {}).get("goals")
+            for s in scores
+            if s.get("description") == "CURRENT" and s.get("participant_id") == away.get("id")
+        ),
+        None,
+    )
+    match_id = str(data.get("id", ""))
     return MatchFeed(
-        match_id=str(data.get("id", "")),
+        match_id=match_id,
         home_team_id=str(home.get("id", "")),
         away_team_id=str(away.get("id", "")),
         kickoff_at=_parse_dt(data.get("starting_at")),
@@ -229,6 +322,8 @@ def parse_sportmonks_fixture(raw: Mapping[str, Any], source_id: str = "sportmonk
         away_score=away_score,
         source_id=source_id,
         payload_hash=_hash(data),
+        team_statistics=_sportmonks_team_stats(data, match_id, source_id),
+        player_statistics=_sportmonks_player_stats(data, match_id, source_id),
     )
 
 
