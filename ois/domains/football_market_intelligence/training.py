@@ -12,7 +12,7 @@ from math import exp, log
 from statistics import mean
 from typing import Iterable, Sequence
 
-from .models import MatchFeatures, MarketFamily, _clamp, fair_odds, poisson_cdf, score_matrix
+from .models import MatchFeatures, MarketFamily, _clamp, poisson_cdf, score_matrix
 from .pipeline import FeatureSnapshot
 
 
@@ -147,13 +147,11 @@ def fit_seven_models(rows: Sequence[TrainingRow]) -> FittedFootballModels:
         raise ValueError("at least one training row is required")
     ordered = sorted(rows, key=lambda row: row.as_of_rank)
 
-    # Goal: independent Poisson MLEs on historical goal counts.
     goal = FittedGoalModel(
         home_rate=max(0.01, mean(row.home_goals for row in ordered)),
         away_rate=max(0.01, mean(row.away_goals for row in ordered)),
     )
 
-    # Result: independent categorical MLE, with Laplace smoothing.
     counts = {"home": 1.0, "draw": 1.0, "away": 1.0}
     for row in ordered:
         key = "home" if row.home_goals > row.away_goals else "draw" if row.home_goals == row.away_goals else "away"
@@ -170,13 +168,13 @@ def fit_seven_models(rows: Sequence[TrainingRow]) -> FittedFootballModels:
     card = fitted_count((row.cards for row in ordered), MarketFamily.CARDS, "football-cards-fitted-v1")
     shot_values = [float(row.player_shots) for row in ordered if row.player_shots is not None]
     sot_values = [float(row.player_sot) for row in ordered if row.player_sot is not None]
-    shot = FittedShotModel(max(0.01, mean(shot_values)), max(0.01, mean(sot_values))) if shot_values and sot_values else (_raise_missing("shot"))
+    shot = FittedShotModel(max(0.01, mean(shot_values)), max(0.01, mean(sot_values))) if shot_values and sot_values else _raise_missing("shot")
 
     scored = [int(row.player_scored) for row in ordered if row.player_scored is not None]
-    player_goal = FittedPlayerGoalModel(max(0.0, sum(scored) / max(1, len(scored)))) if scored else (_raise_missing("player goal"))
+    player_goal = FittedPlayerGoalModel(max(0.0, sum(scored) / max(1, len(scored)))) if scored else _raise_missing("player goal")
 
     live = [int(row.live_goal) for row in ordered if row.live_goal is not None]
-    live_model = FittedLiveModel(max(1e-6, sum(live) / max(1, len(live) * 90))) if live else (_raise_missing("live"))
+    live_model = FittedLiveModel(max(1e-6, sum(live) / max(1, len(live) * 90))) if live else _raise_missing("live")
 
     return FittedFootballModels(goal, result, corner, card, shot, player_goal, live_model, len(ordered), ("provider-snapshots-v1",))
 
