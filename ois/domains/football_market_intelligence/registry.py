@@ -61,11 +61,25 @@ CAPABILITIES: tuple[DomainCapability, ...] = (
         "MarketBacktestSpec",
         "MarketBacktestReport",
     ),
+    DomainCapability(
+        "football.market_web_ingest",
+        "Ingest provider-neutral fixture, result and odds observations",
+        "WebSource+URI",
+        "NormalizationResult",
+    ),
+    DomainCapability(
+        "football.market_web_health",
+        "Check availability and latency of a registered market data provider",
+        "WebSource+URI",
+        "ProviderHealth",
+    ),
 )
 
 AGENTS: tuple[AgentSpec, ...] = (
     AgentSpec(
-        "football.market_agent", "Market taxonomy and translation", ("football.market_translate",)
+        "football.market_agent",
+        "Market taxonomy and translation",
+        ("football.market_translate",),
     ),
     AgentSpec(
         "football.market_settlement_agent",
@@ -82,6 +96,11 @@ AGENTS: tuple[AgentSpec, ...] = (
         "Market backtesting and learning orchestration",
         ("football.market_backtest",),
     ),
+    AgentSpec(
+        "football.market_data_agent",
+        "Provider ingestion, normalization and health",
+        ("football.market_web_ingest", "football.market_web_health"),
+    ),
 )
 
 
@@ -94,6 +113,7 @@ def manifest() -> dict[str, Any]:
             {"workflow_id": "football.market_prediction", "version": 1},
             {"workflow_id": "football.market_evaluation", "version": 1},
             {"workflow_id": "football.market_backtest", "version": 1},
+            {"workflow_id": "football.market_data_ingestion", "version": 1},
         ],
         "depends_on": "football_intelligence",
         "persistence_owner": "ois_platform",
