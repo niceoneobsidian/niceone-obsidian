@@ -131,7 +131,7 @@ The benchmark is deliberately a measurement boundary, not a promotion decision. 
 
 ## Data source
 
-StatsBomb publishes selected historical football competitions as JSON, including competitions, matches, events, lineups and selected 360 data. The open-data repository requires attribution when publishing research or analysis based on the data. OIS should preserve the source identity and URI in evidence provenance. citeturn0search8
+StatsBomb publishes selected historical football competitions as JSON, including competitions, matches, events, lineups and selected 360 data. The open-data repository requires attribution when publishing research or analysis based on the data. OIS should preserve the source identity and URI in evidence provenance.
 
 Public source: https://github.com/hudl/open-data
 
@@ -150,4 +150,4 @@ The real-data adapter and first benchmark contract are implemented, but promotio
 - explicit promotion thresholds and rollback evidence;
 - live-feed adapter and operational freshness checks.
 
-OpenTelemetry provides standardized semantic conventions for traces, metrics and logs, which is a suitable observability foundation for the next measurement layer. citeturn0search1turn0search19
+OpenTelemetry provides standardized semantic conventions for traces, metrics and logs, which is a suitable observability foundation for the next measurement layer.
