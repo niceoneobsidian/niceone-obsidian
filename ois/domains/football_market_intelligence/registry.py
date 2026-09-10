@@ -73,13 +73,25 @@ CAPABILITIES: tuple[DomainCapability, ...] = (
         "WebSource+URI",
         "ProviderHealth",
     ),
+    DomainCapability(
+        "football.market_catalog",
+        "Resolve provider market keys into canonical football market families",
+        "ProviderMarketKey",
+        "MarketDefinition",
+    ),
+    DomainCapability(
+        "football.market_coverage",
+        "Build observed bookmaker market coverage from normalized odds",
+        "OddsObservationSet",
+        "BookmakerMarketCoverage",
+    ),
 )
 
 AGENTS: tuple[AgentSpec, ...] = (
     AgentSpec(
         "football.market_agent",
         "Market taxonomy and translation",
-        ("football.market_translate",),
+        ("football.market_translate", "football.market_catalog"),
     ),
     AgentSpec(
         "football.market_settlement_agent",
@@ -98,8 +110,12 @@ AGENTS: tuple[AgentSpec, ...] = (
     ),
     AgentSpec(
         "football.market_data_agent",
-        "Provider ingestion, normalization and health",
-        ("football.market_web_ingest", "football.market_web_health"),
+        "Provider ingestion, normalization, coverage and health",
+        (
+            "football.market_web_ingest",
+            "football.market_web_health",
+            "football.market_coverage",
+        ),
     ),
 )
 
