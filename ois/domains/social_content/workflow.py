@@ -1,16 +1,11 @@
-"""Creative-content workflow with governed optional media generation.
-
-The core implementation is framework-neutral so OIS can run it through the
-existing Kernel today. LangGraph is an optional execution boundary, never the
-security or authorization authority.
-"""
+"""Creative-content workflow with governed optional media generation."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any
 
-from .contracts import ContentObjectiveRequest, ContentPackage
+from .contracts import ContentObjectiveRequest, ContentPackage, MediaAsset
 from .creative import CreativeProvider, validate_variant
 from .image_generation import ImageGenerator
 from .research import ResearchProvider, build_research_query
@@ -29,7 +24,6 @@ class SocialContentWorkflow:
             request.topic, request.audience, request.objective.value
         )
         research = self.research.search(query, require_evidence=request.freshness_required)
-
         variants = [
             self.creative.generate(request, platform, list(research.evidence))
             for platform in request.platforms
@@ -44,16 +38,16 @@ class SocialContentWorkflow:
                             model=str(request.constraints.get("image_model", "fal-ai/flux-2")),
                             image_size=str(request.constraints.get("image_size", "square_hd")),
                         )
-                    except Exception as exc:
+                    except Exception:
                         variant.status = "media_failed"
                         continue
                     variant.media.append(
-                        {
-                            "provider": asset.provider,
-                            "model": asset.model,
-                            "url": asset.url,
-                            "request_id": asset.request_id,
-                        }
+                        MediaAsset(
+                            provider=asset.provider,
+                            model=asset.model,
+                            url=asset.url,
+                            request_id=asset.request_id,
+                        )
                     )
 
         feedback: list[str] = []
@@ -88,7 +82,6 @@ class SocialContentWorkflow:
 
     def build_langgraph(self) -> Any:
         """Return an optional LangGraph representation of the governed workflow."""
-
         try:
             from langgraph.graph import END, START, StateGraph
         except ImportError as exc:
