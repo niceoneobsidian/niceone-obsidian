@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from typing import Any
-from uuid import uuid5, NAMESPACE_URL
+from uuid import NAMESPACE_URL, uuid5
 
 from .web_sources import (
     MatchObservation,
@@ -41,16 +41,23 @@ SPORTMONKS = WebSource(
 
 
 def _dt(value: str | None) -> datetime | None:
-    if not value:
+    if not value or value in {"None", "null"}:
         return None
-    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    return parsed.replace(tzinfo=UTC) if parsed.tzinfo is None else parsed
 
 
 def _id(source_id: str, external_id: str) -> str:
     return str(uuid5(NAMESPACE_URL, f"{source_id}:{external_id}"))
 
 
-def _obs_base(source: WebSource, external_id: str, observed_at: datetime, payload: dict[str, Any], uri: str) -> dict[str, Any]:
+def _obs_base(
+    source: WebSource,
+    external_id: str,
+    observed_at: datetime,
+    payload: dict[str, Any],
+    uri: str,
+) -> dict[str, Any]:
     return {
         "observation_id": _id(source.source_id, external_id),
         "source_id": source.source_id,
@@ -95,8 +102,15 @@ def parse_football_data_matches(
 
 
 def parse_odds_api(payload: dict[str, Any], *, source_uri: str, observed_at: datetime) -> list[OddsObservation]:
-    """Normalize The Odds API live/historical snapshot shape."""
-    events = payload.get("data") if isinstance(payload.get("data"), list) else [payload]
+    """Normalize The Odds API current or historical snapshot shape."""
+    data = payload.get("data")
+    if isinstance(data, list):
+        events: list[Any] = data
+    elif isinstance(data, dict) and isinstance(data.get("data"), list):
+        events = data["data"]
+    else:
+        events = [payload]
+
     result: list[OddsObservation] = []
     for event in events:
         if not isinstance(event, dict) or "id" not in event:
@@ -114,7 +128,10 @@ def parse_odds_api(payload: dict[str, Any], *, source_uri: str, observed_at: dat
                     if not isinstance(outcome, dict) or "price" not in outcome:
                         continue
                     price = float(outcome["price"])
-                    external_id = f"{match_id}:{bookmaker_name}:{market_type}:{outcome.get('name')}:{outcome.get('point')}"
+                    external_id = (
+                        f"{match_id}:{bookmaker_name}:{market_type}:"
+                        f"{outcome.get('name')}:{outcome.get('point')}"
+                    )
                     result.append(
                         OddsObservation(
                             **_obs_base(ODDS_API, external_id, observed_at, outcome, source_uri),
@@ -137,7 +154,7 @@ def parse_sportmonks_odds(
     """Normalize Sportmonks standard/premium odds entries."""
     raw_odds = payload.get("data", [])
     if isinstance(raw_odds, dict):
-        raw_odds = [raw_odds]
+        raw_odds = raw_odds.get("data", [])
     result: list[OddsObservation] = []
     for raw in raw_odds:
         if not isinstance(raw, dict) or raw.get("value") is None:
@@ -148,7 +165,7 @@ def parse_sportmonks_odds(
         market = str(raw.get("market_id") or raw.get("market_description") or "unknown")
         selection = str(raw.get("label") or raw.get("name") or "")
         external_id = f"{raw.get('id', '')}:{match_id}:{bookmaker}:{market}:{selection}"
-        source_timestamp = _dt(str(raw.get("latest_bookmaker_update"))) or _dt(str(raw.get("last_update")))
+        source_timestamp = _dt(raw.get("latest_bookmaker_update")) or _dt(raw.get("last_update"))
         base = _obs_base(SPORTMONKS, external_id, observed_at, raw, source_uri)
         base["source_timestamp"] = source_timestamp
         result.append(
