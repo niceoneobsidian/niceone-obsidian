@@ -8,11 +8,7 @@ from .postgres import ExecutionLease, LeaseLost
 
 
 class PostgreSQLSideEffectFencer:
-    """Fence side-effect outbox completion against the current worker epoch.
-
-    The adapter deliberately keeps side-effect execution outside the kernel. It
-    only controls the durable ownership transition on ``ois_side_effect_outbox``.
-    """
+    """Fence side-effect outbox completion against the current worker epoch."""
 
     def __init__(self, dsn: str) -> None:
         self._dsn = dsn
@@ -30,33 +26,39 @@ class PostgreSQLSideEffectFencer:
         with self._connect() as connection, connection.cursor() as cursor:
             cursor.execute(
                 """
+                WITH current_lease AS (
+                    SELECT execution_id
+                    FROM ois_execution_leases
+                    WHERE execution_id = (
+                        SELECT execution_id
+                        FROM ois_side_effect_outbox
+                        WHERE effect_id = %s
+                    )
+                      AND worker_id = %s
+                      AND lease_epoch = %s
+                      AND state = 'active'
+                      AND expires_at > %s
+                    FOR UPDATE
+                )
                 UPDATE ois_side_effect_outbox AS effect
                 SET status = 'PROCESSING',
                     worker_id = %s,
                     worker_epoch = %s,
                     locked_at = %s,
                     updated_at = %s
-                WHERE effect_id = %s
-                  AND status = 'PENDING'
-                  AND EXISTS (
-                      SELECT 1 FROM ois_execution_leases AS lease
-                      WHERE lease.execution_id = effect.execution_id
-                        AND lease.worker_id = %s
-                        AND lease.lease_epoch = %s
-                        AND lease.state = 'active'
-                        AND lease.expires_at > %s
-                  )
+                WHERE effect.effect_id = %s
+                  AND effect.status = 'PENDING'
+                  AND EXISTS (SELECT 1 FROM current_lease WHERE execution_id = effect.execution_id)
                 RETURNING effect_id
                 """,
                 (
+                    effect_id, lease.worker_id, lease.lease_epoch, now,
                     lease.worker_id, lease.lease_epoch, now, now, effect_id,
-                    lease.worker_id, lease.lease_epoch, now,
                 ),
             )
             if cursor.fetchone() is None:
                 raise LeaseLost(
-                    f"fenced side-effect claim rejected for {effect_id} "
-                    f"at epoch {lease.lease_epoch}"
+                    f"fenced side-effect claim rejected for {effect_id} at epoch {lease.lease_epoch}"
                 )
         return True
 
@@ -66,31 +68,37 @@ class PostgreSQLSideEffectFencer:
         with self._connect() as connection, connection.cursor() as cursor:
             cursor.execute(
                 """
+                WITH current_lease AS (
+                    SELECT execution_id
+                    FROM ois_execution_leases
+                    WHERE execution_id = (
+                        SELECT execution_id
+                        FROM ois_side_effect_outbox
+                        WHERE effect_id = %s
+                    )
+                      AND worker_id = %s
+                      AND lease_epoch = %s
+                      AND state = 'active'
+                      AND expires_at > %s
+                    FOR UPDATE
+                )
                 UPDATE ois_side_effect_outbox AS effect
                 SET status = 'COMPLETED',
                     updated_at = %s
-                WHERE effect_id = %s
-                  AND status = 'PROCESSING'
-                  AND worker_id = %s
-                  AND worker_epoch = %s
-                  AND EXISTS (
-                      SELECT 1 FROM ois_execution_leases AS lease
-                      WHERE lease.execution_id = effect.execution_id
-                        AND lease.worker_id = %s
-                        AND lease.lease_epoch = %s
-                        AND lease.state = 'active'
-                        AND lease.expires_at > %s
-                  )
+                WHERE effect.effect_id = %s
+                  AND effect.status = 'PROCESSING'
+                  AND effect.worker_id = %s
+                  AND effect.worker_epoch = %s
+                  AND EXISTS (SELECT 1 FROM current_lease WHERE execution_id = effect.execution_id)
                 RETURNING effect_id
                 """,
                 (
+                    effect_id, lease.worker_id, lease.lease_epoch, now,
                     now, effect_id, lease.worker_id, lease.lease_epoch,
-                    lease.worker_id, lease.lease_epoch, now,
                 ),
             )
             if cursor.fetchone() is None:
                 raise LeaseLost(
-                    f"fenced side-effect completion rejected for {effect_id} "
-                    f"at epoch {lease.lease_epoch}"
+                    f"fenced side-effect completion rejected for {effect_id} at epoch {lease.lease_epoch}"
                 )
         return True
