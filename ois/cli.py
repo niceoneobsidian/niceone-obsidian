@@ -19,48 +19,29 @@ from typing import Sequence
 
 ROOT = Path(__file__).resolve().parents[1]
 
-COMMANDS = (
-    "status",
-    "doctor",
-    "verify",
-    "capabilities",
-    "agents",
-    "tools",
-    "workflows",
-    "health",
-    "version",
-)
-
 
 def _run(*command: str) -> tuple[int, str]:
-    proc = subprocess.run(
-        command,
-        cwd=ROOT,
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        check=False,
-    )
+    try:
+        proc = subprocess.run(
+            command,
+            cwd=ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=False,
+        )
+    except OSError as exc:
+        return 127, str(exc)
     return proc.returncode, proc.stdout.strip()
 
 
 def _git(*args: str) -> str:
     code, output = _run("git", *args)
-    return output if code == 0 else "unknown"
+    return output if code == 0 else ""
 
 
 def _mark(ok: bool, label: str) -> str:
     return f"{'PASS' if ok else 'FAIL':<5} {label}"
-
-
-def _repo_root() -> Path:
-    try:
-        root = Path(_git("rev-parse", "--show-toplevel"))
-        if root.exists():
-            return root
-    except OSError:
-        pass
-    return ROOT
 
 
 def _domain_inventory(kind: str) -> list[str]:
@@ -72,9 +53,7 @@ def _domain_inventory(kind: str) -> list[str]:
     for path in sorted(base.iterdir()):
         if not path.is_dir() or path.name.startswith("_"):
             continue
-        if kind == "capabilities" and (path / "registry.py").exists():
-            names.append(path.name)
-        elif kind == "agents" and (path / "registry.py").exists():
+        if kind in {"capabilities", "agents"} and (path / "registry.py").exists():
             names.append(path.name)
         elif kind == "tools" and (path / "connectors_manifest.py").exists():
             names.append(path.name)
@@ -84,8 +63,8 @@ def _domain_inventory(kind: str) -> list[str]:
 
 
 def cmd_status(_: argparse.Namespace) -> int:
-    branch = _git("branch", "--show-current")
-    commit = _git("rev-parse", "--short", "HEAD")
+    branch = _git("branch", "--show-current") or "unknown"
+    commit = _git("rev-parse", "--short", "HEAD") or "unknown"
     dirty = bool(_git("status", "--porcelain"))
     python_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
     print("NICEONE OBSIDIAN — OIS STATUS")
@@ -146,19 +125,19 @@ def _inventory(kind: str, title: str) -> int:
     return 0
 
 
-def cmd_capabilities(args: argparse.Namespace) -> int:
+def cmd_capabilities(_: argparse.Namespace) -> int:
     return _inventory("capabilities", "capabilities")
 
 
-def cmd_agents(args: argparse.Namespace) -> int:
+def cmd_agents(_: argparse.Namespace) -> int:
     return _inventory("agents", "agents")
 
 
-def cmd_tools(args: argparse.Namespace) -> int:
+def cmd_tools(_: argparse.Namespace) -> int:
     return _inventory("tools", "tools")
 
 
-def cmd_workflows(args: argparse.Namespace) -> int:
+def cmd_workflows(_: argparse.Namespace) -> int:
     return _inventory("workflows", "workflows")
 
 
