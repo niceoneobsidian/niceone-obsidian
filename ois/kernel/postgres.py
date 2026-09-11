@@ -28,6 +28,8 @@ CREATE TABLE IF NOT EXISTS ois_idempotency_results (
     capability_id TEXT NOT NULL,
     status TEXT NOT NULL,
     result JSONB NOT NULL,
+    worker_id TEXT,
+    worker_epoch BIGINT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -89,6 +91,57 @@ class PostgreSQLCheckpointStore:
                  identity.workflow_version, _jsonb(context.to_dict()), context.created_at,
                  context.updated_at),
             )
+
+    def save_fenced(self, context: ExecutionContext, lease: "ExecutionLease") -> None:
+        """Persist a checkpoint only while the supplied lease epoch is authoritative."""
+        context.touch()
+        identity = context.identity
+        now = datetime.now(UTC)
+        payload = _jsonb(context.to_dict())
+        with self._connect() as connection, connection.cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO ois_checkpoints
+                    (execution_id, tenant_id, workflow_id, workflow_version, context,
+                     revision, created_at, updated_at)
+                SELECT %s, %s, %s, %s, %s, 1, %s, %s
+                WHERE EXISTS (
+                    SELECT 1 FROM ois_execution_leases
+                    WHERE execution_id = %s AND worker_id = %s AND lease_epoch = %s
+                      AND expires_at > %s AND state = 'active'
+                )
+                ON CONFLICT (execution_id) DO UPDATE SET
+                    tenant_id = EXCLUDED.tenant_id,
+                    workflow_id = EXCLUDED.workflow_id,
+                    workflow_version = EXCLUDED.workflow_version,
+                    context = EXCLUDED.context,
+                    revision = ois_checkpoints.revision + 1,
+                    updated_at = EXCLUDED.updated_at
+                WHERE EXISTS (
+                    SELECT 1 FROM ois_execution_leases
+                    WHERE execution_id = %s AND worker_id = %s AND lease_epoch = %s
+                      AND expires_at > %s AND state = 'active'
+                )
+                RETURNING revision
+                """,
+                (
+                    identity.execution_id, identity.tenant_id, identity.workflow_id,
+                    identity.workflow_version, payload, context.created_at, context.updated_at,
+                    lease.execution_id, lease.worker_id, lease.lease_epoch, now,
+                    lease.execution_id, lease.worker_id, lease.lease_epoch, now,
+                ),
+            )
+            if cursor.fetchone() is None:
+                raise LeaseLost(
+                    f"fenced checkpoint rejected for execution {lease.execution_id} "
+                    f"at epoch {lease.lease_epoch}"
+                )
+
+    def complete_fenced(self, context: ExecutionContext, lease: "ExecutionLease") -> None:
+        """Durably mark an execution complete through the current lease epoch."""
+        if context.status != ExecutionStatus.COMPLETED:
+            raise ValueError("complete_fenced requires a COMPLETED execution context")
+        self.save_fenced(context, lease)
 
     def load(self, execution_id: UUID) -> ExecutionContext:
         with self._connect() as connection, connection.cursor() as cursor:
@@ -170,6 +223,37 @@ class PostgreSQLIdempotencyStore:
             )
             return cursor.fetchone() is not None
 
+    def put_fenced(self, invocation_id: str, result: InvocationResult, lease: "ExecutionLease") -> bool:
+        """Record an invocation only if the supplied worker epoch is still current."""
+        now = datetime.now(UTC)
+        with self._connect() as connection, connection.cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO ois_idempotency_results
+                    (invocation_id, capability_id, status, result, worker_id, worker_epoch)
+                SELECT %s, %s, %s, %s, %s, %s
+                WHERE EXISTS (
+                    SELECT 1 FROM ois_execution_leases
+                    WHERE execution_id = %s AND worker_id = %s AND lease_epoch = %s
+                      AND expires_at > %s AND state = 'active'
+                )
+                ON CONFLICT (invocation_id) DO NOTHING
+                RETURNING invocation_id
+                """,
+                (
+                    invocation_id, result.capability_id, result.status.value,
+                    _jsonb(_result_to_payload(result)), lease.worker_id, lease.lease_epoch,
+                    lease.execution_id, lease.worker_id, lease.lease_epoch, now,
+                ),
+            )
+            inserted = cursor.fetchone() is not None
+        if not inserted and self.get(invocation_id) is None:
+            raise LeaseLost(
+                f"fenced idempotency write rejected for execution {lease.execution_id} "
+                f"at epoch {lease.lease_epoch}"
+            )
+        return inserted
+
     def exists(self, invocation_id: str) -> bool:
         return self.get(invocation_id) is not None
 
@@ -225,7 +309,7 @@ class PostgreSQLExecutionCoordinator:
                 (execution_id,),
             )
             row = cursor.fetchone()
-            if row is not None and row[2] > now and row[0] != worker_id:
+            if row is not None and row[2] > now:
                 raise LeaseUnavailable(f"execution {execution_id} is owned by {row[0]}")
             epoch = (int(row[1]) + 1) if row is not None else 1
             cursor.execute(
