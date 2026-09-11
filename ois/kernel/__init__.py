@@ -18,6 +18,7 @@ from .contracts import (
     Validator,
 )
 from .evidence import EvidenceEvent, EvidenceLedger
+from .fencing import PostgreSQLSideEffectFencer
 from .idempotency import IdempotencyStore, InMemoryIdempotencyStore, SQLiteIdempotencyStore
 from .orchestrator import OrchestrationError, PlanExecutionError, PlanOrchestrator
 from .planner import PlanBuilder
@@ -85,9 +86,9 @@ __all__ = [
     "InvocationRequest", "InvocationResult", "InvocationStatus", "JsonFileCheckpointStore", "LeaseLost",
     "LeaseUnavailable", "OrchestrationError", "OutputValidationError", "PlanBuilder", "PlanError",
     "PlanExecutionError", "PolicyDecision", "PolicyEngine", "PostgreSQLCheckpointStore",
-    "PostgreSQLExecutionCoordinator", "PostgreSQLIdempotencyStore", "RecoveryDecision", "RecoveryPolicy",
-    "Registry", "RegistryEntry", "RegistryError", "RiskLevel", "RetryLimitExceeded", "SQLiteIdempotencyStore",
-    "SideEffectLevel", "SupervisionDecision", "Supervisor", "SupervisorError", "SupervisorRequest",
-    "TaskNode", "TaskStatus", "ToolContract", "ToolRegistry", "UnknownDependencyError", "ValidationError",
-    "ValidationResult", "Validator",
+    "PostgreSQLExecutionCoordinator", "PostgreSQLIdempotencyStore", "PostgreSQLSideEffectFencer",
+    "RecoveryDecision", "RecoveryPolicy", "Registry", "RegistryEntry", "RegistryError", "RiskLevel",
+    "RetryLimitExceeded", "SQLiteIdempotencyStore", "SideEffectLevel", "SupervisionDecision", "Supervisor",
+    "SupervisorError", "SupervisorRequest", "TaskNode", "TaskStatus", "ToolContract", "ToolRegistry",
+    "UnknownDependencyError", "ValidationError", "ValidationResult", "Validator",
 ]
