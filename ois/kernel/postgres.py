@@ -33,6 +33,8 @@ CREATE TABLE IF NOT EXISTS ois_idempotency_results (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+ALTER TABLE ois_idempotency_results ADD COLUMN IF NOT EXISTS worker_id TEXT;
+ALTER TABLE ois_idempotency_results ADD COLUMN IF NOT EXISTS worker_epoch BIGINT;
 CREATE INDEX IF NOT EXISTS ois_checkpoints_tenant_idx ON ois_checkpoints (tenant_id);
 CREATE INDEX IF NOT EXISTS ois_checkpoints_updated_idx ON ois_checkpoints (updated_at DESC);
 CREATE TABLE IF NOT EXISTS ois_execution_leases (
@@ -47,6 +49,8 @@ CREATE TABLE IF NOT EXISTS ois_execution_leases (
 );
 CREATE INDEX IF NOT EXISTS ois_execution_leases_expiry_idx ON ois_execution_leases (expires_at);
 CREATE INDEX IF NOT EXISTS ois_execution_leases_worker_idx ON ois_execution_leases (worker_id);
+CREATE INDEX IF NOT EXISTS ois_execution_leases_active_idx
+    ON ois_execution_leases (execution_id, worker_id, lease_epoch, state, expires_at);
 """
 
 
@@ -93,23 +97,31 @@ class PostgreSQLCheckpointStore:
             )
 
     def save_fenced(self, context: ExecutionContext, lease: "ExecutionLease") -> None:
-        """Persist a checkpoint only while the supplied lease epoch is authoritative."""
+        """Persist a checkpoint while holding the authoritative lease row lock."""
         context.touch()
         identity = context.identity
         now = datetime.now(UTC)
-        payload = _jsonb(context.to_dict())
         with self._connect() as connection, connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT 1
+                FROM ois_execution_leases
+                WHERE execution_id = %s AND worker_id = %s AND lease_epoch = %s
+                  AND expires_at > %s AND state = 'active'
+                FOR UPDATE
+                """,
+                (lease.execution_id, lease.worker_id, lease.lease_epoch, now),
+            )
+            if cursor.fetchone() is None:
+                raise LeaseLost(
+                    f"fenced checkpoint rejected for execution {lease.execution_id} at epoch {lease.lease_epoch}"
+                )
             cursor.execute(
                 """
                 INSERT INTO ois_checkpoints
                     (execution_id, tenant_id, workflow_id, workflow_version, context,
                      revision, created_at, updated_at)
-                SELECT %s, %s, %s, %s, %s, 1, %s, %s
-                WHERE EXISTS (
-                    SELECT 1 FROM ois_execution_leases
-                    WHERE execution_id = %s AND worker_id = %s AND lease_epoch = %s
-                      AND expires_at > %s AND state = 'active'
-                )
+                VALUES (%s, %s, %s, %s, %s, 1, %s, %s)
                 ON CONFLICT (execution_id) DO UPDATE SET
                     tenant_id = EXCLUDED.tenant_id,
                     workflow_id = EXCLUDED.workflow_id,
@@ -117,25 +129,14 @@ class PostgreSQLCheckpointStore:
                     context = EXCLUDED.context,
                     revision = ois_checkpoints.revision + 1,
                     updated_at = EXCLUDED.updated_at
-                WHERE EXISTS (
-                    SELECT 1 FROM ois_execution_leases
-                    WHERE execution_id = %s AND worker_id = %s AND lease_epoch = %s
-                      AND expires_at > %s AND state = 'active'
-                )
                 RETURNING revision
                 """,
-                (
-                    identity.execution_id, identity.tenant_id, identity.workflow_id,
-                    identity.workflow_version, payload, context.created_at, context.updated_at,
-                    lease.execution_id, lease.worker_id, lease.lease_epoch, now,
-                    lease.execution_id, lease.worker_id, lease.lease_epoch, now,
-                ),
+                (identity.execution_id, identity.tenant_id, identity.workflow_id,
+                 identity.workflow_version, _jsonb(context.to_dict()), context.created_at,
+                 context.updated_at),
             )
             if cursor.fetchone() is None:
-                raise LeaseLost(
-                    f"fenced checkpoint rejected for execution {lease.execution_id} "
-                    f"at epoch {lease.lease_epoch}"
-                )
+                raise LeaseLost(f"fenced checkpoint rejected for execution {lease.execution_id}")
 
     def complete_fenced(self, context: ExecutionContext, lease: "ExecutionLease") -> None:
         """Durably mark an execution complete through the current lease epoch."""
@@ -224,35 +225,34 @@ class PostgreSQLIdempotencyStore:
             return cursor.fetchone() is not None
 
     def put_fenced(self, invocation_id: str, result: InvocationResult, lease: "ExecutionLease") -> bool:
-        """Record an invocation only if the supplied worker epoch is still current."""
+        """Record an invocation only while holding the current lease row lock."""
         now = datetime.now(UTC)
         with self._connect() as connection, connection.cursor() as cursor:
             cursor.execute(
                 """
+                SELECT 1 FROM ois_execution_leases
+                WHERE execution_id = %s AND worker_id = %s AND lease_epoch = %s
+                  AND expires_at > %s AND state = 'active'
+                FOR UPDATE
+                """,
+                (lease.execution_id, lease.worker_id, lease.lease_epoch, now),
+            )
+            if cursor.fetchone() is None:
+                raise LeaseLost(
+                    f"fenced idempotency write rejected for execution {lease.execution_id} at epoch {lease.lease_epoch}"
+                )
+            cursor.execute(
+                """
                 INSERT INTO ois_idempotency_results
                     (invocation_id, capability_id, status, result, worker_id, worker_epoch)
-                SELECT %s, %s, %s, %s, %s, %s
-                WHERE EXISTS (
-                    SELECT 1 FROM ois_execution_leases
-                    WHERE execution_id = %s AND worker_id = %s AND lease_epoch = %s
-                      AND expires_at > %s AND state = 'active'
-                )
+                VALUES (%s, %s, %s, %s, %s, %s)
                 ON CONFLICT (invocation_id) DO NOTHING
                 RETURNING invocation_id
                 """,
-                (
-                    invocation_id, result.capability_id, result.status.value,
-                    _jsonb(_result_to_payload(result)), lease.worker_id, lease.lease_epoch,
-                    lease.execution_id, lease.worker_id, lease.lease_epoch, now,
-                ),
+                (invocation_id, result.capability_id, result.status.value,
+                 _jsonb(_result_to_payload(result)), lease.worker_id, lease.lease_epoch),
             )
-            inserted = cursor.fetchone() is not None
-        if not inserted and self.get(invocation_id) is None:
-            raise LeaseLost(
-                f"fenced idempotency write rejected for execution {lease.execution_id} "
-                f"at epoch {lease.lease_epoch}"
-            )
-        return inserted
+            return cursor.fetchone() is not None
 
     def exists(self, invocation_id: str) -> bool:
         return self.get(invocation_id) is not None
@@ -303,31 +303,41 @@ class PostgreSQLExecutionCoordinator:
         now = datetime.now(UTC)
         expires = now + timedelta(seconds=ttl_seconds)
         with self._connect() as connection, connection.cursor() as cursor:
-            cursor.execute(
-                "SELECT worker_id, lease_epoch, expires_at FROM ois_execution_leases "
-                "WHERE execution_id = %s FOR UPDATE",
-                (execution_id,),
-            )
-            row = cursor.fetchone()
-            if row is not None and row[2] > now:
-                raise LeaseUnavailable(f"execution {execution_id} is owned by {row[0]}")
-            epoch = (int(row[1]) + 1) if row is not None else 1
+            # Materialize the row first so concurrent first claims serialize on
+            # the primary key before either worker evaluates ownership.
             cursor.execute(
                 """
                 INSERT INTO ois_execution_leases
                     (execution_id, tenant_id, worker_id, lease_epoch, claimed_at,
                      heartbeat_at, expires_at, state)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, 'active')
-                ON CONFLICT (execution_id) DO UPDATE SET
-                    tenant_id = EXCLUDED.tenant_id,
-                    worker_id = EXCLUDED.worker_id,
-                    lease_epoch = EXCLUDED.lease_epoch,
-                    claimed_at = EXCLUDED.claimed_at,
-                    heartbeat_at = EXCLUDED.heartbeat_at,
-                    expires_at = EXCLUDED.expires_at,
-                    state = 'active'
+                VALUES (%s, %s, %s, 1, %s, %s, %s, 'active')
+                ON CONFLICT (execution_id) DO NOTHING
                 """,
-                (execution_id, tenant_id, worker_id, epoch, now, now, expires),
+                (execution_id, tenant_id, worker_id, now, now, expires),
+            )
+            cursor.execute(
+                """
+                SELECT worker_id, lease_epoch, expires_at
+                FROM ois_execution_leases
+                WHERE execution_id = %s
+                FOR UPDATE
+                """,
+                (execution_id,),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                raise LeaseUnavailable(f"execution {execution_id} could not be claimed")
+            if row[2] > now:
+                raise LeaseUnavailable(f"execution {execution_id} is owned by {row[0]}")
+            epoch = int(row[1]) + 1
+            cursor.execute(
+                """
+                UPDATE ois_execution_leases
+                SET tenant_id = %s, worker_id = %s, lease_epoch = %s,
+                    claimed_at = %s, heartbeat_at = %s, expires_at = %s, state = 'active'
+                WHERE execution_id = %s
+                """,
+                (tenant_id, worker_id, epoch, now, now, expires, execution_id),
             )
         return ExecutionLease(execution_id, tenant_id, worker_id, epoch, expires)
 
