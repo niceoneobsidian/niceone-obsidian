@@ -8,7 +8,7 @@ from .contracts import InvocationRequest, InvocationResult
 from .evidence import EvidenceLedger
 from .idempotency import IdempotencyStore, InMemoryIdempotencyStore
 from .policy import DefaultPolicyEngine, PolicyEngine
-from .postgres import ExecutionLease, PostgreSQLExecutionCoordinator
+from .postgres import ExecutionLease, LeaseLost, PostgreSQLCheckpointStore, PostgreSQLExecutionCoordinator, PostgreSQLIdempotencyStore
 from .recovery import RecoveryPolicy
 from .state import ExecutionContext
 from .types import ExecutionStatus, FailureClass, InvocationStatus
@@ -25,7 +25,7 @@ class ExecutionAlreadyCompleted(ExecutionError):
 
 
 class ExecutionRuntime:
-    """Foundational OIS Kernel execution runtime with optional lease fencing."""
+    """Foundational OIS Kernel execution runtime with lease fencing."""
 
     def __init__(
         self,
@@ -148,14 +148,14 @@ class ExecutionRuntime:
             context.working_memory[f"result:{result.invocation_id}"] = result.output
         self._assert_lease(lease)
         context.set_status(ExecutionStatus.CHECKPOINTING)
-        self.checkpoint_store.save(context)
+        self._persist_checkpoint(context, lease)
         self.evidence.record(
             execution_id, "execution.checkpointed",
             {"capability_id": capability_id, "invocation_id": result.invocation_id},
         )
         if result.status == InvocationStatus.SUCCEEDED:
             self._assert_lease(lease)
-            self.idempotency.put(logical_invocation_id, result)
+            self._persist_idempotency(logical_invocation_id, result, lease)
             self.evidence.record(
                 execution_id, "execution.idempotency_recorded",
                 {"capability_id": capability_id, "invocation_id": logical_invocation_id, "status": result.status.value},
@@ -166,15 +166,69 @@ class ExecutionRuntime:
     def complete(self, context: ExecutionContext, *, lease: ExecutionLease | None = None) -> None:
         self._assert_lease(lease)
         context.set_status(ExecutionStatus.COMPLETED)
-        self._assert_lease(lease)
-        self.checkpoint_store.save(context)
+        self._persist_checkpoint(context, lease, completion=True)
         self.evidence.record(context.identity.execution_id, "execution.completed")
 
     def _assert_lease(self, lease: ExecutionLease | None) -> None:
         if lease is not None:
             if self.coordinator is None:
                 raise ExecutionError("a lease was supplied without a coordinator")
-            self.coordinator.assert_current(lease)
+            try:
+                self.coordinator.assert_current(lease)
+            except LeaseLost:
+                self._record_fencing_rejection(lease, "assert_current")
+                raise
+
+    def _persist_checkpoint(
+        self,
+        context: ExecutionContext,
+        lease: ExecutionLease | None,
+        *,
+        completion: bool = False,
+    ) -> None:
+        if lease is None:
+            self.checkpoint_store.save(context)
+            return
+        if not isinstance(self.checkpoint_store, PostgreSQLCheckpointStore):
+            self._assert_lease(lease)
+            self.checkpoint_store.save(context)
+            return
+        try:
+            if completion:
+                self.checkpoint_store.complete_fenced(context, lease)
+            else:
+                self.checkpoint_store.save_fenced(context, lease)
+        except LeaseLost:
+            self._record_fencing_rejection(lease, "checkpoint" if not completion else "completion")
+            raise
+
+    def _persist_idempotency(
+        self,
+        invocation_id: str,
+        result: InvocationResult,
+        lease: ExecutionLease | None,
+    ) -> None:
+        if lease is None or not isinstance(self.idempotency, PostgreSQLIdempotencyStore):
+            self.idempotency.put(invocation_id, result)
+            return
+        try:
+            self.idempotency.put_fenced(invocation_id, result, lease)
+        except LeaseLost:
+            self._record_fencing_rejection(lease, "idempotency")
+            raise
+
+    def _record_fencing_rejection(self, lease: ExecutionLease, operation: str) -> None:
+        self.evidence.record(
+            lease.execution_id,
+            "execution.fencing_rejected",
+            {
+                "operation": operation,
+                "worker_id": lease.worker_id,
+                "lease_epoch": lease.lease_epoch,
+            },
+            actor=lease.worker_id,
+            component="ois.kernel.fencing",
+        )
 
     def _handle_cancellation(self, context: ExecutionContext, capability_id: str,
                              error: ExecutionCancellation, invocation_id: str,
@@ -187,7 +241,7 @@ class ExecutionRuntime:
         self.evidence.record(execution_id, "execution.cancelled",
                              {"capability_id": capability_id, "invocation_id": invocation_id, "reason": str(error)})
         self._assert_lease(lease)
-        self.checkpoint_store.save(context)
+        self._persist_checkpoint(context, lease)
         return InvocationResult(invocation_id=invocation_id, capability_id=capability_id,
                                  status=InvocationStatus.FAILED, error=context.error)
 
@@ -204,7 +258,7 @@ class ExecutionRuntime:
              "invocation_id": invocation_id},
         )
         self._assert_lease(lease)
-        self.checkpoint_store.save(context)
+        self._persist_checkpoint(context, lease)
         return InvocationResult(
             invocation_id=invocation_id, capability_id=capability_id,
             status=InvocationStatus.FAILED,
