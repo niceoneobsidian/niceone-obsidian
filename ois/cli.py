@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
+import json
 import os
 import shutil
 import subprocess
@@ -18,6 +19,7 @@ from pathlib import Path
 from typing import Sequence
 
 ROOT = Path(__file__).resolve().parents[1]
+OIS_ROOT = ROOT / "ois"
 
 
 def _run(*command: str) -> tuple[int, str]:
@@ -44,45 +46,70 @@ def _mark(ok: bool, label: str) -> str:
     return f"{'PASS' if ok else 'FAIL':<5} {label}"
 
 
-def _domain_inventory(kind: str) -> list[str]:
-    """Return source-level domain evidence without claiming runtime activation."""
-    base = ROOT / "ois" / "domains"
-    if not base.exists():
-        return []
-    names: list[str] = []
-    for path in sorted(base.iterdir()):
-        if not path.is_dir() or path.name.startswith("_"):
+def _source_files(*roots: Path, patterns: tuple[str, ...] = ("*.py",)) -> list[str]:
+    """Return deterministic source-level evidence without importing modules."""
+    files: list[str] = []
+    for root in roots:
+        if not root.exists():
             continue
-        if kind in {"capabilities", "agents"} and (path / "registry.py").exists():
-            names.append(path.name)
-        elif kind == "tools" and (path / "connectors_manifest.py").exists():
-            names.append(path.name)
-        elif kind == "workflows" and (path / "workflows.py").exists():
-            names.append(path.name)
-    return names
+        for pattern in patterns:
+            files.extend(
+                path.relative_to(ROOT).as_posix()
+                for path in root.rglob(pattern)
+                if path.is_file() and path.name != "__init__.py"
+            )
+    return sorted(set(files))
 
 
-def cmd_status(_: argparse.Namespace) -> int:
+def _inventory_data(kind: str) -> dict[str, object]:
+    roots = {
+        "capabilities": (OIS_ROOT / "capabilities", OIS_ROOT / "domains"),
+        "agents": (OIS_ROOT / "agents", OIS_ROOT / "domains"),
+        "tools": (OIS_ROOT / "integration", OIS_ROOT / "tools", OIS_ROOT / "domains"),
+        "workflows": (OIS_ROOT / "workflows", OIS_ROOT / "domains"),
+    }
+    files = _source_files(*roots.get(kind, ()))
+    return {
+        "kind": kind,
+        "evidence": "source_discovery",
+        "verified": False,
+        "count": len(files),
+        "files": files,
+    }
+
+
+def cmd_status(args: argparse.Namespace) -> int:
     branch = _git("branch", "--show-current") or "unknown"
     commit = _git("rev-parse", "--short", "HEAD") or "unknown"
     dirty = bool(_git("status", "--porcelain"))
     python_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    data = {
+        "repository": str(ROOT),
+        "branch": branch,
+        "commit": commit,
+        "working_tree": "dirty" if dirty else "clean",
+        "python": python_version,
+        "environment": os.getenv("OIS_ENV", "development"),
+        "architecture": "capability-driven, governed execution",
+        "evidence": "source/CI evidence only; no production claim",
+    }
+    if args.json:
+        print(json.dumps(data, indent=2, sort_keys=True))
+        return 0
     print("NICEONE OBSIDIAN — OIS STATUS")
     print("=" * 56)
-    print(f"Repository : {ROOT}")
-    print(f"Branch     : {branch}")
-    print(f"Commit     : {commit}")
-    print(f"Working tree: {'DIRTY' if dirty else 'CLEAN'}")
-    print(f"Python     : {python_version}")
-    print(f"Environment: {os.getenv('OIS_ENV', 'development')}")
-    print("Architecture: capability-driven, governed execution")
-    print("Evidence   : source/CI evidence only; no production claim")
+    print(f"Repository : {data['repository']}")
+    print(f"Branch     : {data['branch']}")
+    print(f"Commit     : {data['commit']}")
+    print(f"Working tree: {data['working_tree'].upper()}")
+    print(f"Python     : {data['python']}")
+    print(f"Environment: {data['environment']}")
+    print(f"Architecture: {data['architecture']}")
+    print(f"Evidence   : {data['evidence']}")
     return 0
 
 
-def cmd_doctor(_: argparse.Namespace) -> int:
-    print("OIS DOCTOR")
-    print("=" * 56)
+def cmd_doctor(args: argparse.Namespace) -> int:
     checks = [
         ("Python >= 3.12", sys.version_info >= (3, 12)),
         ("Git", shutil.which("git") is not None),
@@ -95,6 +122,11 @@ def cmd_doctor(_: argparse.Namespace) -> int:
         ("Gitleaks", shutil.which("gitleaks") is not None),
         ("GitHub CLI", shutil.which("gh") is not None),
     ]
+    if args.json:
+        print(json.dumps({"checks": [{"name": label, "ok": ok} for label, ok in checks]}, indent=2))
+        return 0 if all(ok for _, ok in checks) else 1
+    print("OIS DOCTOR")
+    print("=" * 56)
     for label, ok in checks:
         print(_mark(ok, label))
     failures = [label for label, ok in checks if not ok]
@@ -111,54 +143,98 @@ def cmd_verify(_: argparse.Namespace) -> int:
     return verify_main()
 
 
-def _inventory(kind: str, title: str) -> int:
-    items = _domain_inventory(kind)
+def _inventory(kind: str, title: str, as_json: bool) -> int:
+    data = _inventory_data(kind)
+    if as_json:
+        print(json.dumps(data, indent=2))
+        return 0
     print(f"OIS {title.upper()} — SOURCE INVENTORY")
     print("=" * 56)
-    if not items:
-        print("No matching domain source evidence found.")
+    files = data["files"]
+    if not files:
+        print("No matching source evidence found.")
     else:
-        for item in items:
+        for item in files:
             print(f"- {item}")
     print("-" * 56)
-    print("NOTE: inventory is discovery evidence, not activation or production verification.")
+    print(
+        f"COUNT: {data['count']} | EVIDENCE: {data['evidence']} | "
+        f"VERIFIED: {str(data['verified']).lower()}"
+    )
     return 0
 
 
-def cmd_capabilities(_: argparse.Namespace) -> int:
-    return _inventory("capabilities", "capabilities")
+def cmd_capabilities(args: argparse.Namespace) -> int:
+    return _inventory("capabilities", "capabilities", args.json)
 
 
-def cmd_agents(_: argparse.Namespace) -> int:
-    return _inventory("agents", "agents")
+def cmd_agents(args: argparse.Namespace) -> int:
+    return _inventory("agents", "agents", args.json)
 
 
-def cmd_tools(_: argparse.Namespace) -> int:
-    return _inventory("tools", "tools")
+def cmd_tools(args: argparse.Namespace) -> int:
+    return _inventory("tools", "tools", args.json)
 
 
-def cmd_workflows(_: argparse.Namespace) -> int:
-    return _inventory("workflows", "workflows")
+def cmd_workflows(args: argparse.Namespace) -> int:
+    return _inventory("workflows", "workflows", args.json)
 
 
-def cmd_health(_: argparse.Namespace) -> int:
+def cmd_health(args: argparse.Namespace) -> int:
     checks = {
-        "kernel": ROOT / "ois" / "kernel",
-        "control_plane": ROOT / "ois" / "control_plane",
-        "runtime": ROOT / "ois" / "runtime",
-        "verification": ROOT / "ois" / "verify.py",
+        "kernel": OIS_ROOT / "kernel",
+        "control_plane": OIS_ROOT / "control_plane",
+        "runtime": OIS_ROOT / "runtime",
+        "verification": OIS_ROOT / "verify.py",
+        "integration": OIS_ROOT / "integration",
     }
+    results = {name: path.exists() for name, path in checks.items()}
+    if args.json:
+        print(json.dumps({"evidence": "source_presence", "checks": results}, indent=2, sort_keys=True))
+        return 0 if all(results.values()) else 1
     print("OIS HEALTH")
     print("=" * 56)
-    for name, path in checks.items():
-        print(_mark(path.exists(), name))
-    return 0 if all(path.exists() for path in checks.values()) else 1
+    for name, ok in results.items():
+        print(_mark(ok, name))
+    return 0 if all(results.values()) else 1
+
+
+def cmd_summary(args: argparse.Namespace) -> int:
+    inventory = {kind: _inventory_data(kind) for kind in ("capabilities", "agents", "tools", "workflows")}
+    data = {
+        "status": {
+            "branch": _git("branch", "--show-current") or "unknown",
+            "commit": _git("rev-parse", "--short", "HEAD") or "unknown",
+            "working_tree": "dirty" if _git("status", "--porcelain") else "clean",
+        },
+        "inventory": {kind: value["count"] for kind, value in inventory.items()},
+        "evidence": "source_discovery",
+        "production_verified": False,
+    }
+    if args.json:
+        print(json.dumps(data, indent=2, sort_keys=True))
+        return 0
+    print("NICEONE OBSIDIAN — OIS OPERATOR SUMMARY")
+    print("=" * 56)
+    print(f"Repository : {data['status']['branch']} @ {data['status']['commit']}")
+    print(f"Working tree: {data['status']['working_tree'].upper()}")
+    print("Inventory  :")
+    for kind, count in data["inventory"].items():
+        print(f"  {kind:<13} {count}")
+    print("-" * 56)
+    print("Evidence   : source discovery")
+    print("Production : NOT VERIFIED")
+    return 0
 
 
 def cmd_version(_: argparse.Namespace) -> int:
-    print("OIS CLI v1")
+    print("OIS CLI v1.1")
     print(f"Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")
     return 0
+
+
+def _add_json_flag(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -178,10 +254,13 @@ def build_parser() -> argparse.ArgumentParser:
         "tools": cmd_tools,
         "workflows": cmd_workflows,
         "health": cmd_health,
+        "summary": cmd_summary,
         "version": cmd_version,
     }
     for name, handler in handlers.items():
         child = sub.add_parser(name)
+        if name != "verify":
+            _add_json_flag(child)
         child.set_defaults(handler=handler)
     return parser
 
