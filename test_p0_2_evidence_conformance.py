@@ -119,7 +119,10 @@ def event_types(runtime: ExecutionRuntime, execution_id):
 
 
 def test_validation_gate_blocks_completion_records_failure_and_replans(tmp_path: Path):
-    runtime = make_runtime(tmp_path, [ValidCapability("test.invalid", output_valid=False)])
+    runtime = make_runtime(
+        tmp_path,
+        [ValidCapability("test.invalid", output_valid=False)],
+    )
     context = make_context()
 
     result = runtime.execute(
@@ -192,7 +195,9 @@ def test_checkpoint_interruption_resume_does_not_repeat_completed_work(tmp_path:
     assert "execution.idempotency_hit" in events
 
 
-def test_true_idempotency_one_effect_same_governed_result_across_runtime_restart(tmp_path: Path):
+def test_true_idempotency_one_effect_same_governed_result_across_runtime_restart(
+    tmp_path: Path,
+):
     counter = [0]
     capability = ConsequentialCapability("test.effect", counter=counter)
 
@@ -230,7 +235,9 @@ def test_true_idempotency_one_effect_same_governed_result_across_runtime_restart
     assert hit.data["effect_invocation_id"] == first.invocation_id
 
 
-def test_negative_controls_reject_without_execution_and_causal_evidence_is_ordered(tmp_path: Path):
+def test_negative_controls_reject_without_execution_and_causal_evidence_is_ordered(
+    tmp_path: Path,
+):
     counter = [0]
     capability = ValidCapability("test.secure", counter=counter)
     runtime = make_runtime(tmp_path, [capability])
@@ -256,7 +263,11 @@ def test_negative_controls_reject_without_execution_and_causal_evidence_is_order
         )
     assert counter[0] == 0
 
-    restricted = ValidCapability("test.restricted", counter=counter, permissions=("restricted.execute",))
+    restricted = ValidCapability(
+        "test.restricted",
+        counter=counter,
+        permissions=("restricted.execute",),
+    )
     denied_runtime = make_runtime(tmp_path / "denied", [restricted])
     denied_context = make_context()
     with pytest.raises(AuthorizationDenied):
