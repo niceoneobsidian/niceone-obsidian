@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import base64
 import json
 import urllib.parse
 import urllib.request
@@ -19,7 +18,6 @@ from .models import (
 YOUTUBE_DATA_SCOPE = "https://www.googleapis.com/auth/youtube"
 YOUTUBE_READONLY_SCOPE = "https://www.googleapis.com/auth/youtube.readonly"
 YOUTUBE_ANALYTICS_SCOPE = "https://www.googleapis.com/auth/yt-analytics.readonly"
-YOUTUBE_ANALYTICS_EDIT_SCOPE = "https://www.googleapis.com/auth/yt-analytics-monetary.readonly"
 YOUTUBE_API_BASE = "https://www.googleapis.com/youtube/v3"
 YOUTUBE_ANALYTICS_BASE = "https://youtubeanalytics.googleapis.com/v2"
 GOOGLE_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token"
@@ -67,10 +65,10 @@ class YouTubeOAuthConfig:
 
 
 class YouTubeClient:
-    """Small dependency-free client preserving OIS policy boundaries.
+    """Provider adapter for governed YouTube API access.
 
-    Credentials/tokens are passed at runtime and must come from the OIS secret
-    runtime. This client intentionally contains no credential persistence.
+    Credentials/tokens are passed at runtime and must come from OIS secret
+    management. No credential persistence is performed here.
     """
 
     def __init__(self, *, api_key: str | None = None, access_token: str | None = None) -> None:
@@ -143,11 +141,7 @@ class YouTubeClient:
         )
 
     def get_channels(self, channel_ids: list[str]) -> YouTubePage[YouTubeChannel]:
-        payload = self._request(
-            YOUTUBE_API_BASE,
-            "channels",
-            params={"part": "snippet,statistics", "id": ",".join(channel_ids)},
-        )
+        payload = self._request(YOUTUBE_API_BASE, "channels", params={"part": "snippet,statistics", "id": ",".join(channel_ids)})
         items = []
         for item in payload.get("items", []):
             snippet = item.get("snippet", {})
@@ -167,11 +161,7 @@ class YouTubeClient:
         return YouTubePage(items=items)
 
     def get_videos(self, video_ids: list[str]) -> YouTubePage[YouTubeVideo]:
-        payload = self._request(
-            YOUTUBE_API_BASE,
-            "videos",
-            params={"part": "snippet,contentDetails,statistics", "id": ",".join(video_ids)},
-        )
+        payload = self._request(YOUTUBE_API_BASE, "videos", params={"part": "snippet,contentDetails,statistics", "id": ",".join(video_ids)})
         items = []
         for item in payload.get("items", []):
             snippet = item.get("snippet", {})
@@ -209,6 +199,15 @@ class YouTubeClient:
         ]
         return YouTubePage(items=items)
 
+    def download_caption(self, caption_id: str, *, tfmt: str = "vtt") -> str:
+        return str(self._request(YOUTUBE_API_BASE, f"captions/{caption_id}", params={"tfmt": tfmt}))
+
+    def update_caption(self, caption_id: str, caption: dict[str, Any]) -> dict[str, Any]:
+        return self._request(YOUTUBE_API_BASE, "captions", params={"part": "snippet"}, method="PUT", body={"id": caption_id, "snippet": caption})
+
+    def delete_caption(self, caption_id: str) -> dict[str, Any]:
+        return self._request(YOUTUBE_API_BASE, f"captions/{caption_id}", method="DELETE")
+
     def analytics_report(
         self,
         *,
@@ -219,12 +218,7 @@ class YouTubeClient:
         dimensions: str | None = None,
         filters: str | None = None,
     ) -> list[YouTubeAnalyticsRow]:
-        params: dict[str, Any] = {
-            "ids": ids,
-            "startDate": start_date,
-            "endDate": end_date,
-            "metrics": metrics,
-        }
+        params: dict[str, Any] = {"ids": ids, "startDate": start_date, "endDate": end_date, "metrics": metrics}
         if dimensions:
             params["dimensions"] = dimensions
         if filters:
@@ -237,8 +231,12 @@ class YouTubeClient:
         return self._request(
             YOUTUBE_API_BASE,
             "liveBroadcasts",
-            params=self._page_token(
-                {"part": "snippet,contentDetails,status", "mine": "true", "maxResults": max_results},
-                page_token,
-            ),
+            params=self._page_token({"part": "snippet,contentDetails,status", "mine": "true", "maxResults": max_results}, page_token),
+        )
+
+    def transition_live_broadcast(self, broadcast_id: str, status: str) -> dict[str, Any]:
+        return self._request(
+            YOUTUBE_API_BASE,
+            "liveBroadcasts/transition",
+            params={"broadcastStatus": status, "id": broadcast_id, "part": "snippet,contentDetails,status"},
         )
