@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
+from typing import cast
 
 from ois.registries import (
     AgentRegistry,
@@ -56,17 +57,17 @@ class ControlPlane:
             candidate = getattr(entry, "value", None)
 
         if callable(candidate):
-            return candidate
+            return cast(Callable[..., object], candidate)
 
         # Capabilities implement the Kernel Capability protocol (`invoke`),
         # not necessarily a bare `execute` method.
         invoke = getattr(candidate, "invoke", None)
         if callable(invoke):
-            return invoke
+            return cast(Callable[..., object], invoke)
 
         execute = getattr(candidate, "execute", None)
         if callable(execute):
-            return execute
+            return cast(Callable[..., object], execute)
 
         raise TypeError(
             f"registered capability is not callable: "

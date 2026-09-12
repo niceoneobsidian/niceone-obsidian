@@ -105,7 +105,11 @@ class IntegratedExecution:
 
             raw_failure_class = (failed_task.error or {}).get("failure_class")
             try:
-                failure_class = FailureClass(raw_failure_class)
+                failure_class = (
+                    FailureClass(raw_failure_class)
+                    if isinstance(raw_failure_class, str)
+                    else FailureClass.UNKNOWN
+                )
             except ValueError:
                 failure_class = FailureClass.UNKNOWN
 

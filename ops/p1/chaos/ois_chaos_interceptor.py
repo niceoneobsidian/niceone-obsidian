@@ -5,13 +5,13 @@ import logging
 import random
 from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 from typing import Any, Protocol
 
 logger = logging.getLogger("ois.chaos_interceptor")
 
 
-class ChaosMode(str, Enum):
+class ChaosMode(StrEnum):
     NETWORK_SPLIT = "NETWORK_SPLIT"
     DATABASE_TIMEOUT = "DATABASE_TIMEOUT"
 

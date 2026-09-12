@@ -24,19 +24,64 @@ class AgentSpec:
 
 
 CAPABILITIES: tuple[DomainCapability, ...] = (
-    DomainCapability("football.market_translate", "Translate football prediction into an atomic market event", "FootballPrediction", "MarketEvent"),
-    DomainCapability("football.market_settle", "Deterministically settle a market event from final score", "MarketEvent+FinalScore", "MarketOutcome"),
-    DomainCapability("football.market_evaluate", "Evaluate a settled market prediction", "MarketEvent+MarketOutcome", "MarketEvaluation"),
-    DomainCapability("football.market_attribute", "Attribute market performance to prediction versions", "MarketEvaluationSet", "AttributionReport"),
-    DomainCapability("football.market_record", "Record market events and outcomes through governed persistence", "MarketRecord", "MarketRecordReceipt", side_effect=True),
-    DomainCapability("football.market_backtest", "Run leakage-safe market backtests", "MarketBacktestSpec", "MarketBacktestReport"),
+    DomainCapability(
+        "football.market_translate",
+        "Translate football prediction into an atomic market event",
+        "FootballPrediction",
+        "MarketEvent",
+    ),
+    DomainCapability(
+        "football.market_settle",
+        "Deterministically settle a market event from final score",
+        "MarketEvent+FinalScore",
+        "MarketOutcome",
+    ),
+    DomainCapability(
+        "football.market_evaluate",
+        "Evaluate a settled market prediction",
+        "MarketEvent+MarketOutcome",
+        "MarketEvaluation",
+    ),
+    DomainCapability(
+        "football.market_attribute",
+        "Attribute market performance to prediction versions",
+        "MarketEvaluationSet",
+        "AttributionReport",
+    ),
+    DomainCapability(
+        "football.market_record",
+        "Record market events and outcomes through governed persistence",
+        "MarketRecord",
+        "MarketRecordReceipt",
+        side_effect=True,
+    ),
+    DomainCapability(
+        "football.market_backtest",
+        "Run leakage-safe market backtests",
+        "MarketBacktestSpec",
+        "MarketBacktestReport",
+    ),
 )
 
 AGENTS: tuple[AgentSpec, ...] = (
-    AgentSpec("football.market_agent", "Market taxonomy and translation", ("football.market_translate",)),
-    AgentSpec("football.market_settlement_agent", "Deterministic market settlement", ("football.market_settle",)),
-    AgentSpec("football.market_evaluation_agent", "Market evaluation and attribution", ("football.market_evaluate", "football.market_attribute")),
-    AgentSpec("football.market_learning_agent", "Market backtesting and learning orchestration", ("football.market_backtest",)),
+    AgentSpec(
+        "football.market_agent", "Market taxonomy and translation", ("football.market_translate",)
+    ),
+    AgentSpec(
+        "football.market_settlement_agent",
+        "Deterministic market settlement",
+        ("football.market_settle",),
+    ),
+    AgentSpec(
+        "football.market_evaluation_agent",
+        "Market evaluation and attribution",
+        ("football.market_evaluate", "football.market_attribute"),
+    ),
+    AgentSpec(
+        "football.market_learning_agent",
+        "Market backtesting and learning orchestration",
+        ("football.market_backtest",),
+    ),
 )
 
 
