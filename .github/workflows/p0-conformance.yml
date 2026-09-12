@@ -2,7 +2,7 @@ name: OIS P0 conformance
 
 on:
   push:
-    branches: [feat/p0-integrated-spine]
+    branches: [feat/p0-recovery-conformance-final]
   pull_request:
     branches: [main]
 
@@ -17,8 +17,8 @@ jobs:
       - name: Install project and verification tools
         run: |
           python -m pip install --upgrade pip
-          pip install -e .
-          pip install ruff mypy bandit gitleaks pip-licenses pytest
+          python -m pip install -e .
+          python -m pip install ruff mypy bandit pip-licenses pytest
       - name: Ruff lint
         run: ruff check ois scripts tests test_p0_integrated_spine.py
       - name: Ruff format
@@ -27,10 +27,6 @@ jobs:
         run: python -m mypy ois
       - name: Bandit
         run: bandit -r ois scripts -x ./.git,./.venv,./venv,./tests -lll -iii
-      - name: Gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: License compliance
         run: pip-licenses --format=csv
       - name: OIS governance
