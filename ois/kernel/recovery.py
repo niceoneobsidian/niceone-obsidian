@@ -39,7 +39,10 @@ class RecoveryBackoff:
     def delay(self, retry_number: int) -> float:
         if retry_number < 1:
             raise ValueError("retry_number must be >= 1")
-        return min(self.max_seconds, self.base_seconds * (2 ** (retry_number - 1)))
+        return min(
+            self.max_seconds,
+            self.base_seconds * float(2 ** (retry_number - 1)),
+        )
 
 
 class RecoveryPolicy:

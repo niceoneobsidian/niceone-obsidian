@@ -41,7 +41,7 @@ class MarketEvent(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
     @model_validator(mode="after")
-    def validate_contract(self) -> "MarketEvent":
+    def validate_contract(self) -> MarketEvent:
         validate_market_selection(self.market_type, self.selection)
         if self.line is None and self.market_type in {
             MarketType.TOTAL_GOALS,
@@ -62,7 +62,7 @@ class MarketEvent(BaseModel):
         model_probability: float,
         line: float | None = None,
         prediction_version: str | None = None,
-    ) -> "MarketEvent":
+    ) -> MarketEvent:
         """Create a market event while preserving its prediction lineage."""
         return cls(
             match_id=prediction.match_id,

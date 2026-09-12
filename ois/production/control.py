@@ -15,7 +15,7 @@ import urllib.request
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Protocol
+from typing import Any, Protocol, TypedDict
 
 
 class GovernanceError(RuntimeError):
@@ -134,11 +134,18 @@ class DeploymentController:
         return history[-1].previous_version
 
 
+class RolloutState(TypedDict):
+    stable: str
+    candidate: str
+    percentage: int
+    state: str
+
+
 class CanaryController:
     """Deterministic traffic assignment plus measurable promotion/rollback gates."""
 
     def __init__(self) -> None:
-        self._rollouts: dict[str, dict[str, Any]] = {}
+        self._rollouts: dict[str, RolloutState] = {}
 
     def start(self, rollout_id: str, stable: str, candidate: str, percentage: int = 5) -> None:
         if not 1 <= percentage <= 100:

@@ -141,7 +141,11 @@ class ExecutionRuntime:
         ):
             failure_value = result.error.get("failure_class")
             try:
-                failure_class = FailureClass(failure_value)
+                failure_class = (
+                    FailureClass(failure_value)
+                    if isinstance(failure_value, str)
+                    else FailureClass.UNKNOWN
+                )
             except ValueError:
                 failure_class = FailureClass.UNKNOWN
             decision = self.recovery.apply(context, failure_class)

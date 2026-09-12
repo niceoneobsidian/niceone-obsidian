@@ -28,7 +28,9 @@ def prediction() -> FootballPrediction:
     )
 
 
-def event(market_type: MarketType, selection: Selection, *, line: float | None = None) -> MarketEvent:
+def event(
+    market_type: MarketType, selection: Selection, *, line: float | None = None
+) -> MarketEvent:
     return MarketEvent.from_prediction(
         prediction(),
         market_type=market_type,

@@ -64,7 +64,7 @@ class PostgreSQLSocialEventStore:
                     json.dumps(event.model_dump(mode="json"), sort_keys=True),
                 ),
             )
-            inserted = cursor.rowcount == 1
+            inserted = bool(cursor.rowcount == 1)
         self._connection.commit()
         return inserted
 
