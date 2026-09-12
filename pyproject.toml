@@ -6,6 +6,10 @@ requires-python = ">=3.12"
 dependencies = [
   "pydantic>=2.7,<3",
   "psycopg[binary]>=3.3.4,<4",
+  "langgraph>=1.2.11,<2",
+  "langgraph-checkpoint-postgres>=3.1.2,<4",
+  "redis>=8.1,<9",
+  "opentelemetry-api>=1.44,<2",
 ]
 
 [build-system]
@@ -58,6 +62,13 @@ exclude = [
   "ois/domains/social_intelligence/inventory.py",
 ]
 
+[tool.pytest.ini_options]
+markers = [
+  "integration: requires live PostgreSQL or Redis infrastructure",
+  "sandbox: must execute inside the OIS gVisor runtime",
+  "recovery: deterministic recovery conformance scenarios",
+]
+
 [tool.mypy]
 python_version = "3.12"
 warn_return_any = true
@@ -70,12 +81,12 @@ no_implicit_optional = true
 strict_equality = true
 explicit_package_bases = true
 exclude = [
-  '^\.git/',
-  '^\.venv/',
+  '^\\.git/',
+  '^\\.venv/',
   '^venv/',
   '^build/',
   '^dist/',
-  '^\.mypy_cache/',
-  '^\.pytest_cache/',
-  '^\.ruff_cache/',
+  '^\\.mypy_cache/',
+  '^\\.pytest_cache/',
+  '^\\.ruff_cache/',
 ]
