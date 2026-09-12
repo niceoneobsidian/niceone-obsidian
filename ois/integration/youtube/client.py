@@ -103,6 +103,27 @@ class YouTubeClient:
         except Exception as exc:
             raise RuntimeError(f"YouTube API request failed: {resource}: {exc}") from exc
 
+    def _request_text(
+        self,
+        base: str,
+        resource: str,
+        *,
+        params: dict[str, Any] | None = None,
+    ) -> str:
+        query = dict(params or {})
+        if self.api_key:
+            query["key"] = self.api_key
+        url = f"{base}/{resource}?{urllib.parse.urlencode(query, doseq=True)}"
+        headers = {"Accept": "text/plain"}
+        if self.access_token:
+            headers["Authorization"] = f"Bearer {self.access_token}"
+        request = urllib.request.Request(url, headers=headers, method="GET")
+        try:
+            with urllib.request.urlopen(request, timeout=30) as response:
+                return response.read().decode()
+        except Exception as exc:
+            raise RuntimeError(f"YouTube API text request failed: {resource}: {exc}") from exc
+
     @staticmethod
     def _page_token(params: dict[str, Any], page_token: str | None) -> dict[str, Any]:
         result = dict(params)
@@ -200,7 +221,7 @@ class YouTubeClient:
         return YouTubePage(items=items)
 
     def download_caption(self, caption_id: str, *, tfmt: str = "vtt") -> str:
-        return str(self._request(YOUTUBE_API_BASE, f"captions/{caption_id}", params={"tfmt": tfmt}))
+        return self._request_text(YOUTUBE_API_BASE, f"captions/{caption_id}", params={"tfmt": tfmt})
 
     def update_caption(self, caption_id: str, caption: dict[str, Any]) -> dict[str, Any]:
         return self._request(YOUTUBE_API_BASE, "captions", params={"part": "snippet"}, method="PUT", body={"id": caption_id, "snippet": caption})
@@ -239,4 +260,5 @@ class YouTubeClient:
             YOUTUBE_API_BASE,
             "liveBroadcasts/transition",
             params={"broadcastStatus": status, "id": broadcast_id, "part": "snippet,contentDetails,status"},
+            method="POST",
         )
