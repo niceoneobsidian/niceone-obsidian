@@ -243,7 +243,32 @@ class ExecutionRuntime:
         return result
 
     def complete(self, context: ExecutionContext) -> None:
-        """Mark the entire execution complete and durably checkpoint it."""
+        """Mark the entire execution complete only after successful validation."""
+        invalid_results = [
+            result
+            for result in context.validation_results
+            if result.get("valid") is False
+        ]
+        if invalid_results:
+            self.evidence.record(
+                context.identity.execution_id,
+                "execution.completion_blocked",
+                {"reason": "validation_failed", "invalid_results": len(invalid_results)},
+            )
+            self.checkpoint_store.save(context)
+            raise ExecutionError("Execution cannot complete with failed validation.")
+
+        if context.status in {ExecutionStatus.REPLANNING, ExecutionStatus.RECOVERING, ExecutionStatus.ESCALATED}:
+            self.evidence.record(
+                context.identity.execution_id,
+                "execution.completion_blocked",
+                {"reason": context.status.value},
+            )
+            self.checkpoint_store.save(context)
+            raise ExecutionError(
+                f"Execution cannot complete while in {context.status.value} recovery state."
+            )
+
         context.set_status(ExecutionStatus.COMPLETED)
         self.checkpoint_store.save(context)
         self.evidence.record(context.identity.execution_id, "execution.completed")
