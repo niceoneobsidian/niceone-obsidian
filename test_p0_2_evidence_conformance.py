@@ -9,6 +9,7 @@ from ois.kernel import (
     CapabilityContract,
     CapabilityNotFoundError,
     CapabilityRegistry,
+    DefaultPolicyEngine,
     ExecutionContext,
     ExecutionError,
     ExecutionIdentity,
@@ -28,10 +29,18 @@ from ois.kernel import (
 
 
 class ValidCapability:
-    def __init__(self, capability_id: str, *, output_valid: bool = True, counter: list[int] | None = None):
+    def __init__(
+        self,
+        capability_id: str,
+        *,
+        output_valid: bool = True,
+        counter: list[int] | None = None,
+        permissions: tuple[str, ...] = (),
+    ):
         self.capability_id = capability_id
         self.output_valid = output_valid
         self.counter = counter
+        self.permissions = permissions
 
     @property
     def contract(self) -> CapabilityContract:
@@ -50,6 +59,7 @@ class ValidCapability:
                 "properties": {"value": {"type": "string"}},
             },
             risk_level=RiskLevel.LOW,
+            permissions=self.permissions,
             side_effects=SideEffectLevel.NONE,
         )
 
@@ -70,26 +80,21 @@ class ValidCapability:
 class ConsequentialCapability(ValidCapability):
     @property
     def contract(self) -> CapabilityContract:
+        base = super().contract
         return CapabilityContract(
-            capability_id=self.capability_id,
-            version="1.0.0",
-            description="Consequential idempotency capability.",
-            input_schema={
-                "type": "object",
-                "required": ["value"],
-                "properties": {"value": {"type": "string"}},
-            },
-            output_schema={
-                "type": "object",
-                "required": ["value"],
-                "properties": {"value": {"type": "string"}},
-            },
-            risk_level=RiskLevel.LOW,
+            capability_id=base.capability_id,
+            version=base.version,
+            description=base.description,
+            input_schema=base.input_schema,
+            output_schema=base.output_schema,
+            risk_level=base.risk_level,
+            permissions=base.permissions,
             side_effects=SideEffectLevel.REVERSIBLE,
         )
 
 
-def make_runtime(tmp_path: Path, capabilities, *, permissions=()):
+def make_runtime(tmp_path: Path, capabilities, *, policy=None):
+    tmp_path.mkdir(parents=True, exist_ok=True)
     registry = CapabilityRegistry()
     for capability in capabilities:
         registry.register(capability)
@@ -98,6 +103,7 @@ def make_runtime(tmp_path: Path, capabilities, *, permissions=()):
         checkpoint_store=SQLiteCheckpointStore(str(tmp_path / "checkpoints.db")),
         evidence=SQLiteEvidenceLedger(str(tmp_path / "evidence.db")),
         idempotency=SQLiteIdempotencyStore(str(tmp_path / "idempotency.db")),
+        policy=policy or DefaultPolicyEngine(),
     )
 
 
@@ -215,8 +221,13 @@ def test_true_idempotency_one_effect_same_governed_result_across_runtime_restart
     assert second.invocation_id == first.invocation_id
     assert second.output == first.output
     assert counter[0] == 1
-    events = event_types(runtime_two, context_two.identity.execution_id)
-    assert "execution.idempotency_hit" in events
+    hit = next(
+        event
+        for event in runtime_two.evidence.list(context_two.identity.execution_id)
+        if event.event_type == "execution.idempotency_hit"
+    )
+    assert hit.data["idempotency_key"] == "effect-42"
+    assert hit.data["effect_invocation_id"] == first.invocation_id
 
 
 def test_negative_controls_reject_without_execution_and_causal_evidence_is_ordered(tmp_path: Path):
@@ -245,24 +256,26 @@ def test_negative_controls_reject_without_execution_and_causal_evidence_is_order
         )
     assert counter[0] == 0
 
-    restricted = ValidCapability("test.restricted", counter=counter)
-    restricted.contract = None  # type: ignore[misc]
+    restricted = ValidCapability("test.restricted", counter=counter, permissions=("restricted.execute",))
+    denied_runtime = make_runtime(tmp_path / "denied", [restricted])
+    denied_context = make_context()
+    with pytest.raises(AuthorizationDenied):
+        denied_runtime.execute(
+            denied_context,
+            "test.restricted",
+            "1.0.0",
+            {"value": "blocked"},
+            idempotency_key="unauthorized-1",
+        )
+    assert counter[0] == 0
 
+    events = event_types(runtime, context.identity.execution_id)
+    assert events.index("execution.received") < events.index("execution.input_validated")
+    assert "execution.authorized" not in events
+    assert "capability.started" not in events
 
-def test_unauthorized_capability_zero_execution_and_evidence(tmp_path: Path):
-    counter = [0]
-    capability = ValidCapability("test.unauthorized", counter=counter)
-
-    registry = CapabilityRegistry()
-    registry.register(capability)
-    from ois.kernel import DefaultPolicyEngine
-
-    runtime = ExecutionRuntime(
-        registry=registry,
-        checkpoint_store=SQLiteCheckpointStore(str(tmp_path / "checkpoints.db")),
-        evidence=SQLiteEvidenceLedger(str(tmp_path / "evidence.db")),
-        idempotency=SQLiteIdempotencyStore(str(tmp_path / "idempotency.db")),
-        policy=DefaultPolicyEngine(allowed_permissions=()),
-    )
-    context = make_context()
-    capability.contract = None  # type: ignore[misc]
+    denied_events = event_types(denied_runtime, denied_context.identity.execution_id)
+    assert "execution.received" in denied_events
+    assert "execution.input_validated" in denied_events
+    assert "execution.authorized" not in denied_events
+    assert "capability.started" not in denied_events
