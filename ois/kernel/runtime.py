@@ -62,8 +62,14 @@ class ExecutionRuntime:
                 f"Execution cannot continue from {context.status.value}."
             )
 
-        if invocation_id is not None and idempotency_key is not None and invocation_id != idempotency_key:
-            raise ExecutionError("invocation_id and idempotency_key must match when both are supplied.")
+        if (
+            invocation_id is not None
+            and idempotency_key is not None
+            and invocation_id != idempotency_key
+        ):
+            raise ExecutionError(
+                "invocation_id and idempotency_key must match when both are supplied."
+            )
 
         logical_invocation_id = idempotency_key or invocation_id or str(uuid4())
         cached = self.idempotency.get(logical_invocation_id)
@@ -258,7 +264,12 @@ class ExecutionRuntime:
             self.checkpoint_store.save(context)
             raise ExecutionError("Execution cannot complete with failed validation.")
 
-        if context.status in {ExecutionStatus.REPLANNING, ExecutionStatus.RECOVERING, ExecutionStatus.ESCALATED}:
+        recovery_states = {
+            ExecutionStatus.REPLANNING,
+            ExecutionStatus.RECOVERING,
+            ExecutionStatus.ESCALATED,
+        }
+        if context.status in recovery_states:
             self.evidence.record(
                 context.identity.execution_id,
                 "execution.completion_blocked",
@@ -344,7 +355,11 @@ class ExecutionRuntime:
         self.evidence.record(
             execution_id,
             "execution.cancelled",
-            {"capability_id": capability_id, "invocation_id": invocation_id, "reason": str(error)},
+            {
+                "capability_id": capability_id,
+                "invocation_id": invocation_id,
+                "reason": str(error),
+            },
         )
         self.checkpoint_store.save(context)
         return InvocationResult(
