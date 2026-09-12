@@ -1,5 +1,6 @@
 """Provider-neutral football domain models inspired by sportsipy abstractions."""
 
+from .analytics import records_to_dataframe, summarize_statistics
 from .models import (
     FootballBoxscore,
     FootballFixture,
@@ -11,7 +12,8 @@ from .models import (
     FootballStatistic,
     FootballTeam,
 )
-from .analytics import records_to_dataframe, summarize_statistics
+from .provider import DictFixtureRepository, FixtureRepository, FootballProvider
+from .schedule import Schedule
 
 __all__ = [
     "FootballTeam",
@@ -23,6 +25,10 @@ __all__ = [
     "FootballPlayer",
     "FootballStanding",
     "FootballStatistic",
+    "Schedule",
+    "FootballProvider",
+    "FixtureRepository",
+    "DictFixtureRepository",
     "records_to_dataframe",
     "summarize_statistics",
 ]
