@@ -44,10 +44,10 @@ from .controller import ControlPlane
 from .request import ControlRequest
 
 
-class KernelRegistryAdapter(CapabilityRegistry):
+class KernelRegistryAdapter:
     """Adapt the canonical Control Plane registry to the Kernel registry contract."""
 
-    def __init__(self, registry: CapabilityRegistry | KernelRegistryAdapter) -> None:
+    def __init__(self, registry: CapabilityRegistry) -> None:
         self.registry = registry
 
     def get(self, capability_id: str, version: str) -> KernelRegistryEntry:

@@ -8,18 +8,18 @@ execution, checkpointing, idempotency and evidence.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any, cast
-from uuid import uuid4
 
 from ois.kernel.checkpoint import CheckpointStore, InMemoryCheckpointStore
 from ois.kernel.evidence import EvidenceLedger, EvidenceStore
 from ois.kernel.policy import AuthorizationDenied, DefaultPolicyEngine, PolicyEngine
-from ois.kernel.registry import CapabilityRegistry
+from ois.kernel.registry import CapabilityRegistry as KernelCapabilityRegistry
 from ois.kernel.runtime import ExecutionRuntime
 from ois.kernel.state import ExecutionContext, ExecutionIdentity
 from ois.kernel.types import ExecutionStatus
+from ois.registries import CapabilityRegistry
 
 
 @dataclass(frozen=True)
@@ -63,7 +63,7 @@ class OISSpine:
         self.checkpoints = checkpoint_store or InMemoryCheckpointStore()
         self.policy = policy or DefaultPolicyEngine()
         self.runtime = ExecutionRuntime(
-            registry,
+            cast(KernelCapabilityRegistry, registry),
             self.checkpoints,
             evidence=self.evidence,
             policy=self.policy,
@@ -71,7 +71,6 @@ class OISSpine:
 
     def submit(self, request: SpineRequest, *, invocation_id: str | None = None) -> SpineResult:
         """Run THINK → VERIFY → AUTHORIZE → ACT → VALIDATE → EVIDENCE."""
-        execution_id = str(uuid4())
         context = ExecutionContext(
             identity=ExecutionIdentity(
                 tenant_id=request.tenant_id,
@@ -112,16 +111,13 @@ class OISSpine:
                 {"capability_id": request.capability_id, "reason": str(exc)},
             )
             self.checkpoints.save(context)
-            events = getattr(self.evidence, "events", None)
             return SpineResult(
                 execution_id=execution_id,
                 invocation_id=invocation_id or "",
                 status="denied",
                 error={"type": type(exc).__name__, "message": str(exc)},
-                evidence=(
-                    tuple(cast(Callable[[str], Iterable[Mapping[str, Any]]], events)(execution_id))
-                    if callable(events)
-                    else ()
+                evidence=tuple(
+                    event.to_dict() for event in cast(Any, self.evidence).list(execution_uuid)
                 ),
             )
 
@@ -132,16 +128,13 @@ class OISSpine:
             "spine.verified",
             {"status": result.status.value, "capability_id": request.capability_id},
         )
-        events = getattr(self.evidence, "events", None)
         return SpineResult(
             execution_id=execution_id,
             invocation_id=result.invocation_id,
             status=result.status.value,
             output=result.output,
             error=result.error,
-            evidence=(
-                tuple(cast(Callable[[str], Iterable[Mapping[str, Any]]], events)(execution_id))
-                if callable(events)
-                else ()
+            evidence=tuple(
+                event.to_dict() for event in cast(Any, self.evidence).list(execution_uuid)
             ),
         )
