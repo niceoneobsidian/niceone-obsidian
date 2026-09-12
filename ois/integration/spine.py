@@ -19,6 +19,7 @@ from ois.kernel.registry import CapabilityRegistry as KernelCapabilityRegistry
 from ois.kernel.runtime import ExecutionRuntime
 from ois.kernel.state import ExecutionContext, ExecutionIdentity
 from ois.kernel.types import ExecutionStatus
+from ois.registries import CapabilityRegistry
 
 
 @dataclass(frozen=True)
