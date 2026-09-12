@@ -13,12 +13,7 @@ from typing import Any, cast
 from uuid import UUID, uuid4
 
 from ois.kernel.checkpoint import CheckpointStore, InMemoryCheckpointStore
-from ois.kernel.contracts import (
-    CapabilityContract,
-    InvocationRequest,
-    InvocationResult,
-    PolicyEngine,
-)
+from ois.kernel.contracts import CapabilityContract, InvocationRequest, InvocationResult, PolicyEngine
 from ois.kernel.evidence import EvidenceEvent as KernelEvidenceEvent
 from ois.kernel.evidence import EvidenceStore as KernelEvidenceStore
 from ois.kernel.policy import DefaultPolicyEngine
@@ -44,10 +39,10 @@ from .controller import ControlPlane
 from .request import ControlRequest
 
 
-class KernelRegistryAdapter(CapabilityRegistry):
+class KernelRegistryAdapter:
     """Adapt the canonical Control Plane registry to the Kernel registry contract."""
 
-    def __init__(self, registry: CapabilityRegistry | KernelRegistryAdapter) -> None:
+    def __init__(self, registry: CapabilityRegistry) -> None:
         self.registry = registry
 
     def get(self, capability_id: str, version: str) -> KernelRegistryEntry:
@@ -154,20 +149,7 @@ class RolloutResult:
 class OISProductionLifecycle:
     """Bind the canonical Control Plane, Kernel and production lifecycle adapters."""
 
-    def __init__(
-        self,
-        control_plane: ControlPlane,
-        capabilities: CapabilityRegistry,
-        *,
-        checkpoints: CheckpointStore | None = None,
-        policy: PolicyEngine | None = None,
-        evidence: EvidenceLedger | None = None,
-        world: SemanticWorld | None = None,
-        learning: LearningLoop | None = None,
-        canary: CanaryController | None = None,
-        authorization: RBACABAC | None = None,
-        deployment: DeploymentAdapter | None = None,
-    ) -> None:
+    def __init__(self, control_plane: ControlPlane, capabilities: CapabilityRegistry, *, checkpoints: CheckpointStore | None = None, policy: PolicyEngine | None = None, evidence: EvidenceLedger | None = None, world: SemanticWorld | None = None, learning: LearningLoop | None = None, canary: CanaryController | None = None, authorization: RBACABAC | None = None, deployment: DeploymentAdapter | None = None) -> None:
         self.control_plane = control_plane
         self.capabilities = capabilities
         self.evidence = evidence or EvidenceLedger()
@@ -179,188 +161,46 @@ class OISProductionLifecycle:
         self.kernel_registry = KernelRegistryAdapter(capabilities)
         self.kernel_evidence = KernelEvidenceBridge(self.evidence)
         self.policy = policy or ProductionPolicyAdapter(self.authorization)
-        self.runtime = ExecutionRuntime(
-            cast(Any, self.kernel_registry),
-            self.checkpoints,
-            evidence=self.kernel_evidence,
-            policy=self.policy,
-        )
-        self.deployment = ProductionControlPlane(
-            authorization=self.authorization,
-            evidence=self.evidence,
-            deployment=deployment or InMemoryDeploymentAdapter(),
-        )
+        self.runtime = ExecutionRuntime(cast(Any, self.kernel_registry), self.checkpoints, evidence=self.kernel_evidence, policy=self.policy)
+        self.deployment = ProductionControlPlane(authorization=self.authorization, evidence=self.evidence, deployment=deployment or InMemoryDeploymentAdapter())
 
-    def execute(
-        self,
-        request: ControlRequest,
-        *,
-        objective: str,
-        tenant_id: str = "default",
-        invocation_id: str | None = None,
-        subject_id: str = "system",
-        roles: frozenset[str] = frozenset(),
-        permissions: frozenset[str] = frozenset(),
-        environment: str = "staging",
-        attributes: Mapping[str, str] | None = None,
-    ) -> LifecycleResult:
-        """Resolve via the existing Control Plane and execute only via the Kernel."""
+    def execute(self, request: ControlRequest, *, objective: str, tenant_id: str = "default", invocation_id: str | None = None, subject_id: str = "system", roles: frozenset[str] = frozenset(), permissions: frozenset[str] = frozenset(), environment: str = "staging", attributes: Mapping[str, str] | None = None) -> LifecycleResult:
         self.control_plane.resolve_capability(request)
-        context = ExecutionContext(
-            identity=ExecutionIdentity(
-                tenant_id=tenant_id,
-                workflow_id="ois.production.lifecycle",
-                workflow_version="1.0.0",
-            ),
-            objective=objective,
-            metadata={
-                "subject_id": subject_id,
-                "roles": tuple(roles),
-                "permissions": tuple(permissions),
-                "environment": environment,
-                "attributes": dict(attributes or {}),
-            },
-        )
+        context = ExecutionContext(identity=ExecutionIdentity(tenant_id=tenant_id, workflow_id="ois.production.lifecycle", workflow_version="1.0.0"), objective=objective, metadata={"subject_id": subject_id, "roles": tuple(roles), "permissions": tuple(permissions), "environment": environment, "attributes": dict(attributes or {})})
         execution_id = str(context.identity.execution_id)
-        entity = self.world.upsert_entity(
-            "execution",
-            {"execution_id": execution_id, "objective": objective},
-        )
-        self.evidence.append(
-            execution_id,
-            "control_plane.request.accepted",
-            {
-                "capability_id": request.capability_id,
-                "version": request.capability_version,
-                "tenant_id": tenant_id,
-            },
-        )
+        entity = self.world.upsert_entity("execution", {"execution_id": execution_id, "objective": objective})
+        self.evidence.append(execution_id, "control_plane.request.accepted", {"capability_id": request.capability_id, "version": request.capability_version, "tenant_id": tenant_id})
         self.world.assert_fact(entity.entity_id, "execution.accepted", True, source="control_plane")
-
-        result = self.runtime.execute(
-            context,
-            request.capability_id,
-            request.capability_version,
-            dict(request.input),
-            invocation_id=invocation_id,
-        )
+        result = self.runtime.execute(context, request.capability_id, request.capability_version, dict(request.input), invocation_id=invocation_id)
         succeeded = result.status == InvocationStatus.SUCCEEDED
-        self.world.assert_fact(
-            entity.entity_id,
-            "execution.succeeded",
-            succeeded,
-            source=f"kernel:{result.invocation_id}",
-        )
-        evaluation = self.learning.evaluate(
-            f"capability:{request.capability_id}@{request.capability_version}",
-            [Measurement("execution_success", 1.0 if succeeded else 0.0)],
-            baseline=0.0,
-            minimum_score=0.5,
-        )
-        learning_state = self.learning.candidate(
-            f"capability:{request.capability_id}@{request.capability_version}", evaluation
-        )
+        self.world.assert_fact(entity.entity_id, "execution.succeeded", succeeded, source=f"kernel:{result.invocation_id}")
+        evaluation = self.learning.evaluate(f"capability:{request.capability_id}@{request.capability_version}", [Measurement("execution_success", 1.0 if succeeded else 0.0)], baseline=0.0, minimum_score=0.5)
+        learning_state = self.learning.candidate(f"capability:{request.capability_id}@{request.capability_version}", evaluation)
         if succeeded:
             self.runtime.complete(context)
-        return LifecycleResult(
-            result=result,
-            execution_id=execution_id,
-            evidence_event_ids=tuple(
-                event.event_id for event in self.evidence.events(execution_id)
-            ),
-            semantic_entity_id=entity.entity_id,
-            learning_state=learning_state,
-        )
+        return LifecycleResult(result=result, execution_id=execution_id, evidence_event_ids=tuple(event.event_id for event in self.evidence.events(execution_id)), semantic_entity_id=entity.entity_id, learning_state=learning_state)
 
-    def rollout_from_executions(
-        self,
-        *,
-        candidate: str,
-        environment: str,
-        previous: str,
-        executions: Iterable[LifecycleResult],
-        traffic_percent: int,
-        latency_ms: float,
-        release_subject: Subject,
-    ) -> RolloutResult:
-        """Gate promotion/rollback from actual Kernel execution outcomes."""
+    def rollout_from_executions(self, *, candidate: str, environment: str, previous: str, executions: Iterable[LifecycleResult], traffic_percent: int, latency_ms: float, release_subject: Subject) -> RolloutResult:
         observed = tuple(executions)
         successes = sum(item.result.status is InvocationStatus.SUCCEEDED for item in observed)
         execution_ids = tuple(item.execution_id for item in observed)
         rollout_id = f"rollout:{candidate}:{environment}"
-        self.evidence.append(
-            rollout_id,
-            "rollout.canary.started",
-            {
-                "candidate": candidate,
-                "traffic_percent": traffic_percent,
-                "execution_ids": list(execution_ids),
-            },
-        )
-        decision = self.canary.decide(
-            candidate,
-            traffic_percent,
-            successes=successes,
-            total=len(observed),
-            latency_ms=latency_ms,
-        )
+        self.evidence.append(rollout_id, "rollout.canary.started", {"candidate": candidate, "traffic_percent": traffic_percent, "execution_ids": list(execution_ids)})
+        decision = self.canary.decide(candidate, traffic_percent, successes=successes, total=len(observed), latency_ms=latency_ms)
         if not decision.passed:
-            self.evidence.append(
-                rollout_id,
-                "rollout.canary.failed",
-                {"success_rate": decision.success_rate, "latency_ms": latency_ms},
-            )
+            self.evidence.append(rollout_id, "rollout.canary.failed", {"success_rate": decision.success_rate, "latency_ms": latency_ms})
             rollback = self.deployment.rollback(release_subject, previous, environment)
-            self.evidence.append(
-                rollout_id,
-                "rollout.rollback.verified",
-                {"target": previous, "deployment_evidence": list(rollback.evidence_ids)},
-            )
+            self.evidence.append(rollout_id, "rollout.rollback.verified", {"target": previous, "deployment_evidence": list(rollback.evidence_ids)})
             state = "ROLLED_BACK"
         else:
-            self.evidence.append(
-                rollout_id,
-                "rollout.canary.passed",
-                {"success_rate": decision.success_rate, "latency_ms": latency_ms},
-            )
-            activation = self.deployment.activate(
-                release_subject, candidate, environment, previous=previous
-            )
-            self.evidence.append(
-                rollout_id,
-                "rollout.promoted",
-                {"candidate": candidate, "deployment_evidence": list(activation.evidence_ids)},
-            )
+            self.evidence.append(rollout_id, "rollout.canary.passed", {"success_rate": decision.success_rate, "latency_ms": latency_ms})
+            activation = self.deployment.activate(release_subject, candidate, environment, previous=previous)
+            self.evidence.append(rollout_id, "rollout.promoted", {"candidate": candidate, "deployment_evidence": list(activation.evidence_ids)})
             state = "PROMOTED"
-        return RolloutResult(
-            candidate=candidate,
-            decision=decision,
-            state=state,
-            execution_ids=execution_ids,
-            evidence_event_ids=tuple(event.event_id for event in self.evidence.events(rollout_id)),
-        )
+        return RolloutResult(candidate=candidate, decision=decision, state=state, execution_ids=execution_ids, evidence_event_ids=tuple(event.event_id for event in self.evidence.events(rollout_id)))
 
     def worker(self, queue: LeaseQueue, worker_id: str) -> Worker:
-        """Create a worker whose handler re-enters the canonical Control Plane."""
-
         def handle(payload: dict[str, Any]) -> LifecycleResult:
-            request = ControlRequest(
-                capability_id=str(payload["capability_id"]),
-                capability_version=str(payload["capability_version"]),
-                input=dict(payload.get("input", {})),
-            )
-            return self.execute(
-                request,
-                objective=str(payload.get("objective", "worker execution")),
-                tenant_id=str(payload.get("tenant_id", "default")),
-                invocation_id=payload.get("invocation_id"),
-                subject_id=str(payload.get("subject_id", "worker")),
-                roles=frozenset(str(role) for role in payload.get("roles", ())),
-                permissions=frozenset(
-                    str(permission) for permission in payload.get("permissions", ())
-                ),
-                environment=str(payload.get("environment", "staging")),
-                attributes={str(k): str(v) for k, v in dict(payload.get("attributes", {})).items()},
-            )
-
+            request = ControlRequest(capability_id=str(payload["capability_id"]), capability_version=str(payload["capability_version"]), input=dict(payload.get("input", {})))
+            return self.execute(request, objective=str(payload.get("objective", "worker execution")), tenant_id=str(payload.get("tenant_id", "default")), invocation_id=payload.get("invocation_id"), subject_id=str(payload.get("subject_id", "worker")), roles=frozenset(str(role) for role in payload.get("roles", ())), permissions=frozenset(str(permission) for permission in payload.get("permissions", ())), environment=str(payload.get("environment", "staging")), attributes={str(k): str(v) for k, v in dict(payload.get("attributes", {})).items()})
         return Worker(worker_id, queue, handle)
