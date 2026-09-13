@@ -17,12 +17,12 @@ parameters.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from hashlib import sha256
 import hmac
 import math
 import random
-from typing import Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
+from hashlib import sha256
 
 
 @dataclass(frozen=True)
@@ -147,7 +147,8 @@ def weighted_centroid(
 
     total_weight = float(sum(weights))
     centroid = tuple(
-        sum(vector[i] * weight for vector, weight in zip(vectors, weights)) / total_weight
+        sum(vector[i] * weight for vector, weight in zip(vectors, weights, strict=True))
+        / total_weight
         for i in range(dimension)
     )
     norm = math.sqrt(sum(value * value for value in centroid))
