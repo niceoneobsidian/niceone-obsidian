@@ -35,8 +35,18 @@ def test_taxonomy_capability_is_executable_without_external_side_effects() -> No
             "social.genome.taxonomy.build",
             {
                 "nodes": [
-                    {"node_id": "g1", "name": "AI Founders", "kind": "gene", "keywords": ["ai", "founders"]},
-                    {"node_id": "g2", "name": "AI Automation", "kind": "gene", "keywords": ["ai", "automation"]},
+                    {
+                        "node_id": "g1",
+                        "name": "AI Founders",
+                        "kind": "gene",
+                        "keywords": ["ai", "founders"],
+                    },
+                    {
+                        "node_id": "g2",
+                        "name": "AI Automation",
+                        "kind": "gene",
+                        "keywords": ["ai", "automation"],
+                    },
                 ]
             },
         )
