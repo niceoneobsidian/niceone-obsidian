@@ -54,7 +54,8 @@ def _stable_external_id(observation: ChatObservation) -> str:
             observation.source_uri or "",
         )
     )
-    return f"chatgpt:{sha256(material.encode("utf-8")).hexdigest()[:24]}"
+    digest = sha256(material.encode("utf-8")).hexdigest()[:24]
+    return f"chatgpt:{digest}"
 
 
 def normalize_observation(observation: ChatObservation) -> SocialEvent:
