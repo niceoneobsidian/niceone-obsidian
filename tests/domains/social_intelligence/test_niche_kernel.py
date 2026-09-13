@@ -5,6 +5,19 @@ from ois.domains.social_intelligence.niche_kernel import (
 )
 from ois.kernel.contracts import InvocationRequest
 from ois.kernel.registry import CapabilityRegistry
+from ois.kernel.state import ExecutionContext, ExecutionIdentity
+
+
+def _request(capability_id: str, payload: dict[str, object]) -> InvocationRequest:
+    return InvocationRequest(
+        invocation_id="invocation-1",
+        capability_id=capability_id,
+        input=payload,
+        execution=ExecutionContext(
+            identity=ExecutionIdentity(tenant_id="test"),
+            objective="social genome test",
+        ),
+    )
 
 
 def test_niche_capabilities_expose_authoritative_contracts() -> None:
@@ -18,13 +31,14 @@ def test_niche_capabilities_expose_authoritative_contracts() -> None:
 
 def test_taxonomy_capability_is_executable_without_external_side_effects() -> None:
     result = NicheTaxonomyCapability().invoke(
-        InvocationRequest(
-            input={
+        _request(
+            "social.genome.taxonomy.build",
+            {
                 "nodes": [
                     {"node_id": "g1", "name": "AI Founders", "kind": "gene", "keywords": ["ai", "founders"]},
                     {"node_id": "g2", "name": "AI Automation", "kind": "gene", "keywords": ["ai", "automation"]},
                 ]
-            }
+            },
         )
     )
     assert result.status.value == "succeeded"
@@ -34,8 +48,9 @@ def test_taxonomy_capability_is_executable_without_external_side_effects() -> No
 
 def test_scoring_capability_is_executable() -> None:
     result = NicheScoringCapability().invoke(
-        InvocationRequest(
-            input={
+        _request(
+            "social.genome.niche.score",
+            {
                 "node_id": "g1",
                 "demand_score": 0.8,
                 "observations": [
@@ -50,7 +65,7 @@ def test_scoring_capability_is_executable() -> None:
                         "evidence_confidence": 0.9,
                     }
                 ],
-            }
+            },
         )
     )
     assert result.status.value == "succeeded"
@@ -60,5 +75,5 @@ def test_scoring_capability_is_executable() -> None:
 def test_registration_uses_existing_registry() -> None:
     registry = CapabilityRegistry()
     register_niche_genome_capabilities(registry)
-    assert registry.get("social.genome.taxonomy.build") is not None
-    assert registry.get("social.genome.niche.score") is not None
+    assert registry.has("social.genome.taxonomy.build", "1.0.0")
+    assert registry.has("social.genome.niche.score", "1.0.0")
