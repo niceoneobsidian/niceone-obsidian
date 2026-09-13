@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import cast
 
 from ois.kernel.contracts import CapabilityContract, InvocationRequest, InvocationResult
 from ois.kernel.registry import CapabilityRegistry
 from ois.kernel.types import InvocationStatus, RiskLevel, SideEffectLevel
 
 from .niche_genome import (
-    NicheNode,
     NicheObservation,
+    NodeKind,
     build_taxonomy_node,
     infer_intersection_edges,
     score_niche,
@@ -46,7 +47,7 @@ class NicheTaxonomyCapability:
             build_taxonomy_node(
                 node_id=str(item["node_id"]),
                 name=str(item["name"]),
-                kind=str(item["kind"]),
+                kind=cast(NodeKind, str(item["kind"])),
                 parent_id=item.get("parent_id"),
                 description=str(item.get("description", "")),
                 keywords=item.get("keywords", ()),
@@ -74,7 +75,11 @@ class NicheScoringCapability:
             capability_id="social.genome.niche.score",
             version="1.0.0",
             description="Compute deterministic, evidence-aware niche opportunity scores.",
-            input_schema={"node_id": "string", "observations": "array", "demand_score": "number"},
+            input_schema={
+                "node_id": "string",
+                "observations": "array",
+                "demand_score": "number",
+            },
             output_schema={"score": "object"},
             risk_level=RiskLevel.LOW,
             allowed_domains=("social_intelligence",),
