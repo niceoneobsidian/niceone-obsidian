@@ -1,0 +1,71 @@
+{
+  "manifest_version": "1.0",
+  "domain": "social_intelligence",
+  "module": "social_genome",
+  "status": "IMPLEMENTED_FOUNDATION",
+  "evidence_policy": "candidate_until_observed_and_validated",
+  "architecture": {
+    "chromosome": "macro industry/topic",
+    "gene": "micro niche/sub-community",
+    "traits": [
+      "engagement_rate",
+      "sentiment_index",
+      "viral_velocity",
+      "platform_distribution",
+      "audience_segments",
+      "evidence_confidence"
+    ],
+    "edges": [
+      "contains",
+      "intersects",
+      "related",
+      "competes",
+      "audience_overlap",
+      "content_overlap"
+    ],
+    "semantic_store": "PostgreSQL + pgvector",
+    "graph_vendor": "none_required"
+  },
+  "capabilities": [
+    {
+      "id": "social.genome.taxonomy.build",
+      "risk": "low",
+      "side_effects": "none",
+      "idempotent": true,
+      "status": "IMPLEMENTED_TESTED"
+    },
+    {
+      "id": "social.genome.niche.score",
+      "risk": "low",
+      "side_effects": "none",
+      "idempotent": true,
+      "status": "IMPLEMENTED_TESTED"
+    }
+  ],
+  "ingestion_sources": {
+    "supported_as_adapters": [
+      "reddit",
+      "youtube",
+      "tiktok",
+      "instagram",
+      "x",
+      "linkedin",
+      "web",
+      "news",
+      "github",
+      "huggingface_datasets"
+    ],
+    "live_credentials": "NOT_VERIFIED",
+    "historical_dataset_license": "MUST_BE_VALIDATED_PER_DATASET"
+  },
+  "promotion_gates": [
+    "source_provenance",
+    "deduplication",
+    "observation_quality",
+    "minimum_sample_size",
+    "cross_source_confirmation",
+    "privacy_policy",
+    "tenant_isolation",
+    "evaluation_evidence"
+  ]
+}
