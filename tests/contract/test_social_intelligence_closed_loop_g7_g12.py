@@ -63,7 +63,11 @@ def test_g10_calibration_is_evidence_bounded() -> None:
 
 
 def test_g11_exploit_and_explore_are_bounded() -> None:
-    config = OptimizationConfig(exploration_epsilon=0.5, generation_temperature=0.4, top_k_precedents=3)
+    config = OptimizationConfig(
+        exploration_epsilon=0.5,
+        generation_temperature=0.4,
+        top_k_precedents=3,
+    )
     exploit = choose_optimization_strategy(config, rng=Random(2))
     explore = choose_optimization_strategy(config, rng=Random(1))
     assert exploit["execution_mode"] == "exploit"
@@ -74,19 +78,28 @@ def test_g11_exploit_and_explore_are_bounded() -> None:
 
 
 def test_g12_pauses_on_queue_age_boundary() -> None:
-    state = evaluate_g12_boundary(queue_oldest_age_seconds=3600, consecutive_failures=0)
+    state = evaluate_g12_boundary(
+        queue_oldest_age_seconds=3600,
+        consecutive_failures=0,
+    )
     assert state.state == "PAUSED"
     assert not state.execution_allowed
     assert state.reason == "queue_oldest_age_boundary_breached"
 
 
 def test_g12_pauses_on_repeated_failure_boundary() -> None:
-    state = evaluate_g12_boundary(queue_oldest_age_seconds=10, consecutive_failures=5)
+    state = evaluate_g12_boundary(
+        queue_oldest_age_seconds=10,
+        consecutive_failures=5,
+    )
     assert state.state == "PAUSED"
     assert state.reason == "consecutive_failure_boundary_breached"
 
 
 def test_g12_allows_execution_inside_bounds() -> None:
-    state = evaluate_g12_boundary(queue_oldest_age_seconds=10, consecutive_failures=1)
+    state = evaluate_g12_boundary(
+        queue_oldest_age_seconds=10,
+        consecutive_failures=1,
+    )
     assert state.execution_allowed
     assert state.reason == "within_operational_bounds"
