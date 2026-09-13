@@ -12,16 +12,24 @@ supported by observations/evidence and validated by the OIS promotion gates.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import math
 import re
-from typing import Iterable, Literal, Sequence
+from collections.abc import Iterable, Sequence
+from dataclasses import dataclass
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
 
 NodeKind = Literal["chromosome", "gene", "topic", "community", "entity"]
-EdgeKind = Literal["contains", "intersects", "related", "competes", "audience_overlap", "content_overlap"]
+EdgeKind = Literal[
+    "contains",
+    "intersects",
+    "related",
+    "competes",
+    "audience_overlap",
+    "content_overlap",
+]
 EvidenceStatus = Literal["candidate", "observed", "validated", "deprecated"]
 
 
@@ -112,10 +120,21 @@ def slugify(value: str) -> str:
 
 
 def build_taxonomy_node(
-    *, node_id: str, name: str, kind: NodeKind, parent_id: str | None = None,
-    description: str = "", keywords: Sequence[str] = (), confidence: float = 0.0,
+    *,
+    node_id: str,
+    name: str,
+    kind: NodeKind,
+    parent_id: str | None = None,
+    description: str = "",
+    keywords: Sequence[str] = (),
+    confidence: float = 0.0,
 ) -> NicheNode:
     """Create a candidate taxonomy node without claiming empirical validation."""
+    normalized_keywords = tuple(
+        dict.fromkeys(
+            keyword.strip().lower() for keyword in keywords if keyword.strip()
+        )
+    )
     return NicheNode(
         node_id=node_id,
         slug=slugify(name),
@@ -123,14 +142,24 @@ def build_taxonomy_node(
         kind=kind,
         parent_id=parent_id,
         description=description,
-        keywords=tuple(dict.fromkeys(keyword.strip().lower() for keyword in keywords if keyword.strip())),
+        keywords=normalized_keywords,
         confidence=confidence,
     )
 
 
-def normalize_observations(observations: Iterable[NicheObservation]) -> list[NicheObservation]:
+def normalize_observations(
+    observations: Iterable[NicheObservation],
+) -> list[NicheObservation]:
     """Return deterministic observation order for reproducible aggregation."""
-    return sorted(observations, key=lambda item: (item.node_id, item.platform, item.observed_at, item.observation_id))
+    return sorted(
+        observations,
+        key=lambda item: (
+            item.node_id,
+            item.platform,
+            item.observed_at,
+            item.observation_id,
+        ),
+    )
 
 
 def score_niche(
@@ -162,9 +191,18 @@ def score_niche(
             sample_size=0,
         )
 
-    engagement = min(1.0, sum(item.engagement_rate for item in selected) / len(selected))
-    velocity = min(1.0, sum(item.viral_velocity for item in selected) / len(selected))
-    evidence = min(1.0, sum(item.evidence_confidence for item in selected) / len(selected))
+    engagement = min(
+        1.0,
+        sum(item.engagement_rate for item in selected) / len(selected),
+    )
+    velocity = min(
+        1.0,
+        sum(item.viral_velocity for item in selected) / len(selected),
+    )
+    evidence = min(
+        1.0,
+        sum(item.evidence_confidence for item in selected) / len(selected),
+    )
     opportunity = (
         cfg.demand_weight * demand_score
         + cfg.engagement_weight * engagement
@@ -183,7 +221,7 @@ def score_niche(
 
 
 def infer_intersection_edges(
-    nodes: Sequence[NicheNode], *, minimum_shared_keywords: int = 1,
+    nodes: Sequence[NicheNode], *, minimum_shared_keywords: int = 1
 ) -> tuple[NicheEdge, ...]:
     """Create candidate cross-niche edges from explicit keyword overlap.
 
@@ -201,7 +239,8 @@ def infer_intersection_edges(
                 shared = left_keywords.intersection(right.keywords)
                 if len(shared) >= minimum_shared_keywords:
                     edge_id = f"intersection:{left.node_id}:{right.node_id}"
-                    strength = min(1.0, len(shared) / max(len(left_keywords | set(right.keywords)), 1))
+                    union_size = len(left_keywords | set(right.keywords))
+                    strength = min(1.0, len(shared) / max(union_size, 1))
                     edges.append(
                         NicheEdge(
                             edge_id=edge_id,
