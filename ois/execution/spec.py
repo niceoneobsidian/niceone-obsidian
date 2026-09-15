@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 
 class AuthorizationError(PermissionError):
@@ -37,8 +37,8 @@ class ExecutionRequest:
         if self.deadline is not None:
             deadline = self.deadline
             if deadline.tzinfo is None:
-                deadline = deadline.replace(tzinfo=timezone.utc)
-            if deadline <= datetime.now(timezone.utc):
+                deadline = deadline.replace(tzinfo=UTC)
+            if deadline <= datetime.now(UTC):
                 raise AuthorizationError("execution denied: deadline expired")
 
 

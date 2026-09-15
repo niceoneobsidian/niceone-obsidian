@@ -20,14 +20,11 @@ def apply_migrations(
     if not migration_files:
         raise RuntimeError(f"No migration files found in {migrations_dir}")
 
-    with connection.transaction():
-        with connection.cursor() as cursor:
-            for migration_file in migration_files:
-                sql = migration_file.read_text(encoding="utf-8")
+    with connection.transaction(), connection.cursor() as cursor:
+        for migration_file in migration_files:
+            sql = migration_file.read_text(encoding="utf-8")
 
-                if not sql.strip():
-                    raise RuntimeError(
-                        f"Migration is empty: {migration_file.name}"
-                    )
+            if not sql.strip():
+                raise RuntimeError(f"Migration is empty: {migration_file.name}")
 
-                cursor.execute(sql)
+            cursor.execute(sql)

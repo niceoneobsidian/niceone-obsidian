@@ -6,7 +6,6 @@ import psycopg
 
 from .migrations import apply_migrations
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 MIGRATIONS_DIR = PROJECT_ROOT / "migrations"
 

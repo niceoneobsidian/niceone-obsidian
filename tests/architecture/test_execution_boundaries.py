@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from ois.execution.executor import ExecutionPlane
 from ois.execution.spec import ExecutionRequest
@@ -6,9 +6,13 @@ from ois.execution.spec import ExecutionRequest
 
 def authorized_request(**kwargs):
     return ExecutionRequest(
-        object_id="job-1", version="v1", input={"value": 1},
-        idempotency_key="idem-1", deadline=datetime.now(timezone.utc) + timedelta(minutes=1),
-        authorization={"decision": "allow", "version": "v1"}, **kwargs,
+        object_id="job-1",
+        version="v1",
+        input={"value": 1},
+        idempotency_key="idem-1",
+        deadline=datetime.now(UTC) + timedelta(minutes=1),
+        authorization={"decision": "allow", "version": "v1"},
+        **kwargs,
     )
 
 

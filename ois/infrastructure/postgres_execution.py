@@ -49,7 +49,9 @@ class PostgresExecutionStore:
     def get_state(self, execution_id: str) -> ExecutionState | None:
         with self.transaction() as connection:
             cursor = connection.cursor()
-            cursor.execute("SELECT state FROM execution_state WHERE execution_id = %s", (execution_id,))
+            cursor.execute(
+                "SELECT state FROM execution_state WHERE execution_id = %s", (execution_id,)
+            )
             row = cursor.fetchone()
             return ExecutionState(row[0]) if row else None
 
