@@ -23,6 +23,8 @@ jobs:
           python-version: "3.12"
       - name: Validate strict phase ordering
         run: python scripts/validate_phase_gates.py
+      - name: Run phase-gate regression tests
+        run: python -m pytest -q tests/governance/test_phase_gates.py
 
   repository-integrity:
     name: repository-integrity
