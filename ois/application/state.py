@@ -20,10 +20,26 @@ class ExecutionState(StrEnum):
 _TRANSITIONS: dict[ExecutionState, frozenset[ExecutionState]] = {
     ExecutionState.PENDING: frozenset({ExecutionState.AUTHORIZED, ExecutionState.FAILED}),
     ExecutionState.AUTHORIZED: frozenset({ExecutionState.EXECUTING, ExecutionState.FAILED}),
-    ExecutionState.EXECUTING: frozenset({ExecutionState.VALIDATING, ExecutionState.ROLLBACK_PENDING, ExecutionState.FAILED}),
-    ExecutionState.VALIDATING: frozenset({ExecutionState.VERIFIED, ExecutionState.RETRY_PENDING, ExecutionState.ROLLBACK_PENDING, ExecutionState.FAILED}),
+    ExecutionState.EXECUTING: frozenset(
+        {
+            ExecutionState.VALIDATING,
+            ExecutionState.ROLLBACK_PENDING,
+            ExecutionState.FAILED,
+        }
+    ),
+    ExecutionState.VALIDATING: frozenset(
+        {
+            ExecutionState.VERIFIED,
+            ExecutionState.RETRY_PENDING,
+            ExecutionState.ROLLBACK_PENDING,
+            ExecutionState.ESCALATION_REQUIRED,
+            ExecutionState.FAILED,
+        }
+    ),
     ExecutionState.VERIFIED: frozenset(),
-    ExecutionState.RETRY_PENDING: frozenset({ExecutionState.EXECUTING, ExecutionState.ESCALATION_REQUIRED}),
+    ExecutionState.RETRY_PENDING: frozenset(
+        {ExecutionState.EXECUTING, ExecutionState.ESCALATION_REQUIRED}
+    ),
     ExecutionState.ROLLBACK_PENDING: frozenset({ExecutionState.FAILED, ExecutionState.VERIFIED}),
     ExecutionState.ESCALATION_REQUIRED: frozenset(),
     ExecutionState.FAILED: frozenset(),
