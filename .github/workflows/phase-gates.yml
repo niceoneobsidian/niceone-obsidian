@@ -1,0 +1,43 @@
+name: phase-gates
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  phase-gate-validator:
+    name: phase-gate-validator
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate strict phase ordering
+        run: python scripts/validate_phase_gates.py
+
+  repository-integrity:
+    name: repository-integrity
+    needs: phase-gate-validator
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check tracked-file whitespace errors
+        run: git diff --check
+      - name: Compile Python sources
+        run: python -m compileall -q ois ops production tests scripts
+      - name: Confirm phase contract is present
+        run: test -f config/phase-gates.json && test -f docs/implementation-sequence.md
