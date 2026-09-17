@@ -12,7 +12,7 @@ permissions: {}
 jobs:
   mypy:
     name: Mypy Type Check
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, macOS, ARM64]
     permissions:
       contents: read
 

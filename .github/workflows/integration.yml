@@ -8,7 +8,8 @@ on:
 
 jobs:
   postgres-integration:
-    runs-on: ubuntu-latest
+    name: PostgreSQL Integration
+    runs-on: [self-hosted, macOS, ARM64]
 
     permissions:
       contents: read
@@ -17,14 +18,10 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: pip
-
       - name: Install project and test dependencies
         run: |
+          python3.12 -m venv .venv
+          source .venv/bin/activate
           python -m pip install --upgrade pip
           python -m pip install -e ".[test]"
 
@@ -33,4 +30,5 @@ jobs:
 
       - name: Run integration tests
         run: |
+          source .venv/bin/activate
           python -m pytest -vv tests/integration
