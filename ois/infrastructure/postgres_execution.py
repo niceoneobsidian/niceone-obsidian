@@ -43,8 +43,8 @@ class PostgresExecutionStore:
             cursor = connection.cursor()
             cursor.execute(
                 "INSERT INTO execution_evidence "
-"(execution_id, category, payload) "
-"VALUES (%s, %s, %s)",
+                "(execution_id, category, payload) "
+                "VALUES (%s, %s, %s)",
                 (execution_id, category, json.dumps(payload, sort_keys=True)),
             )
 
@@ -63,6 +63,6 @@ class PostgresExecutionStore:
             cursor.execute(
                 "INSERT INTO execution_state (execution_id, state) VALUES (%s, %s) "
                 "ON CONFLICT (execution_id) "
-"DO UPDATE SET state = EXCLUDED.state, updated_at = now()",
+                "DO UPDATE SET state = EXCLUDED.state, updated_at = now()",
                 (execution_id, state.value),
             )
