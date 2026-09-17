@@ -1,5 +1,4 @@
 """Canonical, kernel-agnostic football intelligence contracts."""
-
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -15,6 +14,8 @@ class FootballEvidence(BaseModel):
     uri: str | None = None
     observed_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     confidence: float = Field(ge=0, le=1, default=0.5)
+    source_type: str | None = None
+    content_hash: str | None = None
 
 
 class TeamSnapshot(BaseModel):
@@ -31,6 +32,10 @@ class TeamSnapshot(BaseModel):
     rest_days: float = 7.0
     squad_strength: float = 1.0
     lineup_confidence: float = Field(ge=0, le=1, default=0.5)
+    injuries_impact: float = Field(ge=0, le=1, default=0.0)
+    shots_on_target_for: float = Field(ge=0, default=0.0)
+    shots_on_target_against: float = Field(ge=0, default=0.0)
+    possession: float = Field(ge=0, le=100, default=50.0)
 
 
 class MatchState(BaseModel):
@@ -43,9 +48,13 @@ class MatchState(BaseModel):
     referee_factor: float = 0.0
     weather_factor: float = 0.0
     tactical_factor: float = 0.0
+    travel_factor: float = 0.0
     market_home: float | None = Field(default=None, gt=0)
     market_draw: float | None = Field(default=None, gt=0)
     market_away: float | None = Field(default=None, gt=0)
+    prior_market_home: float | None = Field(default=None, gt=0)
+    prior_market_draw: float | None = Field(default=None, gt=0)
+    prior_market_away: float | None = Field(default=None, gt=0)
     evidence: list[FootballEvidence] = Field(default_factory=list)
 
 
@@ -57,6 +66,19 @@ class ModelProbability(BaseModel):
     away: float = Field(ge=0, le=1)
     expected_home_goals: float = Field(ge=0)
     expected_away_goals: float = Field(ge=0)
+
+
+class SimulationResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    iterations: int = Field(ge=1)
+    home_win: float = Field(ge=0, le=1)
+    draw: float = Field(ge=0, le=1)
+    away_win: float = Field(ge=0, le=1)
+    expected_home_goals: float = Field(ge=0)
+    expected_away_goals: float = Field(ge=0)
+    most_likely_score: str
+    scoreline_distribution: dict[str, float] = Field(default_factory=dict)
+    seed: int | None = None
 
 
 class FootballPrediction(BaseModel):
@@ -74,6 +96,7 @@ class FootballPrediction(BaseModel):
     abstain: bool = False
     abstention_reason: str | None = None
     models: list[ModelProbability] = Field(default_factory=list)
+    simulation: SimulationResult | None = None
     evidence: list[FootballEvidence] = Field(default_factory=list)
     model_ensemble_version: str = "football-ensemble-v1"
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
