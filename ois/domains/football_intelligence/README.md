@@ -18,11 +18,55 @@ promotion/rollback.
 - Auditable prediction serialization.
 - Multiclass Brier score, log loss and accuracy evaluation.
 - Declarative capability/agent/workflow manifest.
+- Provider-neutral live feed contracts with hashed evidence provenance.
+- API-Football v3 adapter for live fixtures, team statistics and player statistics.
+- Sportmonks v3 adapter for live scores plus fixture statistics and lineup/player details.
+- StatsBomb Open Data adapter for historical event-level model training.
+- Multi-provider reconciliation service for live match identity and prediction-time feature snapshots.
+
+## Feed strategy
+
+```text
+                 OIS Football Data Plane
+                          |
+          +---------------+----------------+
+          |               |                |
+      API-Football    Sportmonks       StatsBomb
+       live/basic      live/deep       historical
+          |               |                |
+          +---------------+----------------+
+                          |
+                 Canonical evidence
+                          |
+                 Feature snapshot
+                          |
+                 Football models
+                          |
+                 Market intelligence
+```
+
+API-Football is the low-friction live baseline. Sportmonks is the richer football feed
+for deeper fixture/player/statistics coverage. StatsBomb Open Data is isolated to historical
+event-level research and model training; it is not treated as a live source.
+
+Credentials are runtime configuration only:
+
+- `API_FOOTBALL_KEY`
+- `SPORTMONKS_API_TOKEN`
+
+No provider secret belongs in source control.
+
+## Prediction-time safety
+
+Provider observations carry an observation timestamp and deterministic payload hash. Feed
+adapters normalize data before it reaches models. The feature service does not mutate model
+state or place bets. Future information must be excluded by the downstream leakage-safe
+feature/evaluation layer.
 
 ## Planned production layers
 
-1. Licensed historical/live data adapters with provenance.
-2. Leakage-safe feature store and entity resolution.
+1. Licensed odds/bookmaker adapters with provenance and price snapshots.
+2. Leakage-safe feature store and entity resolution across provider IDs.
 3. Fitted league-specific statistical models.
 4. XGBoost/LightGBM/CatBoost and temporal models behind the same contract.
 5. Tactical, player, lineup, injury and market intelligence.
