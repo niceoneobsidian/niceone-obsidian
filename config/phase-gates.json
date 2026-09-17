@@ -1,0 +1,152 @@
+{
+  "schema_version": 1,
+  "sequence_id": "ois-implementation-sequence-v1",
+  "promotion_policy": "strict_order",
+  "active_phase": 1,
+  "phases": [
+    {
+      "id": 1,
+      "name": "Repository Integrity",
+      "status": "active",
+      "entry_gate": null,
+      "exit_evidence": [
+        "repository tree is coherent",
+        "required automation is present",
+        "integrity checks pass"
+      ],
+      "required_checks": [
+        "phase-gate-validator",
+        "repository-integrity"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Kernel Conformance",
+      "status": "planned",
+      "entry_gate": 1,
+      "exit_evidence": [
+        "kernel contracts are executable",
+        "kernel conformance suite passes"
+      ],
+      "required_checks": [
+        "kernel-conformance"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Recovery Conformance",
+      "status": "planned",
+      "entry_gate": 2,
+      "exit_evidence": [
+        "recovery transitions are bounded",
+        "recovery conformance suite passes"
+      ],
+      "required_checks": [
+        "recovery-conformance"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Real PostgreSQL + Redis",
+      "status": "planned",
+      "entry_gate": 3,
+      "exit_evidence": [
+        "migrations apply to PostgreSQL",
+        "Redis integration is exercised",
+        "transaction and idempotency evidence exists"
+      ],
+      "required_checks": [
+        "postgres-redis-integration"
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Supervisor + Agent + Tool E2E",
+      "status": "planned",
+      "entry_gate": 4,
+      "exit_evidence": [
+        "governed end-to-end execution passes",
+        "tool effects are evidenced"
+      ],
+      "required_checks": [
+        "supervisor-agent-tool-e2e"
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Security / Tenant Isolation",
+      "status": "planned",
+      "entry_gate": 5,
+      "exit_evidence": [
+        "authorization boundaries are enforced",
+        "cross-tenant access is denied"
+      ],
+      "required_checks": [
+        "security-tenant-isolation"
+      ]
+    },
+    {
+      "id": 7,
+      "name": "Observability",
+      "status": "planned",
+      "entry_gate": 6,
+      "exit_evidence": [
+        "traces, metrics, and logs correlate execution evidence"
+      ],
+      "required_checks": [
+        "observability-contract"
+      ]
+    },
+    {
+      "id": 8,
+      "name": "Real External APIs",
+      "status": "planned",
+      "entry_gate": 7,
+      "exit_evidence": [
+        "external API contracts are tested",
+        "credentials and side effects are governed"
+      ],
+      "required_checks": [
+        "external-api-contracts"
+      ]
+    },
+    {
+      "id": 9,
+      "name": "Production Canary",
+      "status": "planned",
+      "entry_gate": 8,
+      "exit_evidence": [
+        "canary deployment is reversible",
+        "rollback evidence is recorded"
+      ],
+      "required_checks": [
+        "canary-readiness"
+      ]
+    },
+    {
+      "id": 10,
+      "name": "Measured Optimization",
+      "status": "planned",
+      "entry_gate": 9,
+      "exit_evidence": [
+        "optimization is supported by measurements",
+        "regressions are bounded"
+      ],
+      "required_checks": [
+        "performance-evidence"
+      ]
+    },
+    {
+      "id": 11,
+      "name": "Controlled Evolution",
+      "status": "planned",
+      "entry_gate": 10,
+      "exit_evidence": [
+        "changes are versioned, reviewed, observable, and reversible"
+      ],
+      "required_checks": [
+        "controlled-evolution"
+      ]
+    }
+  ]
+}

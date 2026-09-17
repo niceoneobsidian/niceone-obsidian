@@ -1,7 +1,11 @@
 from datetime import UTC, datetime
 
 from ois.domains.social_growth.analytics_store import SQLiteAnalyticsStore
-from ois.domains.social_growth.chat_ingestion import ChatObservation, ingest_chat_observations, normalize_observation
+from ois.domains.social_growth.chat_ingestion import (
+    ChatObservation,
+    ingest_chat_observations,
+    normalize_observation,
+)
 from ois.domains.social_growth.persistence import SQLiteSocialEventStore
 
 
