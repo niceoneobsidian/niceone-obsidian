@@ -12,7 +12,7 @@ from .recovery import RecoveryPolicy
 from .registry import CapabilityRegistry
 from .state import ExecutionContext
 from .types import ExecutionStatus, FailureClass, InvocationStatus
-from .validation import ContractValidator
+from .validation import ContractValidator, OutputValidationError
 
 
 class ExecutionError(Exception):
@@ -55,27 +55,39 @@ class ExecutionRuntime:
         input_data: dict,
         *,
         invocation_id: str | None = None,
+        idempotency_key: str | None = None,
     ) -> InvocationResult:
         if context.status in {ExecutionStatus.COMPLETED, ExecutionStatus.STOPPED}:
             raise ExecutionAlreadyCompleted(
                 f"Execution cannot continue from {context.status.value}."
             )
 
-        execution_id = context.identity.execution_id
-        logical_invocation_id = invocation_id or str(uuid4())
+        if (
+            invocation_id is not None
+            and idempotency_key is not None
+            and invocation_id != idempotency_key
+        ):
+            raise ExecutionError(
+                "invocation_id and idempotency_key must match when both are supplied."
+            )
+
+        logical_invocation_id = idempotency_key or invocation_id or str(uuid4())
         cached = self.idempotency.get(logical_invocation_id)
         if cached is not None:
             self.evidence.record(
-                execution_id,
+                context.identity.execution_id,
                 "execution.idempotency_hit",
                 {
                     "capability_id": capability_id,
                     "version": version,
                     "invocation_id": logical_invocation_id,
+                    "idempotency_key": logical_invocation_id,
+                    "effect_invocation_id": cached.invocation_id,
                 },
             )
             return cached
 
+        execution_id = context.identity.execution_id
         self.evidence.record(
             execution_id,
             "execution.received",
@@ -83,6 +95,7 @@ class ExecutionRuntime:
                 "capability_id": capability_id,
                 "version": version,
                 "invocation_id": logical_invocation_id,
+                "idempotency_key": logical_invocation_id,
             },
         )
         context.set_status(ExecutionStatus.NORMALIZED)
@@ -188,12 +201,27 @@ class ExecutionRuntime:
 
         context.set_status(ExecutionStatus.VALIDATING)
         if result.status == InvocationStatus.SUCCEEDED:
-            self.validator.validate_output(result, entry.contract)
+            try:
+                self.validator.validate_output(result, entry.contract)
+            except OutputValidationError as exc:
+                return self._handle_validation_failure(
+                    context,
+                    capability_id,
+                    logical_invocation_id,
+                    result,
+                    exc,
+                )
+
         context.validation_results.append(
             {
                 "invocation_id": result.invocation_id,
                 "valid": result.status == InvocationStatus.SUCCEEDED,
             }
+        )
+        self.evidence.record(
+            execution_id,
+            "execution.validation_passed",
+            {"capability_id": capability_id, "invocation_id": result.invocation_id},
         )
         context.set_status(ExecutionStatus.UPDATING_STATE)
         if result.status == InvocationStatus.SUCCEEDED:
@@ -206,6 +234,7 @@ class ExecutionRuntime:
             {
                 "capability_id": capability_id,
                 "invocation_id": logical_invocation_id,
+                "idempotency_key": logical_invocation_id,
                 "status": result.status.value,
             },
         )
@@ -220,7 +249,37 @@ class ExecutionRuntime:
         return result
 
     def complete(self, context: ExecutionContext) -> None:
-        """Mark the entire execution complete and durably checkpoint it."""
+        """Mark the entire execution complete only after successful validation."""
+        invalid_results = [
+            result
+            for result in context.validation_results
+            if result.get("valid") is False
+        ]
+        if invalid_results:
+            self.evidence.record(
+                context.identity.execution_id,
+                "execution.completion_blocked",
+                {"reason": "validation_failed", "invalid_results": len(invalid_results)},
+            )
+            self.checkpoint_store.save(context)
+            raise ExecutionError("Execution cannot complete with failed validation.")
+
+        recovery_states = {
+            ExecutionStatus.REPLANNING,
+            ExecutionStatus.RECOVERING,
+            ExecutionStatus.ESCALATED,
+        }
+        if context.status in recovery_states:
+            self.evidence.record(
+                context.identity.execution_id,
+                "execution.completion_blocked",
+                {"reason": context.status.value},
+            )
+            self.checkpoint_store.save(context)
+            raise ExecutionError(
+                f"Execution cannot complete while in {context.status.value} recovery state."
+            )
+
         context.set_status(ExecutionStatus.COMPLETED)
         self.checkpoint_store.save(context)
         self.evidence.record(context.identity.execution_id, "execution.completed")
@@ -228,6 +287,54 @@ class ExecutionRuntime:
     def _cache_terminal_result(self, invocation_id: str, result: InvocationResult) -> None:
         if result.status in {InvocationStatus.SUCCEEDED, InvocationStatus.CANCELLED}:
             self.idempotency.put(invocation_id, result)
+
+    def _handle_validation_failure(
+        self,
+        context: ExecutionContext,
+        capability_id: str,
+        invocation_id: str,
+        result: InvocationResult,
+        error: OutputValidationError,
+    ) -> InvocationResult:
+        execution_id = context.identity.execution_id
+        decision = self.recovery.apply(context, FailureClass.PLAN)
+        context.validation_results.append(
+            {
+                "invocation_id": invocation_id,
+                "valid": False,
+                "errors": (str(error),),
+            }
+        )
+        result.status = InvocationStatus.FAILED
+        result.error = {
+            "type": type(error).__name__,
+            "message": str(error),
+            "failure_class": FailureClass.PLAN.value,
+            "recovery_action": decision.action,
+        }
+        self.evidence.record(
+            execution_id,
+            "execution.validation_failed",
+            {
+                "capability_id": capability_id,
+                "invocation_id": invocation_id,
+                "failure_class": FailureClass.PLAN.value,
+                "recovery_action": decision.action,
+                "error": str(error),
+            },
+        )
+        self.evidence.record(
+            execution_id,
+            "execution.recovery_decision",
+            {
+                "capability_id": capability_id,
+                "invocation_id": invocation_id,
+                "failure_class": FailureClass.PLAN.value,
+                "recovery_action": decision.action,
+            },
+        )
+        self.checkpoint_store.save(context)
+        return result
 
     def _handle_cancellation(
         self,
@@ -248,7 +355,11 @@ class ExecutionRuntime:
         self.evidence.record(
             execution_id,
             "execution.cancelled",
-            {"capability_id": capability_id, "invocation_id": invocation_id, "reason": str(error)},
+            {
+                "capability_id": capability_id,
+                "invocation_id": invocation_id,
+                "reason": str(error),
+            },
         )
         self.checkpoint_store.save(context)
         return InvocationResult(
