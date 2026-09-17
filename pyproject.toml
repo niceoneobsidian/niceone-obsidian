@@ -5,7 +5,7 @@ version = "0.0.0"
 requires-python = ">=3.12"
 dependencies = [
   "pydantic>=2.7,<3",
-  "psycopg[binary]>=3.3.4,<4",
+  "psycopg[binary]>=3.3.5,<4",
   "langgraph>=1.2.11,<2",
   "langgraph-checkpoint-postgres>=3.1.2,<4",
   "redis>=8.1,<9",
@@ -94,6 +94,6 @@ exclude = [
 [project.optional-dependencies]
 test = [
     "pytest>=9,<10",
-    "psycopg[binary]>=3.3,<4",
+    "psycopg[binary]>=3.3.5,<4",
     "testcontainers[postgres]>=4.15,<5"
 ]
