@@ -1,0 +1,47 @@
+name: Self-hosted Mac runner diagnostic
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diagnose:
+    name: Diagnose niceone-mac-arm64
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 10
+    steps:
+      - name: Print runner identity
+        shell: bash
+        run: |
+          set -euxo pipefail
+          echo "runner_name=${RUNNER_NAME}"
+          echo "runner_os=${RUNNER_OS}"
+          echo "runner_arch=${RUNNER_ARCH}"
+          echo "runner_labels=${RUNNER_LABELS}"
+          uname -a
+          uname -m
+          sw_vers
+
+      - name: Inspect toolchain
+        shell: bash
+        run: |
+          set -euxo pipefail
+          command -v python3 || true
+          python3 --version || true
+          command -v pip3 || true
+          pip3 --version || true
+          command -v docker || true
+          docker --version || true
+          docker info || true
+          command -v git || true
+          git --version || true
+
+      - name: Inspect capacity and workspace
+        shell: bash
+        run: |
+          set -euxo pipefail
+          df -h
+          sysctl -n hw.ncpu
+          sysctl -n hw.memsize
+          uptime
+          printf 'workspace='; pwd
+          ls -la
