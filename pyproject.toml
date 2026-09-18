@@ -11,6 +11,9 @@ dependencies = ["psycopg[binary]>=3.2,<4"]
 [project.scripts]
 ois = "ois.cli:main"
 
+[tool.setuptools.packages.find]
+include = ["ois*"]
+
 [tool.ruff]
 target-version = "py312"
 line-length = 100
