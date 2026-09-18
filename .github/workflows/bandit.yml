@@ -11,7 +11,7 @@ permissions: {}
 jobs:
   bandit:
     name: Bandit Security Scan
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, macOS]
     permissions:
       contents: read
 
