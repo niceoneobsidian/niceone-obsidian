@@ -7,12 +7,7 @@ from .schemas import MarketEvent, MarketOutcome, OutcomeStatus
 
 
 def settle_market(event: MarketEvent, home_goals: int, away_goals: int) -> MarketOutcome:
-    """Settle an event from final score only.
-
-    SPECIAL 1UP uses the OIS reference definition: the selected team finishes
-    at least one goal ahead. Bookmaker-specific early-payout semantics are not
-    inferred here and require a dedicated licensed market adapter.
-    """
+    """Settle an event from final score only."""
     if home_goals < 0 or away_goals < 0:
         raise ValueError("Goals cannot be negative")
 
@@ -22,9 +17,11 @@ def settle_market(event: MarketEvent, home_goals: int, away_goals: int) -> Marke
     selected_value: float
 
     if event.market_type is MarketType.RESULT:
-        selected_value = {Selection.HOME_WIN: 1, Selection.DRAW: 0, Selection.AWAY_WIN: -1}[
-            event.selection
-        ]
+        selected_value = {
+            Selection.HOME_WIN: 1,
+            Selection.DRAW: 0,
+            Selection.AWAY_WIN: -1,
+        }[event.selection]
         actual = 1 if margin > 0 else 0 if margin == 0 else -1
         status = OutcomeStatus.WIN if actual == selected_value else OutcomeStatus.LOSS
     elif event.market_type is MarketType.DOUBLE_CHANCE:
@@ -35,27 +32,22 @@ def settle_market(event: MarketEvent, home_goals: int, away_goals: int) -> Marke
         }[event.selection]
         status = OutcomeStatus.WIN if actual else OutcomeStatus.LOSS
     elif event.market_type is MarketType.TOTAL_GOALS:
-        assert line is not None
+        if line is None:
+            raise ValueError("Total-goals markets require a line")
         status = _over_under_status(total, line, event.selection)
     elif event.market_type is MarketType.TEAM_GOALS:
-        assert line is not None
-        value = (
-            home_goals
-            if event.selection in {Selection.HOME_OVER, Selection.HOME_UNDER}
-            else away_goals
-        )
-        selection = (
-            Selection.OVER
-            if event.selection in {Selection.HOME_OVER, Selection.AWAY_OVER}
-            else Selection.UNDER
-        )
+        if line is None:
+            raise ValueError("Team-goals markets require a line")
+        value = home_goals if event.selection in {Selection.HOME_OVER, Selection.HOME_UNDER} else away_goals
+        selection = Selection.OVER if event.selection in {Selection.HOME_OVER, Selection.AWAY_OVER} else Selection.UNDER
         status = _over_under_status(value, line, selection)
     elif event.market_type is MarketType.BTTS:
         btts = home_goals > 0 and away_goals > 0
         expected = event.selection is Selection.BTTS_YES
         status = OutcomeStatus.WIN if btts == expected else OutcomeStatus.LOSS
     elif event.market_type is MarketType.HANDICAP:
-        assert line is not None
+        if line is None:
+            raise ValueError("Handicap markets require a line")
         adjusted = margin + line if event.selection is Selection.HOME_HANDICAP else -margin + line
         status = (
             OutcomeStatus.WIN
