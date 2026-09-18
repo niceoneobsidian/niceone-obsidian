@@ -6,6 +6,13 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-p0-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   conformance:
     runs-on: ubuntu-latest
@@ -25,17 +32,20 @@ jobs:
     env:
       OIS_POSTGRES_DSN: postgresql://postgres@localhost:5432/ois_test
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.lock
       - name: Install project and verification tools
         run: |
           python -m pip install --upgrade pip
-          pip install -e .
-          pip install ruff mypy bandit pip-licenses pytest
+          python -m pip install --requirement requirements.lock
+          python -m pip install --no-deps -e .
+          python -m pip install "ruff==0.9.10" "mypy==1.17.1" "bandit==1.8.6" "pip-licenses==5.5.0" "pytest==8.4.2"
       - name: Ruff lint
         run: ruff check ois scripts tests test_p0_integrated_spine.py
       - name: Ruff format
