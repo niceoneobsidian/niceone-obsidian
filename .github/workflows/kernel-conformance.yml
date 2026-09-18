@@ -1,0 +1,43 @@
+name: Kernel Conformance
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+      - "feat/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  kernel-conformance:
+    name: Kernel Conformance
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install project and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[test]"
+
+      - name: Run kernel conformance tests
+        run: python -m pytest -q tests/conformance
+
+      - name: Run architecture boundary tests
+        run: python -m pytest -q tests/architecture
+
+      - name: Run PostgreSQL recovery and outbox conformance
+        run: python -m pytest -q tests/integration/test_postgres_outbox_worker.py
