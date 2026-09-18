@@ -8,6 +8,10 @@ on:
 
 permissions: {}
 
+concurrency:
+  group: ci-bandit-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   bandit:
     name: Bandit Security Scan
@@ -23,9 +27,11 @@ jobs:
         uses: actions/setup-python@v7
         with:
           python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.lock
 
       - name: Install Bandit
-        run: python -m pip install --upgrade pip bandit
+        run: python -m pip install --upgrade pip "bandit==1.8.6"
 
       - name: Bandit Scan
         run: bandit -r . -x ./.git,./.venv,./venv,./tests -lll -iii
