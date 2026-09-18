@@ -1,0 +1,7 @@
+title = "OIS Gitleaks configuration"
+
+[allowlist]
+description = "Known non-secret deterministic integration-test identifiers"
+regexes = [
+  '''idempotency-(exclusive|completed)-1''',
+]

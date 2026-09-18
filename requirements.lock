@@ -1,0 +1,6 @@
+# OIS runtime dependency lock for Python 3.12+.
+# Generated from pyproject.toml [project].dependencies and resolved CI metadata.
+# Keep this file synchronized with pyproject.toml when dependencies change.
+psycopg==3.3.6
+psycopg-binary==3.3.6
+typing-extensions==4.16.0

@@ -2,11 +2,15 @@ name: Ruff
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev/de-03-postgres-fenced-execution]
   pull_request:
-    branches: [main]
+    branches: [main, dev/de-03-postgres-fenced-execution]
 
 permissions: {}
+
+concurrency:
+  group: ci-ruff-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   ruff:
@@ -23,6 +27,8 @@ jobs:
         uses: actions/setup-python@v7
         with:
           python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.lock
 
       - name: Install Ruff
         run: python -m pip install --upgrade pip "ruff==0.9.10"
