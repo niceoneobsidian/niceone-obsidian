@@ -38,3 +38,6 @@ jobs:
 
       - name: Run architecture boundary tests
         run: python -m pytest -q tests/architecture
+
+      - name: Run PostgreSQL recovery and outbox conformance
+        run: python -m pytest -q tests/integration/test_postgres_outbox_worker.py
