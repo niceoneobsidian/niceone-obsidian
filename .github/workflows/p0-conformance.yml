@@ -4,7 +4,7 @@ on:
   push:
     branches: [feat/p0-integrated-spine, dev/de-03-postgres-fenced-execution]
   pull_request:
-    branches: [main]
+    branches: [main, dev/de-03-postgres-fenced-execution]
 
 permissions:
   contents: read
