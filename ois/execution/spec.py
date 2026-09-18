@@ -23,15 +23,26 @@ class ExecutionRequest:
     authorization: Mapping[str, object] | None = None
 
     def assert_authorized(self) -> None:
-        """Require an explicit, capability- and version-matching allow decision."""
+        """Require explicit allow and exact capability/version identity."""
         decision = self.authorization
         if not decision or decision.get("decision") != "allow":
             raise AuthorizationError("execution denied: explicit allow decision required")
-        if self.capability and decision.get("capability") != self.capability:
+
+        if not self.capability:
+            raise AuthorizationError("execution denied: capability identity required")
+        authorized_capability = decision.get("capability")
+        if not authorized_capability:
+            raise AuthorizationError("execution denied: authorized capability required")
+        if authorized_capability != self.capability:
             raise AuthorizationError("execution denied: capability mismatch")
-        expected = self.requested_version or self.version
-        if decision.get("version") not in (expected, "*"):
+
+        expected_version = self.requested_version or self.version
+        authorized_version = decision.get("version")
+        if not authorized_version:
+            raise AuthorizationError("execution denied: authorized version required")
+        if authorized_version != expected_version:
             raise AuthorizationError("execution denied: version mismatch")
+
         if not self.idempotency_key:
             raise AuthorizationError("execution denied: idempotency key required")
         if self.deadline is not None:
