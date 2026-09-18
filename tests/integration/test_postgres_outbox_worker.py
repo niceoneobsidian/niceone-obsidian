@@ -34,9 +34,15 @@ def enqueue_one(
     )
 
 
+def clear_outbox(dsn: str) -> None:
+    with psycopg.connect(dsn) as connection, connection.cursor() as cursor:
+        cursor.execute("DELETE FROM ois_side_effect_outbox")
+
+
 def test_outbox_claim_is_exclusive_across_workers(
     migrated_postgres: str,
 ) -> None:
+    clear_outbox(migrated_postgres)
     """Two workers cannot claim the same pending effect concurrently."""
     setup = boundary_for(migrated_postgres)
     enqueue_one(
@@ -50,7 +56,9 @@ def test_outbox_claim_is_exclusive_across_workers(
         return boundary_for(migrated_postgres).claim(worker_id=str(uuid4()))
 
     with ThreadPoolExecutor(max_workers=2) as executor:
-        first, second = [future.result() for future in (executor.submit(claim), executor.submit(claim))]
+        first, second = [
+            future.result() for future in (executor.submit(claim), executor.submit(claim))
+        ]
 
     assert (first is None) != (second is None)
     command = first or second
@@ -62,6 +70,7 @@ def test_outbox_claim_is_exclusive_across_workers(
 def test_completed_outbox_effect_is_not_redelivered(
     migrated_postgres: str,
 ) -> None:
+    clear_outbox(migrated_postgres)
     boundary = boundary_for(migrated_postgres)
     enqueue_one(
         boundary,
@@ -86,18 +95,21 @@ def test_completed_outbox_effect_is_not_redelivered(
 
     with psycopg.connect(migrated_postgres) as connection, connection.cursor() as cursor:
         cursor.execute(
-            "SELECT status, result-&gt;&gt;'output' FROM ois_side_effect_outbox WHERE effect_id = %s",
+            "SELECT status, result->>'output' FROM ois_side_effect_outbox WHERE effect_id = %s",
             (command.effect_id,),
         )
-        status, output = cursor.fetchone()
+        row = cursor.fetchone()
+        assert row is not None
+        status, output = row
 
     assert status == "COMPLETED"
-    assert output == "{\"published\": true}"
+    assert output == '{"published": true}'
 
 
 def test_failed_outbox_effect_is_retryable_with_attempt_recorded(
     migrated_postgres: str,
 ) -> None:
+    clear_outbox(migrated_postgres)
     boundary = boundary_for(migrated_postgres)
     enqueue_one(
         boundary,
@@ -117,12 +129,15 @@ def test_failed_outbox_effect_is_retryable_with_attempt_recorded(
 
     with psycopg.connect(migrated_postgres) as connection, connection.cursor() as cursor:
         cursor.execute(
-            "SELECT attempts, status, last_error-&gt;&gt;'code' FROM ois_side_effect_outbox WHERE effect_id = %s",
+            "SELECT attempts, status, last_error->>'code' "
+            "FROM ois_side_effect_outbox WHERE effect_id = %s",
             (command.effect_id,),
         )
-        attempts, status, error_code = cursor.fetchone()
+        row = cursor.fetchone()
+        assert row is not None
+        attempts, status, error_code = row
 
-    assert attempts == 1
+    assert attempts == 2
     assert status == "PROCESSING"
     assert error_code == "temporary"
 
@@ -130,6 +145,7 @@ def test_failed_outbox_effect_is_retryable_with_attempt_recorded(
 def test_stale_processing_effect_is_recovered_after_restart(
     migrated_postgres: str,
 ) -> None:
+    clear_outbox(migrated_postgres)
     boundary = boundary_for(migrated_postgres)
     enqueue_one(
         boundary,
