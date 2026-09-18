@@ -11,6 +11,10 @@ on:
 
 permissions: {}
 
+concurrency:
+  group: ci-gitleaks-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   gitleaks:
     name: Secret Detection
