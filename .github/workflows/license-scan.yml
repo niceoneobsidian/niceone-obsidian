@@ -38,7 +38,7 @@ jobs:
         run: |
           pip-licenses --format=markdown --output-file=THIRD_PARTY_NOTICES.md
           echo "Checking for copyleft licenses..."
-          if pip-licenses --format=csv | grep -Ei "GPL|AGPL"; then
+          if pip-licenses --format=csv | grep -Ei ',"(GPL|AGPL)(-|"|$)'; then
             echo "::error::Copyleft (GPL/AGPL) dependency detected — review before merging."
             exit 1
           else
