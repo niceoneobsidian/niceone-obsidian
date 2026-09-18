@@ -16,7 +16,7 @@ permissions:
 jobs:
   kernel-conformance:
     name: Kernel Conformance
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, macOS]
 
     steps:
       - name: Check out repository

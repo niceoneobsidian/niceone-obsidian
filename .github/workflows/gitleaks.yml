@@ -14,7 +14,7 @@ permissions: {}
 jobs:
   gitleaks:
     name: Secret Detection
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, macOS]
     permissions:
       contents: read
       pull-requests: write
