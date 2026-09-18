@@ -8,7 +8,7 @@ on:
 
 jobs:
   postgres-integration:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, macOS]
 
     permissions:
       contents: read
