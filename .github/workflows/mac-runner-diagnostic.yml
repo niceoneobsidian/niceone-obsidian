@@ -1,0 +1,56 @@
+name: Mac Runner Diagnostic
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mac-runner-diagnostic:
+    name: Validate niceone-mac-arm64
+    runs-on: [self-hosted, macOS]
+    steps:
+      - name: Runner identity
+        shell: bash
+        run: |
+          set -euxo pipefail
+          echo "runner.name=$RUNNER_NAME"
+          echo "runner.os=$RUNNER_OS"
+          echo "runner.arch=$RUNNER_ARCH"
+          echo "runner.workspace=$RUNNER_WORKSPACE"
+          echo "machine=$(scutil --get ComputerName || true)"
+          echo "host=$(scutil --get HostName || true)"
+          echo "user=$(whoami)"
+          echo "home=$HOME"
+          uname -a
+
+      - name: Filesystem permissions
+        shell: bash
+        run: |
+          set -euxo pipefail
+          id
+          ls -ld "$HOME" "$RUNNER_TEMP" "$RUNNER_WORKSPACE"
+          test -w "$HOME"
+          test -w "$RUNNER_TEMP"
+          test -w "$RUNNER_WORKSPACE"
+
+      - name: Toolchain
+        shell: bash
+        run: |
+          set -euxo pipefail
+          git --version
+          python3 --version
+          command -v python3
+          command -v pip3 || true
+
+      - name: Python hosted tool cache compatibility
+        shell: bash
+        run: |
+          set -euxo pipefail
+          echo "RUNNER_TOOL_CACHE=${RUNNER_TOOL_CACHE:-<unset>}"
+          echo "AGENT_TOOLSDIRECTORY=${AGENT_TOOLSDIRECTORY:-<unset>}"
+          if [ -n "${RUNNER_TOOL_CACHE:-}" ]; then
+            ls -ld "$RUNNER_TOOL_CACHE" || true
+            test -w "$RUNNER_TOOL_CACHE"
+          fi
