@@ -11,7 +11,7 @@ from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from typing import Any, Protocol
 
-from ois.application.state import ExecutionState
+from ois.application.state import ExecutionState, transition
 
 
 class Connection(Protocol):
@@ -61,8 +61,22 @@ class PostgresExecutionStore:
         with self.transaction() as connection:
             cursor = connection.cursor()
             cursor.execute(
-                "INSERT INTO execution_state (execution_id, state) VALUES (%s, %s) "
-                "ON CONFLICT (execution_id) "
-                "DO UPDATE SET state = EXCLUDED.state, updated_at = now()",
-                (execution_id, state.value),
+                "SELECT state FROM execution_state WHERE execution_id = %s FOR UPDATE",
+                (execution_id,),
             )
+            row = cursor.fetchone()
+            if row is not None:
+                current_state = ExecutionState(row[0])
+                # Validate transition through canonical state machine
+                transition(current_state, state)
+                cursor.execute(
+                    "UPDATE execution_state SET state = %s, updated_at = now() "
+                    "WHERE execution_id = %s",
+                    (state.value, execution_id),
+                )
+            else:
+                # Initial insert: state must be PENDING or an allowed starting state
+                cursor.execute(
+                    "INSERT INTO execution_state (execution_id, state) VALUES (%s, %s)",
+                    (execution_id, state.value),
+                )
