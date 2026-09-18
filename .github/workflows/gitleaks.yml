@@ -36,3 +36,15 @@ jobs:
           GITLEAKS_ENABLE_COMMENTS: "true"
           GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "true"
           GITLEAKS_ENABLE_SUMMARY: "true"
+
+      - name: Full Git history scan
+        run: |
+          gitleaks git             --redact             --exit-code 1             --report-format sarif             --report-path full-history-results.sarif             --log-opts="--all"
+
+      - name: Upload full-history report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: gitleaks-full-history
+          path: full-history-results.sarif
+          if-no-files-found: error
