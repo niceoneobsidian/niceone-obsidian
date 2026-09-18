@@ -1,0 +1,78 @@
+global:
+  environment: production
+  namespace: ois-system
+
+imagePullSecrets: []
+
+serviceAccount:
+  create: true
+  name: ois-kernel-sa
+
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: [ALL]
+
+database:
+  secretName: ois-postgres-secret
+  host: postgres-cluster.database.svc.cluster.local
+  port: 5432
+  name: ois_db
+  usernameKey: username
+  passwordKey: password
+
+redis:
+  uri: redis://redis-cluster.cache.svc.cluster.local:6379/0
+
+supervisor:
+  replicaCount: 3
+  image:
+    repository: ois-registry.internal/kernel/supervisor
+    tag: v1.0.0
+    pullPolicy: IfNotPresent
+  command: ["python3", "-m", "ois_supervisor.run"]
+  resources:
+    limits:
+      cpu: "1"
+      memory: 512Mi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+
+crdController:
+  replicaCount: 2
+  image:
+    repository: ois-registry.internal/kernel/crd-controller
+    tag: v1.0.0
+    pullPolicy: IfNotPresent
+  command: ["kopf", "run", "-A", "ois_sandbox_crd_controller.py"]
+  resources:
+    limits:
+      cpu: 500m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+migration:
+  image:
+    repository: ois-registry.internal/kernel/schema-tool
+    tag: v1.0.0
+    pullPolicy: IfNotPresent
+  command: []
+  backoffLimit: 3
+  activeDeadlineSeconds: 900
+
+vault:
+  enabled: true
+  role: ois-tenant-worker-role
+  secretPath: secret/data/ois/kernel/signing
+  agentConfigMap: ""
+
+runtimeClassName: ""
