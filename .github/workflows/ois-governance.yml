@@ -2,7 +2,7 @@ name: OIS Governance
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, dev/de-03-postgres-fenced-execution]
 
 permissions:
   contents: read
