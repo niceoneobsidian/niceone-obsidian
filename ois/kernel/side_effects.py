@@ -107,9 +107,8 @@ class TransactionalSideEffectBoundary:
                     SET status = 'PROCESSING',
                         attempts = attempts + 1,
                         locked_at = now(),
-                        updated_at = now(),
-                        last_error = NULL
-                    FROM candidate
+                        updated_at = now()
+                                FROM candidate
                     WHERE outbox.effect_id = candidate.effect_id
                     RETURNING outbox.effect_id, outbox.tenant_id, outbox.execution_id,
                               outbox.invocation_id, outbox.capability_id,
