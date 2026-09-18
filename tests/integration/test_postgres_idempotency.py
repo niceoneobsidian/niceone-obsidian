@@ -18,14 +18,14 @@ def test_idempotency_claim_replay_and_completion(
 
     assert first.claim_idempotency(
         "invocation-1",
-        "execution-1",
+        "00000000-0000-0000-0000-000000000001",
         "tenant-1",
         "capability-1",
         "fingerprint-a",
     )
     assert not second.claim_idempotency(
         "invocation-1",
-        "execution-1",
+        "00000000-0000-0000-0000-000000000001",
         "tenant-1",
         "capability-1",
         "fingerprint-a",
@@ -42,7 +42,7 @@ def test_idempotency_rejects_fingerprint_reuse(
     store = store_for(migrated_postgres)
     assert store.claim_idempotency(
         "invocation-2",
-        "execution-2",
+        "00000000-0000-0000-0000-000000000002",
         "tenant-1",
         "capability-1",
         "fingerprint-a",
@@ -51,7 +51,7 @@ def test_idempotency_rejects_fingerprint_reuse(
     with pytest.raises(ValueError, match="different request"):
         store.claim_idempotency(
             "invocation-2",
-            "execution-2",
+            "00000000-0000-0000-0000-000000000002",
             "tenant-1",
             "capability-1",
             "fingerprint-b",
@@ -64,7 +64,7 @@ def test_failed_idempotency_claim_can_be_released(
     store = store_for(migrated_postgres)
     assert store.claim_idempotency(
         "invocation-3",
-        "execution-3",
+        "00000000-0000-0000-0000-000000000003",
         "tenant-1",
         "capability-1",
         "fingerprint-a",
@@ -72,7 +72,7 @@ def test_failed_idempotency_claim_can_be_released(
     store.release_idempotency("invocation-3")
     assert store.claim_idempotency(
         "invocation-3",
-        "execution-3-retry",
+        "00000000-0000-0000-0000-000000000004",
         "tenant-1",
         "capability-1",
         "fingerprint-a",

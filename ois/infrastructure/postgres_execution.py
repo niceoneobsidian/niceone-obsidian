@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
-from typing import Any, Protocol
+from typing import Any, Protocol, cast
 
 from ois.application.state import ExecutionState, transition
 
@@ -38,9 +38,7 @@ class PostgresExecutionStore:
             if close:
                 close()
 
-    def append_evidence(
-        self, execution_id: str, category: str, payload: dict[str, Any]
-    ) -> None:
+    def append_evidence(self, execution_id: str, category: str, payload: dict[str, Any]) -> None:
         with self.transaction() as connection:
             cursor = connection.cursor()
             cursor.execute(
@@ -78,8 +76,7 @@ class PostgresExecutionStore:
                 )
             else:
                 cursor.execute(
-                    "INSERT INTO execution_state (execution_id, state) "
-                    "VALUES (%s, %s)",
+                    "INSERT INTO execution_state (execution_id, state) VALUES (%s, %s)",
                     (execution_id, state.value),
                 )
 
@@ -110,7 +107,7 @@ class PostgresExecutionStore:
                     execution_id,
                     tenant_id,
                     capability_id,
-                    {},
+                    json.dumps({}),
                     request_fingerprint,
                 ),
             )
@@ -129,9 +126,7 @@ class PostgresExecutionStore:
                 raise ValueError("idempotency key reused with a different request")
             return False
 
-    def complete_idempotency(
-        self, invocation_id: str, result: dict[str, Any]
-    ) -> None:
+    def complete_idempotency(self, invocation_id: str, result: dict[str, Any]) -> None:
         with self.transaction() as connection:
             cursor = connection.cursor()
             cursor.execute(
@@ -143,20 +138,20 @@ class PostgresExecutionStore:
             if cursor.rowcount != 1:
                 raise KeyError(f"unknown or completed invocation: {invocation_id}")
 
-    def get_idempotency_result(
-        self, invocation_id: str
-    ) -> dict[str, Any] | None:
+    def get_idempotency_result(self, invocation_id: str) -> dict[str, Any] | None:
         with self.transaction() as connection:
             cursor = connection.cursor()
             cursor.execute(
-                "SELECT status, result FROM ois_idempotency_results "
-                "WHERE invocation_id = %s",
+                "SELECT status, result FROM ois_idempotency_results WHERE invocation_id = %s",
                 (invocation_id,),
             )
             row = cursor.fetchone()
             if row is None or row[0] != "COMPLETED":
                 return None
-            return row[1]
+            result = row[1]
+            if isinstance(result, str):
+                result = json.loads(result)
+            return cast(dict[str, Any], result)
 
     def release_idempotency(self, invocation_id: str) -> None:
         """Remove an uncompleted claim after a failed execution."""
