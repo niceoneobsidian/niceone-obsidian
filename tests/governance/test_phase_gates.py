@@ -10,12 +10,14 @@ MANIFEST = ROOT / "config" / "phase-gates.json"
 VALIDATOR = ROOT / "scripts" / "validate_phase_gates.py"
 
 
-def test_phase_manifest_has_only_phase_one_active() -> None:
+def test_phase_manifest_has_phase_two_active_after_phase_one_completion() -> None:
     document = json.loads(MANIFEST.read_text(encoding="utf-8"))
-    assert document["active_phase"] == 1
-    assert [phase["status"] for phase in document["phases"]] == [
+    assert document["active_phase"] == 2
+    statuses = [phase["status"] for phase in document["phases"]]
+    assert statuses == [
+        "complete",
         "active",
-        *(["planned"] * 10),
+        *(["planned"] * 9),
     ]
 
 

@@ -2,12 +2,12 @@
   "schema_version": 1,
   "sequence_id": "ois-implementation-sequence-v1",
   "promotion_policy": "strict_order",
-  "active_phase": 1,
+  "active_phase": 2,
   "phases": [
     {
       "id": 1,
       "name": "Repository Integrity",
-      "status": "active",
+      "status": "complete",
       "entry_gate": null,
       "exit_evidence": [
         "repository tree is coherent",
@@ -22,7 +22,7 @@
     {
       "id": 2,
       "name": "Kernel Conformance",
-      "status": "planned",
+      "status": "active",
       "entry_gate": 1,
       "exit_evidence": [
         "kernel contracts are executable",
