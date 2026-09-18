@@ -9,6 +9,10 @@ on:
 
 permissions: {}
 
+concurrency:
+  group: ci-mypy-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   mypy:
     name: Mypy Type Check
@@ -24,14 +28,17 @@ jobs:
         uses: actions/setup-python@v7
         with:
           python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.lock
 
       - name: Install project dependencies
         run: |
           python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          python -m pip install --requirement requirements.lock
+          python -m pip install --no-deps -e .
 
       - name: Install Mypy
-        run: python -m pip install mypy
+        run: python -m pip install "mypy==1.17.1"
 
       - name: Mypy type check
         run: python -m mypy ois
