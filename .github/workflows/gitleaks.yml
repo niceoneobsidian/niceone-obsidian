@@ -2,9 +2,9 @@ name: Gitleaks
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev/de-03-postgres-fenced-execution]
   pull_request:
-    branches: [main]
+    branches: [main, dev/de-03-postgres-fenced-execution]
   workflow_dispatch:
   schedule:
     - cron: "0 4 * * *"
