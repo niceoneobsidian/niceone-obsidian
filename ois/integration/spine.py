@@ -10,12 +10,11 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Any, cast
+from typing import Any
 
 from ois.kernel.checkpoint import CheckpointStore, InMemoryCheckpointStore
 from ois.kernel.evidence import EvidenceLedger, EvidenceStore
 from ois.kernel.policy import AuthorizationDenied, DefaultPolicyEngine, PolicyEngine
-from ois.kernel.registry import CapabilityRegistry as KernelCapabilityRegistry
 from ois.kernel.runtime import ExecutionRuntime
 from ois.kernel.state import ExecutionContext, ExecutionIdentity
 from ois.kernel.types import ExecutionStatus
@@ -63,7 +62,7 @@ class OISSpine:
         self.checkpoints = checkpoint_store or InMemoryCheckpointStore()
         self.policy = policy or DefaultPolicyEngine()
         self.runtime = ExecutionRuntime(
-            cast(KernelCapabilityRegistry, registry),
+            registry,
             self.checkpoints,
             evidence=self.evidence,
             policy=self.policy,
@@ -116,9 +115,7 @@ class OISSpine:
                 invocation_id=invocation_id or "",
                 status="denied",
                 error={"type": type(exc).__name__, "message": str(exc)},
-                evidence=tuple(
-                    event.to_dict() for event in cast(Any, self.evidence).list(execution_uuid)
-                ),
+                evidence=tuple(event.to_dict() for event in self.evidence.list(execution_uuid)),
             )
 
         if result.status.value == "succeeded":
@@ -134,7 +131,5 @@ class OISSpine:
             status=result.status.value,
             output=result.output,
             error=result.error,
-            evidence=tuple(
-                event.to_dict() for event in cast(Any, self.evidence).list(execution_uuid)
-            ),
+            evidence=tuple(event.to_dict() for event in self.evidence.list(execution_uuid)),
         )
