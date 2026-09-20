@@ -1,12 +1,12 @@
 """Compatibility facade for the canonical OIS Kernel Supervisor."""
 
 from ois.kernel.supervisor import (
+    AgentSelectionError,
     SupervisionAction,
+    SupervisionDecision,
     SupervisionRequest,
     Supervisor,
-    SupervisionDecision,
     SupervisorError,
-    AgentSelectionError,
 )
 
 __all__ = [
