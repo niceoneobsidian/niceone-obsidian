@@ -8,6 +8,7 @@ from ois.registries.core import (
     AmbiguousAgentError,
     CapabilityEntry,
     CapabilityNotFoundError,
+    RegistryEntry,
     CapabilityRegistry,
     DuplicateCapabilityError,
     ModelRegistry,
@@ -24,6 +25,7 @@ __all__ = [
     "AmbiguousAgentError",
     "CapabilityEntry",
     "CapabilityNotFoundError",
+    "RegistryEntry",
     "CapabilityRegistry",
     "DuplicateCapabilityError",
     "ModelRegistry",
@@ -31,3 +33,6 @@ __all__ = [
     "ToolRegistry",
     "WorkflowRegistry",
 ]
+
+# Compatibility alias retained for Control Plane lifecycle adapters.
+RegistryEntry = CapabilityEntry
