@@ -22,7 +22,7 @@ from ois.kernel.contracts import (
 from ois.kernel.evidence import EvidenceEvent as KernelEvidenceEvent
 from ois.kernel.evidence import EvidenceStore as KernelEvidenceStore
 from ois.kernel.policy import DefaultPolicyEngine
-from ois.kernel.registry import RegistryEntry as KernelRegistryEntry
+from ois.kernel.registry import CapabilityEntry as KernelRegistryEntry
 from ois.kernel.runtime import ExecutionRuntime
 from ois.kernel.state import ExecutionContext, ExecutionIdentity
 from ois.kernel.types import InvocationStatus
@@ -52,11 +52,16 @@ class KernelRegistryAdapter:
 
     def get(self, capability_id: str, version: str) -> KernelRegistryEntry:
         entry = self.registry.resolve(capability_id, version)
-        capability = entry.value
-        contract = getattr(capability, "contract", None)
+        capability = entry.capability
+        contract = entry.contract
         if contract is None:
             raise TypeError(f"registered capability has no contract: {capability_id}@{version}")
-        return KernelRegistryEntry(capability=cast(Any, capability), contract=contract)
+        return KernelRegistryEntry(
+            capability=cast(Any, capability),
+            contract=contract,
+            id=entry.id,
+            version=entry.version,
+        )
 
 
 class KernelEvidenceBridge(KernelEvidenceStore):
@@ -78,6 +83,35 @@ class KernelEvidenceBridge(KernelEvidenceStore):
                 "correlation_id": event.correlation_id,
                 "causation_id": event.causation_id,
             },
+        )
+
+    def list(self, execution_id: UUID | None = None) -> tuple[KernelEvidenceEvent, ...]:
+        execution_key = str(execution_id) if execution_id is not None else None
+        return tuple(
+            KernelEvidenceEvent(
+                execution_id=UUID(event.execution_id),
+                event_type=event.event_type,
+                timestamp=event.timestamp,
+                event_id=UUID(event.event_id),
+                actor=str(event.payload.get("actor", "kernel")),
+                component=str(event.payload.get("component", "ois.kernel")),
+                data={
+                    key: value
+                    for key, value in event.payload.items()
+                    if key
+                    not in {
+                        "kernel_event_id",
+                        "actor",
+                        "component",
+                        "timestamp",
+                        "correlation_id",
+                        "causation_id",
+                    }
+                },
+                correlation_id=cast(str | None, event.payload.get("correlation_id")),
+                causation_id=cast(str | None, event.payload.get("causation_id")),
+            )
+            for event in self.ledger.events(execution_key)
         )
 
     def record(

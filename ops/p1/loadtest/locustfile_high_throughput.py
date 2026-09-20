@@ -2,7 +2,7 @@ import os
 import random
 import uuid
 
-from locust import HttpUser, between, task
+from locust import HttpUser, between, task  # type: ignore[import-not-found]
 
 TENANT_POOL = [x.strip() for x in os.getenv("OIS_STRESS_TENANTS", "").split(",") if x.strip()]
 EXECUTION_PATH = os.getenv("OIS_EXECUTION_PATH", "/v1/kernel/execute")

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import cast
 from uuid import uuid4
 
 from ois.infrastructure.postgres_fencing import PostgresWorkerLeaseStore, WorkerLease
@@ -135,7 +136,7 @@ class ExecutionRuntime:
 
         try:
             self.cancellation.raise_if_cancelled()
-            result = entry.capability.invoke(request)
+            result = cast(InvocationResult, entry.capability.invoke(request))
             self.cancellation.raise_if_cancelled()
         except ExecutionCancellation as exc:
             return self._handle_cancellation(
