@@ -1,7 +1,7 @@
 """OIS Runtime Intelligence Fabrics plane contract and runtime interfaces."""
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any, Literal, Protocol
 
 
@@ -40,26 +40,23 @@ class StructuredEvent:
     event_id: str
     event_type: str
     plane: str
-    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
     details: dict[str, Any] = field(default_factory=dict)
 
 
 class IntelligenceFabricProvider(Protocol):
     """Runtime contract for Intelligence Fabric capability registration."""
 
-    def resolve_target(self, target_id: str) -> ExecutionTarget:
-        ...
+    def resolve_target(self, target_id: str) -> ExecutionTarget: ...
 
-    def validate_execution(self, target: ExecutionTarget) -> ValidationResult:
-        ...
+    def validate_execution(self, target: ExecutionTarget) -> ValidationResult: ...
 
     def evaluate_recovery(
         self,
         target: ExecutionTarget,
         error: Exception,
         attempt: int,
-    ) -> RecoveryDecision:
-        ...
+    ) -> RecoveryDecision: ...
 
 
 class DefaultIntelligenceFabric:
@@ -114,7 +111,10 @@ class DefaultIntelligenceFabric:
             )
         return RecoveryDecision(
             action="escalate",
-            reason=f"Exceeded maximum retries ({attempt}) for target {target.target_id}. Error: {error}",
+            reason=(
+                f"Exceeded maximum retries ({attempt}) for target "
+                f"{target.target_id}. Error: {error}"
+            ),
             retry_count=attempt,
         )
 
@@ -125,7 +125,7 @@ class DefaultIntelligenceFabric:
     ) -> StructuredEvent:
         """Emit a structured event for Observability plane consumption."""
         return StructuredEvent(
-            event_id=f"evt_{datetime.now(timezone.utc).timestamp()}",
+            event_id=f"evt_{datetime.now(UTC).timestamp()}",
             event_type=event_type,
             plane="IntelligenceFabric",
             details=details,

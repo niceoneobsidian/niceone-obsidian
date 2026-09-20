@@ -8,8 +8,17 @@ def match() -> MatchState:
     return MatchState(
         competition="EPL",
         kickoff_at=datetime(2026, 8, 30, 15, tzinfo=UTC),
-        home=TeamSnapshot(team_id="h", name="Home", elo=1600, attack_strength=1.2, defense_strength=0.9, home_advantage=0.08),
-        away=TeamSnapshot(team_id="a", name="Away", elo=1500, attack_strength=1.0, defense_strength=1.1),
+        home=TeamSnapshot(
+            team_id="h",
+            name="Home",
+            elo=1600,
+            attack_strength=1.2,
+            defense_strength=0.9,
+            home_advantage=0.08,
+        ),
+        away=TeamSnapshot(
+            team_id="a", name="Away", elo=1500, attack_strength=1.0, defense_strength=1.1
+        ),
     )
 
 

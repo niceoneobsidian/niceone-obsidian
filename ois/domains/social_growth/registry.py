@@ -70,7 +70,7 @@ SOCIAL_AGENTS: tuple[SocialAgentSpec, ...] = (
 )
 
 
-def manifest() -> dict[str, list[dict[str, Any]]]:
+def manifest() -> dict[str, Any]:
     return {
         "capabilities": [c.__dict__.copy() for c in SOCIAL_CAPABILITIES],
         "agents": [a.__dict__.copy() for a in SOCIAL_AGENTS],

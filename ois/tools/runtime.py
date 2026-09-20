@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+from typing import Protocol
 
 
 @dataclass(frozen=True)
@@ -19,7 +20,10 @@ class ToolResult:
     output: object = None
 
 
+class InvokableTool(Protocol):
+    def invoke(self, input: Mapping[str, object]) -> object: ...
+
+
 class ToolPlane:
-    def invoke(self, request: ToolRequest, tool: object) -> ToolResult:
-        invoke = tool.invoke
-        return ToolResult("success", invoke(request.input))
+    def invoke(self, request: ToolRequest, tool: InvokableTool) -> ToolResult:
+        return ToolResult("success", tool.invoke(request.input))

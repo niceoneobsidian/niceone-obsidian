@@ -4,13 +4,13 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Generic, TypeVar
+from typing import TypeVar
 
 T = TypeVar("T")
 
 
 @dataclass(frozen=True)
-class RegistryEntry(Generic[T]):
+class RegistryEntry[T]:
     """Versioned object registered for deterministic lookup."""
 
     id: str
@@ -19,7 +19,7 @@ class RegistryEntry(Generic[T]):
     metadata: Mapping[str, object] = field(default_factory=dict)
 
 
-class Registry(Generic[T]):
+class Registry[T]:
     """Small in-memory registry with explicit versioned identities."""
 
     def __init__(self) -> None:
