@@ -28,16 +28,12 @@ class RedisTransientCoordinator:
     """
 
     def __init__(self, redis_url: str) -> None:
-        self.client: redis.Redis = redis.Redis.from_url(
-            redis_url, decode_responses=True
-        )
+        self.client: redis.Redis = redis.Redis.from_url(redis_url, decode_responses=True)
 
     def ping(self) -> bool:
         return bool(self.client.ping())
 
-    def acquire_execution_lock(
-        self, execution_id: str, lock_timeout_sec: int = 30
-    ) -> str | None:
+    def acquire_execution_lock(self, execution_id: str, lock_timeout_sec: int = 30) -> str | None:
         """Acquire an expiring lock and return an owner token, or ``None`` if held."""
         if lock_timeout_sec <= 0:
             raise ValueError("lock_timeout_sec must be positive")
@@ -117,9 +113,7 @@ class RedisTransientCoordinator:
 class RedisIdempotencyStore:
     """Durable runtime idempotency adapter backed by Redis write-once records."""
 
-    def __init__(
-        self, coordinator: RedisTransientCoordinator, ttl_sec: int = 86_400
-    ) -> None:
+    def __init__(self, coordinator: RedisTransientCoordinator, ttl_sec: int = 86_400) -> None:
         self.coordinator = coordinator
         self.ttl_sec = ttl_sec
 
@@ -161,9 +155,7 @@ class RedisIdempotencyStore:
 class RedisCancellationToken:
     """Cross-process cancellation token consumed by the OIS runtime."""
 
-    def __init__(
-        self, coordinator: RedisTransientCoordinator, execution_id: str
-    ) -> None:
+    def __init__(self, coordinator: RedisTransientCoordinator, execution_id: str) -> None:
         self.coordinator = coordinator
         self.execution_id = execution_id
 
