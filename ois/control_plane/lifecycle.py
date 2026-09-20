@@ -86,20 +86,7 @@ class KernelEvidenceBridge(KernelEvidenceStore):
         )
 
     def list(self, execution_id: UUID | None = None) -> tuple[KernelEvidenceEvent, ...]:
-        return tuple(
-            KernelEvidenceEvent(
-                execution_id=UUID(event["execution_id"]),
-                event_type=str(event["event_type"]),
-                timestamp=datetime.fromisoformat(str(event["timestamp"])),
-                event_id=UUID(event["event_id"]),
-                actor=str(event.get("actor", "kernel")),
-                component=str(event.get("component", "ois.kernel")),
-                data=dict(event.get("data", {})),
-                correlation_id=event.get("correlation_id"),
-                causation_id=event.get("causation_id"),
-            )
-            for event in self.ledger.events(str(execution_id) if execution_id else None)
-        )
+        return tuple(self.ledger.list(execution_id))
 
     def record(
         self,
