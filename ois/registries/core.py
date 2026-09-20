@@ -10,8 +10,6 @@ from dataclasses import dataclass, field
 from threading import RLock
 from typing import Any, Generic, TypeVar
 
-from ois.kernel.contracts import AgentContract, Capability, CapabilityContract, ToolContract
-from ois.kernel.policy import AuthorizationDenied, PolicyEngine
 
 T = TypeVar("T")
 
@@ -91,14 +89,14 @@ class CapabilityEntry:
     contract: Any
 
 
-class CapabilityRegistry:
+def _agent_contract_type() -> type[Any]:\n    from ois.kernel.contracts import AgentContract\n    return AgentContract\n\n\ndef _tool_contract_type() -> type[Any]:\n    from ois.kernel.contracts import ToolContract\n    return ToolContract\n\n\ndef _authorization_denied_type() -> type[Exception]:\n    from ois.kernel.policy import AuthorizationDenied\n    return AuthorizationDenied\n\n\nclass CapabilityRegistry:
     """Canonical capability registry with legacy and kernel-native registration forms."""
 
     def __init__(self) -> None:
         self._entries: dict[tuple[str, str], CapabilityEntry] = {}
         self._lock = RLock()
 
-    def register(self, capability_or_id: Capability | str, version: str | None = None, value: Any = None, *, metadata: Mapping[str, object] | None = None) -> None:
+    def register(self, capability_or_id: Any, version: str | None = None, value: Any = None, *, metadata: Mapping[str, object] | None = None) -> None:
         if isinstance(capability_or_id, str):
             if not version:
                 raise ValueError("registry id and version are required")
@@ -161,15 +159,15 @@ class AgentRoutingDecision:
 class AgentRegistry(CapabilityRegistry):
     """Canonical registry specialized for governed agent routing."""
 
-    def register(self, capability_or_id: Capability | str, version: str | None = None, value: Any = None, *, metadata: Mapping[str, object] | None = None) -> None:
+    def register(self, capability_or_id: Any, version: str | None = None, value: Any = None, *, metadata: Mapping[str, object] | None = None) -> None:
         if not isinstance(capability_or_id, str):
             contract = getattr(capability_or_id, "contract", None)
             if not isinstance(contract, AgentContract):
                 raise RegistryError("AgentRegistry requires an AgentContract.")
         super().register(capability_or_id, version, value, metadata=metadata)
 
-    def route(self, capability_id: str, version: str, *, request: Any, policy: PolicyEngine, availability: Callable[[CapabilityEntry], bool] | None = None) -> AgentRoutingDecision:
-        candidates = tuple(entry for entry in self.list() if isinstance(entry.contract, AgentContract) and entry.contract.capability_id == capability_id and entry.contract.version == version)
+    def route(self, capability_id: str, version: str, *, request: Any, policy: Any, availability: Callable[[CapabilityEntry], bool] | None = None) -> AgentRoutingDecision:
+        candidates = tuple(entry for entry in self.list() if isinstance(entry.contract, _agent_contract_type()) and entry.contract.capability_id == capability_id and entry.contract.version == version)
         if not candidates:
             raise AgentRoutingError(f"No agent registered for {capability_id}@{version}")
         eligible: list[CapabilityEntry] = []
@@ -177,7 +175,7 @@ class AgentRegistry(CapabilityRegistry):
         for entry in candidates:
             try:
                 policy.authorize(request, entry.contract)
-            except AuthorizationDenied as exc:
+            except _authorization_denied_type() as exc:
                 rejected.append(str(exc))
                 continue
             if availability is not None and not availability(entry):
