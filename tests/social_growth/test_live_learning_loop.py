@@ -2,7 +2,11 @@ from datetime import UTC, datetime
 
 from ois.domains.social_growth.attribution import AttributionTouchpoint
 from ois.domains.social_growth.chat_ingestion import ChatObservation
-from ois.domains.social_growth.experimentation import ExperimentObservation, ExperimentSpec, ExperimentVariant
+from ois.domains.social_growth.experimentation import (
+    ExperimentObservation,
+    ExperimentSpec,
+    ExperimentVariant,
+)
 from ois.domains.social_growth.live_learning_loop import run_live_learning_loop
 from ois.domains.social_growth.persistence import SQLiteSocialEventStore
 from ois.domains.social_intelligence.intelligence import ModalityObservation
