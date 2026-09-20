@@ -135,7 +135,7 @@ def test_real_persistence_coordination_and_recovery(
                 "ALTER TABLE ois_execution_checkpoint_history "
                 "ENABLE TRIGGER trg_ois_checkpoint_history_immutable"
             )
-        connection.commit()
+            connection.commit()
 
         recovered = postgres.fetch_last_valid_checkpoint(execution_id, tenant_id="conformance")
         assert recovered is not None
