@@ -98,7 +98,9 @@ class ExecutionRuntime:
         try:
             self.cancellation.raise_if_cancelled()
         except ExecutionCancellation as exc:
-            return self._handle_cancellation(context, capability_id, exc, logical_invocation_id, worker_lease)
+            return self._handle_cancellation(
+                context, capability_id, exc, logical_invocation_id, worker_lease
+            )
 
         request = InvocationRequest(
             invocation_id=logical_invocation_id,
@@ -138,7 +140,9 @@ class ExecutionRuntime:
         except ExecutionCancellation as exc:
             return self._handle_cancellation(context, capability_id, exc, logical_invocation_id, worker_lease)
         except Exception as exc:
-            return self._handle_failure(context, capability_id, logical_invocation_id, exc, worker_lease)
+            return self._handle_failure(
+                context, capability_id, logical_invocation_id, exc, worker_lease
+            )
 
         if (
             result.status == InvocationStatus.FAILED
@@ -225,7 +229,9 @@ class ExecutionRuntime:
         context.set_status(ExecutionStatus.ROUTED)
         return result
 
-    def complete(self, context: ExecutionContext, *, worker_lease: WorkerLease | None = None) -> None:
+    def complete(
+        self, context: ExecutionContext, *, worker_lease: WorkerLease | None = None
+    ) -> None:
         """Mark the entire execution complete and durably checkpoint it."""
         self._assert_fence(worker_lease)
         context.set_status(ExecutionStatus.COMPLETED)
@@ -235,7 +241,9 @@ class ExecutionRuntime:
     def _assert_fence(self, lease: WorkerLease | None) -> None:
         if self.fencing is not None:
             if lease is None:
-                raise ExecutionError("PostgreSQL fencing is enabled but no worker lease was supplied")
+                raise ExecutionError(
+                    "PostgreSQL fencing is enabled but no worker lease was supplied"
+                )
             self.fencing.assert_current(lease)
 
     def _save_checkpoint(self, context: ExecutionContext, lease: WorkerLease | None) -> None:
