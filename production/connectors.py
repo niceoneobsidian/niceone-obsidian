@@ -49,7 +49,7 @@ class Connector(Protocol):
 class HTTPConnector:
     """Minimal HTTPS-only adapter boundary; concrete transports are injectable."""
 
-    def __init__(self, transport, *, evidence=None) -> None:
+    def __init__(self, transport: object, *, evidence: object | None = None) -> None:
         self.transport, self.evidence = transport, evidence
 
     def request(self, request: ConnectorRequest) -> ConnectorResponse:
