@@ -113,12 +113,12 @@ def test_real_persistence_coordination_and_recovery(
             postgres.connection() as connection,
             connection.cursor() as cursor,
         ):
-                    cursor.execute(
-                        "UPDATE ois_execution_checkpoint_history "
-                        "SET state = state WHERE checkpoint_id = %s",
-                        (second_checkpoint_id,),
-                    )
-                connection.commit()
+            cursor.execute(
+                "UPDATE ois_execution_checkpoint_history "
+                "SET state = state WHERE checkpoint_id = %s",
+                (second_checkpoint_id,),
+            )
+            connection.commit()
 
         with postgres.connection() as connection:
             with connection.cursor() as cursor:
