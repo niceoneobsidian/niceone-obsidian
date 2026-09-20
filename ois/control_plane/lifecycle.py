@@ -52,8 +52,8 @@ class KernelRegistryAdapter:
 
     def get(self, capability_id: str, version: str) -> KernelRegistryEntry:
         entry = self.registry.resolve(capability_id, version)
-        capability = entry.value
-        contract = getattr(capability, "contract", None)
+        capability = entry.capability
+        contract = entry.contract
         if contract is None:
             raise TypeError(f"registered capability has no contract: {capability_id}@{version}")
         return KernelRegistryEntry(capability=cast(Any, capability), contract=contract)
