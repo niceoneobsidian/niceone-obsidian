@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from time import monotonic, sleep
 from typing import Protocol
@@ -42,6 +42,10 @@ class InMemorySecretProvider:
         return self._values[name]
 
 
+class EvidenceSink(Protocol):
+    def append(self, execution_id: str, event_type: str, data: Mapping[str, object]) -> None: ...
+
+
 class Connector(Protocol):
     def request(self, request: ConnectorRequest) -> ConnectorResponse: ...
 
@@ -49,7 +53,12 @@ class Connector(Protocol):
 class HTTPConnector:
     """Minimal HTTPS-only adapter boundary; concrete transports are injectable."""
 
-    def __init__(self, transport: object, *, evidence: object | None = None) -> None:
+    def __init__(
+        self,
+        transport: Callable[[str, Mapping[str, object] | None, float], tuple[int, object]],
+        *,
+        evidence: EvidenceSink | None = None,
+    ) -> None:
         self.transport, self.evidence = transport, evidence
 
     def request(self, request: ConnectorRequest) -> ConnectorResponse:
