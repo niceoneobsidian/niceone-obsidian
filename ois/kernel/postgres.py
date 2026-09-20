@@ -2,10 +2,9 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterator, Mapping
 from contextlib import contextmanager
-from datetime import UTC, datetime
-from typing import Any, Iterator
+from typing import Any
 from uuid import UUID
 
 from .checkpoint import CheckpointNotFound
@@ -119,8 +118,7 @@ class PostgresDurableExecutionStore:
             connection.close()
 
     def initialize(self) -> None:
-        with self.connection() as connection:
-            with connection.cursor() as cursor:
+        with self.connection() as connection, connection.cursor() as cursor:
                 cursor.execute(self.SCHEMA)
             connection.commit()
 
@@ -284,7 +282,9 @@ class PostgresDurableExecutionStore:
                 )
                 row = cursor.fetchone()
         if row is None:
-            raise CheckpointNotFound(f"No PostgreSQL checkpoint for execution {execution_id}")
+            raise CheckpointNotFound(
+                f"No PostgreSQL checkpoint for execution {execution_id}"
+            )
         state = row[0]
         if isinstance(state, str):
             state = json.loads(state)
