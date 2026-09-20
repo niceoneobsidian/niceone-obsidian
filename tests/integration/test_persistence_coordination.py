@@ -108,9 +108,11 @@ def test_real_persistence_coordination_and_recovery(
 
         # The database trigger protects immutable history. The controlled fault
         # injector temporarily disables it only to simulate storage corruption.
-        with pytest.raises(psycopg.Error):
-            with postgres.connection() as connection:
-                with connection.cursor() as cursor:
+        with (
+            pytest.raises(psycopg.Error),
+            postgres.connection() as connection,
+            connection.cursor() as cursor,
+        ):
                     cursor.execute(
                         "UPDATE ois_execution_checkpoint_history "
                         "SET state = state WHERE checkpoint_id = %s",
