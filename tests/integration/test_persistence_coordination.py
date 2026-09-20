@@ -120,8 +120,7 @@ def test_real_persistence_coordination_and_recovery(
             )
             connection.commit()
 
-        with postgres.connection() as connection:
-            with connection.cursor() as cursor:
+        with postgres.connection() as connection, connection.cursor() as cursor:
                 cursor.execute(
                     "ALTER TABLE ois_execution_checkpoint_history "
                     "DISABLE TRIGGER trg_ois_checkpoint_history_immutable"
@@ -212,9 +211,7 @@ def test_real_persistence_coordination_and_recovery(
         )
 
         cancelled_execution_id = uuid4()
-        cancellation = RedisCancellationToken(
-            redis, str(cancelled_execution_id)
-        )
+        cancellation = RedisCancellationToken(redis, str(cancelled_execution_id))
         cancellation.cancel("operator requested stop")
         cancellation_evidence = EvidenceLedger()
         cancelled_runtime = ExecutionRuntime(
