@@ -28,7 +28,7 @@ class RedisTransientCoordinator:
     """
 
     def __init__(self, redis_url: str) -> None:
-        self.client: redis.Redis[str] = redis.Redis.from_url(
+        self.client: redis.Redis = redis.Redis.from_url(
             redis_url, decode_responses=True
         )
 
@@ -55,7 +55,10 @@ class RedisTransientCoordinator:
         return bool(result)
 
     def check_idempotency_cache(self, transaction_id: str) -> str | None:
-        return self.client.get(f"ois:idempotency:{transaction_id}")
+        value = self.client.get(f"ois:idempotency:{transaction_id}")
+        if isinstance(value, bytes):
+            return value.decode("utf-8")
+        return value
 
     def write_idempotency_cache(
         self, transaction_id: str, serialized_result: str, ttl_sec: int = 86_400
@@ -105,7 +108,7 @@ class RedisTransientCoordinator:
         try:
             return str(json.loads(value).get("reason"))
         except (TypeError, ValueError):
-            return value
+            return value.decode("utf-8") if isinstance(value, bytes) else value
 
     def clear_cancellation_signal(self, execution_id: str) -> bool:
         return bool(self.client.delete(f"ois:cancel:{execution_id}"))
