@@ -29,6 +29,10 @@ jobs:
         uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # gitleaks-action defaults to 8.24.3, which predates [[allowlists]]
+          # support (8.25.0+) used by .gitleaks.toml. Pin a compatible version so
+          # full-history scans honor the allowlist.
+          GITLEAKS_VERSION: 8.28.0
           GITLEAKS_ENABLE_COMMENTS: "true"
           GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "true"
           GITLEAKS_ENABLE_SUMMARY: "true"
