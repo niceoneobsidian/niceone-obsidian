@@ -138,7 +138,9 @@ class ExecutionRuntime:
             result = entry.capability.invoke(request)
             self.cancellation.raise_if_cancelled()
         except ExecutionCancellation as exc:
-            return self._handle_cancellation(context, capability_id, exc, logical_invocation_id, worker_lease)
+            return self._handle_cancellation(
+                context, capability_id, exc, logical_invocation_id, worker_lease
+            )
         except Exception as exc:
             return self._handle_failure(
                 context, capability_id, logical_invocation_id, exc, worker_lease
