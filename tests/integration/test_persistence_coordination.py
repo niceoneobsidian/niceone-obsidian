@@ -66,9 +66,7 @@ def runtime_urls() -> tuple[str, str]:
     postgres_url = os.getenv("OIS_DATABASE_URL")
     redis_url = os.getenv("OIS_REDIS_URL")
     if not postgres_url or not redis_url:
-        pytest.skip(
-            "OIS_DATABASE_URL and OIS_REDIS_URL are required for runtime conformance"
-        )
+        pytest.skip("OIS_DATABASE_URL and OIS_REDIS_URL are required for runtime conformance")
     return postgres_url, redis_url
 
 
@@ -95,9 +93,7 @@ def test_real_persistence_coordination_and_recovery(
     second_checkpoint_id = uuid4()
     owner = redis.acquire_execution_lock(str(execution_id), lock_timeout_sec=30)
     assert owner is not None
-    assert redis.acquire_execution_lock(
-        str(execution_id), lock_timeout_sec=30
-    ) is None
+    assert redis.acquire_execution_lock(str(execution_id), lock_timeout_sec=30) is None
 
     cancelled_execution_id: UUID | None = None
     try:
@@ -141,9 +137,7 @@ def test_real_persistence_coordination_and_recovery(
             )
         connection.commit()
 
-        recovered = postgres.fetch_last_valid_checkpoint(
-            execution_id, tenant_id="conformance"
-        )
+        recovered = postgres.fetch_last_valid_checkpoint(execution_id, tenant_id="conformance")
         assert recovered is not None
         assert recovered.objective == "recovery conformance"
         assert recovered.metadata["step_index"] == 0
@@ -159,8 +153,7 @@ def test_real_persistence_coordination_and_recovery(
         }
         assert recovery_evidence["outcome"] == "RECOVERED"
         assert (
-            recovery_evidence["restored_checkpoint_id"]
-            != recovery_evidence["failed_checkpoint_id"]
+            recovery_evidence["restored_checkpoint_id"] != recovery_evidence["failed_checkpoint_id"]
         )
 
         registry = CapabilityRegistry()
@@ -248,9 +241,7 @@ def test_real_persistence_coordination_and_recovery(
             transaction_id,
             {"status": "SUCCESS", "processed_records": 42},
         )
-        assert not redis.cache_json_result(
-            transaction_id, {"status": "duplicate"}
-        )
+        assert not redis.cache_json_result(transaction_id, {"status": "duplicate"})
         cached = redis.check_idempotency_cache(transaction_id)
         assert cached is not None
         assert json.loads(cached)["processed_records"] == 42

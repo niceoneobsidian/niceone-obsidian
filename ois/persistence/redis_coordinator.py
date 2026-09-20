@@ -38,9 +38,7 @@ class RedisTransientCoordinator:
         if lock_timeout_sec <= 0:
             raise ValueError("lock_timeout_sec must be positive")
         token = str(uuid4())
-        acquired = self.client.set(
-            f"ois:lock:{execution_id}", token, nx=True, ex=lock_timeout_sec
-        )
+        acquired = self.client.set(f"ois:lock:{execution_id}", token, nx=True, ex=lock_timeout_sec)
         return token if acquired else None
 
     def release_execution_lock(self, execution_id: str, owner_token: str) -> bool:
@@ -71,9 +69,7 @@ class RedisTransientCoordinator:
         )
         return bool(result)
 
-    def cache_json_result(
-        self, transaction_id: str, result: object, ttl_sec: int = 86_400
-    ) -> bool:
+    def cache_json_result(self, transaction_id: str, result: object, ttl_sec: int = 86_400) -> bool:
         return self.write_idempotency_cache(
             transaction_id,
             json.dumps(result, sort_keys=True, separators=(",", ":")),
@@ -172,9 +168,7 @@ class RedisCancellationToken:
         return self.coordinator.cancellation_reason(self.execution_id)
 
     def cancel(self, reason: str | None = None) -> None:
-        self.coordinator.set_cancellation_signal(
-            self.execution_id, reason=reason or "cancelled"
-        )
+        self.coordinator.set_cancellation_signal(self.execution_id, reason=reason or "cancelled")
 
     def raise_if_cancelled(self) -> None:
         if self.cancelled:

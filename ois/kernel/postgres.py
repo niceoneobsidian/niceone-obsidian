@@ -277,17 +277,12 @@ class PostgresDurableExecutionStore:
     def load(self, execution_id: UUID) -> ExecutionContext:
         with self.connection() as connection, connection.cursor() as cursor:
             cursor.execute(
-                (
-                    "SELECT state, state_hash "
-                    "FROM ois_execution_checkpoints WHERE execution_id = %s"
-                ),
+                ("SELECT state, state_hash FROM ois_execution_checkpoints WHERE execution_id = %s"),
                 (execution_id,),
             )
             row = cursor.fetchone()
         if row is None:
-            raise CheckpointNotFound(
-                f"No PostgreSQL checkpoint for execution {execution_id}"
-            )
+            raise CheckpointNotFound(f"No PostgreSQL checkpoint for execution {execution_id}")
         state = row[0]
         if isinstance(state, str):
             state = json.loads(state)
