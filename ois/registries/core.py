@@ -155,8 +155,7 @@ class CapabilityRegistry:
         with self._lock:
             if key in self._entries:
                 raise DuplicateCapabilityError(
-                    "Capability already registered: "
-                    f"{capability_id}@{capability_version}"
+                    f"Capability already registered: {capability_id}@{capability_version}"
                 )
             self._entries[key] = CapabilityEntry(
                 capability=capability,
@@ -168,9 +167,7 @@ class CapabilityRegistry:
     def unregister(self, capability_id: str, version: str) -> None:
         with self._lock:
             if (capability_id, version) not in self._entries:
-                raise CapabilityNotFoundError(
-                    f"not registered: {capability_id}@{version}"
-                )
+                raise CapabilityNotFoundError(f"not registered: {capability_id}@{version})
             del self._entries[(capability_id, version)]
 
     def get(self, capability_id: str, version: str) -> CapabilityEntry:
@@ -179,7 +176,7 @@ class CapabilityRegistry:
                 return self._entries[(capability_id, version)]
             except KeyError as exc:
                 raise CapabilityNotFoundError(
-                    f"Capability not found: {capability_id}@{version}"
+                    f"not registered: {capability_id}@{version}"
                 ) from exc
 
     def resolve(self, capability_id: str, version: str) -> CapabilityEntry:
@@ -264,16 +261,13 @@ class AgentRegistry(CapabilityRegistry):
                 continue
 
             if availability is not None and not availability(entry):
-                rejected.append(
-                    f"Agent unavailable: {capability_id}@{version}"
-                )
+                rejected.append(f"Agent unavailable: {capability_id}@{version}")
                 continue
             eligible.append(entry)
 
         if not eligible:
             raise AgentRoutingError(
-                "; ".join(rejected)
-                or "No eligible agent matched routing policy."
+                "; ".join(rejected) or "No eligible agent matched routing policy."
             )
 
         if len(eligible) > 1:
@@ -287,10 +281,7 @@ class AgentRegistry(CapabilityRegistry):
             version=version,
             selected=eligible[0],
             candidates=tuple(eligible),
-            reason=(
-                "Selected the sole eligible agent after policy and "
-                "availability filtering."
-            ),
+            reason=("Selected the sole eligible agent after policy and availability filtering."),
         )
 
 
