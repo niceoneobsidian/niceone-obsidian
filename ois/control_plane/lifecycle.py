@@ -22,7 +22,7 @@ from ois.kernel.contracts import (
 from ois.kernel.evidence import EvidenceEvent as KernelEvidenceEvent
 from ois.kernel.evidence import EvidenceStore as KernelEvidenceStore
 from ois.kernel.policy import DefaultPolicyEngine
-from ois.kernel.registry import RegistryEntry as KernelRegistryEntry
+from ois.kernel.registry import CapabilityEntry as KernelRegistryEntry
 from ois.kernel.runtime import ExecutionRuntime
 from ois.kernel.state import ExecutionContext, ExecutionIdentity
 from ois.kernel.types import InvocationStatus
