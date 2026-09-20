@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from uuid import uuid4
 
+from ois.infrastructure.postgres_fencing import PostgresWorkerLeaseStore, WorkerLease
+
 from .cancellation import CancellationToken, ExecutionCancellation
 from .checkpoint import CheckpointStore
 from .contracts import InvocationRequest, InvocationResult
@@ -37,6 +39,7 @@ class ExecutionRuntime:
         recovery: RecoveryPolicy | None = None,
         cancellation: CancellationToken | None = None,
         idempotency: IdempotencyStore | None = None,
+        fencing: PostgresWorkerLeaseStore | None = None,
     ) -> None:
         self.registry = registry
         self.checkpoint_store = checkpoint_store
@@ -46,6 +49,7 @@ class ExecutionRuntime:
         self.recovery = recovery or RecoveryPolicy()
         self.cancellation = cancellation or CancellationToken()
         self.idempotency = idempotency or InMemoryIdempotencyStore()
+        self.fencing = fencing
 
     def execute(
         self,
@@ -55,6 +59,7 @@ class ExecutionRuntime:
         input_data: dict,
         *,
         invocation_id: str | None = None,
+        worker_lease: WorkerLease | None = None,
     ) -> InvocationResult:
         if context.status in {ExecutionStatus.COMPLETED, ExecutionStatus.STOPPED}:
             raise ExecutionAlreadyCompleted(
@@ -63,6 +68,7 @@ class ExecutionRuntime:
 
         execution_id = context.identity.execution_id
         logical_invocation_id = invocation_id or str(uuid4())
+        self._assert_fence(worker_lease)
         cached = self.idempotency.get(logical_invocation_id)
         if cached is not None:
             self.evidence.record(
@@ -92,7 +98,9 @@ class ExecutionRuntime:
         try:
             self.cancellation.raise_if_cancelled()
         except ExecutionCancellation as exc:
-            return self._handle_cancellation(context, capability_id, exc, logical_invocation_id)
+            return self._handle_cancellation(
+                context, capability_id, exc, logical_invocation_id, worker_lease
+            )
 
         request = InvocationRequest(
             invocation_id=logical_invocation_id,
@@ -118,7 +126,7 @@ class ExecutionRuntime:
 
         context.set_status(ExecutionStatus.EXECUTING)
         context.current_node = capability_id
-        self.checkpoint_store.save(context)
+        self._save_checkpoint(context, worker_lease)
         self.evidence.record(
             execution_id,
             "capability.started",
@@ -130,9 +138,13 @@ class ExecutionRuntime:
             result = entry.capability.invoke(request)
             self.cancellation.raise_if_cancelled()
         except ExecutionCancellation as exc:
-            return self._handle_cancellation(context, capability_id, exc, logical_invocation_id)
+            return self._handle_cancellation(
+                context, capability_id, exc, logical_invocation_id, worker_lease
+            )
         except Exception as exc:
-            return self._handle_failure(context, capability_id, logical_invocation_id, exc)
+            return self._handle_failure(
+                context, capability_id, logical_invocation_id, exc, worker_lease
+            )
 
         if (
             result.status == InvocationStatus.FAILED
@@ -158,7 +170,7 @@ class ExecutionRuntime:
                     "recovery_action": decision.action,
                 },
             )
-            self.checkpoint_store.save(context)
+            self._save_checkpoint(context, worker_lease)
             result.error = {**result.error, "recovery_action": decision.action}
 
         if result.invocation_id != logical_invocation_id:
@@ -199,7 +211,7 @@ class ExecutionRuntime:
         if result.status == InvocationStatus.SUCCEEDED:
             context.working_memory[f"result:{result.invocation_id}"] = result.output
 
-        self._cache_terminal_result(logical_invocation_id, result)
+        self._cache_terminal_result(logical_invocation_id, result, worker_lease)
         self.evidence.record(
             execution_id,
             "execution.idempotency_recorded",
@@ -210,7 +222,7 @@ class ExecutionRuntime:
             },
         )
         context.set_status(ExecutionStatus.CHECKPOINTING)
-        self.checkpoint_store.save(context)
+        self._save_checkpoint(context, worker_lease)
         self.evidence.record(
             execution_id,
             "execution.checkpointed",
@@ -219,14 +231,32 @@ class ExecutionRuntime:
         context.set_status(ExecutionStatus.ROUTED)
         return result
 
-    def complete(self, context: ExecutionContext) -> None:
+    def complete(
+        self, context: ExecutionContext, *, worker_lease: WorkerLease | None = None
+    ) -> None:
         """Mark the entire execution complete and durably checkpoint it."""
+        self._assert_fence(worker_lease)
         context.set_status(ExecutionStatus.COMPLETED)
-        self.checkpoint_store.save(context)
+        self._save_checkpoint(context, worker_lease)
         self.evidence.record(context.identity.execution_id, "execution.completed")
 
-    def _cache_terminal_result(self, invocation_id: str, result: InvocationResult) -> None:
+    def _assert_fence(self, lease: WorkerLease | None) -> None:
+        if self.fencing is not None:
+            if lease is None:
+                raise ExecutionError(
+                    "PostgreSQL fencing is enabled but no worker lease was supplied"
+                )
+            self.fencing.assert_current(lease)
+
+    def _save_checkpoint(self, context: ExecutionContext, lease: WorkerLease | None) -> None:
+        self._assert_fence(lease)
+        self.checkpoint_store.save(context)
+
+    def _cache_terminal_result(
+        self, invocation_id: str, result: InvocationResult, lease: WorkerLease | None
+    ) -> None:
         if result.status in {InvocationStatus.SUCCEEDED, InvocationStatus.CANCELLED}:
+            self._assert_fence(lease)
             self.idempotency.put(invocation_id, result)
 
     def _handle_cancellation(
@@ -235,6 +265,7 @@ class ExecutionRuntime:
         capability_id: str,
         error: ExecutionCancellation,
         invocation_id: str,
+        worker_lease: WorkerLease | None = None,
     ) -> InvocationResult:
         execution_id = context.identity.execution_id
         context.set_status(ExecutionStatus.STOPPED)
@@ -250,7 +281,7 @@ class ExecutionRuntime:
             "execution.cancelled",
             {"capability_id": capability_id, "invocation_id": invocation_id, "reason": str(error)},
         )
-        self.checkpoint_store.save(context)
+        self._save_checkpoint(context, worker_lease)
         return InvocationResult(
             invocation_id=invocation_id,
             capability_id=capability_id,
@@ -269,6 +300,7 @@ class ExecutionRuntime:
         capability_id: str,
         invocation_id: str,
         error: Exception,
+        worker_lease: WorkerLease | None = None,
     ) -> InvocationResult:
         execution_id = context.identity.execution_id
         failure_class = FailureClass.TOOL
@@ -284,7 +316,7 @@ class ExecutionRuntime:
                 "invocation_id": invocation_id,
             },
         )
-        self.checkpoint_store.save(context)
+        self._save_checkpoint(context, worker_lease)
         return InvocationResult(
             invocation_id=invocation_id,
             capability_id=capability_id,
