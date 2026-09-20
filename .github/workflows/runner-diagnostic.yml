@@ -1,5 +1,7 @@
 name: Self-hosted Mac runner diagnostic
 
+permissions: {}
+
 on:
   workflow_dispatch:
 
