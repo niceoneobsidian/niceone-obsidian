@@ -9,7 +9,6 @@ from ois.registries.core import (
     CapabilityEntry,
     CapabilityNotFoundError,
     RegistryEntry,
-    CapabilityRegistry,
     DuplicateCapabilityError,
     ModelRegistry,
     RegistryError,
@@ -34,5 +33,3 @@ __all__ = [
     "WorkflowRegistry",
 ]
 
-# Compatibility alias retained for Control Plane lifecycle adapters.
-RegistryEntry = CapabilityEntry
