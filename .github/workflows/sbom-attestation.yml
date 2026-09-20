@@ -30,6 +30,12 @@ jobs:
         run: |
           python -m pip install --upgrade pip cyclonedx-bom
           cyclonedx-py environment --of JSON --output-file dist/sbom.json
+      - name: Upload SBOM
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
+        with:
+          name: sbom
+          path: dist/sbom.json
+
       - name: Attest source archive
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8
         with:
