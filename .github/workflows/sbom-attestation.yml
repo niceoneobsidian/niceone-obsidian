@@ -31,6 +31,6 @@ jobs:
           python -m pip install --upgrade pip cyclonedx-bom
           cyclonedx-py environment --of JSON --output-file dist/sbom.json
       - name: Attest source archive
-        uses: actions/attest-build-provenance@e8998f949152b193b2a8c4f0f1b4d0e17b0f5a4a
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8
         with:
           subject-path: dist/niceone-obsidian-${GITHUB_SHA}.tar.gz
