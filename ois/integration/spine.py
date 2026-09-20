@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Any, cast
+from typing import Any
 
 from ois.kernel.checkpoint import CheckpointStore, InMemoryCheckpointStore
 from ois.kernel.evidence import EvidenceLedger, EvidenceStore
@@ -63,7 +63,7 @@ class OISSpine:
         self.checkpoints = checkpoint_store or InMemoryCheckpointStore()
         self.policy = policy or DefaultPolicyEngine()
         self.runtime = ExecutionRuntime(
-            cast(KernelCapabilityRegistry, registry),
+            registry,
             self.checkpoints,
             evidence=self.evidence,
             policy=self.policy,
@@ -117,7 +117,7 @@ class OISSpine:
                 status="denied",
                 error={"type": type(exc).__name__, "message": str(exc)},
                 evidence=tuple(
-                    event.to_dict() for event in cast(Any, self.evidence).list(execution_uuid)
+                    event.to_dict() for event in self.evidence.list(execution_uuid)
                 ),
             )
 
@@ -135,6 +135,6 @@ class OISSpine:
             output=result.output,
             error=result.error,
             evidence=tuple(
-                event.to_dict() for event in cast(Any, self.evidence).list(execution_uuid)
+                event.to_dict() for event in self.evidence.list(execution_uuid)
             ),
         )
