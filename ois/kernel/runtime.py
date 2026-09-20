@@ -97,7 +97,7 @@ class ExecutionRuntime:
         try:
             self.cancellation.raise_if_cancelled()
         except ExecutionCancellation as exc:
-            return self._handle_cancellation(context, capability_id, exc, logical_invocation_id)
+            return self._handle_cancellation(context, capability_id, exc, logical_invocation_id, worker_lease)
 
         request = InvocationRequest(
             invocation_id=logical_invocation_id,
@@ -137,7 +137,7 @@ class ExecutionRuntime:
         except ExecutionCancellation as exc:
             return self._handle_cancellation(context, capability_id, exc, logical_invocation_id)
         except Exception as exc:
-            return self._handle_failure(context, capability_id, logical_invocation_id, exc)
+            return self._handle_failure(context, capability_id, logical_invocation_id, exc, worker_lease)
 
         if (
             result.status == InvocationStatus.FAILED
@@ -254,6 +254,7 @@ class ExecutionRuntime:
         capability_id: str,
         error: ExecutionCancellation,
         invocation_id: str,
+        worker_lease: WorkerLease | None = None,
     ) -> InvocationResult:
         execution_id = context.identity.execution_id
         context.set_status(ExecutionStatus.STOPPED)
@@ -269,7 +270,7 @@ class ExecutionRuntime:
             "execution.cancelled",
             {"capability_id": capability_id, "invocation_id": invocation_id, "reason": str(error)},
         )
-        self.checkpoint_store.save(context)
+        self._save_checkpoint(context, worker_lease)
         return InvocationResult(
             invocation_id=invocation_id,
             capability_id=capability_id,
@@ -288,6 +289,7 @@ class ExecutionRuntime:
         capability_id: str,
         invocation_id: str,
         error: Exception,
+        worker_lease: WorkerLease | None = None,
     ) -> InvocationResult:
         execution_id = context.identity.execution_id
         failure_class = FailureClass.TOOL
@@ -303,7 +305,7 @@ class ExecutionRuntime:
                 "invocation_id": invocation_id,
             },
         )
-        self.checkpoint_store.save(context)
+        self._save_checkpoint(context, worker_lease)
         return InvocationResult(
             invocation_id=invocation_id,
             capability_id=capability_id,
