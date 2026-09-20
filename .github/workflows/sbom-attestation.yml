@@ -1,0 +1,36 @@
+name: SBOM and artifact attestation
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+  attestations: write
+
+jobs:
+  provenance:
+    name: Generate SBOM and attest source
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+      - name: Build source archive
+        run: |
+          mkdir -p dist
+          git archive --format=tar.gz --output=dist/niceone-obsidian-${GITHUB_SHA}.tar.gz HEAD
+      - name: Generate CycloneDX SBOM
+        run: |
+          python -m pip install --upgrade pip cyclonedx-bom
+          cyclonedx-py environment --of JSON --output-file dist/sbom.json
+      - name: Attest source archive
+        uses: actions/attest-build-provenance@e8998f949152b193b2a8c4f0f1b4d0e17b0f5a4a
+        with:
+          subject-path: dist/niceone-obsidian-${GITHUB_SHA}.tar.gz
