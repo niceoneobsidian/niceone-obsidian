@@ -136,9 +136,14 @@ def test_stale_epoch_rejects_side_effect_completion(migrated_postgres: str) -> N
         boundary.complete(command, result, fencing=fencing, worker_lease=stale)
 
     boundary.complete(command, result, fencing=fencing, worker_lease=current)
-    row = boundary.get_outbox_effect(command.effect_id)
+    with psycopg.connect(migrated_postgres) as connection, connection.cursor() as cursor:
+        cursor.execute(
+            "SELECT status FROM ois_side_effect_outbox WHERE effect_id = %s",
+            (command.effect_id,),
+        )
+        row = cursor.fetchone()
     assert row is not None
-    assert row["status"] == "COMPLETED"
+    assert row[0] == "COMPLETED"
 
 
 def test_runtime_requires_current_worker_lease_when_fencing_enabled() -> None:
