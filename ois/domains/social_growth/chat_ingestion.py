@@ -94,9 +94,13 @@ def ingest_chat_observations(
     are deterministically deduplicated by the backing SocialEventStore.
     """
     events = [normalize_observation(item) for item in observations]
-    events_added = sum(event_store.append(event) for event in events)
+    events_added = 0
     metrics_added = 0
-    if analytics_store is not None:
-        for event in events:
+
+    for event in events:
+        added = event_store.append(event)
+        events_added += added
+        if added and analytics_store is not None:
             metrics_added += analytics_store.record_event_metrics(event)
+
     return events, events_added, metrics_added
