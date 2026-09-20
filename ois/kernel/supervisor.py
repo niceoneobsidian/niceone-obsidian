@@ -237,7 +237,7 @@ class Supervisor:
         recovery_allowed: bool = False,
         approval_required: bool = False,
         approval_granted: bool = False,
-    ) -> tuple[SupervisionAction, str]:
+    ) -> SupervisionDecision:
         """Compatibility decision API backed by the canonical Supervisor policy."""
         if request is None:
             request = SupervisionRequest(
@@ -252,29 +252,29 @@ class Supervisor:
                 approval_granted=approval_granted,
             )
         if not request.objective.strip():
-            return SupervisionAction.STOP, "objective is required"
+            return SupervisionDecision("stop", "objective is required", True)
         if request.approval_required and not request.approval_granted:
-            return SupervisionAction.ESCALATE, "human approval is required before execution"
+            return SupervisionDecision("escalate", "human approval is required before execution", False)
         if not request.authorized:
-            return SupervisionAction.ESCALATE, "authorization is not granted by the execution boundary"
+            return SupervisionDecision("escalate", "authorization is not granted by the execution boundary", False)
         if not request.plan_validated:
-            return SupervisionAction.REPLAN, "execution plan has not passed validation"
+            return SupervisionDecision("replan", "execution plan has not passed validation", False)
         if request.status in {"completed", "success", "succeeded"}:
-            return SupervisionAction.COMPLETE, "execution completed successfully"
+            return SupervisionDecision("complete", "execution completed successfully", True)
         failure_value = getattr(request.failure, "value", request.failure)
         if failure_value == "safety":
-            return SupervisionAction.STOP, "safety failures terminate execution"
+            return SupervisionDecision("stop", "safety failures terminate execution", True)
         if failure_value == "permission":
-            return SupervisionAction.ESCALATE, "permission failures require escalation"
+            return SupervisionDecision("escalate", "permission failures require escalation", False)
         if failure_value == "plan":
-            return SupervisionAction.REPLAN, "plan failure requires a new executable plan"
+            return SupervisionDecision("replan", "plan failure requires a new executable plan", False)
         if request.retry_allowed:
-            return SupervisionAction.RETRY, "bounded retry is permitted by recovery policy"
+            return SupervisionDecision("retry", "bounded retry is permitted by recovery policy", False)
         if request.recovery_allowed:
-            return SupervisionAction.REPLAN, "bounded recovery is permitted; replan before continuing"
+            return SupervisionDecision("replan", "bounded recovery is permitted; replan before continuing", False)
         if request.failure is not None:
-            return SupervisionAction.ESCALATE, f"failure {failure_value} has no safe automatic action"
-        return SupervisionAction.EXECUTE, "plan is authorized and ready"
+            return SupervisionDecision("escalate", f"failure {failure_value} has no safe automatic action", False)
+        return SupervisionDecision("execute", "plan is authorized and ready", False)
 
     def inspect(self, context: Any) -> SupervisionDecision:
         """Inspect the latest failure and produce a bounded recovery decision."""
