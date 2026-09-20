@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+from typing import Any, cast
 from uuid import UUID, uuid4
 
 import psycopg
@@ -121,21 +122,23 @@ def test_real_persistence_coordination_and_recovery(
                 "ALTER TABLE ois_execution_checkpoint_history "
                 "DISABLE TRIGGER trg_ois_checkpoint_history_immutable"
             )
-            cursor.execute(
-                """
-                UPDATE ois_execution_checkpoint_history
-                SET state = jsonb_set(
-                    state, '{objective}', '"CORRUPTED"'::jsonb
+            try:
+                cursor.execute(
+                    """
+                    UPDATE ois_execution_checkpoint_history
+                    SET state = jsonb_set(
+                        state, '{objective}', '"CORRUPTED"'::jsonb
+                    )
+                    WHERE checkpoint_id = %s
+                    """,
+                    (second_checkpoint_id,),
                 )
-                WHERE checkpoint_id = %s
-                """,
-                (second_checkpoint_id,),
-            )
-            cursor.execute(
-                "ALTER TABLE ois_execution_checkpoint_history "
-                "ENABLE TRIGGER trg_ois_checkpoint_history_immutable"
-            )
-        connection.commit()
+            finally:
+                cursor.execute(
+                    "ALTER TABLE ois_execution_checkpoint_history "
+                    "ENABLE TRIGGER trg_ois_checkpoint_history_immutable"
+                )
+            connection.commit()
 
         recovered = postgres.fetch_last_valid_checkpoint(execution_id, tenant_id="conformance")
         assert recovered is not None
@@ -211,7 +214,7 @@ def test_real_persistence_coordination_and_recovery(
             registry=registry,
             checkpoint_store=postgres,
             evidence=cancellation_evidence,
-            cancellation=cancellation,
+            cancellation=cast(Any, cancellation),
             idempotency=RedisIdempotencyStore(redis),
         )
         cancelled_context = ExecutionContext(
@@ -230,6 +233,7 @@ def test_real_persistence_coordination_and_recovery(
         )
         assert cancelled_result.status == InvocationStatus.CANCELLED
         assert cancelled_context.status.value == "stopped"
+        assert cancelled_result.error is not None
         assert "operator requested stop" in cancelled_result.error["message"]
         assert capability.calls == 1
         assert any(
