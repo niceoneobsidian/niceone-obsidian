@@ -12,10 +12,11 @@ pipeline.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from hashlib import sha256
-from typing import Any, Iterable
+from typing import Any
 
 from .analytics_store import SQLiteAnalyticsStore
 from .persistence import SocialEventStore
@@ -102,5 +103,18 @@ def ingest_chat_observations(
         events_added += added
         if added and analytics_store is not None:
             metrics_added += analytics_store.record_event_metrics(event)
+
+    # Preserve the append result for each event. Metrics must only be
+    # materialized when the event was newly inserted, not when it is a
+    # duplicate already known by the event store.
+    append_results = [event_store.append(event) for event in events]
+
+    events_added = sum(append_results)
+    metrics_added = 0
+
+    if analytics_store is not None:
+        for event, was_added in zip(events, append_results, strict=False):
+            if was_added:
+                metrics_added += analytics_store.record_event_metrics(event)
 
     return events, events_added, metrics_added

@@ -1,0 +1,151 @@
+name: Dependency Lock
+
+# uv.lock is the source of truth for dependency resolution. requirements.lock is
+# generated from it (hashed, transitive) so pip-based consumers such as
+# supply-chain.yml and release.yml install exactly what uv.lock resolved.
+#
+# Refresh both files: Actions -> Dependency Lock -> Run workflow on a NON-default
+# branch with write_lock = true. Commits pushed with GITHUB_TOKEN do not trigger
+# other workflows, so re-run checks (or push a follow-up commit) on that branch.
+
+on:
+  workflow_dispatch:
+    inputs:
+      write_lock:
+        description: "Regenerate uv.lock and requirements.lock and commit them to this branch"
+        required: true
+        default: false
+        type: boolean
+  pull_request:
+    branches: [main]
+    paths:
+      - "pyproject.toml"
+      - "uv.lock"
+      - "requirements.lock"
+      - ".github/workflows/dependency-lock.yml"
+  push:
+    branches: [main]
+    paths:
+      - "pyproject.toml"
+      - "uv.lock"
+      - "requirements.lock"
+      - ".github/workflows/dependency-lock.yml"
+
+permissions:
+  contents: read
+
+env:
+  UV_VERSION: "0.12.17"
+
+jobs:
+  verify:
+    name: Verify lock consistency
+    # Skipped when regenerating: the lock does not exist or is stale until write-lock runs.
+    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.write_lock) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        run: python -m pip install "uv==${UV_VERSION}"
+
+      - name: uv.lock matches pyproject.toml
+        run: uv lock --check
+
+      - name: requirements.lock matches uv.lock
+        run: |
+          uv export --frozen --format requirements-txt --hashes --no-emit-project \
+            --extra test -o requirements.lock
+          git diff --exit-code -- requirements.lock
+
+  install:
+    name: Install locked dependencies
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+
+      - name: Install locked dependencies (hash-checked)
+        run: python -m pip install --require-hashes --requirement requirements.lock
+
+      - name: Verify dependency consistency
+        run: python -m pip check
+
+      - name: Verify package metadata resolves
+        run: python -m pip install --no-deps --editable "."
+
+  write-lock:
+    name: Regenerate and commit lock files
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.write_lock }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+    steps:
+      - name: Refuse to write to the default branch
+        run: |
+          if [ "${GITHUB_REF_NAME}" = "${DEFAULT_BRANCH}" ]; then
+            echo "::error title=Refusing direct push::write_lock must run on a feature branch, not '${DEFAULT_BRANCH}'. Open a pull request instead."
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        run: python -m pip install "uv==${UV_VERSION}"
+
+      - name: Generate uv.lock
+        run: uv lock
+
+      - name: Verify uv.lock is reproducible
+        run: uv lock --check
+
+      - name: Generate hashed requirements.lock from uv.lock
+        run: |
+          uv export --frozen --format requirements-txt --hashes --no-emit-project \
+            --extra test -o requirements.lock
+
+      - name: Verify hash-checked install resolves
+        run: |
+          python -m venv "${RUNNER_TEMP}/lockcheck"
+          "${RUNNER_TEMP}/lockcheck/bin/python" -m pip install --require-hashes \
+            --requirement requirements.lock
+          "${RUNNER_TEMP}/lockcheck/bin/python" -m pip check
+
+      - name: Commit lock files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add uv.lock requirements.lock
+          if git diff --cached --quiet; then
+            echo "Lock files are already current."
+            exit 0
+          fi
+          git commit -m "build: regenerate uv.lock and hashed requirements.lock"
+          git push origin "HEAD:${GITHUB_REF_NAME}"

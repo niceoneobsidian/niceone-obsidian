@@ -1,0 +1,82 @@
+name: Self-hosted Mac runner diagnostic
+
+permissions: {}
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diagnose:
+    name: Diagnose niceone-mac-arm64
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 10
+    steps:
+      - name: Assert runner identity
+        shell: bash
+        env:
+          EXPECTED_RUNNER_NAME: niceone-mac-arm64
+          EXPECTED_RUNNER_OS: macOS
+          EXPECTED_RUNNER_ARCH: ARM64
+          EXPECTED_MACHINE: arm64
+        run: |
+          set -euo pipefail
+          actual_machine="$(uname -m)"
+          echo "runner_name=${RUNNER_NAME}"
+          echo "runner_os=${RUNNER_OS}"
+          echo "runner_arch=${RUNNER_ARCH}"
+          echo "uname_machine=${actual_machine}"
+          echo "runner_labels=${RUNNER_LABELS:-<not exposed by runner>}"
+          uname -a
+          sw_vers
+
+          failures=0
+          check() {
+            local field="$1" expected="$2" actual="$3"
+            if [ "${actual}" != "${expected}" ]; then
+              echo "::error title=Runner identity mismatch::${field}: expected '${expected}', got '${actual}'"
+              failures=$((failures + 1))
+            fi
+          }
+          check RUNNER_NAME "${EXPECTED_RUNNER_NAME}" "${RUNNER_NAME}"
+          check RUNNER_OS "${EXPECTED_RUNNER_OS}" "${RUNNER_OS}"
+          check RUNNER_ARCH "${EXPECTED_RUNNER_ARCH}" "${RUNNER_ARCH}"
+          check "uname -m" "${EXPECTED_MACHINE}" "${actual_machine}"
+          if [ "${failures}" -ne 0 ]; then
+            echo "Runner identity verification failed (${failures} mismatch(es))."
+            exit 1
+          fi
+
+          {
+            echo "### Runner identity verified"
+            echo ""
+            echo "| Field | Value |"
+            echo "|---|---|"
+            echo "| Runner name | \`${RUNNER_NAME}\` |"
+            echo "| OS | \`${RUNNER_OS}\` |"
+            echo "| Architecture | \`${RUNNER_ARCH}\` (uname: \`${actual_machine}\`) |"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Inspect toolchain
+        shell: bash
+        run: |
+          set -euxo pipefail
+          command -v python3 || true
+          python3 --version || true
+          command -v pip3 || true
+          pip3 --version || true
+          command -v docker || true
+          docker --version || true
+          docker info || true
+          command -v git || true
+          git --version || true
+
+      - name: Inspect capacity and workspace
+        shell: bash
+        run: |
+          set -euxo pipefail
+          df -h
+          sysctl -n hw.ncpu
+          sysctl -n hw.memsize
+          uptime
+          printf 'workspace='; pwd
+          ls -la
