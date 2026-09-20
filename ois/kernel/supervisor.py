@@ -254,9 +254,15 @@ class Supervisor:
         if not request.objective.strip():
             return SupervisionDecision("stop", "objective is required", True)
         if request.approval_required and not request.approval_granted:
-            return SupervisionDecision("escalate", "human approval is required before execution", False)
+            return SupervisionDecision(
+                "escalate", "human approval is required before execution", False
+            )
         if not request.authorized:
-            return SupervisionDecision("escalate", "authorization is not granted by the execution boundary", False)
+            return SupervisionDecision(
+                "escalate",
+                "authorization is not granted by the execution boundary",
+                False,
+            )
         if not request.plan_validated:
             return SupervisionDecision("replan", "execution plan has not passed validation", False)
         if request.status in {"completed", "success", "succeeded"}:
@@ -267,13 +273,25 @@ class Supervisor:
         if failure_value == "permission":
             return SupervisionDecision("escalate", "permission failures require escalation", False)
         if failure_value == "plan":
-            return SupervisionDecision("replan", "plan failure requires a new executable plan", False)
+            return SupervisionDecision(
+                "replan", "plan failure requires a new executable plan", False
+            )
         if request.retry_allowed:
-            return SupervisionDecision("retry", "bounded retry is permitted by recovery policy", False)
+            return SupervisionDecision(
+                "retry", "bounded retry is permitted by recovery policy", False
+            )
         if request.recovery_allowed:
-            return SupervisionDecision("replan", "bounded recovery is permitted; replan before continuing", False)
+            return SupervisionDecision(
+                "replan",
+                "bounded recovery is permitted; replan before continuing",
+                False,
+            )
         if request.failure is not None:
-            return SupervisionDecision("escalate", f"failure {failure_value} has no safe automatic action", False)
+            return SupervisionDecision(
+                "escalate",
+                f"failure {failure_value} has no safe automatic action",
+                False,
+            )
         return SupervisionDecision("execute", "plan is authorized and ready", False)
 
     def inspect(self, context: Any) -> SupervisionDecision:
