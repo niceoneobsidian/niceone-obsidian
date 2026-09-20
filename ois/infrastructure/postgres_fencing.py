@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import datetime, timedelta
-from typing import Any
 import json
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Any
 from uuid import UUID
 
 
@@ -99,7 +99,7 @@ class PostgresWorkerLeaseStore:
             return WorkerLease(execution_id, worker_id, int(epoch), new_expires)
 
     @staticmethod
-    def assert_current(cursor: Any, lease: WorkerLease) -> None:
+    def _assert_current_cursor(cursor: Any, lease: WorkerLease) -> None:
         cursor.execute(
             """
             SELECT 1
@@ -120,7 +120,7 @@ class PostgresWorkerLeaseStore:
 
     def assert_current(self, lease: WorkerLease) -> None:
         with self._connect() as connection, connection.cursor() as cursor:
-            self.assert_current(cursor, lease)
+            self._assert_current_cursor(cursor, lease)
 
     def renew(self, lease: WorkerLease) -> WorkerLease:
         with self._connect() as connection, connection.cursor() as cursor:
@@ -166,7 +166,7 @@ class FencedPostgresDurableExecutionStore:
     def _assert(self, cursor: Any) -> None:
         self._lease_store.assert_current(cursor, self.lease)
 
-    def load(self, execution_id: UUID):
+    def load(self, execution_id: UUID) -> Any:
         return self._store.load(execution_id)
 
     def save(self, context: Any) -> None:
@@ -229,7 +229,7 @@ class FencedPostgresDurableExecutionStore:
             )
             connection.commit()
 
-    def get_idempotency(self, invocation_id: str):
+    def get_idempotency(self, invocation_id: str) -> Any:
         return self._store.get_idempotency(invocation_id)
 
     def commit_checkpoint_and_side_effect(self, context: Any, command: Any) -> None:
