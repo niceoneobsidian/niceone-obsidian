@@ -175,9 +175,7 @@ class CapabilityRegistry:
             try:
                 return self._entries[(capability_id, version)]
             except KeyError as exc:
-                raise CapabilityNotFoundError(
-                    f"not registered: {capability_id}@{version}"
-                ) from exc
+                raise CapabilityNotFoundError(f"not registered: {capability_id}@{version}") from exc
 
     def resolve(self, capability_id: str, version: str) -> CapabilityEntry:
         return self.get(capability_id, version)
@@ -245,9 +243,7 @@ class AgentRegistry(CapabilityRegistry):
             and entry.contract.version == version
         )
         if not candidates:
-            raise AgentRoutingError(
-                f"No agent registered for {capability_id}@{version}"
-            )
+            raise AgentRoutingError(f"No agent registered for {capability_id}@{version}")
 
         eligible: list[CapabilityEntry] = []
         rejected: list[str] = []
@@ -281,7 +277,7 @@ class AgentRegistry(CapabilityRegistry):
             version=version,
             selected=eligible[0],
             candidates=tuple(eligible),
-            reason=("Selected the sole eligible agent after policy and availability filtering."),
+            reason="Selected the sole eligible agent after policy and availability filtering.",
         )
 
 
