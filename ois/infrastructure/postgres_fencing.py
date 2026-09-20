@@ -158,7 +158,12 @@ class PostgresWorkerLeaseStore:
 class FencedPostgresDurableExecutionStore:
     """Mutation adapter that makes worker epoch ownership mandatory."""
 
-    def __init__(self, durable_store: Any, lease_store: PostgresWorkerLeaseStore, lease: WorkerLease) -> None:
+    def __init__(
+        self,
+        durable_store: Any,
+        lease_store: PostgresWorkerLeaseStore,
+        lease: WorkerLease,
+    ) -> None:
         self._store = durable_store
         self._lease_store = lease_store
         self.lease = lease
