@@ -119,7 +119,7 @@ class PostgresDurableExecutionStore:
 
     def initialize(self) -> None:
         with self.connection() as connection, connection.cursor() as cursor:
-                cursor.execute(self.SCHEMA)
+            cursor.execute(self.SCHEMA)
             connection.commit()
 
     @staticmethod
@@ -277,7 +277,10 @@ class PostgresDurableExecutionStore:
         with self.connection() as connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "SELECT state, state_hash FROM ois_execution_checkpoints WHERE execution_id = %s",
+                    (
+                        "SELECT state, state_hash "
+                        "FROM ois_execution_checkpoints WHERE execution_id = %s"
+                    ),
                     (execution_id,),
                 )
                 row = cursor.fetchone()
