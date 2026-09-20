@@ -20,7 +20,6 @@ from ois.kernel.side_effects import (
 from ois.kernel.state import ExecutionContext, ExecutionIdentity
 from ois.kernel.types import InvocationStatus
 
-
 EXECUTION_ID = UUID("00000000-0000-0000-0000-000000000302")
 
 

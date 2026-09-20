@@ -154,7 +154,6 @@ class PostgresWorkerLeaseStore:
             )
 
 
-
 class FencedPostgresDurableExecutionStore:
     """Mutation adapter that makes worker epoch ownership mandatory."""
 

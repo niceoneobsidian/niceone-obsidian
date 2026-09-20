@@ -9,7 +9,6 @@ import pytest
 
 from ois.infrastructure.postgres_fencing import FencingError, PostgresWorkerLeaseStore
 
-
 EXECUTION_ID = UUID("00000000-0000-0000-0000-000000000301")
 
 
@@ -46,10 +45,13 @@ def test_concurrent_claim_has_single_owner_and_monotonic_takeover(
         return store_for(migrated_postgres).claim(EXECUTION_ID, worker)
 
     with ThreadPoolExecutor(max_workers=2) as executor:
-        a, b = [future.result() for future in (
-            executor.submit(claim, "worker-b"),
-            executor.submit(claim, "worker-c"),
-        )]
+        a, b = [
+            future.result()
+            for future in (
+                executor.submit(claim, "worker-b"),
+                executor.submit(claim, "worker-c"),
+            )
+        ]
     assert a is None and b is None
 
     with psycopg.connect(migrated_postgres) as connection, connection.cursor() as cursor:
