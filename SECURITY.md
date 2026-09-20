@@ -1,128 +1,39 @@
 # Security Policy
 
-## Security Status
-
-Niceone Obsidian (OIS) is an actively developed, pre-production software project.
-
-The project does not currently publish a stable production release series. Security fixes are therefore applied to the active development branch and, where applicable, to supported release branches.
-
-Because OIS is still under active architectural and implementation development, users should not assume that unreleased or experimental capabilities are production-ready.
-
-## Supported Versions
-
-| Version / Branch | Security Support |
-|---|---|
-| `main` | :white_check_mark: |
-| Active release branches | :white_check_mark: |
-| Experimental / feature branches | :warning: Best effort only |
-| Archived / obsolete branches | :x: |
-
-A specific release-support matrix will be published when OIS begins producing versioned releases.
-
-## Reporting a Vulnerability
-
-**Please do not report security vulnerabilities through public GitHub issues, discussions, or pull requests.**
-
-Preferred reporting method:
-
-1. Use GitHub's **Private Vulnerability Reporting** feature for this repository, if available.
-2. Alternatively, contact the project maintainers through the private security contact documented in the repository.
-
-Reports should include, where possible:
-
-- A clear description of the vulnerability.
-- The affected component, capability, workflow, or interface.
-- Affected version, branch, or commit.
-- Steps required to reproduce the issue.
-- Security impact and potential exploitation scenario.
-- Relevant logs, traces, screenshots, or proof-of-concept material.
-- Any suggested mitigation or remediation.
-
-Please avoid including secrets, credentials, API keys, personal information, or unnecessary sensitive data in the report.
-
-## Response Process
-
-The maintainers will:
-
-1. Acknowledge receipt of a report as soon as reasonably possible.
-2. Triage and assess the reported security impact.
-3. Reproduce and validate the issue where possible.
-4. Determine whether the report represents a security vulnerability.
-5. Develop and test a remediation when required.
-6. Coordinate disclosure with the reporter when appropriate.
-7. Publish a security advisory when disclosure is warranted.
-
-Security reports may be accepted, rejected, or reclassified after investigation.
-
-## Disclosure
-
-Please allow the maintainers reasonable time to investigate and remediate a confirmed vulnerability before publicly disclosing technical details.
-
-When a vulnerability is confirmed, disclosure should preferably occur after a fix or mitigation is available.
-
-Where appropriate, the project may use GitHub Security Advisories and request a CVE for a confirmed vulnerability.
-
 ## Scope
 
-Security reports are especially valuable for issues involving:
+Niceone Obsidian is a governed AI execution and intelligence platform. Security reports are especially important for issues involving authorization, capability routing, tool execution, external side effects, persistence, recovery, evidence integrity, secrets, or supply-chain controls.
 
-- Authentication and authorization.
-- RBAC and policy enforcement.
-- Tenant or data isolation.
-- Secrets and credential handling.
-- Agent, tool, and model authorization.
-- Capability activation.
-- Execution controls and approval gates.
-- Web acquisition and external-provider boundaries.
-- Prompt or instruction injection affecting governed execution.
-- Unsafe autonomous actions.
-- Provenance, evidence, or validation bypasses.
-- Memory isolation or unauthorized data access.
-- CI/CD and supply-chain security.
-- Dependency vulnerabilities.
-- Security boundary violations.
+## Supported versions
 
-## Out of Scope
+This repository is under controlled implementation. Security fixes are prioritized for the default branch and the latest published release, if a release exists. Older commits and unreleased feature branches are not supported security baselines.
 
-The following are generally not considered security vulnerabilities unless they demonstrate a meaningful security impact:
+## Reporting a vulnerability
 
-- General bugs without security implications.
-- Feature requests.
-- Documentation errors.
-- Performance issues without security impact.
-- Issues requiring intentionally compromised developer credentials.
-- Issues affecting unsupported or obsolete branches.
+Please use GitHub's **private vulnerability reporting** for this repository when it is available. Do not open a public issue for an undisclosed vulnerability.
 
-## Safe Harbor
+If private reporting is unavailable, open a minimal issue requesting a private contact channel without including exploit details. Maintainers will respond with a safe reporting path.
 
-Security researchers acting in good faith and following this policy are encouraged to report vulnerabilities responsibly.
+Please include:
 
-Please avoid:
+- A concise description and impact assessment.
+- Affected commit, tag, component, or configuration.
+- Reproduction steps or a minimal proof of concept.
+- Any required permissions, infrastructure, or data.
+- Suggested mitigation, if known.
 
-- Accessing or modifying data belonging to other users.
-- Disrupting production or shared services.
-- Destroying data.
-- Performing social engineering.
-- Conducting denial-of-service attacks.
-- Exfiltrating unnecessary sensitive information.
+## Response expectations
 
-If you accidentally encounter sensitive information while investigating, stop testing that path and report the discovery privately.
+Maintainers will acknowledge a report when practical, validate the issue, assign severity, and coordinate a fix or mitigation. Timelines depend on impact, reproducibility, and maintainer availability. Please allow responsible disclosure coordination before publishing details.
 
-## Security Expectations
+## Security principles
 
-OIS follows an evidence-driven security model.
+- Model output is a proposal, not infrastructure authority.
+- Consequential actions require explicit authorization.
+- Evidence and state transitions must remain auditable.
+- Production changes require rollback paths.
+- Secrets must never be committed to the repository, issue tracker, or logs.
 
-Security-sensitive functionality should not be considered production-ready solely because code exists or tests pass.
+## Scope limitations
 
-Security activation requires appropriate:
-
-- Authorization.
-- Policy enforcement.
-- Validation.
-- Observability.
-- Auditability.
-- Testing.
-- Recovery controls.
-- Evidence of successful verification.
-
-The project may explicitly mark capabilities as experimental, designed, implemented, tested, or production-ready depending on available evidence.
+Do not perform denial-of-service testing, social engineering, destructive testing, or access attempts against infrastructure that you do not own. Test only against local or explicitly authorized environments.
