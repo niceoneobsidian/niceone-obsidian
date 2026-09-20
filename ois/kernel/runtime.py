@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from uuid import uuid4
 
+from ois.infrastructure.postgres_fencing import PostgresWorkerLeaseStore, WorkerLease
+
 from .cancellation import CancellationToken, ExecutionCancellation
 from .checkpoint import CheckpointStore
 from .contracts import InvocationRequest, InvocationResult
@@ -13,7 +15,6 @@ from .registry import CapabilityRegistry
 from .state import ExecutionContext
 from .types import ExecutionStatus, FailureClass, InvocationStatus
 from .validation import ContractValidator
-from ois.infrastructure.postgres_fencing import PostgresWorkerLeaseStore, WorkerLease
 
 
 class ExecutionError(Exception):
@@ -135,7 +136,7 @@ class ExecutionRuntime:
             result = entry.capability.invoke(request)
             self.cancellation.raise_if_cancelled()
         except ExecutionCancellation as exc:
-            return self._handle_cancellation(context, capability_id, exc, logical_invocation_id)
+            return self._handle_cancellation(context, capability_id, exc, logical_invocation_id, worker_lease)
         except Exception as exc:
             return self._handle_failure(context, capability_id, logical_invocation_id, exc, worker_lease)
 
