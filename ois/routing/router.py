@@ -46,15 +46,9 @@ class Router:
         request: RouteRequest,
     ) -> RouteResult:
         entry = registry.resolve(request.object_id, request.version)
-        contract = getattr(entry, "contract", None)
-        if contract is not None:
-            object_id = str(getattr(contract, "capability_id"))
-            version = str(getattr(contract, "version"))
-            value = getattr(entry, "capability")
-        else:
-            object_id = entry.id
-            version = entry.version
-            value = entry.value
+        object_id = entry.id
+        version = entry.version
+        value = entry.value
         return RouteResult(
             object_id=object_id,
             version=version,
