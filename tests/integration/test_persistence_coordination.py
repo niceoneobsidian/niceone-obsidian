@@ -121,25 +121,25 @@ def test_real_persistence_coordination_and_recovery(
             connection.commit()
 
         with postgres.connection() as connection, connection.cursor() as cursor:
-                cursor.execute(
-                    "ALTER TABLE ois_execution_checkpoint_history "
-                    "DISABLE TRIGGER trg_ois_checkpoint_history_immutable"
+            cursor.execute(
+                "ALTER TABLE ois_execution_checkpoint_history "
+                "DISABLE TRIGGER trg_ois_checkpoint_history_immutable"
+            )
+            cursor.execute(
+                """
+                UPDATE ois_execution_checkpoint_history
+                SET state = jsonb_set(
+                    state, '{objective}', '"CORRUPTED"'::jsonb
                 )
-                cursor.execute(
-                    """
-                    UPDATE ois_execution_checkpoint_history
-                    SET state = jsonb_set(
-                        state, '{objective}', '"CORRUPTED"'::jsonb
-                    )
-                    WHERE checkpoint_id = %s
-                    """,
-                    (second_checkpoint_id,),
-                )
-                cursor.execute(
-                    "ALTER TABLE ois_execution_checkpoint_history "
-                    "ENABLE TRIGGER trg_ois_checkpoint_history_immutable"
-                )
-            connection.commit()
+                WHERE checkpoint_id = %s
+                """,
+                (second_checkpoint_id,),
+            )
+            cursor.execute(
+                "ALTER TABLE ois_execution_checkpoint_history "
+                "ENABLE TRIGGER trg_ois_checkpoint_history_immutable"
+            )
+        connection.commit()
 
         recovered = postgres.fetch_last_valid_checkpoint(
             execution_id, tenant_id="conformance"
