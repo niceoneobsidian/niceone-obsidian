@@ -205,18 +205,17 @@ class PostgresDurableExecutionStore:
         self, execution_id: UUID, *, tenant_id: str = "default"
     ) -> ExecutionContext | None:
         """Recover the newest integrity- and schema-valid historical snapshot."""
-        with self.connection() as connection:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    """
-                    SELECT state, state_hash
-                    FROM ois_execution_checkpoint_history
-                    WHERE tenant_id = %s AND execution_id = %s
-                    ORDER BY step_index DESC, created_at DESC
-                    """,
-                    (tenant_id, execution_id),
-                )
-                rows = cursor.fetchall()
+        with self.connection() as connection, connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT state, state_hash
+                FROM ois_execution_checkpoint_history
+                WHERE tenant_id = %s AND execution_id = %s
+                ORDER BY step_index DESC, created_at DESC
+                """,
+                (tenant_id, execution_id),
+            )
+            rows = cursor.fetchall()
         for state, expected_hash in rows:
             if isinstance(state, str):
                 state = json.loads(state)
@@ -274,16 +273,15 @@ class PostgresDurableExecutionStore:
             connection.commit()
 
     def load(self, execution_id: UUID) -> ExecutionContext:
-        with self.connection() as connection:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    (
-                        "SELECT state, state_hash "
-                        "FROM ois_execution_checkpoints WHERE execution_id = %s"
-                    ),
-                    (execution_id,),
-                )
-                row = cursor.fetchone()
+        with self.connection() as connection, connection.cursor() as cursor:
+            cursor.execute(
+                (
+                    "SELECT state, state_hash "
+                    "FROM ois_execution_checkpoints WHERE execution_id = %s"
+                ),
+                (execution_id,),
+            )
+            row = cursor.fetchone()
         if row is None:
             raise CheckpointNotFound(
                 f"No PostgreSQL checkpoint for execution {execution_id}"
@@ -307,13 +305,12 @@ class PostgresDurableExecutionStore:
             connection.commit()
 
     def get_idempotency(self, invocation_id: str) -> InvocationResult | None:
-        with self.connection() as connection:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    "SELECT result FROM ois_idempotency_results WHERE invocation_id = %s",
-                    (invocation_id,),
-                )
-                row = cursor.fetchone()
+        with self.connection() as connection, connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT result FROM ois_idempotency_results WHERE invocation_id = %s",
+                (invocation_id,),
+            )
+            row = cursor.fetchone()
         if row is None:
             return None
         data: Mapping[str, Any] = row[0]
