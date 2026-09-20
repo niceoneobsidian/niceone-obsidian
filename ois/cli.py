@@ -16,10 +16,31 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import Sequence
+from typing import Sequence, TypedDict
 
 ROOT = Path(__file__).resolve().parents[1]
 OIS_ROOT = ROOT / "ois"
+
+
+class InventoryData(TypedDict):
+    kind: str
+    evidence: str
+    verified: bool
+    count: int
+    files: list[str]
+
+
+class StatusData(TypedDict):
+    branch: str
+    commit: str
+    working_tree: str
+
+
+class SummaryData(TypedDict):
+    status: StatusData
+    inventory: dict[str, int]
+    evidence: str
+    production_verified: bool
 
 
 def _run(*command: str) -> tuple[int, str]:
@@ -61,7 +82,7 @@ def _source_files(*roots: Path, patterns: tuple[str, ...] = ("*.py",)) -> list[s
     return sorted(set(files))
 
 
-def _inventory_data(kind: str) -> dict[str, object]:
+def _inventory_data(kind: str) -> InventoryData:
     roots = {
         "capabilities": (OIS_ROOT / "capabilities", OIS_ROOT / "domains"),
         "agents": (OIS_ROOT / "agents", OIS_ROOT / "domains"),
@@ -200,13 +221,19 @@ def cmd_health(args: argparse.Namespace) -> int:
 
 
 def cmd_summary(args: argparse.Namespace) -> int:
-    inventory = {kind: _inventory_data(kind) for kind in ("capabilities", "agents", "tools", "workflows")}
-    data = {
-        "status": {
-            "branch": _git("branch", "--show-current") or "unknown",
-            "commit": _git("rev-parse", "--short", "HEAD") or "unknown",
-            "working_tree": "dirty" if _git("status", "--porcelain") else "clean",
-        },
+    inventory: dict[str, InventoryData] = {
+        kind: _inventory_data(kind)
+        for kind in ("capabilities", "agents", "tools", "workflows")
+    }
+
+    status: StatusData = {
+        "branch": _git("branch", "--show-current") or "unknown",
+        "commit": _git("rev-parse", "--short", "HEAD") or "unknown",
+        "working_tree": "dirty" if _git("status", "--porcelain") else "clean",
+    }
+
+    data: SummaryData = {
+        "status": status,
         "inventory": {kind: value["count"] for kind, value in inventory.items()},
         "evidence": "source_discovery",
         "production_verified": False,
