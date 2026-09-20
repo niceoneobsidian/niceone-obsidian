@@ -8,6 +8,7 @@ from ois.registries.core import (
     AmbiguousAgentError,
     CapabilityEntry,
     CapabilityNotFoundError,
+    CapabilityRegistry,
     RegistryEntry,
     DuplicateCapabilityError,
     ModelRegistry,
