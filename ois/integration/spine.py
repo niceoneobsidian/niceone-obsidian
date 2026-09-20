@@ -115,9 +115,7 @@ class OISSpine:
                 invocation_id=invocation_id or "",
                 status="denied",
                 error={"type": type(exc).__name__, "message": str(exc)},
-                evidence=tuple(
-                    event.to_dict() for event in self.evidence.list(execution_uuid)
-                ),
+                evidence=tuple(event.to_dict() for event in self.evidence.list(execution_uuid)),
             )
 
         if result.status.value == "succeeded":
@@ -133,7 +131,5 @@ class OISSpine:
             status=result.status.value,
             output=result.output,
             error=result.error,
-            evidence=tuple(
-                event.to_dict() for event in self.evidence.list(execution_uuid)
-            ),
+            evidence=tuple(event.to_dict() for event in self.evidence.list(execution_uuid)),
         )
