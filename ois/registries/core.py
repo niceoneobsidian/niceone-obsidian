@@ -74,7 +74,7 @@ class DuplicateCapabilityError(RegistryError):
     """Raised when an executable capability/version is registered twice."""
 
 
-class CapabilityNotFoundError(RegistryError):
+class CapabilityNotFoundError(KeyError, RegistryError):
     """Raised when a requested executable capability cannot be found."""
 
 
@@ -94,6 +94,12 @@ class AmbiguousAgentError(AgentRoutingError):
 class CapabilityEntry:
     capability: Any
     contract: Any
+    id: str
+    version: str
+
+    @property
+    def value(self) -> Any:
+        return self.capability
 
 
 def _agent_contract_type() -> type[Any]:
@@ -155,6 +161,8 @@ class CapabilityRegistry:
             self._entries[key] = CapabilityEntry(
                 capability=capability,
                 contract=contract,
+                id=capability_id,
+                version=capability_version,
             )
 
     def unregister(self, capability_id: str, version: str) -> None:
