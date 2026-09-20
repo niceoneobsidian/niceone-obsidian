@@ -7,7 +7,10 @@ from uuid import UUID
 import psycopg
 import pytest
 
-from ois.infrastructure.postgres_fencing import FencingError, PostgresWorkerLeaseStore
+from ois.infrastructure.postgres_fencing import (
+    FencingError,
+    PostgresWorkerLeaseStore,
+)
 
 
 EXECUTION_ID = UUID("00000000-0000-0000-0000-000000000301")
@@ -85,9 +88,10 @@ def test_stale_worker_is_fenced_from_mutation(migrated_postgres: str) -> None:
     assert current is not None
     assert current.epoch == stale.epoch + 1
 
-    with psycopg.connect(migrated_postgres) as connection, connection.cursor() as cursor:
-        with pytest.raises(FencingError):
-            store.assert_current(stale)
+    with psycopg.connect(migrated_postgres) as connection, connection.cursor() as cursor, pytest.raises(
+        FencingError
+    ):
+        store.assert_current(stale)
 
 
 def test_renew_preserves_epoch(migrated_postgres: str) -> None:
