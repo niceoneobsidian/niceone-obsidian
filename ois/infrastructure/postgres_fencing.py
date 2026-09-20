@@ -169,7 +169,7 @@ class FencedPostgresDurableExecutionStore:
         self.lease = lease
 
     def _assert(self, cursor: Any) -> None:
-        self._lease_store.assert_current(cursor, self.lease)
+        self._lease_store._assert_current_cursor(cursor, self.lease)
 
     def load(self, execution_id: UUID) -> Any:
         return self._store.load(execution_id)
