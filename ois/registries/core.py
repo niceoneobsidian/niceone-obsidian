@@ -167,7 +167,7 @@ class CapabilityRegistry:
     def unregister(self, capability_id: str, version: str) -> None:
         with self._lock:
             if (capability_id, version) not in self._entries:
-                raise CapabilityNotFoundError(f"not registered: {capability_id}@{version})
+                raise CapabilityNotFoundError(f"not registered: {capability_id}@{version}")
             del self._entries[(capability_id, version)]
 
     def get(self, capability_id: str, version: str) -> CapabilityEntry:
