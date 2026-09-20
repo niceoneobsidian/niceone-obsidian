@@ -56,7 +56,12 @@ class KernelRegistryAdapter:
         contract = entry.contract
         if contract is None:
             raise TypeError(f"registered capability has no contract: {capability_id}@{version}")
-        return KernelRegistryEntry(capability=cast(Any, capability), contract=contract)
+        return KernelRegistryEntry(
+            capability=cast(Any, capability),
+            contract=contract,
+            id=entry.id,
+            version=entry.version,
+        )
 
 
 class KernelEvidenceBridge(KernelEvidenceStore):
@@ -78,6 +83,22 @@ class KernelEvidenceBridge(KernelEvidenceStore):
                 "correlation_id": event.correlation_id,
                 "causation_id": event.causation_id,
             },
+        )
+
+    def list(self, execution_id: UUID | None = None) -> tuple[KernelEvidenceEvent, ...]:
+        return tuple(
+            KernelEvidenceEvent(
+                execution_id=UUID(event["execution_id"]),
+                event_type=str(event["event_type"]),
+                timestamp=datetime.fromisoformat(str(event["timestamp"])),
+                event_id=UUID(event["event_id"]),
+                actor=str(event.get("actor", "kernel")),
+                component=str(event.get("component", "ois.kernel")),
+                data=dict(event.get("data", {})),
+                correlation_id=event.get("correlation_id"),
+                causation_id=event.get("causation_id"),
+            )
+            for event in self.ledger.events(str(execution_id) if execution_id else None)
         )
 
     def record(
