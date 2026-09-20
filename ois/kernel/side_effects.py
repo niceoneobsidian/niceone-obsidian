@@ -179,7 +179,7 @@ class TransactionalSideEffectBoundary:
                 if fencing is not None:
                     if worker_lease is None:
                         raise ValueError("fencing requires a worker lease")
-                    fencing.assert_current(cursor, worker_lease)
+                    fencing._assert_current_cursor(cursor, worker_lease)
                 cursor.execute(
                     """
                     UPDATE ois_side_effect_outbox
