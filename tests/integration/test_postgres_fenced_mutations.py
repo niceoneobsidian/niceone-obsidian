@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from uuid import UUID
 
 import psycopg
@@ -14,7 +14,6 @@ from ois.infrastructure.postgres_fencing import (
 from ois.kernel.contracts import InvocationResult
 from ois.kernel.postgres import PostgresDurableExecutionStore
 from ois.kernel.side_effects import (
-    SideEffectCommand,
     SideEffectResult,
     TransactionalSideEffectBoundary,
 )
@@ -32,9 +31,18 @@ def fencing_for(dsn: str) -> PostgresWorkerLeaseStore:
 def clear(dsn: str) -> None:
     with psycopg.connect(dsn) as connection, connection.cursor() as cursor:
         cursor.execute("DELETE FROM ois_worker_leases WHERE execution_id = %s", (EXECUTION_ID,))
-        cursor.execute("DELETE FROM ois_execution_checkpoints WHERE execution_id = %s", (EXECUTION_ID,))
-        cursor.execute("DELETE FROM ois_idempotency_results WHERE execution_id = %s", (EXECUTION_ID,))
-        cursor.execute("DELETE FROM ois_side_effect_outbox WHERE execution_id = %s", (EXECUTION_ID,))
+        cursor.execute(
+            "DELETE FROM ois_execution_checkpoints WHERE execution_id = %s",
+            (EXECUTION_ID,),
+        )
+        cursor.execute(
+            "DELETE FROM ois_idempotency_results WHERE execution_id = %s",
+            (EXECUTION_ID,),
+        )
+        cursor.execute(
+            "DELETE FROM ois_side_effect_outbox WHERE execution_id = %s",
+            (EXECUTION_ID,),
+        )
 
 
 def test_stale_epoch_rejects_checkpoint_mutation(migrated_postgres: str) -> None:
