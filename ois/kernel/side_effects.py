@@ -6,6 +6,8 @@ from datetime import datetime
 from typing import Any, Protocol
 from uuid import UUID, uuid4
 
+from ois.infrastructure.postgres_fencing import PostgresWorkerLeaseStore, WorkerLease
+
 
 @dataclass(frozen=True)
 class SideEffectCommand:
@@ -132,9 +134,20 @@ class TransactionalSideEffectBoundary:
             request=dict(request),
         )
 
-    def complete(self, command: SideEffectCommand, result: SideEffectResult) -> None:
+    def complete(
+        self,
+        command: SideEffectCommand,
+        result: SideEffectResult,
+        *,
+        fencing: PostgresWorkerLeaseStore | None = None,
+        worker_lease: WorkerLease | None = None,
+    ) -> None:
         with self._connect() as connection:
             with connection.cursor() as cursor:
+                if fencing is not None:
+                    if worker_lease is None:
+                        raise ValueError("fencing requires a worker lease")
+                    fencing.assert_current(cursor, worker_lease)
                 cursor.execute(
                     """
                     UPDATE ois_side_effect_outbox
@@ -153,9 +166,20 @@ class TransactionalSideEffectBoundary:
                 )
             connection.commit()
 
-    def fail(self, command: SideEffectCommand, error: dict[str, Any]) -> None:
+    def fail(
+        self,
+        command: SideEffectCommand,
+        error: dict[str, Any],
+        *,
+        fencing: PostgresWorkerLeaseStore | None = None,
+        worker_lease: WorkerLease | None = None,
+    ) -> None:
         with self._connect() as connection:
             with connection.cursor() as cursor:
+                if fencing is not None:
+                    if worker_lease is None:
+                        raise ValueError("fencing requires a worker lease")
+                    fencing.assert_current(cursor, worker_lease)
                 cursor.execute(
                     """
                     UPDATE ois_side_effect_outbox
