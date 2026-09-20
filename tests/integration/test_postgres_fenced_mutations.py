@@ -144,7 +144,7 @@ def test_runtime_requires_current_worker_lease_when_fencing_enabled() -> None:
     runtime = ExecutionRuntime(
         registry=NoopRegistry(),
         checkpoint_store=type("Store", (), {})(),
-        fencing=object(),
+        fencing=type("Fence", (), {"assert_current": lambda self, lease: None})(),
     )
     context = ExecutionContext(
         identity=ExecutionIdentity(execution_id=EXECUTION_ID),
