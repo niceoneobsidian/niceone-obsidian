@@ -24,7 +24,7 @@ jobs:
       - name: Ruff format
         run: ruff format --check ois scripts tests test_p0_integrated_spine.py
       - name: Mypy
-        run: python -m mypy ois
+        run: python -m mypy ois ops production
       - name: Bandit
         run: bandit -r ois scripts -x ./.git,./.venv,./venv,./tests -lll -iii
       - name: License compliance
