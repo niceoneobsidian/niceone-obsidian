@@ -15,8 +15,9 @@ import os
 import shutil
 import subprocess
 import sys
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Sequence, TypedDict
+from typing import TypedDict
 
 ROOT = Path(__file__).resolve().parents[1]
 OIS_ROOT = ROOT / "ois"
@@ -211,7 +212,13 @@ def cmd_health(args: argparse.Namespace) -> int:
     }
     results = {name: path.exists() for name, path in checks.items()}
     if args.json:
-        print(json.dumps({"evidence": "source_presence", "checks": results}, indent=2, sort_keys=True))
+        print(
+            json.dumps(
+                {"evidence": "source_presence", "checks": results},
+                indent=2,
+                sort_keys=True,
+            )
+        )
         return 0 if all(results.values()) else 1
     print("OIS HEALTH")
     print("=" * 56)
