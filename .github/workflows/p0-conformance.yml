@@ -1,5 +1,8 @@
 name: OIS P0 conformance
 
+permissions:
+  contents: read
+
 on:
   push:
     branches: [feat/p0-recovery-conformance-final]
