@@ -12,12 +12,20 @@ from datetime import datetime
 from typing import Any
 from uuid import uuid4
 
-from ois.domains.social_intelligence.intelligence import ContentGenome, ModalityObservation, build_content_genome
+from ois.domains.social_intelligence.intelligence import (
+    ContentGenome,
+    ModalityObservation,
+    build_content_genome,
+)
 
-from .analytics_store import MetricObservation
 from .attribution import AttributionResult, AttributionTouchpoint, linear_attribution
 from .chat_ingestion import ChatObservation, ingest_chat_observations
-from .experimentation import ExperimentObservation, ExperimentResult, ExperimentSpec, evaluate_experiment
+from .experimentation import (
+    ExperimentObservation,
+    ExperimentResult,
+    ExperimentSpec,
+    evaluate_experiment,
+)
 from .learning import LearningObservation, LearningProposal, propose_learning
 from .persistence import SocialEventStore
 
@@ -69,7 +77,10 @@ def build_learning_candidate(
     evidence_event_ids: tuple[str, ...],
 ) -> LearningCandidate:
     """Convert a measured experiment into a reversible learning candidate."""
-    observed = max((value for _, value in experiment_result.variant_values), default=experiment_result.control_value)
+    observed = max(
+        (value for _, value in experiment_result.variant_values),
+        default=experiment_result.control_value,
+    )
     learning = propose_learning(
         LearningObservation(
             strategy_id=strategy_id,
