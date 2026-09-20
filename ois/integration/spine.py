@@ -15,7 +15,6 @@ from typing import Any
 from ois.kernel.checkpoint import CheckpointStore, InMemoryCheckpointStore
 from ois.kernel.evidence import EvidenceLedger, EvidenceStore
 from ois.kernel.policy import AuthorizationDenied, DefaultPolicyEngine, PolicyEngine
-from ois.kernel.registry import CapabilityRegistry as KernelCapabilityRegistry
 from ois.kernel.runtime import ExecutionRuntime
 from ois.kernel.state import ExecutionContext, ExecutionIdentity
 from ois.kernel.types import ExecutionStatus
