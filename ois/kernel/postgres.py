@@ -158,9 +158,11 @@ class PostgresDurableExecutionStore:
         payload, digest = self._state_payload(context)
         step_index = int(context.metadata.get("step_index", context.retry_count))
         if checkpoint_id.int == 0:
-            checkpoint_id = UUID(hashlib.sha256(
-                f"{context.identity.execution_id}:{context.updated_at.isoformat()}".encode()
-            ).hexdigest()[:32])
+            checkpoint_id = UUID(
+                hashlib.sha256(
+                    f"{context.identity.execution_id}:{context.updated_at.isoformat()}".encode()
+                ).hexdigest()[:32]
+            )
         with self.connection() as connection:
             with connection.cursor() as cursor:
                 cursor.execute(
