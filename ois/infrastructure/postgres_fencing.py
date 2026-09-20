@@ -151,3 +151,154 @@ class PostgresWorkerLeaseStore:
                 """,
                 (lease.execution_id, lease.worker_id, lease.epoch),
             )
+
+
+
+class FencedPostgresDurableExecutionStore:
+    """Mutation adapter that makes worker epoch ownership mandatory."""
+
+    def __init__(self, durable_store: Any, lease_store: PostgresWorkerLeaseStore, lease: WorkerLease) -> None:
+        self._store = durable_store
+        self._lease_store = lease_store
+        self.lease = lease
+
+    def _assert(self, cursor: Any) -> None:
+        self._lease_store.assert_current(cursor, self.lease)
+
+    def load(self, execution_id: UUID):
+        return self._store.load(execution_id)
+
+    def save(self, context: Any) -> None:
+        context.touch()
+        payload, digest = self._store._state_payload(context)
+        with self._store.connection() as connection, connection.cursor() as cursor:
+            self._assert(cursor)
+            cursor.execute(
+                self._store._checkpoint_sql(),
+                (
+                    context.identity.execution_id,
+                    context.identity.tenant_id,
+                    context.identity.workflow_id,
+                    context.identity.workflow_version,
+                    context.status.value,
+                    payload,
+                    digest,
+                    context.created_at,
+                    context.updated_at,
+                ),
+            )
+            connection.commit()
+
+    def put_idempotency(
+        self,
+        invocation_id: str,
+        execution_id: UUID,
+        tenant_id: str,
+        result: Any,
+    ) -> None:
+        if result.status.value not in {"succeeded", "cancelled"}:
+            return
+        payload = {
+            "invocation_id": result.invocation_id,
+            "capability_id": result.capability_id,
+            "status": result.status.value,
+            "output": result.output,
+            "error": result.error,
+            "started_at": result.started_at,
+            "completed_at": result.completed_at,
+            "metadata": dict(result.metadata),
+        }
+        with self._store.connection() as connection, connection.cursor() as cursor:
+            self._assert(cursor)
+            cursor.execute(
+                """
+                INSERT INTO ois_idempotency_results
+                    (invocation_id, execution_id, tenant_id, capability_id, status, result)
+                VALUES (%s, %s, %s, %s, %s, %s::jsonb)
+                ON CONFLICT (invocation_id) DO NOTHING
+                """,
+                (
+                    invocation_id,
+                    execution_id,
+                    tenant_id,
+                    result.capability_id,
+                    result.status.value,
+                    json.dumps(payload, sort_keys=True),
+                ),
+            )
+            connection.commit()
+
+    def get_idempotency(self, invocation_id: str):
+        return self._store.get_idempotency(invocation_id)
+
+    def commit_checkpoint_and_side_effect(self, context: Any, command: Any) -> None:
+        context.touch()
+        payload, digest = self._store._state_payload(context)
+        with self._store.connection() as connection, connection.cursor() as cursor:
+            self._assert(cursor)
+            cursor.execute(
+                self._store._checkpoint_sql(),
+                (
+                    context.identity.execution_id,
+                    context.identity.tenant_id,
+                    context.identity.workflow_id,
+                    context.identity.workflow_version,
+                    context.status.value,
+                    payload,
+                    digest,
+                    context.created_at,
+                    context.updated_at,
+                ),
+            )
+            cursor.execute(
+                """
+                INSERT INTO ois_side_effect_outbox (
+                    effect_id, tenant_id, execution_id, invocation_id,
+                    capability_id, idempotency_key, request
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s::jsonb)
+                ON CONFLICT (invocation_id) DO NOTHING
+                """,
+                (
+                    command.effect_id,
+                    command.tenant_id,
+                    command.execution_id,
+                    command.invocation_id,
+                    command.capability_id,
+                    command.idempotency_key,
+                    json.dumps(command.request, sort_keys=True),
+                ),
+            )
+            connection.commit()
+
+    def complete_side_effect(self, command: Any, result: Any) -> None:
+        with self._store.connection() as connection, connection.cursor() as cursor:
+            self._assert(cursor)
+            cursor.execute(
+                """
+                UPDATE ois_side_effect_outbox
+                SET status = 'COMPLETED',
+                    completed_at = COALESCE(%s, now()),
+                    result = %s::jsonb,
+                    locked_at = NULL,
+                    updated_at = now()
+                WHERE effect_id = %s AND execution_id = %s
+                """,
+                (
+                    result.completed_at,
+                    json.dumps({"output": result.output}, sort_keys=True),
+                    command.effect_id,
+                    command.execution_id,
+                ),
+            )
+            if cursor.rowcount != 1:
+                raise FencingError("side-effect completion target is missing")
+            connection.commit()
+
+    def delete(self, execution_id: UUID) -> None:
+        with self._store.connection() as connection, connection.cursor() as cursor:
+            self._assert(cursor)
+            cursor.execute(
+                "DELETE FROM ois_execution_checkpoints WHERE execution_id = %s",
+                (execution_id,),
+            )
+            connection.commit()
