@@ -169,7 +169,7 @@ class CapabilityRegistry:
         with self._lock:
             if (capability_id, version) not in self._entries:
                 raise CapabilityNotFoundError(
-                    f"Capability not found: {capability_id}@{version}"
+                    f"not registered: {capability_id}@{version}"
                 )
             del self._entries[(capability_id, version)]
 
