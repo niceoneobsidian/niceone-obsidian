@@ -11,9 +11,10 @@ from .limits import RateLimitPolicy, RateLimitState
 from .evidence import RawEvidence, RawEvidenceWriter, SQLiteRawEvidenceWriter
 from .outbox import OutboxEvent, OutboxStore, SQLiteOutboxStore
 from .ledger import SQLiteSourceLedger
+from .cursors import SourceCursor, SQLiteCursorStore
 
 __all__ = [
     "CredentialRef", "TenantScope", "SourceGateway", "SourceRequest", "SourceResponse",
     "RateLimitPolicy", "RateLimitState", "RawEvidence", "RawEvidenceWriter",
-    "SQLiteRawEvidenceWriter", "OutboxEvent", "OutboxStore", "SQLiteOutboxStore", "SQLiteSourceLedger",
+    "SQLiteRawEvidenceWriter", "OutboxEvent", "OutboxStore", "SQLiteOutboxStore", "SQLiteSourceLedger", "SourceCursor", "SQLiteCursorStore",
 ]
