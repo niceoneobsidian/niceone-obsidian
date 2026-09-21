@@ -226,11 +226,7 @@ class BundleSocialAdapter:
             body={
                 "teamId": request.team_id,
                 "title": request.title,
-                "postDate": (
-                    request.post_date.isoformat()
-                    if request.post_date
-                    else None
-                ),
+                "postDate": request.post_date.isoformat() if request.post_date else None,
                 "status": request.status,
                 "socialAccountTypes": request.platforms,
                 "data": request.data,
@@ -242,13 +238,9 @@ class BundleSocialAdapter:
 
         return SocialPublishResult(
             provider=self.provider_id,
-            external_post_id=(
-                str(data["id"]) if data.get("id") is not None else None
-            ),
+            external_post_id=str(data["id"]) if data.get("id") is not None else None,
             status=str(data.get("status", "UNKNOWN")),
-            platform_results=(
-                data.get("platforms", data.get("results", {})) or {}
-            ),
+            platform_results=data.get("platforms", data.get("results", {})) or {},
             raw=payload,
             observed_at=datetime.now(UTC),
         )
