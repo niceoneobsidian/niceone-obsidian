@@ -9,6 +9,7 @@ from ois.domains.social_intelligence.providers import (
 )
 from ois.domains.social_intelligence.registry import build_social_tool_registry
 from ois.domains.social_intelligence.schemas import (
+    SocialMetric,
     SocialProfile,
     SocialPublishRequest,
 )
@@ -17,12 +18,21 @@ from ois.domains.social_intelligence.schemas import (
 def test_provider_registry_is_versioned_and_secret_free() -> None:
     registry = build_social_tool_registry()
     entries = registry.snapshot()
+
     assert {entry.id for entry in entries} == {
         "tool.social.bundle_social",
         "tool.social.sociavault",
     }
     assert all(entry.version == "1.0.0" for entry in entries)
-    assert all("API_KEY" not in repr(entry.metadata) for entry in entries)
+
+    contracts = {entry.id: entry.contract for entry in entries}
+    assert contracts["tool.social.sociavault"].secrets_required == (
+        "SOCIAVAULT_API_KEY",
+    )
+    assert contracts["tool.social.bundle_social"].secrets_required == (
+        "BUNDLE_SOCIAL_API_KEY",
+    )
+    assert all("API_KEY" not in repr(entry.contract) for entry in entries)
 
 
 def test_sociavault_normalization() -> None:
@@ -76,6 +86,28 @@ def test_bundle_social_normalization() -> None:
     assert result.provider == "bundle_social"
     assert result.external_post_id == "post_123"
     assert result.status == "DRAFT"
+
+
+def test_bundle_social_analytics_normalization() -> None:
+    adapter = BundleSocialAdapter()
+    payload = {
+        "data": {
+            "metrics": {
+                "likes": 10,
+                "comments": 2,
+                "views": 500,
+                "watch_time_seconds": 42.5,
+            }
+        }
+    }
+    with patch.object(adapter._client, "_request", return_value=payload):
+        result = adapter.post_analytics("post_123", "TIKTOK")
+
+    assert isinstance(result.metrics, SocialMetric)
+    assert result.metrics.likes == 10
+    assert result.metrics.comments == 2
+    assert result.metrics.views == 500
+    assert result.metrics.watch_time_seconds == 42.5
 
 
 def test_credentials_are_not_read_at_import_time() -> None:
