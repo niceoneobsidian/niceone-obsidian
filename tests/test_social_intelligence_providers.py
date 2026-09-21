@@ -3,24 +3,41 @@ from __future__ import annotations
 import os
 from unittest.mock import patch
 
+from ois.domains.social_intelligence.providers import (
+    BundleSocialAdapter,
+    SociaVaultAdapter,
+)
 from ois.domains.social_intelligence.registry import build_social_tool_registry
-from ois.domains.social_intelligence.schemas import SocialProfile, SocialPublishRequest
-from ois.domains.social_intelligence.providers import BundleSocialAdapter, SociaVaultAdapter
+from ois.domains.social_intelligence.schemas import (
+    SocialProfile,
+    SocialPublishRequest,
+)
 
 
 def test_provider_registry_is_versioned_and_secret_free() -> None:
     registry = build_social_tool_registry()
     entries = registry.snapshot()
-    assert [entry.id for entry in entries] == ["tool.social.bundle_social", "tool.social.sociavault"]
+    assert {entry.id for entry in entries} == {
+        "tool.social.bundle_social",
+        "tool.social.sociavault",
+    }
     assert all(entry.version == "1.0.0" for entry in entries)
     assert all("API_KEY" not in repr(entry.metadata) for entry in entries)
 
 
 def test_sociavault_normalization() -> None:
     adapter = SociaVaultAdapter()
-    payload = {"data": {"id": "42", "username": "creator", "nickname": "Creator", "follower_count": 1234}}
+    payload = {
+        "data": {
+            "id": "42",
+            "username": "creator",
+            "nickname": "Creator",
+            "follower_count": 1234,
+        }
+    }
     with patch.object(adapter._client, "_request", return_value=payload):
         profile = adapter.tiktok_profile("creator")
+
     assert isinstance(profile, SocialProfile)
     assert profile.provider == "sociavault"
     assert profile.platform == "tiktok"
@@ -41,9 +58,21 @@ def test_bundle_social_publish_request_contract() -> None:
 
 def test_bundle_social_normalization() -> None:
     adapter = BundleSocialAdapter()
-    payload = {"data": {"id": "post_123", "status": "DRAFT", "results": {"INSTAGRAM": {"status": "DRAFT"}}}}
+    payload = {
+        "data": {
+            "id": "post_123",
+            "status": "DRAFT",
+            "results": {"INSTAGRAM": {"status": "DRAFT"}},
+        }
+    }
+    request = SocialPublishRequest(
+        team_id="team_test",
+        platforms=["INSTAGRAM"],
+        data={"INSTAGRAM": {"type": "POST", "text": "test"}},
+    )
     with patch.object(adapter._client, "_request", return_value=payload):
-        result = adapter.create_post(SocialPublishRequest(team_id="team_test", platforms=["INSTAGRAM"], data={"INSTAGRAM": {"type": "POST", "text": "test"}}))
+        result = adapter.create_post(request)
+
     assert result.provider == "bundle_social"
     assert result.external_post_id == "post_123"
     assert result.status == "DRAFT"
