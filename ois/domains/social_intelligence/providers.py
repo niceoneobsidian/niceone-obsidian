@@ -29,12 +29,7 @@ class ProviderError(RuntimeError):
 
 
 class _HttpClient:
-    def __init__(
-        self,
-        base_url: str,
-        api_key_env: str,
-        timeout: float = 30.0,
-    ) -> None:
+    def __init__(self, base_url: str, api_key_env: str, timeout: float = 30.0) -> None:
         self.base_url = base_url.rstrip("/")
         self.api_key_env = api_key_env
         self.timeout = timeout
@@ -121,11 +116,7 @@ class SociaVaultAdapter:
             observed_at=datetime.now(UTC),
         )
 
-    def tiktok_search(
-        self,
-        query: str,
-        kind: str = "keyword",
-    ) -> SocialSearchResult:
+    def tiktok_search(self, query: str, kind: str = "keyword") -> SocialSearchResult:
         allowed = {
             "users": "/scrape/tiktok/search/users",
             "hashtag": "/scrape/tiktok/search/hashtag",
@@ -245,11 +236,7 @@ class BundleSocialAdapter:
             observed_at=datetime.now(UTC),
         )
 
-    def post_analytics(
-        self,
-        post_id: str,
-        platform: str,
-    ) -> SocialAnalytics:
+    def post_analytics(self, post_id: str, platform: str) -> SocialAnalytics:
         payload = self._client._request(
             "GET",
             "/analytics/post",
