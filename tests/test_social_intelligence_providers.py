@@ -26,12 +26,8 @@ def test_provider_registry_is_versioned_and_secret_free() -> None:
     assert all(entry.version == "1.0.0" for entry in entries)
 
     contracts = {entry.id: entry.contract for entry in entries}
-    assert contracts["tool.social.sociavault"].secrets_required == (
-        "SOCIAVAULT_API_KEY",
-    )
-    assert contracts["tool.social.bundle_social"].secrets_required == (
-        "BUNDLE_SOCIAL_API_KEY",
-    )
+    assert contracts["tool.social.sociavault"].secrets_required == ("SOCIAVAULT_API_KEY",)
+    assert contracts["tool.social.bundle_social"].secrets_required == ("BUNDLE_SOCIAL_API_KEY",)
 
 
 def test_sociavault_normalization() -> None:
