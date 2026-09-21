@@ -72,13 +72,18 @@ class SourceGateway:
                                request.source_record_id, request.payload, payload_hash,
                                datetime.now(UTC), request.connector_version, request.schema_version,
                                request.ingestion_run_id or self._id())
-        if not self._evidence.append(evidence):
-            return SourceResponse(False, evidence_id, event_id, payload_hash, "duplicate_evidence")
         event = OutboxEvent(event_id, scope.tenant_id, scope.workspace_id,
                             "source.raw_evidence.created", evidence_id,
                             {"evidence_id": evidence_id, "source_id": request.source_id,
                              "source_record_id": request.source_record_id, "payload_hash": payload_hash},
                             evidence.collected_at)
-        if not self._outbox.append(event):
-            raise RuntimeError("evidence committed but outbox append failed; production store must use one DB transaction")
+        commit_ingest = getattr(self._evidence, "commit_ingest", None)
+        if callable(commit_ingest) and self._outbox is self._evidence:
+            accepted = commit_ingest(evidence, event)
+        else:
+            accepted = self._evidence.append(evidence)
+            if accepted and not self._outbox.append(event):
+                raise RuntimeError("evidence committed but outbox append failed; use SQLiteSourceLedger for atomicity")
+        if not accepted:
+            return SourceResponse(False, evidence_id, event_id, payload_hash, "duplicate_evidence")
         return SourceResponse(True, evidence_id, event_id, payload_hash)
