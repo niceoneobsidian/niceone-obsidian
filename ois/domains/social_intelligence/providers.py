@@ -15,6 +15,7 @@ from typing import Any
 
 from .schemas import (
     SocialAnalytics,
+    SocialMetric,
     SocialPost,
     SocialProfile,
     SocialPublishRequest,
@@ -277,9 +278,11 @@ class BundleSocialAdapter:
         if not isinstance(data, dict):
             raise ProviderError("invalid bundle.social analytics response")
 
-        metrics = data.get("metrics", data)
-        if not isinstance(metrics, dict):
+        metrics_payload = data.get("metrics", data)
+        if not isinstance(metrics_payload, dict):
             raise ProviderError("invalid bundle.social analytics metrics")
+
+        metrics = SocialMetric.model_validate(metrics_payload)
 
         return SocialAnalytics(
             provider=self.provider_id,
