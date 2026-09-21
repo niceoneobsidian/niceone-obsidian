@@ -10,9 +10,10 @@ from .gateway import SourceGateway, SourceRequest, SourceResponse
 from .limits import RateLimitPolicy, RateLimitState
 from .evidence import RawEvidence, RawEvidenceWriter, SQLiteRawEvidenceWriter
 from .outbox import OutboxEvent, OutboxStore, SQLiteOutboxStore
+from .ledger import SQLiteSourceLedger
 
 __all__ = [
     "CredentialRef", "TenantScope", "SourceGateway", "SourceRequest", "SourceResponse",
     "RateLimitPolicy", "RateLimitState", "RawEvidence", "RawEvidenceWriter",
-    "SQLiteRawEvidenceWriter", "OutboxEvent", "OutboxStore", "SQLiteOutboxStore",
+    "SQLiteRawEvidenceWriter", "OutboxEvent", "OutboxStore", "SQLiteOutboxStore", "SQLiteSourceLedger",
 ]
