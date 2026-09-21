@@ -59,21 +59,36 @@ def evaluate_experiment(
 ) -> ExperimentResult:
     """Compare observed variants against control without making execution decisions."""
     control = next(
-        (\n            o\n            for o in observations\n            if o.variant_id == spec.control.variant_id and o.metric == spec.metric\n        ),
+        (
+            o
+            for o in observations
+            if o.variant_id == spec.control.variant_id and o.metric == spec.metric
+        ),
         None,
     )
     if control is None:
         return ExperimentResult(spec.experiment_id, spec.metric, 0.0, (), None, 0.0, 0.0, False)
 
-    variants = [\n        o\n        for o in observations\n        if o.variant_id != spec.control.variant_id and o.metric == spec.metric\n    ]
+    variants = [
+        o
+        for o in observations
+        if o.variant_id != spec.control.variant_id and o.metric == spec.metric
+    ]
     values = tuple((o.variant_id, o.value) for o in variants)
     if not variants or control.value == 0:
-        return ExperimentResult(\n            spec.experiment_id, spec.metric, control.value, values, None, 0.0, 0.0, False\n        )
+        return ExperimentResult(
+            spec.experiment_id, spec.metric, control.value, values, None, 0.0, 0.0, False
+        )
 
     winner = max(variants, key=lambda o: o.value)
     lift = (winner.value - control.value) / abs(control.value)
-    sufficient = (\n        control.sample_size >= minimum_sample_size\n        and winner.sample_size >= minimum_sample_size\n    )
-    confidence = (\n        min(1.0, min(control.sample_size, winner.sample_size) / 100.0) if sufficient else 0.0\n    )
+    sufficient = (
+        control.sample_size >= minimum_sample_size
+        and winner.sample_size >= minimum_sample_size
+    )
+    confidence = (
+        min(1.0, min(control.sample_size, winner.sample_size) / 100.0) if sufficient else 0.0
+    )
     winning_id = winner.variant_id if sufficient and lift >= spec.success_threshold else None
     return ExperimentResult(
         spec.experiment_id,
