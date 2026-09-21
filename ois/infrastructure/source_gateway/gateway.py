@@ -57,7 +57,6 @@ class SourceGateway:
         if request.credential is not None:
             if self._credentials is None:
                 raise RuntimeError("credential resolver is required for credentialed sources")
-            scope.assert_matches(request.credential.tenant_id, request.tenant_id) if False else None
             if request.credential.tenant_id != scope.tenant_id:
                 raise PermissionError("credential belongs to another tenant")
             self._credentials.resolve(request.credential, scope)
