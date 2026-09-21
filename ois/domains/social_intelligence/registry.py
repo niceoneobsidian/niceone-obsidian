@@ -164,7 +164,7 @@ def provider_capability_contracts() -> tuple[CapabilityContract, ...]:
         CapabilityContract(
             capability_id="social.intelligence.sociavault.search",
             version="1.0.0",
-            description=("Search TikTok users, hashtags, keywords, or top results through SociaVault."),
+            description="Search TikTok users, hashtags, keywords, or top results via SociaVault.",
             input_schema={
                 "type": "object",
                 "required": ["query"],
@@ -176,7 +176,7 @@ def provider_capability_contracts() -> tuple[CapabilityContract, ...]:
         CapabilityContract(
             capability_id="social.distribution.bundle_social.publish",
             version="1.0.0",
-            description=("Create a draft, scheduled, or publishable social post through bundle.social."),
+            description="Create a draft, scheduled, or publishable social post via bundle.social.",
             input_schema={"$ref": "SocialPublishRequest"},
             output_schema={"$ref": "SocialPublishResult"},
             risk_level=RiskLevel.HIGH,
