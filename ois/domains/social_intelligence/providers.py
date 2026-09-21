@@ -155,22 +155,20 @@ class SociaVaultAdapter:
                     )
                 )
             else:
-                external_id = (
-                    item.get("id") or item.get("video_id") or item.get("aweme_id")
+                external_id = item.get("id") or item.get("video_id")
+                if external_id is None:
+                    external_id = item.get("aweme_id")
+                author_handle = item.get("username") or item.get("author_username")
+                text = (
+                    item.get("description") or item.get("desc") or item.get("text")
                 )
                 posts.append(
                     SocialPost(
                         provider=self.provider_id,
                         platform="tiktok",
                         external_id=str(external_id),
-                        author_handle=(
-                            item.get("username") or item.get("author_username")
-                        ),
-                        text=(
-                            item.get("description")
-                            or item.get("desc")
-                            or item.get("text")
-                        ),
+                        author_handle=author_handle,
+                        text=text,
                         url=item.get("url") or item.get("video_url"),
                         media_type="video",
                         raw=item,
