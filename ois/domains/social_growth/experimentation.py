@@ -99,13 +99,10 @@ def evaluate_experiment(
     winner = max(variants, key=lambda o: o.value)
     lift = (winner.value - control.value) / abs(control.value)
     sufficient = (
-        control.sample_size >= minimum_sample_size
-        and winner.sample_size >= minimum_sample_size
+        control.sample_size >= minimum_sample_size and winner.sample_size >= minimum_sample_size
     )
     confidence = (
-        min(1.0, min(control.sample_size, winner.sample_size) / 100.0)
-        if sufficient
-        else 0.0
+        min(1.0, min(control.sample_size, winner.sample_size) / 100.0) if sufficient else 0.0
     )
     winning_id = winner.variant_id if sufficient and lift >= spec.success_threshold else None
     return ExperimentResult(
