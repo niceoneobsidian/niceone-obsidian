@@ -159,9 +159,7 @@ class SociaVaultAdapter:
                 if external_id is None:
                     external_id = item.get("aweme_id")
                 author_handle = item.get("username") or item.get("author_username")
-                text = (
-                    item.get("description") or item.get("desc") or item.get("text")
-                )
+                text = item.get("description") or item.get("desc") or item.get("text")
                 posts.append(
                     SocialPost(
                         provider=self.provider_id,
