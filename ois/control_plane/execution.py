@@ -129,7 +129,7 @@ class IntegratedExecution:
                 {
                     "task_id": failed_task.task_id,
                     "capability_id": failed_task.capability_id,
-                    "action": supervision.action.value,
+                    "action": supervision.action,
                     "reason": supervision.reason,
                 },
             )
