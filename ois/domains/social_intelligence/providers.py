@@ -48,9 +48,7 @@ class _HttpClient:
 
         url = f"{self.base_url}/{path.lstrip('/')}"
         if params:
-            query = urllib.parse.urlencode(
-                {k: v for k, v in params.items() if v is not None}
-            )
+            query = urllib.parse.urlencode({k: v for k, v in params.items() if v is not None})
             url += f"?{query}"
 
         data = json.dumps(body).encode() if body is not None else None
@@ -68,9 +66,7 @@ class _HttpClient:
             with urllib.request.urlopen(request, timeout=self.timeout) as response:
                 payload = json.loads(response.read().decode())
         except Exception as exc:  # pragma: no cover
-            raise ProviderError(
-                f"provider request failed: {type(exc).__name__}: {exc}"
-            ) from exc
+            raise ProviderError(f"provider request failed: {type(exc).__name__}: {exc}") from exc
 
         if not isinstance(payload, dict):
             raise ProviderError("provider returned a non-object JSON response")
@@ -151,9 +147,7 @@ class SociaVaultAdapter:
                     SocialProfile(
                         provider=self.provider_id,
                         platform="tiktok",
-                        external_id=(
-                            str(item["id"]) if item.get("id") is not None else None
-                        ),
+                        external_id=(str(item["id"]) if item.get("id") is not None else None),
                         handle=item.get("username") or item.get("unique_id"),
                         display_name=item.get("nickname") or item.get("display_name"),
                         followers=item.get("followers") or item.get("follower_count"),
@@ -165,20 +159,9 @@ class SociaVaultAdapter:
                     SocialPost(
                         provider=self.provider_id,
                         platform="tiktok",
-                        external_id=str(
-                            item.get("id")
-                            or item.get("video_id")
-                            or item.get("aweme_id")
-                        ),
-                        author_handle=(
-                            item.get("username")
-                            or item.get("author_username")
-                        ),
-                        text=(
-                            item.get("description")
-                            or item.get("desc")
-                            or item.get("text")
-                        ),
+                        external_id=str(item.get("id") or item.get("video_id") or item.get("aweme_id")),
+                        author_handle=(item.get("username") or item.get("author_username")),
+                        text=(item.get("description") or item.get("desc") or item.get("text")),
                         url=item.get("url") or item.get("video_url"),
                         media_type="video",
                         raw=item,
