@@ -6,7 +6,6 @@ import json
 import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
-from collections.abc import Mapping
 
 from ois.domains.social_intelligence.learning import PerformanceObservation
 from ois.domains.social_intelligence.prediction import Prediction
