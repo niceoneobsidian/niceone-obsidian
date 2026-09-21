@@ -67,7 +67,16 @@ def evaluate_experiment(
         None,
     )
     if control is None:
-        return ExperimentResult(spec.experiment_id, spec.metric, 0.0, (), None, 0.0, 0.0, False)
+        return ExperimentResult(
+            spec.experiment_id,
+            spec.metric,
+            0.0,
+            (),
+            None,
+            0.0,
+            0.0,
+            False,
+        )
 
     variants = [
         o
@@ -77,7 +86,14 @@ def evaluate_experiment(
     values = tuple((o.variant_id, o.value) for o in variants)
     if not variants or control.value == 0:
         return ExperimentResult(
-            spec.experiment_id, spec.metric, control.value, values, None, 0.0, 0.0, False
+            spec.experiment_id,
+            spec.metric,
+            control.value,
+            values,
+            None,
+            0.0,
+            0.0,
+            False,
         )
 
     winner = max(variants, key=lambda o: o.value)
@@ -87,7 +103,9 @@ def evaluate_experiment(
         and winner.sample_size >= minimum_sample_size
     )
     confidence = (
-        min(1.0, min(control.sample_size, winner.sample_size) / 100.0) if sufficient else 0.0
+        min(1.0, min(control.sample_size, winner.sample_size) / 100.0)
+        if sufficient
+        else 0.0
     )
     winning_id = winner.variant_id if sufficient and lift >= spec.success_threshold else None
     return ExperimentResult(
