@@ -161,19 +161,11 @@ class SociaVaultAdapter:
                         provider=self.provider_id,
                         platform="tiktok",
                         external_id=(
-                            str(item["id"])
-                            if item.get("id") is not None
-                            else None
+                            str(item["id"]) if item.get("id") is not None else None
                         ),
                         handle=item.get("username") or item.get("unique_id"),
-                        display_name=(
-                            item.get("nickname")
-                            or item.get("display_name")
-                        ),
-                        followers=(
-                            item.get("followers")
-                            or item.get("follower_count")
-                        ),
+                        display_name=item.get("nickname") or item.get("display_name"),
+                        followers=item.get("followers") or item.get("follower_count"),
                         raw=item,
                     )
                 )
