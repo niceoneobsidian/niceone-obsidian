@@ -8,6 +8,12 @@ from time import perf_counter
 from typing import Any
 
 from ois.domains.social_growth.connectors import ConnectorRegistry
+from ois.domains.social_growth.intelligence import (
+    build_audience_profiles,
+    build_competitor_profiles,
+    detect_trends,
+    extract_creative_patterns,
+)
 from ois.domains.social_growth.persistence import SocialEventStore
 from ois.domains.social_growth.schemas import SocialEvent, SocialResearchBrief
 from ois.domains.social_growth.workflows import build_research_brief
@@ -33,7 +39,7 @@ class IngestionReport:
 
 
 class IngestionPipeline:
-    """Wire registered connectors, canonical event persistence and G1 intelligence."""
+    """Wire connectors, canonical events, intelligence engines, and persistence."""
 
     def __init__(
         self,
@@ -98,6 +104,20 @@ class IngestionPipeline:
         if research_query is not None:
             if self._intelligence_store is None:
                 raise RuntimeError("intelligence_store is required for research_query")
+
+            audiences = build_audience_profiles(events)
+            competitors = build_competitor_profiles(events)
+            signals = detect_trends(events)
+            creative_patterns = extract_creative_patterns(events)
+            for profile in audiences:
+                self._intelligence_store.put_audience_profile(profile)
+            for profile in competitors:
+                self._intelligence_store.put_competitor_profile(profile)
+            for signal in signals:
+                self._intelligence_store.put_signal(signal)
+            for pattern in creative_patterns:
+                self._intelligence_store.put_creative_pattern(pattern)
+
             brief = build_research_brief(research_query, events)
             brief_id = self._intelligence_store.put_research_brief(brief)
 
