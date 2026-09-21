@@ -4,7 +4,7 @@ import pytest
 
 from ois.infrastructure.source_gateway import (
     CredentialRef, InMemoryCredentialResolver, OutboxEvent, RateLimitPolicy,
-    SQLiteOutboxStore, SQLiteRawEvidenceWriter, SQLiteSourceLedger, SourceGateway, SourceRequest,
+    SQLiteCursorStore, SQLiteOutboxStore, SQLiteRawEvidenceWriter, SQLiteSourceLedger, SourceGateway, SourceRequest,
     TokenBucket, canonical_hash,
 )
 
@@ -15,6 +15,16 @@ def gateway():
     resolver = InMemoryCredentialResolver({"cred-1": "secret"})
     return SourceGateway(evidence=evidence, outbox=outbox, credentials=resolver,
                          rate_limits={"tiktok": TokenBucket(RateLimitPolicy(1, 0.01))}), evidence, outbox
+
+
+def test_cursor_store_is_tenant_scoped_and_versioned():
+    store = SQLiteCursorStore()
+    first = store.advance("tenant-a", "ws-a", "tiktok", "c1")
+    assert first.version == 1
+    second = store.advance("tenant-a", "ws-a", "tiktok", "c2", expected_version=1)
+    assert second.version == 2
+    assert store.get("tenant-a", "ws-a", "tiktok").cursor == "c2"
+    assert store.get("tenant-b", "ws-a", "tiktok") is None
 
 
 def test_gateway_enforces_tenant_credential_scope():
