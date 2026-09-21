@@ -101,9 +101,7 @@ class BundleSocialTool:
                 ).model_dump(mode="json")
             elif operation == "create_post":
                 output = self.adapter.create_post(
-                    SocialPublishRequest.model_validate(
-                        request.input["request"]
-                    )
+                    SocialPublishRequest.model_validate(request.input["request"])
                 ).model_dump(mode="json")
             else:
                 raise ValueError(f"unsupported operation: {operation}")
