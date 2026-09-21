@@ -11,7 +11,7 @@ class Adapter:
     def health_check(self):return True
     def fetch(self,*,cursor,since,limit):
         records=({"id":"1","event_type":"post","text":"hello"},{"id":"2","event_type":"post","text":"world"})
-        return FetchBatch("fixture","req",records,None,"next" if cursor is None else None,1.,99)
+        return FetchBatch("fixture","req",records,cursor,"next" if cursor is None else None,1.,99)
 def test_g1_source_validation_raw_evidence_cross_source_research():
     r=SourceValidationHarness().validate(Adapter());assert r.authentication_ok and r.normalization_ok and r.pagination_ok
     e=SQLiteEvidenceStore();assert e.append_raw(RawEvidence.from_payload(evidence_id="e1",source_id="s1",source_record_id="1",payload={"text":"a"}))
