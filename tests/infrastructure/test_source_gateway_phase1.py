@@ -4,7 +4,7 @@ import pytest
 
 from ois.infrastructure.source_gateway import (
     CredentialRef, InMemoryCredentialResolver, OutboxEvent, RateLimitPolicy,
-    SQLiteOutboxStore, SQLiteRawEvidenceWriter, SourceGateway, SourceRequest,
+    SQLiteOutboxStore, SQLiteRawEvidenceWriter, SQLiteSourceLedger, SourceGateway, SourceRequest,
     TokenBucket, canonical_hash,
 )
 
@@ -45,6 +45,15 @@ def test_gateway_rate_limits_before_external_side_effects():
     assert not second.accepted
     assert second.reason == "rate_limited"
     assert len(outbox.pending()) == 1
+
+
+def test_atomic_ledger_commits_evidence_and_outbox_together():
+    ledger = SQLiteSourceLedger()
+    gateway = SourceGateway(evidence=ledger, outbox=ledger)
+    result = gateway.ingest(SourceRequest("tenant-a", "ws-a", "fixture", "1", {"x": 1}))
+    assert result.accepted
+    assert ledger.evidence(result.evidence_id) is not None
+    assert [e.event_id for e in ledger.pending()] == [result.event_id]
 
 
 def test_outbox_is_idempotent_and_ordered():
