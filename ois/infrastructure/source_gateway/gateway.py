@@ -57,7 +57,7 @@ class SourceGateway:
             for key, policy in rate_limits.items():
                 self._rate_limiters[key] = policy if isinstance(policy, TokenBucket) else TokenBucket(policy)
 
-    def _id(self) -> str:
+    def _id(self) -> str | None:
         return str(uuid4())
 
     def ingest(self, request: SourceRequest) -> SourceResponse:
