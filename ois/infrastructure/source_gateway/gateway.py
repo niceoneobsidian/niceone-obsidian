@@ -5,11 +5,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
-<<<<<<< HEAD
 from typing import Any
-=======
 from typing import Any, cast
->>>>>>> origin/main
 from uuid import uuid4
 
 from .credentials import CredentialRef, CredentialResolver, TenantScope
@@ -42,10 +39,7 @@ class SourceResponse:
 
 class SourceGateway:
     """Captures source payloads before downstream normalization.
-<<<<<<< HEAD
 
-=======
->>>>>>> origin/main
     A successful ingest writes raw evidence and its outbox event as one logical
     unit. The concrete SQLite stores are reference implementations; production
     deployment should bind equivalent contracts to the durable application DB.
@@ -74,17 +68,14 @@ class SourceGateway:
             if request.credential.tenant_id != scope.tenant_id:
                 raise PermissionError("credential belongs to another tenant")
             self._credentials.resolve(request.credential, scope)
-<<<<<<< HEAD
 
         bucket = self._rate_limits.get(request.source_id)
         if bucket is not None and not bucket.acquire():
             return SourceResponse(False, "", "", "", "rate_limited")
 
-=======
         bucket = self._rate_limits.get(request.source_id)
         if bucket is not None and not bucket.acquire():
             return SourceResponse(False, "", "", "", "rate_limited")
->>>>>>> origin/main
         evidence_id = self._id()
         event_id = self._id()
         payload_hash = canonical_hash(request.payload)
@@ -116,26 +107,20 @@ class SourceGateway:
             evidence.collected_at,
         )
         commit_ingest = getattr(self._evidence, "commit_ingest", None)
-<<<<<<< HEAD
         if (
             callable(commit_ingest)
             and getattr(self._outbox, "_db", None) is not None
             and getattr(self._outbox, "_db", None) is getattr(self._evidence, "_db", None)
         ):
-=======
         if callable(commit_ingest) and cast(object, self._outbox) is cast(object, self._evidence):
->>>>>>> origin/main
             accepted = commit_ingest(evidence, event)
         else:
             accepted = self._evidence.append(evidence)
             if accepted and not self._outbox.append(event):
                 raise RuntimeError(
-<<<<<<< HEAD
                     "evidence committed but outbox append failed; use SQLiteSourceLedger for atomicity"
-=======
                     "evidence committed but outbox append failed; "
                     "use SQLiteSourceLedger for atomicity"
->>>>>>> origin/main
                 )
         if not accepted:
             return SourceResponse(False, evidence_id, event_id, payload_hash, "duplicate_evidence")
