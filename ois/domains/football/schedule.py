@@ -26,7 +26,9 @@ class Schedule:
         return tuple(f for f in self._fixtures if isinstance(f, FootballGame))
 
     def between(self, start: datetime, end: datetime) -> Schedule:
-        return Schedule(f for f in self._fixtures if start <= f.kickoff <= end)
+        return Schedule(
+            f for f in self._fixtures if start <= f.kickoff <= end
+        )
 
     def for_team(self, team_id: str) -> Schedule:
         return Schedule(
