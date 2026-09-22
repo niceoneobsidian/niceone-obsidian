@@ -10,13 +10,14 @@ contains no platform-specific connector implementation.
 
 from .credentials import CredentialRef, TenantScope
 from .cursors import SourceCursor, SQLiteCursorStore
-from .evidence import RawEvidence, RawEvidenceWriter, SQLiteRawEvidenceWriter
+from .evidence import canonical_hash,  RawEvidence, RawEvidenceWriter, SQLiteRawEvidenceWriter
 from .gateway import SourceGateway, SourceRequest, SourceResponse
 from .ledger import SQLiteSourceLedger
 from .limits import RateLimitPolicy, RateLimitState
 from .outbox import OutboxEvent, OutboxStore, SQLiteOutboxStore
 
-__all__ = [
+ __all__ = [
+    "canonical_hash",
     "TokenBucket",
     "InMemoryCredentialResolver",
     "CredentialRef",
