@@ -103,7 +103,10 @@ class SQLiteIntelligenceStore:
 
     def put_signal(self, signal: SocialSignal) -> None:
         self._upsert(
-            "signals", "signal_id", signal.signal_id, signal.model_dump(mode="json")
+            "signals",
+            "signal_id",
+            signal.signal_id,
+            signal.model_dump(mode="json"),
         )
 
     def put_creative_pattern(self, pattern: CreativePattern) -> None:
@@ -132,13 +135,17 @@ class SQLiteIntelligenceStore:
         rows = self._connection.execute(
             "SELECT payload FROM audience_profiles ORDER BY audience_id LIMIT ?", (limit,)
         ).fetchall()
-        return [AudienceProfile.model_validate(json.loads(row["payload"])) for row in rows]
+        return [
+            AudienceProfile.model_validate(json.loads(row["payload"])) for row in rows
+        ]
 
     def list_competitor_profiles(self, *, limit: int = 100) -> list[CompetitorProfile]:
         rows = self._connection.execute(
             "SELECT payload FROM competitor_profiles ORDER BY competitor_id LIMIT ?", (limit,)
         ).fetchall()
-        return [CompetitorProfile.model_validate(json.loads(row["payload"])) for row in rows]
+        return [
+            CompetitorProfile.model_validate(json.loads(row["payload"])) for row in rows
+        ]
 
     def list_signals(
         self, *, signal_type: str | None = None, limit: int = 100
@@ -163,7 +170,9 @@ class SQLiteIntelligenceStore:
         rows = self._connection.execute(
             "SELECT payload FROM research_briefs ORDER BY brief_id DESC LIMIT ?", (limit,)
         ).fetchall()
-        return [SocialResearchBrief.model_validate(json.loads(row["payload"])) for row in rows]
+        return [
+            SocialResearchBrief.model_validate(json.loads(row["payload"])) for row in rows
+        ]
 
     def put_many_signals(self, signals: Iterable[SocialSignal]) -> int:
         count = 0
