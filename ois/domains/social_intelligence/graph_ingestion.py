@@ -127,4 +127,13 @@ def _topics(payload: dict[str, Any]) -> tuple[str, ...]:
     value = payload.get("topics")
     if isinstance(value, list):
         topics.update(str(item).strip() for item in value if str(item).strip())
+    videos = payload.get("videos")
+    if isinstance(videos, list):
+        for video in videos:
+            if not isinstance(video, dict):
+                continue
+            for key in ("title", "video_description"):
+                value = video.get(key)
+                if isinstance(value, str) and value.strip():
+                    topics.add(value.strip())
     return tuple(sorted(topics))
