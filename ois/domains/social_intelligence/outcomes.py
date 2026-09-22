@@ -100,9 +100,7 @@ class OutcomeLedger:
         self._db.commit()
         return cursor.rowcount == 1
 
-    def calibrate(
-        self, *, metric: str, bins: int = 10
-    ) -> CalibrationReport:
+    def calibrate(self, *, metric: str, bins: int = 10) -> CalibrationReport:
         rows = self._db.execute(
             """
             SELECT p.metrics, o.value, p.confidence
@@ -116,9 +114,7 @@ class OutcomeLedger:
         for row in rows:
             predicted = json.loads(row["metrics"]).get(metric)
             if isinstance(predicted, int | float):
-                pairs.append(
-                    (float(predicted), float(row["value"]), float(row["confidence"]))
-                )
+                pairs.append((float(predicted), float(row["value"]), float(row["confidence"])))
         if not pairs:
             return CalibrationReport(0, 0.0, 0.0, 0.0, ())
 
@@ -141,9 +137,5 @@ class OutcomeLedger:
             for index, bucket in enumerate(buckets)
             if bucket
         )
-        mean_confidence = sum(
-            confidence for _, _, confidence in pairs
-        ) / len(pairs)
-        return CalibrationReport(
-            len(pairs), mae, rmse, mean_confidence, report
-        )
+        mean_confidence = sum(confidence for _, _, confidence in pairs) / len(pairs)
+        return CalibrationReport(len(pairs), mae, rmse, mean_confidence, report)
