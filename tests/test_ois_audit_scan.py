@@ -6,11 +6,23 @@ from security.ois_audit_scan import SecOpsEvidenceScanner
 
 
 def make_bundle(key: bytes) -> dict:
+    payload = {"result": "ok"}
     data = {
         "structural_integrity_hash": "",
         "supervisor_cryptographic_seal": "",
         "historical_event_ledger": [
-            {"event_type": "execution.completed", "payload_hash": hashlib.sha256(b"payload").hexdigest()}
+            {
+                "event_type": "execution.completed",
+                "payload": payload,
+                "payload_hash": hashlib.sha256(
+                    json.dumps(
+                        payload,
+                        sort_keys=True,
+                        separators=(",", ":"),
+                        ensure_ascii=False,
+                    ).encode("utf-8")
+                ).hexdigest(),
+            }
         ],
     }
     computed_hash = SecOpsEvidenceScanner._canonical_hash(data)
@@ -47,13 +59,16 @@ def test_wrong_key_fails(tmp_path):
 def test_missing_payload_hash_fails(tmp_path):
     key = b"test-key"
     data = make_bundle(key)
-    data["historical_event_ledger"][0]["payload_hash"] = "NULL"
-    # Re-seal after the mutation so the ledger check, rather than hash checking,
-    # is the failure under test.
-    data["structural_integrity_hash"] = SecOpsEvidenceScanner._canonical_hash(data)
-    data["supervisor_cryptographic_seal"] = hmac.new(
-        key, data["structural_integrity_hash"].encode("ascii"), hashlib.sha256
-    ).hexdigest()
+    data["historical_event_ledger"][0]["payload_hash"] = "0" * 64
+    path = tmp_path / "bundle.json"
+    path.write_text(json.dumps(data), encoding="utf-8")
+    assert not SecOpsEvidenceScanner(key).scan_bundle_compliance(path)
+
+
+def test_payload_hash_mismatch_fails(tmp_path):
+    key = b"test-key"
+    data = make_bundle(key)
+    data["historical_event_ledger"][0]["payload"]["result"] = "tampered"
     path = tmp_path / "bundle.json"
     path.write_text(json.dumps(data), encoding="utf-8")
     assert not SecOpsEvidenceScanner(key).scan_bundle_compliance(path)
