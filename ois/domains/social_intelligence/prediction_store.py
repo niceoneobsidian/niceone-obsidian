@@ -107,7 +107,9 @@ class PredictionDataset:
         for row in rows:
             predicted = json.loads(row["prediction"])["metrics"].get(metric)
             observed = json.loads(row["outcome"]).get(metric)
-            if isinstance(predicted, int | float) and isinstance(observed, int | float):
+            if isinstance(predicted, int | float) and isinstance(
+                observed, int | float
+            ):
                 pairs.append((float(predicted), float(observed)))
         return pairs
 
@@ -144,7 +146,9 @@ class PredictionDataset:
                 )
             )
 
-        mae = sum(abs(predicted - observed) for predicted, observed in pairs) / len(pairs)
+        mae = (
+            sum(abs(predicted - observed) for predicted, observed in pairs) / len(pairs)
+        )
         return CalibrationReport(metric, len(pairs), mae, tuple(result))
 
     def close(self) -> None:
