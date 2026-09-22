@@ -1,31 +1,24 @@
-"""Source Gateway: governed front door for production external sources."""
+"""Source Gateway facade and execution bounds."""
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
-from typing import Any, cast
 from uuid import uuid4
 
-from .credentials import CredentialRef, CredentialResolver, TenantScope
+from .credentials import CredentialResolver, TenantScope
 from .evidence import RawEvidence, RawEvidenceWriter, canonical_hash
-from .limits import TokenBucket
+from .limits import RateLimitPolicy
 from .outbox import OutboxEvent, OutboxStore
 
 
 @dataclass(frozen=True)
 class SourceRequest:
-    tenant_id: str
-    workspace_id: str
     source_id: str
-    source_record_id: str
-    payload: Any
-    credential: CredentialRef | None = None
-    connector_version: str = "unknown"
-    schema_version: str = "1"
-    ingestion_run_id: str = ""
+    credential: str
+    payload: dict[str, Any]
+    tenant_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -34,38 +27,29 @@ class SourceResponse:
     evidence_id: str
     event_id: str
     payload_hash: str
-    reason: str | None = None
+    error: str | None = None
 
 
 class SourceGateway:
-    """Captures source payloads before downstream normalization.
-
-    A successful ingest writes raw evidence and its outbox event as one logical
-    unit. The concrete SQLite stores are reference implementations; production
-    deployment should bind equivalent contracts to the durable application DB.
-    """
-
     def __init__(
         self,
-        *,
+        credentials: CredentialResolver,
         evidence: RawEvidenceWriter,
         outbox: OutboxStore,
-        credentials: CredentialResolver | None = None,
-        rate_limits: dict[str, TokenBucket] | None = None,
-        id_factory: Callable[[], str] | None = None,
+        rate_limits: dict[str, RateLimitPolicy] | None = None,
     ) -> None:
+        self._credentials = credentials
         self._evidence = evidence
         self._outbox = outbox
-        self._credentials = credentials
-        self._rate_limits = dict(rate_limits or {})
-        self._id = id_factory or (lambda: str(uuid4()))
+        self._rate_limits = rate_limits or {}
+
+    def _id(self) -> str:
+        return str(uuid4())
 
     def ingest(self, request: SourceRequest) -> SourceResponse:
-        scope = TenantScope(request.tenant_id, request.workspace_id)
-        if request.credential is not None:
-            if self._credentials is None:
-                raise RuntimeError("credential resolver is required for credentialed sources")
-            if request.credential.tenant_id != scope.tenant_id:
+        if request.tenant_id:
+            scope = TenantScope(tenant_id=request.tenant_id)
+            if not scope.allows(request.credential):
                 raise PermissionError("credential belongs to another tenant")
             self._credentials.resolve(request.credential, scope)
 
@@ -73,52 +57,41 @@ class SourceGateway:
         if bucket is not None and not bucket.acquire():
             return SourceResponse(False, "", "", "", "rate_limited")
 
-        bucket = self._rate_limits.get(request.source_id)
-        if bucket is not None and not bucket.acquire():
-            return SourceResponse(False, "", "", "", "rate_limited")
         evidence_id = self._id()
         event_id = self._id()
         payload_hash = canonical_hash(request.payload)
+
         evidence = RawEvidence(
-            evidence_id,
-            scope.tenant_id,
-            scope.workspace_id,
-            request.source_id,
-            request.source_record_id,
-            request.payload,
-            payload_hash,
-            datetime.now(UTC),
-            request.connector_version,
-            request.schema_version,
-            request.ingestion_run_id or self._id(),
+            evidence_id=evidence_id,
+            source_id=request.source_id,
+            payload=request.payload,
+            captured_at=datetime.now(UTC),
+            payload_hash=payload_hash,
         )
+
         event = OutboxEvent(
-            event_id,
-            scope.tenant_id,
-            scope.workspace_id,
-            "source.raw_evidence.created",
-            evidence_id,
-            {
+            event_id=event_id,
+            aggregate_type="source_ingest",
+            aggregate_id=evidence_id,
+            event_type="raw_evidence_ingested",
+            payload={
                 "evidence_id": evidence_id,
                 "source_id": request.source_id,
-                "source_record_id": request.source_record_id,
                 "payload_hash": payload_hash,
             },
-            evidence.collected_at,
+            created_at=datetime.now(UTC),
         )
+
         commit_ingest = getattr(self._evidence, "commit_ingest", None)
-        if (
-            callable(commit_ingest)
-            and getattr(self._outbox, "_db", None) is not None
-            and getattr(self._outbox, "_db", None) is getattr(self._evidence, "_db", None)
-        ):
-        if callable(commit_ingest) and cast(object, self._outbox) is cast(object, self._evidence):
+        outbox_db = getattr(self._outbox, "_db", None)
+        evidence_db = getattr(self._evidence, "_db", None)
+
+        if callable(commit_ingest) and outbox_db is not None and outbox_db is evidence_db:
             accepted = commit_ingest(evidence, event)
         else:
             accepted = self._evidence.append(evidence)
             if accepted and not self._outbox.append(event):
                 raise RuntimeError(
-                    "evidence committed but outbox append failed; use SQLiteSourceLedger for atomicity"
                     "evidence committed but outbox append failed; "
                     "use SQLiteSourceLedger for atomicity"
                 )
