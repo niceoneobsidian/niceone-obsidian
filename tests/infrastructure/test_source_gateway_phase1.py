@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from typing import Any, cast
 
 import pytest
 
@@ -13,7 +14,6 @@ from ois.infrastructure.source_gateway import (
     SQLiteOutboxStore,
     SQLiteRawEvidenceWriter,
     SQLiteSourceLedger,
-    TokenBucket,
     canonical_hash,
 )
 
@@ -27,7 +27,7 @@ def gateway():
             evidence=evidence,
             outbox=outbox,
             credentials=resolver,
-            rate_limits={"tiktok": TokenBucket(RateLimitPolicy(1, 0.01))},
+            rate_limits={"tiktok": RateLimitPolicy(1, 0.01)},
         ),
         evidence,
         outbox,
@@ -40,7 +40,9 @@ def test_cursor_store_is_tenant_scoped_and_versioned():
     assert first.version == 1
     second = store.advance("tenant-a", "ws-a", "tiktok", "c2", expected_version=1)
     assert second.version == 2
-    assert store.get("tenant-a", "ws-a", "tiktok").cursor == "c2"
+    cursor = store.get("tenant-a", "ws-a", "tiktok")
+    assert cursor is not None
+    assert cursor.cursor == "c2"
     assert store.get("tenant-b", "ws-a", "tiktok") is None
 
 
@@ -92,7 +94,7 @@ def test_gateway_rate_limits_before_external_side_effects():
 
 def test_atomic_ledger_commits_evidence_and_outbox_together():
     ledger = SQLiteSourceLedger()
-    gateway = SourceGateway(evidence=ledger, outbox=ledger)
+    gateway = SourceGateway(evidence=cast(Any, ledger), outbox=cast(Any, ledger))
     result = gateway.ingest(SourceRequest("tenant-a", "ws-a", "fixture", "1", {"x": 1}))
     assert result.accepted
     assert ledger.evidence(result.evidence_id) is not None

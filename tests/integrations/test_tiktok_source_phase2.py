@@ -1,4 +1,5 @@
 import json
+from typing import Any, cast
 from urllib.request import Request
 
 import pytest
@@ -35,8 +36,11 @@ def test_tiktok_page_enters_gateway_before_cursor_advances():
         )
 
     ledger = SQLiteSourceLedger()
-    gateway = SourceGateway(evidence=ledger, outbox=ledger)
-    cursor = [None]
+    gateway = SourceGateway(
+        evidence=cast(Any, ledger),
+        outbox=cast(Any, ledger),
+    )
+    cursor: list[str | None] = [None]
     source = TikTokSource(
         client=TikTokDisplayClient("token", opener=opener, max_retries=0),
         gateway=gateway,
@@ -68,8 +72,8 @@ def test_live_tiktok_display_source():
     if not token:
         pytest.skip("OIS_TIKTOK_ACCESS_TOKEN not configured")
     ledger = SQLiteSourceLedger()
-    gateway = SourceGateway(evidence=ledger, outbox=ledger)
-    cursor = [None]
+    gateway = SourceGateway(evidence=cast(Any, ledger), outbox=cast(Any, ledger))
+    cursor: list[str | None] = [None]
     source = TikTokSource(
         client=TikTokDisplayClient(token),
         gateway=gateway,

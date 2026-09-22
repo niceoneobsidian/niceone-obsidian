@@ -55,7 +55,7 @@ class SourceGateway:
         self._rate_limiters: dict[str, TokenBucket] = {}
         if rate_limits:
             for key, policy in rate_limits.items():
-                self._rate_limiters[key] = TokenBucket(policy)
+                self._rate_limiters[key] = policy if isinstance(policy, TokenBucket) else TokenBucket(policy)
 
     def _id(self) -> str:
         return str(uuid4())
