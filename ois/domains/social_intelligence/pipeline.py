@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Iterable
 
+from ois.domains.social_growth.schemas import SocialResearchBrief
 from ois.infrastructure.source_gateway.outbox import OutboxStore
 
 from .graph import EvidenceGraph
