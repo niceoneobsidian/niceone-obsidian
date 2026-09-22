@@ -69,6 +69,7 @@ class RSSSource:
         tenant_id: str,
         workspace_id: str,
         max_items: int = 50,
+        topic: str | None = None,
     ) -> RSSSourceRun:
         if max_items < 1:
             raise ValueError("max_items must be positive")
@@ -86,13 +87,17 @@ class RSSSource:
         event_ids: list[str] = []
 
         for item in items:
+            payload = item.as_payload()
+            if topic:
+                payload["topics"] = [topic]
+                payload["research_topic"] = topic
             result = self._gateway.ingest(
                 SourceRequest(
                     tenant_id=tenant_id,
                     workspace_id=workspace_id,
                     source_id=self.source_id,
                     source_record_id=item.item_id,
-                    payload=item.as_payload(),
+                    payload=payload,
                     connector_version="rss-xml",
                     schema_version="rss.item.v1",
                 )
