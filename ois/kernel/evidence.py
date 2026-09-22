@@ -38,6 +38,8 @@ class EvidenceEvent:
 class EvidenceStore(Protocol):
     def append(self, event: EvidenceEvent) -> None: ...
 
+    def list(self, execution_id: UUID | None = None) -> tuple[EvidenceEvent, ...]: ...
+
     def record(
         self,
         execution_id: UUID,

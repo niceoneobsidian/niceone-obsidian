@@ -1,0 +1,19 @@
+title = "OIS gitleaks config"
+
+# Extend gitleaks' default ruleset rather than replacing it.
+[extend]
+useDefault = true
+
+# Known false positive: test fixture identifiers (e.g. "idempotency-exclusive-1")
+# tripping the generic-api-key entropy heuristic. Scoped narrowly with
+# condition = "and" so this only suppresses these exact literals inside this
+# one test file, and does not weaken secret detection anywhere else.
+[[allowlists]]
+description = "Test fixture identifiers in test_postgres_outbox_worker.py, not credentials"
+condition = "and"
+paths = [
+  '''tests/integration/test_postgres_outbox_worker\.py''',
+]
+regexes = [
+  '''(effect|invocation|idempotency)-exclusive-\d+''',
+]
