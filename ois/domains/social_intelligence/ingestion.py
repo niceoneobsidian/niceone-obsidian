@@ -90,7 +90,11 @@ class IngestionPipeline:
                 duplicates += 1
 
         latency_ms = (perf_counter() - started) * 1000.0
-        health_error = "all_events_rejected" if received and not accepted and not duplicates else None
+        health_error = (
+            "all_events_rejected"
+            if received and not accepted and not duplicates
+            else None
+        )
         self._sources.record_health(
             source_id,
             error=health_error,
