@@ -14,6 +14,10 @@ from .schemas import (
 )
 from .source import SocialSource, SourceHealthSample, SourceRegistry, SourceStatus
 from .store import IntelligenceStore, SQLiteIntelligenceStore
+from .graph import GraphEdge, GraphNode, SQLiteEvidenceGraph
+from .graph_ingestion import EvidenceGraphProjector
+from .pipeline import G1ResearchPipeline
+from .research import CrossSourceResearch
 
 __all__ = [
     "CalibrationReport",
@@ -38,4 +42,6 @@ __all__ = [
     "analyze_content",
     "build_social_tool_registry",
     "provider_capability_contracts",
+    "GraphEdge", "GraphNode", "SQLiteEvidenceGraph", "EvidenceGraphProjector",
+    "G1ResearchPipeline", "CrossSourceResearch",
 ]
