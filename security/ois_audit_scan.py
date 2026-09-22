@@ -82,10 +82,10 @@ class SecOpsEvidenceScanner:
                 print(f"FAIL: ledger event {index} is not an object")
                 return False
             payload_hash = event.get("payload_hash")
-            payload = event.get("payload")
-            if not isinstance(payload, dict):
-                print(f"FAIL: ledger event {index} has no object payload")
+            if "payload" not in event:
+                print(f"FAIL: ledger event {index} has no payload")
                 return False
+            payload = event["payload"]
             if not isinstance(payload_hash, str) or len(payload_hash) != 64:
                 print(f"FAIL: ledger event {index} has no valid payload hash")
                 return False
