@@ -3,11 +3,7 @@ from datetime import UTC, datetime, timedelta
 from ois.domains.social_growth.connectors import ConnectorRegistry, GenericSocialConnector
 from ois.domains.social_growth.persistence import SQLiteSocialEventStore
 from ois.domains.social_intelligence.ingestion import IngestionPipeline
-from ois.domains.social_intelligence.source import (
-    SocialSource,
-    SourceRegistry,
-    SourceStatus,
-)
+from ois.domains.social_intelligence.source import SocialSource, SourceRegistry, SourceStatus
 from ois.domains.social_intelligence.store import SQLiteIntelligenceStore
 
 
@@ -43,10 +39,7 @@ def test_g1_ingestion_persists_events_and_research_brief() -> None:
     assert report.accepted == 1
     assert report.research_brief_id is not None
     assert report.research_brief is not None
-    assert (
-        intelligence.list_research_briefs(limit=1)[0].query
-        == "AI agent social intelligence"
-    )
+    assert intelligence.list_research_briefs(limit=1)[0].query == "AI agent social intelligence"
     assert sources.status("tiktok:test") == SourceStatus.HEALTHY
 
 
