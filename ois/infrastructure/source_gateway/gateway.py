@@ -1,14 +1,11 @@
-from __future__ import annotations
-
-from typing import cast
-
 """Source Gateway: governed front door for production external sources."""
 
+from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, cast
 from uuid import uuid4
 
 from .credentials import CredentialRef, CredentialResolver, TenantScope
@@ -41,7 +38,6 @@ class SourceResponse:
 
 class SourceGateway:
     """Captures source payloads before downstream normalization.
-
     A successful ingest writes raw evidence and its outbox event as one logical
     unit. The concrete SQLite stores are reference implementations; production
     deployment should bind equivalent contracts to the durable application DB.
@@ -70,11 +66,9 @@ class SourceGateway:
             if request.credential.tenant_id != scope.tenant_id:
                 raise PermissionError("credential belongs to another tenant")
             self._credentials.resolve(request.credential, scope)
-
         bucket = self._rate_limits.get(request.source_id)
         if bucket is not None and not bucket.acquire():
             return SourceResponse(False, "", "", "", "rate_limited")
-
         evidence_id = self._id()
         event_id = self._id()
         payload_hash = canonical_hash(request.payload)
