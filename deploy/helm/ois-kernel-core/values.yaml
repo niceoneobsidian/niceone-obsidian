@@ -51,7 +51,7 @@ crdController:
     repository: ois-registry.internal/kernel/crd-controller
     tag: v1.0.0
     pullPolicy: IfNotPresent
-  command: ["kopf", "run", "-A", "ois_sandbox_crd_controller.py"]
+  command: ["kopf", "run", "ois_sandbox_crd_controller.py"]
   resources:
     limits:
       cpu: 500m
