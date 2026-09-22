@@ -101,5 +101,5 @@ class LearningLoop:
                 )
         return tuple(out)
 
-    def evaluation(self, *, metric: str):
+    def evaluation(self, *, metric: str) -> object:
         return self._ledger.calibrate(metric=metric)
