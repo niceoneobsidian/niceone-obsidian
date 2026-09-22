@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 from ois.observability_telemetry import (
@@ -37,8 +39,6 @@ def test_telemetry_engine_initialize_is_idempotent() -> None:
     assert engine._meter_provider is meter_provider
     engine.shutdown()
 
-
-from pathlib import Path
 
 
 def test_vault_enabled_worker_contract_consumes_injected_secrets() -> None:
