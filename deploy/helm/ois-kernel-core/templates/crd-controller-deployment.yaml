@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ois.fullname" . }}-crd-controller
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "ois.labels" . | nindent 4 }}
+    component: crd-controller
+spec:
+  replicas: {{ .Values.crdController.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "ois.selectorLabels" . | nindent 6 }}
+      component: crd-controller
+  template:
+    metadata:
+      labels:
+        {{- include "ois.selectorLabels" . | nindent 8 }}
+        component: crd-controller
+    spec:
+      serviceAccountName: {{ include "ois.serviceAccountName" . }}
+      imagePullSecrets:
+        {{- toYaml .Values.imagePullSecrets | nindent 8 }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: controller
+          image: "{{ .Values.crdController.image.repository }}:{{ .Values.crdController.image.tag }}"
+          imagePullPolicy: {{ .Values.crdController.image.pullPolicy }}
+          command: {{- toYaml .Values.crdController.command | nindent 12 }}
+          resources:
+            {{- toYaml .Values.crdController.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
