@@ -1,3 +1,5 @@
+from .limits import TokenBucket
+
 """Phase 1 production source gateway primitives.
 
 The gateway owns credential references, tenant scoping, rate limits,
@@ -14,6 +16,7 @@ from .limits import RateLimitPolicy, RateLimitState
 from .outbox import OutboxEvent, OutboxStore, SQLiteOutboxStore
 
 __all__ = [
+    "TokenBucket",
     "InMemoryCredentialResolver",
     "CredentialRef",
     "TenantScope",
