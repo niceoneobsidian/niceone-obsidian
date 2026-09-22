@@ -15,7 +15,10 @@ from urllib.request import Request, urlopen
 
 from ..schemas import FootballEvidence, MatchState, TeamSnapshot
 
-DEFAULT_BASE_URL = "https://raw.githubusercontent.com/hudl/open-data/master/data"
+STATS_BOMB_DATASET_COMMIT = "4b73468fc5b0f1950f9f66fada70ad3a4f9327cb"
+DEFAULT_BASE_URL = (
+    f"https://raw.githubusercontent.com/hudl/open-data/{STATS_BOMB_DATASET_COMMIT}/data"
+)
 
 
 @dataclass(frozen=True)
