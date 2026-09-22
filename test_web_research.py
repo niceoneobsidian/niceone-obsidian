@@ -41,7 +41,7 @@ def test_request_rejects_invalid_result_limit() -> None:
 
 
 def test_result_requires_absolute_http_url() -> None:
-    with pytest.raises(ValueError, match="HTTP\(S\)"):
+    with pytest.raises(ValueError, match=r"HTTP\(S\)"):
         SearchResult("Example", "example.com", "text")
 
 

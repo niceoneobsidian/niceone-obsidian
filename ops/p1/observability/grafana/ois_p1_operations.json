@@ -1,0 +1,41 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "type": "timeseries", "id": 1,
+      "title": "Multi-Tenant HITL P95 Latency",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "targets": [{"datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+        "expr": "histogram_quantile(0.95, sum(rate(ois_hitl_human_latency_seconds_bucket[5m])) by (le, tenant_id))",
+        "legendFormat": "Tenant P95: {{tenant_id}}", "range": true}],
+      "fieldConfig": {"defaults": {"unit": "s"}}
+    },
+    {
+      "type": "gauge", "id": 2,
+      "title": "HITL Expiration / Timeout Ratio",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "targets": [{"datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+        "expr": "100 * sum(rate(ois_workflow_state_transitions_total{to_state=\"EXPIRED\"}[5m])) / clamp_min(sum(rate(ois_workflow_state_transitions_total[5m])), 1e-9)",
+        "legendFormat": "Global Expiration Rate", "range": true}],
+      "fieldConfig": {"defaults": {"unit": "percent", "min": 0, "max": 100}}
+    },
+    {
+      "type": "timeseries", "id": 3,
+      "title": "Redis Mutex 423 Contention by Tenant",
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8},
+      "targets": [{"datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+        "expr": "sum(rate(http_requests_total{status=\"423\", path=\"/v1/control-plane/hitl/resolve\"}[5m])) by (tenant_id)",
+        "legendFormat": "423: {{tenant_id}}", "range": true}],
+      "fieldConfig": {"defaults": {"unit": "reqps"}}
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 38,
+  "tags": ["ois", "p1", "kernel", "security", "stress"],
+  "time": {"from": "now-1h", "to": "now"},
+  "timezone": "utc",
+  "title": "OIS P1 Production Operations",
+  "uid": "ois-p1-operations"
+}
