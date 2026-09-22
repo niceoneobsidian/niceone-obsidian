@@ -6,6 +6,7 @@ on:
       - "deploy/helm/ois-kernel-core/**"
       - "security/ois_audit_scan.py"
       - "tests/test_ois_audit_scan.py"
+      - "tests/fixtures/evidence/**"
       - ".github/workflows/ois-production-manifests.yml"
   push:
     branches: [main]
@@ -13,6 +14,7 @@ on:
       - "deploy/helm/ois-kernel-core/**"
       - "security/ois_audit_scan.py"
       - "tests/test_ois_audit_scan.py"
+      - "tests/fixtures/evidence/**"
       - ".github/workflows/ois-production-manifests.yml"
 
 permissions:
@@ -26,8 +28,23 @@ jobs:
       - uses: azure/setup-helm@v4
       - name: Helm lint
         run: helm lint deploy/helm/ois-kernel-core
-      - name: Helm template
-        run: helm template ois deploy/helm/ois-kernel-core --namespace ois-system --set vault.enabled=false
+      - name: Render default production chart
+        run: helm template ois deploy/helm/ois-kernel-core --namespace ois-system > /tmp/ois-rendered.yaml
+      - name: Verify rendered production security contract
+        run: |
+          grep -q 'kind: CustomResourceDefinition' /tmp/ois-rendered.yaml
+          grep -q 'name: sandboxguards.ois.kernel.io' /tmp/ois-rendered.yaml
+          grep -q 'kind: Role' /tmp/ois-rendered.yaml
+          grep -q 'kind: RoleBinding' /tmp/ois-rendered.yaml
+          grep -q 'vault.hashicorp.com/agent-inject: "true"' /tmp/ois-rendered.yaml
+          grep -q '/vault/secrets/supervisor' /tmp/ois-rendered.yaml
+          grep -q 'OIS_SIGNING_KEY' /tmp/ois-rendered.yaml
+          ! grep -q 'kind: ClusterRole' /tmp/ois-rendered.yaml
+          ! grep -q 'kind: ClusterRoleBinding' /tmp/ois-rendered.yaml
+      - name: Verify rendered non-Vault mode
+        run: |
+          helm template ois deploy/helm/ois-kernel-core --namespace ois-system --set vault.enabled=false > /tmp/ois-no-vault.yaml
+          ! grep -q 'vault.hashicorp.com/agent-inject' /tmp/ois-no-vault.yaml
 
   validate-security-gate:
     runs-on: ubuntu-latest
@@ -38,5 +55,9 @@ jobs:
           python-version: "3.12"
       - name: Install test dependency
         run: python -m pip install --upgrade pytest
-      - name: Run evidence scanner tests
+      - name: Run evidence scanner unit tests
         run: python -m pytest -q tests/test_ois_audit_scan.py
+      - name: Run the real evidence scanner
+        env:
+          OIS_KERNEL_AUDIT_KEY: ci-test-key
+        run: python security/ois_audit_scan.py --artifact-directory tests/fixtures/evidence
