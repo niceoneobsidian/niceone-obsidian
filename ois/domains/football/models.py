@@ -116,4 +116,11 @@ class FootballBoxscore(FootballModel):
     statistics: list[FootballStatistic] = Field(default_factory=list)
 
     def statistic(self, team_id: str, metric: str) -> FootballStatistic | None:
-        return next((s for s in self.statistics if s.entity_id == team_id and s.metric == metric), None)
+        return next(
+            (
+                statistic
+                for statistic in self.statistics
+                if statistic.entity_id == team_id and statistic.metric == metric
+            ),
+            None,
+        )
