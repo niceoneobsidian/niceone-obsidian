@@ -1,6 +1,10 @@
 from datetime import UTC, datetime
 
-from ois.domains.football_intelligence.providers import StatsBombOpenDataProvider
+from ois.domains.football_intelligence.providers import (
+    DEFAULT_BASE_URL,
+    STATS_BOMB_DATASET_COMMIT,
+    StatsBombOpenDataProvider,
+)
 
 
 def _record(
