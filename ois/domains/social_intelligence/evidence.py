@@ -9,7 +9,7 @@ class RawEvidence:
     evidence_id:str; source_id:str; source_record_id:str; collected_at:datetime; payload_hash:str; payload:dict[str,Any]
     schema_version:str="g1.v1"; connector_version:str="unknown"
     @classmethod
-    def from_payload(cls,*,evidence_id:str,source_id:str,source_record_id:str,payload:dict[str,Any],connector_version:str="unknown"):
+    def from_payload(cls, *, evidence_id: str, source_id: str, source_record_id: str, payload: dict[str, Any], connector_version: str = "unknown") -> "RawEvidence":
         encoded=json.dumps(payload,sort_keys=True,separators=(",",":")).encode()
         return cls(evidence_id,source_id,source_record_id,datetime.now(UTC),hashlib.sha256(encoded).hexdigest(),payload,connector_version=connector_version)
 @dataclass(frozen=True)
