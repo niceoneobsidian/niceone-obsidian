@@ -107,3 +107,28 @@ async def test_cross_tenant_write_is_rejected(pool: AsyncConnectionPool) -> None
                 ("forbidden", "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", "leak"),
             )
         await conn.rollback()
+
+
+async def test_cross_tenant_isolation_survives_pool_reuse(pool: AsyncConnectionPool) -> None:
+    """Reuse one pooled connection across tenants without sticky tenant state."""
+    async with pool.connection() as conn:
+        set_local_tenant(conn, "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+        row = await conn.execute(
+            "SELECT secret FROM ois_rls_adversarial_fixture WHERE id = %s",
+            ("tenant-a-record",),
+        )
+        assert (await row.fetchone())[0] == "A-secret"
+
+    async with pool.connection() as conn:
+        set_local_tenant(conn, "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
+        row = await conn.execute(
+            "SELECT secret FROM ois_rls_adversarial_fixture WHERE id = %s",
+            ("tenant-a-record",),
+        )
+        assert await row.fetchone() is None
+        row = await conn.execute(
+            "SELECT secret FROM ois_rls_adversarial_fixture WHERE id = %s",
+            ("tenant-b-record",),
+        )
+        assert (await row.fetchone())[0] == "B-secret"
+        await conn.rollback()
