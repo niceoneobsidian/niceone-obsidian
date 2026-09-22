@@ -92,7 +92,10 @@ class SQLiteIntelligenceStore:
 
     def put_competitor_profile(self, profile: CompetitorProfile) -> None:
         self._upsert(
-            "competitor_profiles", "competitor_id", profile.competitor_id, profile.model_dump(mode="json")
+            "competitor_profiles",
+            "competitor_id",
+            profile.competitor_id,
+            profile.model_dump(mode="json"),
         )
 
     def put_signal(self, signal: SocialSignal) -> None:
@@ -136,7 +139,11 @@ class SQLiteIntelligenceStore:
             "SELECT payload FROM signals ORDER BY signal_id LIMIT ?", (limit,)
         ).fetchall()
         signals = [SocialSignal.model_validate(json.loads(row["payload"])) for row in rows]
-        return [signal for signal in signals if signal_type is None or signal.signal_type == signal_type]
+        return [
+            signal
+            for signal in signals
+            if signal_type is None or signal.signal_type == signal_type
+        ]
 
     def list_creative_patterns(self, *, limit: int = 100) -> list[CreativePattern]:
         rows = self._connection.execute(
