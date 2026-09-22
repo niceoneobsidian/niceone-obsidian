@@ -1,8 +1,4 @@
 from datetime import UTC, datetime
-from unittest.mock import Mock
-
-import pytest
-
 from ois.domains.social_intelligence.production_slice import normalize_tiktok_videos
 from ois.domains.social_intelligence.readiness import build_readiness_manifest
 from ois.infrastructure.source_gateway.evidence import RawEvidence, canonical_hash
