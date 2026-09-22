@@ -1,3 +1,5 @@
+from typing import cast
+
 """Source Gateway: governed front door for production external sources."""
 
 from __future__ import annotations
@@ -103,9 +105,7 @@ class SourceGateway:
             evidence.collected_at,
         )
         commit_ingest = getattr(self._evidence, "commit_ingest", None)
-        if callable(commit_ingest) and typing.cast(object, self._outbox) is typing.cast(
-            object, self._evidence
-        ):
+        if callable(commit_ingest) and cast(object, self._outbox) is cast(object, self._evidence):
             accepted = commit_ingest(evidence, event)
         else:
             accepted = self._evidence.append(evidence)

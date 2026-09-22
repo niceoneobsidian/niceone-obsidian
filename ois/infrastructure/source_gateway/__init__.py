@@ -1,3 +1,4 @@
+from .credentials import InMemoryCredentialResolver
 from .limits import TokenBucket
 
 """Phase 1 production source gateway primitives.
@@ -7,7 +8,7 @@ raw-evidence capture, and transactional outbox delivery. It intentionally
 contains no platform-specific connector implementation.
 """
 
-from .credentials import CredentialRef, InMemoryCredentialResolver, TenantScope
+from .credentials import CredentialRef, TenantScope
 from .cursors import SourceCursor, SQLiteCursorStore
 from .evidence import RawEvidence, RawEvidenceWriter, SQLiteRawEvidenceWriter
 from .gateway import SourceGateway, SourceRequest, SourceResponse
