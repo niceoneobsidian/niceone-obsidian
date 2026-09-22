@@ -5,10 +5,11 @@ from dataclasses import dataclass
 from typing import Iterable
 
 from ois.domains.social_growth.schemas import SocialResearchBrief
+from ois.infrastructure.source_gateway.evidence import RawEvidence
 from ois.infrastructure.source_gateway.outbox import OutboxStore
 
 from .graph import EvidenceGraph
-from .graph_ingestion import EvidenceGraphProjector
+from .graph_ingestion import EvidenceGraphProjector, EvidenceReader
 from .research import CrossSourceResearch
 
 
@@ -20,9 +21,15 @@ class ProjectionReport:
 
 
 class G1ResearchPipeline:
-    def __init__(self, *, outbox: OutboxStore, graph: EvidenceGraph) -> None:
+    def __init__(
+        self,
+        *,
+        outbox: OutboxStore,
+        graph: EvidenceGraph,
+        evidence_reader: EvidenceReader | None = None,
+    ) -> None:
         self._outbox = outbox
-        self._projector = EvidenceGraphProjector(graph)
+        self._projector = EvidenceGraphProjector(graph, evidence_reader)
         self._research = CrossSourceResearch(graph)
 
     def project_pending(self, *, limit: int = 100) -> ProjectionReport:
