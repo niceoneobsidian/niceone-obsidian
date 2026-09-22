@@ -9,7 +9,7 @@ from uuid import uuid4
 
 from .credentials import CredentialRef, CredentialResolver, TenantScope
 from .evidence import RawEvidence, RawEvidenceWriter, canonical_hash
-from .limits import RateLimitPolicy
+from .limits import RateLimitPolicy, TokenBucket
 from .outbox import OutboxEvent, OutboxStore
 
 
@@ -17,16 +17,19 @@ from .outbox import OutboxEvent, OutboxStore
 class SourceRequest:
     tenant_id: str
     workspace_id: str
-    source_type: str
-    source_record_id: str
-    payload: dict[str, Any]
+    source_type: str = ""
+    source_record_id: str = ""
+    payload: dict[str, Any] | None = None
     credential: CredentialRef | None = None
     connector_version: str = "v1"
     schema_version: str = "v1"
+    source_id: str = ""
 
-    @property
-    def source_id(self) -> str:
-        return f"{self.source_type}:{self.source_record_id}"
+    def __post_init__(self) -> None:
+        if self.payload is None:
+            object.__setattr__(self, "payload", {})
+        if not self.source_id and self.source_type:
+            object.__setattr__(self, "source_id", f"{self.source_type}:{self.source_record_id}")
 
 
 @dataclass(frozen=True)
@@ -49,23 +52,29 @@ class SourceGateway:
         self._credentials = credentials
         self._evidence = evidence
         self._outbox = outbox
-        self._rate_limits = rate_limits or {}
+        self._rate_limiters: dict[str, TokenBucket] = {}
+        if rate_limits:
+            for key, policy in rate_limits.items():
+                self._rate_limiters[key] = TokenBucket(policy)
 
     def _id(self) -> str:
         return str(uuid4())
 
     def ingest(self, request: SourceRequest) -> SourceResponse:
+        scope = TenantScope(
+            tenant_id=request.tenant_id,
+            workspace_id=request.workspace_id,
+        )
+
         if request.credential and self._credentials:
-            scope = TenantScope(
-                tenant_id=request.tenant_id,
-                workspace_id=request.workspace_id,
-            )
             if request.credential.tenant_id != request.tenant_id:
                 raise PermissionError("credential belongs to another tenant")
-            self._credentials.resolve(request.credential)
+            self._credentials.resolve(request.credential, scope)
 
-        bucket = self._rate_limits.get(request.source_id)
-        if bucket is not None and not bucket.allow():
+        bucket = self._rate_limiters.get(request.source_type) or self._rate_limiters.get(
+            request.source_id
+        )
+        if bucket is not None and not bucket.acquire():
             return SourceResponse(False, "", "", "", "rate_limited")
 
         evidence_id = self._id()
@@ -76,17 +85,22 @@ class SourceGateway:
             evidence_id=evidence_id,
             tenant_id=request.tenant_id,
             workspace_id=request.workspace_id,
-            source_type=request.source_type,
+            source_id=request.source_id,
             source_record_id=request.source_record_id,
-            payload=request.payload,
-            captured_at=datetime.now(UTC),
+            payload=request.payload or {},
             payload_hash=payload_hash,
+            collected_at=datetime.now(UTC),
+            connector_version=request.connector_version,
+            schema_version=request.schema_version,
+            ingestion_run_id=self._id(),
         )
 
         event = OutboxEvent(
             event_id=event_id,
+            tenant_id=request.tenant_id,
+            workspace_id=request.workspace_id,
             aggregate_id=evidence_id,
-            event_type="raw_evidence_ingested",
+            event_type="source.raw_evidence.created",
             payload={
                 "evidence_id": evidence_id,
                 "source_id": request.source_id,

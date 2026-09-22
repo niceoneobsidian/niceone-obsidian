@@ -40,7 +40,7 @@ class TikTokDisplayClient:
         timeout: float = 20.0,
         max_retries: int = 3,
         backoff_seconds: float = 1.0,
-        opener=urlopen,
+        opener: Any = urlopen,
     ) -> None:
         self._token = access_token
         self._timeout = timeout

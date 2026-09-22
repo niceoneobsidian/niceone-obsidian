@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from typing import Any, cast
-
-"""TikTok Login Kit OAuth 2.0 server-side token exchange and refresh."""
 import json
 from dataclasses import dataclass
+from typing import Any, cast
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
+
+"""TikTok Login Kit OAuth 2.0 server-side token exchange and refresh."""
 
 TOKEN_URL = "https://open.tiktokapis.com/v2/oauth/token/"
 
