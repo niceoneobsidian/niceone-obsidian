@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
 import importlib
+from collections.abc import Iterable, Mapping
 from typing import Any
 
 from .models import FootballStatistic
@@ -34,7 +34,7 @@ def summarize_statistics(statistics: Iterable[FootballStatistic]) -> dict[str, d
     """Simple provider-neutral descriptive statistics without forcing pandas."""
     buckets: dict[str, list[float]] = {}
     for statistic in statistics:
-        if isinstance(statistic.value, bool) or not isinstance(statistic.value, (int, float)):
+        if isinstance(statistic.value, bool) or not isinstance(statistic.value, int | float):
             continue
         buckets.setdefault(statistic.metric, []).append(float(statistic.value))
 
