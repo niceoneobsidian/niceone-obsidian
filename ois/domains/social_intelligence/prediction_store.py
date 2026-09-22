@@ -107,7 +107,7 @@ class PredictionDataset:
         for row in rows:
             predicted = json.loads(row["prediction"])["metrics"].get(metric)
             observed = json.loads(row["outcome"]).get(metric)
-            if isinstance(predicted, (int, float)) and isinstance(observed, (int, float)):
+            if isinstance(predicted, int | float) and isinstance(observed, int | float):
                 pairs.append((float(predicted), float(observed)))
         return pairs
 
