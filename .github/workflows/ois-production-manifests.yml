@@ -41,6 +41,14 @@ jobs:
           grep -q 'OIS_SIGNING_KEY' /tmp/ois-rendered.yaml
           ! grep -q 'kind: ClusterRole' /tmp/ois-rendered.yaml
           ! grep -q 'kind: ClusterRoleBinding' /tmp/ois-rendered.yaml
+      - name: Client-side Kubernetes manifest validation
+        run: kubectl apply --dry-run=client --validate=false -f /tmp/ois-rendered.yaml
+      - name: Verify runtime startup contract
+        run: |
+          grep -q 'replicas: 3' /tmp/ois-rendered.yaml
+          grep -q '/bin/sh' /tmp/ois-rendered.yaml
+          grep -q 'exec python3 -m ois_supervisor.run' /tmp/ois-rendered.yaml
+          grep -q '. /vault/secrets/supervisor' /tmp/ois-rendered.yaml
       - name: Verify rendered non-Vault mode
         run: |
           helm template ois deploy/helm/ois-kernel-core --namespace ois-system --set vault.enabled=false > /tmp/ois-no-vault.yaml
