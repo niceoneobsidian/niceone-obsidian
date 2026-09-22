@@ -36,3 +36,27 @@ def test_telemetry_engine_initialize_is_idempotent() -> None:
     assert engine._trace_provider is trace_provider
     assert engine._meter_provider is meter_provider
     engine.shutdown()
+
+
+from pathlib import Path
+
+
+def test_vault_enabled_worker_contract_consumes_injected_secrets() -> None:
+    manifest = (
+        Path(__file__).resolve().parents[1]
+        / "production"
+        / "k8s"
+        / "ois-worker-vault-injection.yaml"
+    ).read_text(encoding="utf-8")
+
+    required = (
+        'vault.hashicorp.com/agent-inject: "true"',
+        'vault.hashicorp.com/agent-inject-secret-supervisor:',
+        'vault.hashicorp.com/agent-inject-template-supervisor:',
+        "SUPERVISOR_HMAC_SECRET=",
+        "test -r /vault/secrets/supervisor.env",
+        ". /vault/secrets/supervisor.env",
+        "exec python3 -m ois_worker.run",
+    )
+    for marker in required:
+        assert marker in manifest
