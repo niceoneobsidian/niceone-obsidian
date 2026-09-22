@@ -14,6 +14,9 @@ from .schemas import (
 )
 from .source import SocialSource, SourceHealthSample, SourceRegistry, SourceStatus
 from .store import IntelligenceStore, SQLiteIntelligenceStore
+from .postgres_store import PostgresSocialSliceStore
+from .production_slice import SliceObservation, TikTokSocialIntelligenceSlice, normalize_tiktok_videos
+from .readiness import ReadinessCheck, SocialIntelligenceReadinessManifest, build_readiness_manifest
 
 __all__ = [
     "CalibrationReport",
@@ -24,6 +27,13 @@ __all__ = [
     "MultimodalAnalyzer",
     "PredictionDataset",
     "SQLiteIntelligenceStore",
+    "PostgresSocialSliceStore",
+    "SliceObservation",
+    "TikTokSocialIntelligenceSlice",
+    "normalize_tiktok_videos",
+    "ReadinessCheck",
+    "SocialIntelligenceReadinessManifest",
+    "build_readiness_manifest",
     "SocialAnalytics",
     "SocialPost",
     "SocialProfile",
