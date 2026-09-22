@@ -86,16 +86,22 @@ class SQLiteIntelligenceStore:
         self._connection.commit()
 
     def put_audience_profile(self, profile: AudienceProfile) -> None:
-        self._upsert("audience_profiles", "audience_id", profile.audience_id, profile.model_dump(mode="json"))
+        self._upsert(
+            "audience_profiles", "audience_id", profile.audience_id, profile.model_dump(mode="json")
+        )
 
     def put_competitor_profile(self, profile: CompetitorProfile) -> None:
-        self._upsert("competitor_profiles", "competitor_id", profile.competitor_id, profile.model_dump(mode="json"))
+        self._upsert(
+            "competitor_profiles", "competitor_id", profile.competitor_id, profile.model_dump(mode="json")
+        )
 
     def put_signal(self, signal: SocialSignal) -> None:
         self._upsert("signals", "signal_id", signal.signal_id, signal.model_dump(mode="json"))
 
     def put_creative_pattern(self, pattern: CreativePattern) -> None:
-        self._upsert("creative_patterns", "pattern_id", pattern.pattern_id, pattern.model_dump(mode="json"))
+        self._upsert(
+            "creative_patterns", "pattern_id", pattern.pattern_id, pattern.model_dump(mode="json")
+        )
 
     def put_research_brief(self, brief: SocialResearchBrief) -> int:
         cursor = self._connection.execute(
