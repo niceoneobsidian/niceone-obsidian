@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from threading import RLock
 from time import monotonic
@@ -24,7 +25,7 @@ class RateLimitState:
 
 
 class TokenBucket:
-    def __init__(self, policy: RateLimitPolicy, *, clock=monotonic) -> None:
+    def __init__(self, policy: RateLimitPolicy, *, clock: Callable[[], float] = monotonic) -> None:
         self._policy = policy
         self._clock = clock
         self._state = RateLimitState(policy.capacity, clock())
