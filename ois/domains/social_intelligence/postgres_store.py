@@ -50,7 +50,7 @@ class PostgresSocialSliceStore:
                             post.provider,
                             post.platform,
                             post.external_id,
-                            post.model_dump_json(),
+                            json.dumps(post.model_dump(mode="json"), sort_keys=True),
                             post.observed_at or datetime.now(UTC),
                         ),
                     )
