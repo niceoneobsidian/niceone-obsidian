@@ -7,7 +7,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from .outcomes import OutcomeLedger
+from .outcomes import CalibrationReport, OutcomeLedger
 
 
 @dataclass(frozen=True)
@@ -101,5 +101,5 @@ class LearningLoop:
                 )
         return tuple(out)
 
-    def evaluation(self, *, metric: str) -> object:
+    def evaluation(self, *, metric: str) -> CalibrationReport:
         return self._ledger.calibrate(metric=metric)
