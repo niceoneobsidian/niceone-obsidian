@@ -5,6 +5,7 @@ bundle, broken content hash, invalid HMAC seal, or unsigned ledger event fails
 the gate. It does not claim production readiness; it only verifies the bundle
 contract supplied to the gate.
 """
+
 from __future__ import annotations
 
 import argparse

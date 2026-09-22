@@ -41,8 +41,13 @@ jobs:
           grep -q 'OIS_SIGNING_KEY' /tmp/ois-rendered.yaml
           ! grep -q 'kind: ClusterRole' /tmp/ois-rendered.yaml
           ! grep -q 'kind: ClusterRoleBinding' /tmp/ois-rendered.yaml
-      - name: Client-side Kubernetes manifest validation
-        run: kubectl apply --dry-run=client --validate=false -f /tmp/ois-rendered.yaml
+      - name: Install kubeconform
+        run: |
+          curl -sSL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz             | tar -xz -C /usr/local/bin kubeconform
+
+      - name: Validate rendered Kubernetes manifests
+        run: |
+          kubeconform             -strict             -ignore-missing-schemas             -summary             /tmp/ois-rendered.yaml
       - name: Verify runtime startup contract
         run: |
           grep -q 'replicas: 3' /tmp/ois-rendered.yaml
