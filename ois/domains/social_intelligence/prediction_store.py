@@ -126,8 +126,7 @@ class PredictionDataset:
             selected = [
                 (predicted, observed)
                 for predicted, observed in pairs
-                if lower <= predicted <= upper
-                and (index == bins - 1 or predicted < upper)
+                if lower <= predicted <= upper and (index == bins - 1 or predicted < upper)
             ]
             if not selected:
                 continue
