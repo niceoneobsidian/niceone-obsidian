@@ -91,20 +91,14 @@ class IngestionPipeline:
 
         latency_ms = (perf_counter() - started) * 1000.0
         health_error = (
-            "all_events_rejected"
-            if received and not accepted and not duplicates
-            else None
+            "all_events_rejected" if received and not accepted and not duplicates else None
         )
         self._sources.record_health(
             source_id,
             error=health_error,
             events_ingested=accepted,
             latency_ms=latency_ms,
-            metadata={
-                "received": received,
-                "duplicates": duplicates,
-                "rejected": rejected,
-            },
+            metadata={"received": received, "duplicates": duplicates, "rejected": rejected},
         )
 
         brief: SocialResearchBrief | None = None
@@ -119,8 +113,8 @@ class IngestionPipeline:
             creative_patterns = extract_creative_patterns(events)
             for profile in audiences:
                 self._intelligence_store.put_audience_profile(profile)
-            for profile in competitors:
-                self._intelligence_store.put_competitor_profile(profile)
+            for competitor in competitors:
+                self._intelligence_store.put_competitor_profile(competitor)
             for signal in signals:
                 self._intelligence_store.put_signal(signal)
             for pattern in creative_patterns:
