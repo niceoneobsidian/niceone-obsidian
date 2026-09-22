@@ -1,0 +1,17 @@
+name: Evidence gap
+description: Track a missing verification artifact or unsupported claim.
+title: "[EVIDENCE] "
+labels: ["evidence-gap"]
+body:
+  - type: textarea
+    id: claim
+    attributes:
+      label: Claim needing evidence
+    validations:
+      required: true
+  - type: textarea
+    id: required
+    attributes:
+      label: Evidence required
+    validations:
+      required: true

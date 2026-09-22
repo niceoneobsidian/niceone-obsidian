@@ -4,6 +4,7 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+*.egg-info/
 
 # Virtual environments
 .venv/
@@ -45,5 +46,10 @@ checkpoints/
 credentials.json
 secrets.json
 *.pem
-*.key.venv/
-.venv/
+*.key
+.env
+.env.*
+!.env.example
+.env
+.env.*
+!.env.example

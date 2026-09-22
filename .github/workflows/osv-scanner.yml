@@ -1,0 +1,24 @@
+name: OSV-Scanner
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  schedule:
+    - cron: "29 3 * * 1"
+  workflow_dispatch:
+
+jobs:
+  scan:
+    name: Dependency vulnerability scan
+    permissions:
+      contents: read
+      actions: read
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.6.0
+    with:
+      scan-args: |-
+        --recursive
+        ./
+      upload-sarif: false
+      fail-on-vuln: true

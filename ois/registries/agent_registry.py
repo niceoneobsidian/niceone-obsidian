@@ -1,7 +1,3 @@
-"""Agent registry."""
+from .core import AgentRegistry
 
-from .base import Registry
-
-
-class AgentRegistry(Registry[object]):
-    """Registry for governed OIS agents."""
+__all__ = ["AgentRegistry"]

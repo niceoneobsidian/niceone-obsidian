@@ -80,6 +80,7 @@ def test_outbox_reuses_idempotency_key_and_completes(
 
     claimed = boundary.claim(worker_id="test-worker")
 
+    assert claimed is not None
     assert claimed == command
     assert claimed.idempotency_key == command.idempotency_key
 
@@ -114,7 +115,4 @@ def test_checkpoint_and_outbox_are_committed_as_one_transaction(
 
     postgres_store.commit_checkpoint_and_side_effect(context, command)
 
-    assert (
-        postgres_store.load(context.identity.execution_id).status
-        == ExecutionStatus.EXECUTING
-    )
+    assert postgres_store.load(context.identity.execution_id).status == ExecutionStatus.EXECUTING

@@ -47,7 +47,9 @@ class SQLiteEvidenceLedger:
             ),
         )
         self._connection.commit()
-        return int(cursor.lastrowid)
+        if cursor.lastrowid is None:
+            raise RuntimeError("database did not return a row id")
+        return cursor.lastrowid
 
     def record_many(self, evidence: list[Evidence]) -> list[int]:
         return [self.record(item) for item in evidence]

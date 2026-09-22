@@ -15,6 +15,23 @@ dependencies = [
 test = [
   "pytest>=8,<9",
   "pytest-asyncio>=0.23,<2",
+  "pydantic>=2.7,<3",
+  "psycopg[binary]>=3.3.6,<4",
+  "langgraph>=1.2.11,<2",
+  "langgraph-checkpoint-postgres>=3.1.2,<4",
+  "redis>=8.1,<9",
+  "opentelemetry-api>=1.44,<2",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = [
+  "ois*",
+  "ops*",
+  "production*",
 ]
 
 [tool.ruff]
@@ -52,6 +69,13 @@ exclude = [
   "ois/domains/social_intelligence/inventory.py",
 ]
 
+[tool.pytest.ini_options]
+markers = [
+  "integration: requires live PostgreSQL or Redis infrastructure",
+  "sandbox: must execute inside the OIS gVisor runtime",
+  "recovery: deterministic recovery conformance scenarios",
+]
+
 [tool.mypy]
 python_version = "3.12"
 warn_return_any = true
@@ -62,6 +86,7 @@ disallow_untyped_defs = true
 check_untyped_defs = true
 no_implicit_optional = true
 strict_equality = true
+explicit_package_bases = true
 exclude = [
   '^\\.git/',
   '^\\.venv/',
@@ -71,4 +96,11 @@ exclude = [
   '^\\.mypy_cache/',
   '^\\.pytest_cache/',
   '^\\.ruff_cache/',
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=9,<10",
+    "psycopg[binary]>=3.3.6,<4",
+    "testcontainers[postgres]>=4.15,<5"
 ]
