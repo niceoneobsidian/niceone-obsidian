@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, cast
 from uuid import uuid4
 
-from .credentials import CredentialResolver, TenantScope
+from .credentials import CredentialRef, CredentialResolver, TenantScope
 from .evidence import RawEvidence, RawEvidenceWriter, canonical_hash
 from .limits import RateLimitPolicy
 from .outbox import OutboxEvent, OutboxStore
@@ -15,10 +15,18 @@ from .outbox import OutboxEvent, OutboxStore
 
 @dataclass(frozen=True)
 class SourceRequest:
-    source_id: str
-    credential: str
+    tenant_id: str
+    workspace_id: str
+    source_type: str
+    source_record_id: str
     payload: dict[str, Any]
-    tenant_id: str | None = None
+    credential: CredentialRef | None = None
+    connector_version: str = "v1"
+    schema_version: str = "v1"
+
+    @property
+    def source_id(self) -> str:
+        return f"{self.source_type}:{self.source_record_id}"
 
 
 @dataclass(frozen=True)
@@ -27,15 +35,15 @@ class SourceResponse:
     evidence_id: str
     event_id: str
     payload_hash: str
-    error: str | None = None
+    reason: str | None = None
 
 
 class SourceGateway:
     def __init__(
         self,
-        credentials: CredentialResolver,
-        evidence: RawEvidenceWriter,
-        outbox: OutboxStore,
+        credentials: CredentialResolver | None = None,
+        evidence: RawEvidenceWriter | None = None,
+        outbox: OutboxStore | None = None,
         rate_limits: dict[str, RateLimitPolicy] | None = None,
     ) -> None:
         self._credentials = credentials
@@ -47,14 +55,17 @@ class SourceGateway:
         return str(uuid4())
 
     def ingest(self, request: SourceRequest) -> SourceResponse:
-        if request.tenant_id:
-            scope = TenantScope(tenant_id=request.tenant_id)
-            if not scope.allows(request.credential):
+        if request.credential and self._credentials:
+            scope = TenantScope(
+                tenant_id=request.tenant_id,
+                workspace_id=request.workspace_id,
+            )
+            if request.credential.tenant_id != request.tenant_id:
                 raise PermissionError("credential belongs to another tenant")
-            self._credentials.resolve(request.credential, scope)
+            self._credentials.resolve(request.credential)
 
         bucket = self._rate_limits.get(request.source_id)
-        if bucket is not None and not bucket.acquire():
+        if bucket is not None and not bucket.allow():
             return SourceResponse(False, "", "", "", "rate_limited")
 
         evidence_id = self._id()
@@ -63,7 +74,10 @@ class SourceGateway:
 
         evidence = RawEvidence(
             evidence_id=evidence_id,
-            source_id=request.source_id,
+            tenant_id=request.tenant_id,
+            workspace_id=request.workspace_id,
+            source_type=request.source_type,
+            source_record_id=request.source_record_id,
             payload=request.payload,
             captured_at=datetime.now(UTC),
             payload_hash=payload_hash,
@@ -71,7 +85,6 @@ class SourceGateway:
 
         event = OutboxEvent(
             event_id=event_id,
-            aggregate_type="source_ingest",
             aggregate_id=evidence_id,
             event_type="raw_evidence_ingested",
             payload={
@@ -83,14 +96,13 @@ class SourceGateway:
         )
 
         commit_ingest = getattr(self._evidence, "commit_ingest", None)
-        outbox_db = getattr(self._outbox, "_db", None)
-        evidence_db = getattr(self._evidence, "_db", None)
 
-        if callable(commit_ingest) and outbox_db is not None and outbox_db is evidence_db:
+        if callable(commit_ingest) and cast(object, self._outbox) is cast(object, self._evidence):
             accepted = commit_ingest(evidence, event)
         else:
-            accepted = self._evidence.append(evidence)
-            if accepted and not self._outbox.append(event):
+            accepted = self._evidence.append(evidence) if self._evidence else True
+            outbox_ok = self._outbox.append(event) if self._outbox else True
+            if accepted and not outbox_ok:
                 raise RuntimeError(
                     "evidence committed but outbox append failed; "
                     "use SQLiteSourceLedger for atomicity"
