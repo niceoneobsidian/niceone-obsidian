@@ -15,7 +15,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from ois.domains.social_intelligence.schemas import SocialMetric, SocialPost
-from ois.infrastructure.source_gateway import SourceGateway
+from ois.infrastructure.source_gateway import PostgresSourceLedger, SourceGateway
 from ois.integrations.tiktok.source import TikTokSource, TikTokSourceRun
 
 
@@ -69,9 +69,12 @@ def _timestamp(value: Any) -> datetime | None:
 class TikTokSocialIntelligenceSlice:
     """Execute one authorized TikTok acquisition run through the production path."""
 
-    def __init__(self, *, source: TikTokSource, gateway: SourceGateway) -> None:
+    def __init__(
+        self, *, source: TikTokSource, gateway: SourceGateway, ledger: PostgresSourceLedger
+    ) -> None:
         self._source = source
         self._gateway = gateway
+        self._ledger = ledger
 
     def run(
         self,
@@ -90,10 +93,14 @@ class TikTokSocialIntelligenceSlice:
             max_count=max_count,
         )
         posts: list[SocialPost] = []
-        # The raw payload is retained in the PostgreSQL evidence store. The
-        # normalized post contract is deterministic and separately testable.
-        for event_id in result.event_ids:
-            del event_id
+        # Read back the committed evidence from PostgreSQL before normalization.
+        # This makes the slice prove the real durable boundary rather than relying
+        # on the connector response remaining in process memory.
+        for evidence_id in result.evidence_ids:
+            evidence = self._ledger.evidence(evidence_id)
+            if evidence is None:
+                raise RuntimeError(f"committed TikTok evidence is missing: {evidence_id}")
+            posts.extend(normalize_tiktok_videos(evidence.payload))
         return SliceObservation(
             TikTokSource.source_id,
             result.evidence_ids,
