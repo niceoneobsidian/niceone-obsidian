@@ -40,7 +40,13 @@ spec:
         - name: supervisor-engine
           image: "{{ .Values.supervisor.image.repository }}:{{ .Values.supervisor.image.tag }}"
           imagePullPolicy: {{ .Values.supervisor.image.pullPolicy }}
-          command: {{- toYaml .Values.supervisor.command | nindent 12 }}
+          command:
+            - /bin/sh
+            - -ec
+          args:
+            - |
+              . /vault/secrets/supervisor
+              exec {{ join " " .Values.supervisor.command }}
           env:
             - name: REDIS_URI
               value: {{ .Values.redis.uri | quote }}
