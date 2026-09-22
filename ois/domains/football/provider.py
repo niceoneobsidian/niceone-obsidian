@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping, Protocol
+from collections.abc import Iterable, Mapping
+from typing import Protocol
 
-from .models import FootballBoxscore, FootballFixture, FootballLeague, FootballStanding, FootballTeam
+from .models import FootballBoxscore, FootballStanding, FootballTeam
 from .schedule import Schedule
 
 
