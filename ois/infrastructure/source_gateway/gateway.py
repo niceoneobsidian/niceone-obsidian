@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 from typing import cast
 
 """Source Gateway: governed front door for production external sources."""
 
-from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
