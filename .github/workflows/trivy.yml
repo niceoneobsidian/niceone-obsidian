@@ -1,0 +1,58 @@
+name: Trivy
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "Dockerfile"
+      - "**/Dockerfile"
+      - "Containerfile"
+      - "**/Containerfile"
+      - "docker-compose.yml"
+      - "docker-compose.yaml"
+      - "compose.yml"
+      - "compose.yaml"
+  push:
+    branches: ["main"]
+    paths:
+      - "Dockerfile"
+      - "**/Dockerfile"
+      - "Containerfile"
+      - "**/Containerfile"
+      - "docker-compose.yml"
+      - "docker-compose.yaml"
+      - "compose.yml"
+      - "compose.yaml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  trivy:
+    name: Trivy filesystem and IaC scan
+    runs-on: ubuntu-latest
+    if: ${{ hashFiles('**/Dockerfile', '**/Containerfile', '**/docker-compose.yml', '**/docker-compose.yaml', '**/compose.yml', '**/compose.yaml') != '' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Trivy
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,misconfig,secret
+          format: sarif
+          output: trivy-results.sarif
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+
+      - name: Upload Trivy results
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-results
+          path: trivy-results.sarif
+          if-no-files-found: error
+          retention-days: 14
