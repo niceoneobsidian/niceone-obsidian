@@ -30,7 +30,7 @@ class RawEvidence:
         source_record_id: str,
         payload: dict[str, Any],
         connector_version: str = "unknown",
-    ) -> "RawEvidence":
+    ) -> RawEvidence:
         encoded = json.dumps(
             payload, sort_keys=True, separators=(",", ":")
         ).encode()
