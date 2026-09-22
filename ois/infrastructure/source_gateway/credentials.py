@@ -4,6 +4,7 @@ Secrets are never stored in domain records. A credential reference identifies
 an external secret managed by deployment infrastructure; the resolver is the
 only component allowed to materialize the secret for a request.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass

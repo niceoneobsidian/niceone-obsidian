@@ -3,9 +3,18 @@ from datetime import UTC, datetime
 import pytest
 
 from ois.infrastructure.source_gateway import (
-    CredentialRef, InMemoryCredentialResolver, OutboxEvent, RateLimitPolicy,
-    SQLiteCursorStore, SQLiteOutboxStore, SQLiteRawEvidenceWriter, SQLiteSourceLedger, SourceGateway, SourceRequest,
-    TokenBucket, canonical_hash,
+    CredentialRef,
+    InMemoryCredentialResolver,
+    OutboxEvent,
+    RateLimitPolicy,
+    SourceGateway,
+    SourceRequest,
+    SQLiteCursorStore,
+    SQLiteOutboxStore,
+    SQLiteRawEvidenceWriter,
+    SQLiteSourceLedger,
+    TokenBucket,
+    canonical_hash,
 )
 
 
@@ -13,8 +22,16 @@ def gateway():
     evidence = SQLiteRawEvidenceWriter()
     outbox = SQLiteOutboxStore()
     resolver = InMemoryCredentialResolver({"cred-1": "secret"})
-    return SourceGateway(evidence=evidence, outbox=outbox, credentials=resolver,
-                         rate_limits={"tiktok": TokenBucket(RateLimitPolicy(1, 0.01))}), evidence, outbox
+    return (
+        SourceGateway(
+            evidence=evidence,
+            outbox=outbox,
+            credentials=resolver,
+            rate_limits={"tiktok": TokenBucket(RateLimitPolicy(1, 0.01))},
+        ),
+        evidence,
+        outbox,
+    )
 
 
 def test_cursor_store_is_tenant_scoped_and_versioned():
@@ -30,15 +47,31 @@ def test_cursor_store_is_tenant_scoped_and_versioned():
 def test_gateway_enforces_tenant_credential_scope():
     g, _, _ = gateway()
     with pytest.raises(PermissionError):
-        g.ingest(SourceRequest("tenant-a", "ws-a", "tiktok", "1", {"x": 1},
-                               CredentialRef("cred-1", "tenant-b", "tiktok")))
+        g.ingest(
+            SourceRequest(
+                "tenant-a",
+                "ws-a",
+                "tiktok",
+                "1",
+                {"x": 1},
+                CredentialRef("cred-1", "tenant-b", "tiktok"),
+            )
+        )
 
 
 def test_gateway_persists_hashed_evidence_and_outbox():
     g, evidence, outbox = gateway()
-    result = g.ingest(SourceRequest("tenant-a", "ws-a", "tiktok", "1", {"x": 1},
-                                    CredentialRef("cred-1", "tenant-a", "tiktok"),
-                                    connector_version="tiktok-v1"))
+    result = g.ingest(
+        SourceRequest(
+            "tenant-a",
+            "ws-a",
+            "tiktok",
+            "1",
+            {"x": 1},
+            CredentialRef("cred-1", "tenant-a", "tiktok"),
+            connector_version="tiktok-v1",
+        )
+    )
     assert result.accepted
     assert result.payload_hash == canonical_hash({"x": 1})
     stored = evidence.get(result.evidence_id)

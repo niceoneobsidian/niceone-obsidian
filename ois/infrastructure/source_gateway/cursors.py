@@ -1,4 +1,5 @@
 """Durable, tenant-scoped source cursor/checkpoint management."""
+
 from __future__ import annotations
 
 import sqlite3
@@ -52,7 +53,9 @@ class SQLiteCursorStore:
         expected_version: int | None = None,
     ) -> SourceCursor:
         current = self.get(tenant_id, workspace_id, source_id)
-        if expected_version is not None and (current is None or current.version != expected_version):
+        if expected_version is not None and (
+            current is None or current.version != expected_version
+        ):
             raise ValueError("source cursor version conflict")
         version = 1 if current is None else current.version + 1
         now = datetime.now(UTC)

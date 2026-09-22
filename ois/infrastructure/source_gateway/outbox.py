@@ -1,4 +1,5 @@
 """Transactional outbox primitives for reliable event publication."""
+
 from __future__ import annotations
 
 import json
@@ -39,9 +40,18 @@ class SQLiteOutboxStore:
 
     def append(self, event: OutboxEvent) -> bool:
         try:
-            self._db.execute("INSERT INTO outbox VALUES (?,?,?,?,?,?,?,NULL)",
-                             (event.event_id, event.tenant_id, event.workspace_id, event.event_type,
-                              event.aggregate_id, json.dumps(event.payload, sort_keys=True), event.created_at.isoformat()))
+            self._db.execute(
+                "INSERT INTO outbox VALUES (?,?,?,?,?,?,?,NULL)",
+                (
+                    event.event_id,
+                    event.tenant_id,
+                    event.workspace_id,
+                    event.event_type,
+                    event.aggregate_id,
+                    json.dumps(event.payload, sort_keys=True),
+                    event.created_at.isoformat(),
+                ),
+            )
             self._db.commit()
             return True
         except sqlite3.IntegrityError:
@@ -49,9 +59,20 @@ class SQLiteOutboxStore:
             return False
 
     def pending(self, *, limit: int = 100) -> tuple[OutboxEvent, ...]:
-        rows = self._db.execute("SELECT * FROM outbox WHERE published_at IS NULL ORDER BY created_at, event_id LIMIT ?", (limit,)).fetchall()
-        return tuple(OutboxEvent(r[0], r[1], r[2], r[3], r[4], json.loads(r[5]), datetime.fromisoformat(r[6])) for r in rows)
+        rows = self._db.execute(
+            "SELECT * FROM outbox WHERE published_at IS NULL ORDER BY created_at, event_id LIMIT ?",
+            (limit,),
+        ).fetchall()
+        return tuple(
+            OutboxEvent(
+                r[0], r[1], r[2], r[3], r[4], json.loads(r[5]), datetime.fromisoformat(r[6])
+            )
+            for r in rows
+        )
 
     def mark_published(self, event_id: str) -> None:
-        self._db.execute("UPDATE outbox SET published_at=? WHERE event_id=?", (datetime.now(UTC).isoformat(), event_id))
+        self._db.execute(
+            "UPDATE outbox SET published_at=? WHERE event_id=?",
+            (datetime.now(UTC).isoformat(), event_id),
+        )
         self._db.commit()

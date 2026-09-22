@@ -2,6 +2,7 @@
 
 Raw evidence and its outbox notification share one database transaction.
 """
+
 from __future__ import annotations
 
 import json
@@ -41,15 +42,31 @@ class SQLiteSourceLedger:
             self._db.execute("BEGIN")
             self._db.execute(
                 "INSERT INTO raw_evidence VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-                (evidence.evidence_id, evidence.tenant_id, evidence.workspace_id, evidence.source_id,
-                 evidence.source_record_id, json.dumps(evidence.payload, sort_keys=True, default=str),
-                 evidence.payload_hash, evidence.collected_at.isoformat(), evidence.connector_version,
-                 evidence.schema_version, evidence.ingestion_run_id),
+                (
+                    evidence.evidence_id,
+                    evidence.tenant_id,
+                    evidence.workspace_id,
+                    evidence.source_id,
+                    evidence.source_record_id,
+                    json.dumps(evidence.payload, sort_keys=True, default=str),
+                    evidence.payload_hash,
+                    evidence.collected_at.isoformat(),
+                    evidence.connector_version,
+                    evidence.schema_version,
+                    evidence.ingestion_run_id,
+                ),
             )
             self._db.execute(
                 "INSERT INTO outbox VALUES (?,?,?,?,?,?,?,NULL)",
-                (event.event_id, event.tenant_id, event.workspace_id, event.event_type,
-                 event.aggregate_id, json.dumps(event.payload, sort_keys=True), event.created_at.isoformat()),
+                (
+                    event.event_id,
+                    event.tenant_id,
+                    event.workspace_id,
+                    event.event_type,
+                    event.aggregate_id,
+                    json.dumps(event.payload, sort_keys=True),
+                    event.created_at.isoformat(),
+                ),
             )
             self._db.commit()
             return True
@@ -66,19 +83,34 @@ class SQLiteSourceLedger:
             (limit,),
         ).fetchall()
         return tuple(
-            OutboxEvent(r[0], r[1], r[2], r[3], r[4], json.loads(r[5]), datetime.fromisoformat(r[6]))
+            OutboxEvent(
+                r[0], r[1], r[2], r[3], r[4], json.loads(r[5]), datetime.fromisoformat(r[6])
+            )
             for r in rows
         )
 
     def mark_published(self, event_id: str) -> None:
-        self._db.execute("UPDATE outbox SET published_at=CURRENT_TIMESTAMP WHERE event_id=?", (event_id,))
+        self._db.execute(
+            "UPDATE outbox SET published_at=CURRENT_TIMESTAMP WHERE event_id=?", (event_id,)
+        )
         self._db.commit()
 
     def evidence(self, evidence_id: str) -> RawEvidence | None:
-        row = self._db.execute("SELECT * FROM raw_evidence WHERE evidence_id=?", (evidence_id,)).fetchone()
+        row = self._db.execute(
+            "SELECT * FROM raw_evidence WHERE evidence_id=?", (evidence_id,)
+        ).fetchone()
         if row is None:
             return None
         return RawEvidence(
-            row[0], row[1], row[2], row[3], row[4], json.loads(row[5]), row[6],
-            datetime.fromisoformat(row[7]), row[8], row[9], row[10],
+            row[0],
+            row[1],
+            row[2],
+            row[3],
+            row[4],
+            json.loads(row[5]),
+            row[6],
+            datetime.fromisoformat(row[7]),
+            row[8],
+            row[9],
+            row[10],
         )

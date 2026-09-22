@@ -5,16 +5,30 @@ raw-evidence capture, and transactional outbox delivery. It intentionally
 contains no platform-specific connector implementation.
 """
 
-from .credentials import CredentialRef, TenantScope
-from .gateway import SourceGateway, SourceRequest, SourceResponse
-from .limits import RateLimitPolicy, RateLimitState
-from .evidence import RawEvidence, RawEvidenceWriter, SQLiteRawEvidenceWriter
-from .outbox import OutboxEvent, OutboxStore, SQLiteOutboxStore
-from .ledger import SQLiteSourceLedger
+from .credentials import CredentialRef, InMemoryCredentialResolver, TenantScope
 from .cursors import SourceCursor, SQLiteCursorStore
+from .evidence import RawEvidence, RawEvidenceWriter, SQLiteRawEvidenceWriter
+from .gateway import SourceGateway, SourceRequest, SourceResponse
+from .ledger import SQLiteSourceLedger
+from .limits import RateLimitPolicy, RateLimitState
+from .outbox import OutboxEvent, OutboxStore, SQLiteOutboxStore
 
 __all__ = [
-    "CredentialRef", "TenantScope", "SourceGateway", "SourceRequest", "SourceResponse",
-    "RateLimitPolicy", "RateLimitState", "RawEvidence", "RawEvidenceWriter",
-    "SQLiteRawEvidenceWriter", "OutboxEvent", "OutboxStore", "SQLiteOutboxStore", "SQLiteSourceLedger", "SourceCursor", "SQLiteCursorStore",
+    "InMemoryCredentialResolver",
+    "CredentialRef",
+    "TenantScope",
+    "SourceGateway",
+    "SourceRequest",
+    "SourceResponse",
+    "RateLimitPolicy",
+    "RateLimitState",
+    "RawEvidence",
+    "RawEvidenceWriter",
+    "SQLiteRawEvidenceWriter",
+    "OutboxEvent",
+    "OutboxStore",
+    "SQLiteOutboxStore",
+    "SQLiteSourceLedger",
+    "SourceCursor",
+    "SQLiteCursorStore",
 ]
