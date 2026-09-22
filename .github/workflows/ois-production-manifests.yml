@@ -1,0 +1,76 @@
+name: OIS Production Manifests
+
+on:
+  pull_request:
+    paths:
+      - "deploy/helm/ois-kernel-core/**"
+      - "security/ois_audit_scan.py"
+      - "tests/test_ois_audit_scan.py"
+      - "tests/fixtures/evidence/**"
+      - ".github/workflows/ois-production-manifests.yml"
+  push:
+    branches: [main]
+    paths:
+      - "deploy/helm/ois-kernel-core/**"
+      - "security/ois_audit_scan.py"
+      - "tests/test_ois_audit_scan.py"
+      - "tests/fixtures/evidence/**"
+      - ".github/workflows/ois-production-manifests.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate-helm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v5
+      - name: Helm lint
+        run: helm lint deploy/helm/ois-kernel-core
+      - name: Render default production chart
+        run: helm template ois deploy/helm/ois-kernel-core --namespace ois-system --include-crds > /tmp/ois-rendered.yaml
+      - name: Verify rendered production security contract
+        run: |
+          grep -q 'kind: CustomResourceDefinition' /tmp/ois-rendered.yaml
+          grep -q 'name: sandboxguards.ois.kernel.io' /tmp/ois-rendered.yaml
+          grep -q 'kind: Role' /tmp/ois-rendered.yaml
+          grep -q 'kind: RoleBinding' /tmp/ois-rendered.yaml
+          grep -q 'vault.hashicorp.com/agent-inject: "true"' /tmp/ois-rendered.yaml
+          grep -q '/vault/secrets/supervisor' /tmp/ois-rendered.yaml
+          grep -q 'OIS_SIGNING_KEY' /tmp/ois-rendered.yaml
+          ! grep -q 'kind: ClusterRole' /tmp/ois-rendered.yaml
+          ! grep -q 'kind: ClusterRoleBinding' /tmp/ois-rendered.yaml
+      - name: Install kubeconform
+        run: |
+          curl -sSL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz             | tar -xz -C /usr/local/bin kubeconform
+
+      - name: Validate rendered Kubernetes manifests
+        run: |
+          kubeconform             -strict             -ignore-missing-schemas             -summary             /tmp/ois-rendered.yaml
+      - name: Verify runtime startup contract
+        run: |
+          grep -q 'replicas: 3' /tmp/ois-rendered.yaml
+          grep -q '/bin/sh' /tmp/ois-rendered.yaml
+          grep -q 'exec python3 -m ois_supervisor.run' /tmp/ois-rendered.yaml
+          grep -q '. /vault/secrets/supervisor' /tmp/ois-rendered.yaml
+      - name: Verify rendered non-Vault mode
+        run: |
+          helm template ois deploy/helm/ois-kernel-core --namespace ois-system --set vault.enabled=false > /tmp/ois-no-vault.yaml
+          ! grep -q 'vault.hashicorp.com/agent-inject' /tmp/ois-no-vault.yaml
+
+  validate-security-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install test dependency
+        run: python -m pip install --upgrade pytest
+      - name: Run evidence scanner unit tests
+        run: python -m pytest -q tests/test_ois_audit_scan.py
+      - name: Run the real evidence scanner
+        env:
+          OIS_KERNEL_AUDIT_KEY: ci-test-key
+        run: python security/ois_audit_scan.py --artifact-directory tests/fixtures/evidence

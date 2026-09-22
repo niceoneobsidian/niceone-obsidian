@@ -53,9 +53,7 @@ def simulate_variants(experiment: Experiment) -> tuple[VariantScore, ...]:
     return tuple(
         sorted(
             scores,
-            key=lambda item: item.expected_metrics.get(
-                "overall_performance", 0.0
-            ),
+            key=lambda item: item.expected_metrics.get("overall_performance", 0.0),
             reverse=True,
         )
     )

@@ -501,3 +501,23 @@ operate as one coherent, stateful, governable intelligence and execution system.
 **Architecture:** Capability-driven, stateful, governed AI execution platform  
 **Development model:** Evidence-driven, test-gated, versioned, observable, and reversible  
 **Production status:** Under controlled implementation and integration
+
+
+## Engineering and Adoption Readiness
+
+This repository now includes a governance baseline covering licensing, contributor workflow, security administration requirements, capability evidence, operations, performance measurement, release/versioning, deployment/rollback guidance, SBOM/attestation scaffolding, and issue templates.
+
+### Readiness documents
+
+- Quickstart: docs/quickstart.md
+- Dependency locking: docs/dependency-locking.md
+- Capability evidence: docs/capability-evidence-matrix.md
+- End-to-end execution: docs/end-to-end-execution.md
+- Operations: docs/operability.md
+- Performance baselines: docs/performance-baseline.md
+- Deployment and rollback: docs/deployment-and-rollback.md
+- Release process: docs/release-process.md
+- Issue triage: docs/issue-triage.md
+- Security baseline: .github/SECURITY-BASELINE.md
+
+Repository administration controls such as secret scanning, push protection, maintainer 2FA requirements, and pull-request approval enforcement must be enabled in GitHub Settings. They are intentionally not represented as repository code and must be verified in the live repository settings.

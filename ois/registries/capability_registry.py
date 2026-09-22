@@ -1,7 +1,3 @@
-"""Capability registry."""
+from .core import CapabilityEntry, CapabilityRegistry
 
-from .base import Registry
-
-
-class CapabilityRegistry(Registry[object]):
-    """Registry for executable OIS capabilities."""
+__all__ = ["CapabilityEntry", "CapabilityRegistry"]
