@@ -1,6 +1,8 @@
+"""Source Gateway module exports."""
+
 from __future__ import annotations
 
-from .credentials import CredentialRef, InMemoryCredentialResolver
+from .credentials import CredentialRef, CredentialResolver, InMemoryCredentialResolver, TenantScope
 from .cursors import SourceCursor, SQLiteCursorStore
 from .evidence import RawEvidence, RawEvidenceWriter, SQLiteRawEvidenceWriter, canonical_hash
 from .gateway import SourceGateway, SourceRequest, SourceResponse
@@ -10,6 +12,7 @@ from .outbox import OutboxEvent, OutboxStore, SQLiteOutboxStore
 
 __all__ = [
     "CredentialRef",
+    "CredentialResolver",
     "InMemoryCredentialResolver",
     "OutboxEvent",
     "OutboxStore",
@@ -25,6 +28,7 @@ __all__ = [
     "SourceGateway",
     "SourceRequest",
     "SourceResponse",
+    "TenantScope",
     "TokenBucket",
     "canonical_hash",
 ]
