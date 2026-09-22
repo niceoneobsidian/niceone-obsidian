@@ -4,12 +4,14 @@ The adapter never persists access tokens. Each successful API page is handed to
 the Phase 1 gateway as immutable raw evidence; the source cursor advances only
 after the gateway confirms the evidence + outbox write.
 """
+
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 from ois.infrastructure.source_gateway import SourceGateway, SourceRequest
+
 from .client import TikTokDisplayClient, TikTokPage
 
 
@@ -58,16 +60,18 @@ class TikTokSource:
         while pages < max_pages:
             page: TikTokPage = self._client.list_videos(cursor=cursor, max_count=max_count)
             source_record_id = f"cursor:{cursor or 'initial'}"
-            result = self._gateway.ingest(SourceRequest(
-                tenant_id=tenant_id,
-                workspace_id=workspace_id,
-                source_id=self.source_id,
-                source_record_id=source_record_id,
-                payload=page.raw,
-                credential=None,
-                connector_version="tiktok-display-v2",
-                schema_version="tiktok.display.v2",
-            ))
+            result = self._gateway.ingest(
+                SourceRequest(
+                    tenant_id=tenant_id,
+                    workspace_id=workspace_id,
+                    source_id=self.source_id,
+                    source_record_id=source_record_id,
+                    payload=page.raw,
+                    credential=None,
+                    connector_version="tiktok-display-v2",
+                    schema_version="tiktok.display.v2",
+                )
+            )
             if not result.accepted and result.reason == "rate_limited":
                 break
             if not result.accepted and result.reason == "duplicate_evidence":

@@ -1,14 +1,16 @@
 """Source Gateway: governed front door for production external sources."""
+
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any, Callable
+from typing import Any
 from uuid import uuid4
 
 from .credentials import CredentialRef, CredentialResolver, TenantScope
 from .evidence import RawEvidence, RawEvidenceWriter, canonical_hash
-from .limits import RateLimitPolicy, TokenBucket
+from .limits import TokenBucket
 from .outbox import OutboxEvent, OutboxStore
 
 
@@ -42,10 +44,15 @@ class SourceGateway:
     deployment should bind equivalent contracts to the durable application DB.
     """
 
-    def __init__(self, *, evidence: RawEvidenceWriter, outbox: OutboxStore,
-                 credentials: CredentialResolver | None = None,
-                 rate_limits: dict[str, TokenBucket] | None = None,
-                 id_factory: Callable[[], str] | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        evidence: RawEvidenceWriter,
+        outbox: OutboxStore,
+        credentials: CredentialResolver | None = None,
+        rate_limits: dict[str, TokenBucket] | None = None,
+        id_factory: Callable[[], str] | None = None,
+    ) -> None:
         self._evidence = evidence
         self._outbox = outbox
         self._credentials = credentials
@@ -68,22 +75,46 @@ class SourceGateway:
         evidence_id = self._id()
         event_id = self._id()
         payload_hash = canonical_hash(request.payload)
-        evidence = RawEvidence(evidence_id, scope.tenant_id, scope.workspace_id, request.source_id,
-                               request.source_record_id, request.payload, payload_hash,
-                               datetime.now(UTC), request.connector_version, request.schema_version,
-                               request.ingestion_run_id or self._id())
-        event = OutboxEvent(event_id, scope.tenant_id, scope.workspace_id,
-                            "source.raw_evidence.created", evidence_id,
-                            {"evidence_id": evidence_id, "source_id": request.source_id,
-                             "source_record_id": request.source_record_id, "payload_hash": payload_hash},
-                            evidence.collected_at)
+        evidence = RawEvidence(
+            evidence_id,
+            scope.tenant_id,
+            scope.workspace_id,
+            request.source_id,
+            request.source_record_id,
+            request.payload,
+            payload_hash,
+            datetime.now(UTC),
+            request.connector_version,
+            request.schema_version,
+            request.ingestion_run_id or self._id(),
+        )
+        event = OutboxEvent(
+            event_id,
+            scope.tenant_id,
+            scope.workspace_id,
+            "source.raw_evidence.created",
+            evidence_id,
+            {
+                "evidence_id": evidence_id,
+                "source_id": request.source_id,
+                "source_record_id": request.source_record_id,
+                "payload_hash": payload_hash,
+            },
+            evidence.collected_at,
+        )
         commit_ingest = getattr(self._evidence, "commit_ingest", None)
-        if callable(commit_ingest) and self._outbox is self._evidence:
+        if (
+            callable(commit_ingest)
+            and getattr(self._outbox, "_db", None) is not None
+            and getattr(self._outbox, "_db", None) is getattr(self._evidence, "_db", None)
+        ):
             accepted = commit_ingest(evidence, event)
         else:
             accepted = self._evidence.append(evidence)
             if accepted and not self._outbox.append(event):
-                raise RuntimeError("evidence committed but outbox append failed; use SQLiteSourceLedger for atomicity")
+                raise RuntimeError(
+                    "evidence committed but outbox append failed; use SQLiteSourceLedger for atomicity"
+                )
         if not accepted:
             return SourceResponse(False, evidence_id, event_id, payload_hash, "duplicate_evidence")
         return SourceResponse(True, evidence_id, event_id, payload_hash)

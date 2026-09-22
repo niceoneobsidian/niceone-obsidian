@@ -1,14 +1,14 @@
 """Small, dependency-free TikTok Display API v2 client."""
+
 from __future__ import annotations
 
 import json
 import time
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
-
 
 API_BASE = "https://open.tiktokapis.com"
 VIDEO_FIELDS = (
@@ -67,11 +67,13 @@ class TikTokDisplayClient:
                 error = payload.get("error", {})
                 if error and error.get("code") not in (None, "ok"):
                     raise TikTokAPIError(str(error.get("message", error)), retryable=False)
-                return payload
+                return cast(dict[str, Any], payload)
             except HTTPError as exc:
                 retryable = exc.code == 429 or exc.code >= 500
                 if not retryable or attempt == self._max_retries:
-                    raise TikTokAPIError(f"TikTok HTTP {exc.code}", status=exc.code, retryable=retryable) from exc
+                    raise TikTokAPIError(
+                        f"TikTok HTTP {exc.code}", status=exc.code, retryable=retryable
+                    ) from exc
             except (URLError, TimeoutError) as exc:
                 if attempt == self._max_retries:
                     raise TikTokAPIError("TikTok transport failure", retryable=True) from exc

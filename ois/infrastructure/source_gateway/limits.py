@@ -1,6 +1,8 @@
 """Deterministic per-source rate limiting primitives."""
+
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from threading import RLock
 from time import monotonic
@@ -23,7 +25,7 @@ class RateLimitState:
 
 
 class TokenBucket:
-    def __init__(self, policy: RateLimitPolicy, *, clock=monotonic) -> None:
+    def __init__(self, policy: RateLimitPolicy, *, clock: Callable[[], float] = monotonic) -> None:
         self._policy = policy
         self._clock = clock
         self._state = RateLimitState(policy.capacity, clock())
@@ -35,7 +37,9 @@ class TokenBucket:
         with self._lock:
             now = self._clock()
             elapsed = max(0.0, now - self._state.observed_at)
-            tokens = min(self._policy.capacity, self._state.tokens + elapsed * self._policy.refill_per_second)
+            tokens = min(
+                self._policy.capacity, self._state.tokens + elapsed * self._policy.refill_per_second
+            )
             if tokens < cost:
                 self._state = RateLimitState(tokens, now)
                 return False

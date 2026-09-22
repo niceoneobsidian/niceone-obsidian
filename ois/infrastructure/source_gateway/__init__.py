@@ -1,20 +1,34 @@
-"""Phase 1 production source gateway primitives.
+"""Source Gateway module exports."""
 
-The gateway owns credential references, tenant scoping, rate limits,
-raw-evidence capture, and transactional outbox delivery. It intentionally
-contains no platform-specific connector implementation.
-"""
+from __future__ import annotations
 
-from .credentials import CredentialRef, TenantScope
-from .gateway import SourceGateway, SourceRequest, SourceResponse
-from .limits import RateLimitPolicy, RateLimitState
-from .evidence import RawEvidence, RawEvidenceWriter, SQLiteRawEvidenceWriter
-from .outbox import OutboxEvent, OutboxStore, SQLiteOutboxStore
-from .ledger import SQLiteSourceLedger
+from .credentials import CredentialRef, CredentialResolver, InMemoryCredentialResolver, TenantScope
 from .cursors import SourceCursor, SQLiteCursorStore
+from .evidence import RawEvidence, RawEvidenceWriter, SQLiteRawEvidenceWriter, canonical_hash
+from .gateway import SourceGateway, SourceRequest, SourceResponse
+from .ledger import SQLiteSourceLedger
+from .limits import RateLimitPolicy, RateLimitState, TokenBucket
+from .outbox import OutboxEvent, OutboxStore, SQLiteOutboxStore
 
 __all__ = [
-    "CredentialRef", "TenantScope", "SourceGateway", "SourceRequest", "SourceResponse",
-    "RateLimitPolicy", "RateLimitState", "RawEvidence", "RawEvidenceWriter",
-    "SQLiteRawEvidenceWriter", "OutboxEvent", "OutboxStore", "SQLiteOutboxStore", "SQLiteSourceLedger", "SourceCursor", "SQLiteCursorStore",
+    "CredentialRef",
+    "CredentialResolver",
+    "InMemoryCredentialResolver",
+    "OutboxEvent",
+    "OutboxStore",
+    "RateLimitPolicy",
+    "RateLimitState",
+    "RawEvidence",
+    "RawEvidenceWriter",
+    "SQLiteCursorStore",
+    "SQLiteOutboxStore",
+    "SQLiteRawEvidenceWriter",
+    "SQLiteSourceLedger",
+    "SourceCursor",
+    "SourceGateway",
+    "SourceRequest",
+    "SourceResponse",
+    "TenantScope",
+    "TokenBucket",
+    "canonical_hash",
 ]

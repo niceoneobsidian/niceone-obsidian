@@ -1,11 +1,12 @@
 """Immutable raw source evidence with deterministic content hashes."""
+
 from __future__ import annotations
 
 import hashlib
 import json
 import sqlite3
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any, Protocol
 
 
@@ -25,7 +26,9 @@ class RawEvidence:
 
 
 def canonical_hash(payload: Any) -> str:
-    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False, default=str).encode("utf-8")
+    encoded = json.dumps(
+        payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False, default=str
+    ).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()
 
 
@@ -53,10 +56,19 @@ class SQLiteRawEvidenceWriter:
         try:
             self._db.execute(
                 "INSERT INTO raw_evidence VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-                (evidence.evidence_id, evidence.tenant_id, evidence.workspace_id, evidence.source_id,
-                 evidence.source_record_id, json.dumps(evidence.payload, sort_keys=True, default=str),
-                 evidence.payload_hash, evidence.collected_at.isoformat(), evidence.connector_version,
-                 evidence.schema_version, evidence.ingestion_run_id),
+                (
+                    evidence.evidence_id,
+                    evidence.tenant_id,
+                    evidence.workspace_id,
+                    evidence.source_id,
+                    evidence.source_record_id,
+                    json.dumps(evidence.payload, sort_keys=True, default=str),
+                    evidence.payload_hash,
+                    evidence.collected_at.isoformat(),
+                    evidence.connector_version,
+                    evidence.schema_version,
+                    evidence.ingestion_run_id,
+                ),
             )
             self._db.commit()
             return True
@@ -65,8 +77,21 @@ class SQLiteRawEvidenceWriter:
             return False
 
     def get(self, evidence_id: str) -> RawEvidence | None:
-        row = self._db.execute("SELECT * FROM raw_evidence WHERE evidence_id=?", (evidence_id,)).fetchone()
+        row = self._db.execute(
+            "SELECT * FROM raw_evidence WHERE evidence_id=?", (evidence_id,)
+        ).fetchone()
         if row is None:
             return None
-        return RawEvidence(row[0], row[1], row[2], row[3], row[4], json.loads(row[5]), row[6],
-                           datetime.fromisoformat(row[7]), row[8], row[9], row[10])
+        return RawEvidence(
+            row[0],
+            row[1],
+            row[2],
+            row[3],
+            row[4],
+            json.loads(row[5]),
+            row[6],
+            datetime.fromisoformat(row[7]),
+            row[8],
+            row[9],
+            row[10],
+        )
