@@ -49,11 +49,7 @@ class Adapter:
 
 def test_g1_source_validation_raw_evidence_cross_source_research() -> None:
     report = SourceValidationHarness().validate(Adapter())
-    assert (
-        report.authentication_ok
-        and report.normalization_ok
-        and report.pagination_ok
-    )
+    assert report.authentication_ok and report.normalization_ok and report.pagination_ok
 
     evidence = SQLiteEvidenceStore()
     assert evidence.append_raw(
