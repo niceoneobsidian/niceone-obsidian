@@ -82,8 +82,22 @@ class SecOpsEvidenceScanner:
                 print(f"FAIL: ledger event {index} is not an object")
                 return False
             payload_hash = event.get("payload_hash")
-            if not isinstance(payload_hash, str) or not payload_hash or payload_hash == "NULL":
-                print(f"FAIL: ledger event {index} has no payload signature")
+            payload = event.get("payload")
+            if not isinstance(payload, dict):
+                print(f"FAIL: ledger event {index} has no object payload")
+                return False
+            if not isinstance(payload_hash, str) or len(payload_hash) != 64:
+                print(f"FAIL: ledger event {index} has no valid payload hash")
+                return False
+            canonical_payload = json.dumps(
+                payload,
+                sort_keys=True,
+                separators=(",", ":"),
+                ensure_ascii=False,
+            ).encode("utf-8")
+            computed_payload_hash = hashlib.sha256(canonical_payload).hexdigest()
+            if not hmac.compare_digest(computed_payload_hash, payload_hash):
+                print(f"FAIL: ledger event {index} payload hash mismatch")
                 return False
 
         print(f"PASS: {file_path} ({len(ledger)} ledger events verified)")
