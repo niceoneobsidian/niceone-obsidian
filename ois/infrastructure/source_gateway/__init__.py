@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from .credentials import CredentialRef, InMemoryCredentialResolver
 from .cursors import SourceCursor, SQLiteCursorStore
-from .evidence import RawEvidence, RawEvidenceWriter, canonical_hash
+from .evidence import RawEvidence, RawEvidenceWriter, SQLiteRawEvidenceWriter, canonical_hash
 from .gateway import SourceGateway, SourceRequest, SourceResponse
 from .ledger import SQLiteSourceLedger
 from .limits import RateLimitPolicy, RateLimitState, TokenBucket
@@ -19,6 +19,7 @@ __all__ = [
     "RawEvidenceWriter",
     "SQLiteCursorStore",
     "SQLiteOutboxStore",
+    "SQLiteRawEvidenceWriter",
     "SQLiteSourceLedger",
     "SourceCursor",
     "SourceGateway",
