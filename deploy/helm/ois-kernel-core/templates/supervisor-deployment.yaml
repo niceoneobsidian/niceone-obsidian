@@ -45,7 +45,9 @@ spec:
             - -ec
           args:
             - |
+              {{- if .Values.vault.enabled }}
               . /vault/secrets/supervisor
+              {{- end }}
               exec {{ join " " .Values.supervisor.command }}
           env:
             - name: REDIS_URI
