@@ -52,9 +52,7 @@ class CrossSourceResearch:
                     confidence,
                 )
             )
-        return CrossSourceFinding(
-            statement, source_ids, evidence_ids, confidence
-        )
+        return CrossSourceFinding(statement, source_ids, evidence_ids, confidence)
 
     def research_brief(
         self, *, query: str, findings: tuple[CrossSourceFinding, ...]
@@ -65,21 +63,10 @@ class CrossSourceResearch:
             "query": query,
             "findings": [finding.statement for finding in findings],
             "evidence_ids": tuple(
-                evidence_id
-                for finding in findings
-                for evidence_id in finding.evidence_ids
+                evidence_id for finding in findings for evidence_id in finding.evidence_ids
             ),
             "source_ids": tuple(
-                sorted(
-                    {
-                        source_id
-                        for finding in findings
-                        for source_id in finding.source_ids
-                    }
-                )
+                sorted({source_id for finding in findings for source_id in finding.source_ids})
             ),
-            "confidence": sum(
-                finding.confidence for finding in findings
-            )
-            / len(findings),
+            "confidence": sum(finding.confidence for finding in findings) / len(findings),
         }
