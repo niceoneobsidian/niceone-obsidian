@@ -2,7 +2,6 @@ from datetime import UTC, datetime
 
 from ois.infrastructure.source_gateway import (
     SQLiteRawEvidenceWriter,
-    SQLiteSourceLedger,
     SourceGateway,
     SQLiteOutboxStore,
 )
