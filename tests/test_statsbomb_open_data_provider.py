@@ -53,3 +53,9 @@ def test_statsbomb_provider_rejects_unknown_match() -> None:
         assert "999" in str(exc)
     else:
         raise AssertionError("unknown match must be rejected")
+
+
+def test_statsbomb_dataset_source_is_immutable() -> None:
+    assert len(STATS_BOMB_DATASET_COMMIT) == 40
+    assert STATS_BOMB_DATASET_COMMIT in DEFAULT_BASE_URL
+    assert "/master/" not in DEFAULT_BASE_URL
