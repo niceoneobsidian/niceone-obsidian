@@ -61,9 +61,7 @@ class ProductionSourceAdapter(Protocol):
 
     def health_check(self) -> bool: ...
 
-    def fetch(
-        self, *, cursor: str | None, since: datetime | None, limit: int
-    ) -> FetchBatch: ...
+    def fetch(self, *, cursor: str | None, since: datetime | None, limit: int) -> FetchBatch: ...
 
 
 class SourceValidationHarness:
@@ -93,15 +91,10 @@ class SourceValidationHarness:
                 latency = batch.latency_ms
                 pagination = batch.next_cursor is not None or tested < limit
                 if batch.next_cursor is not None:
-                    follow = adapter.fetch(
-                        cursor=batch.next_cursor, since=None, limit=limit
-                    )
+                    follow = adapter.fetch(cursor=batch.next_cursor, since=None, limit=limit)
                     pagination = pagination and follow.cursor == batch.next_cursor
                 incremental = True
-                rate = (
-                    batch.rate_limit_remaining is None
-                    or batch.rate_limit_remaining >= 0
-                )
+                rate = batch.rate_limit_remaining is None or batch.rate_limit_remaining >= 0
             except Exception as exc:
                 errors.append(f"fetch:{exc}")
                 pagination = incremental = rate = False
