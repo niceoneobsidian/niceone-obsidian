@@ -143,9 +143,7 @@ class SQLiteIntelligenceStore:
         ).fetchall()
         signals = [SocialSignal.model_validate(json.loads(row["payload"])) for row in rows]
         return [
-            signal
-            for signal in signals
-            if signal_type is None or signal.signal_type == signal_type
+            signal for signal in signals if signal_type is None or signal.signal_type == signal_type
         ]
 
     def list_creative_patterns(self, *, limit: int = 100) -> list[CreativePattern]:
