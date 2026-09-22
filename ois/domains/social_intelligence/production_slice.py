@@ -16,6 +16,7 @@ from typing import Any
 
 from ois.domains.social_intelligence.schemas import SocialMetric, SocialPost
 from ois.infrastructure.source_gateway import PostgresSourceLedger, SourceGateway
+from .postgres_store import PostgresSocialSliceStore
 from ois.integrations.tiktok.source import TikTokSource, TikTokSourceRun
 
 
@@ -70,11 +71,13 @@ class TikTokSocialIntelligenceSlice:
     """Execute one authorized TikTok acquisition run through the production path."""
 
     def __init__(
-        self, *, source: TikTokSource, gateway: SourceGateway, ledger: PostgresSourceLedger
+        self, *, source: TikTokSource, gateway: SourceGateway, ledger: PostgresSourceLedger,
+        store: PostgresSocialSliceStore,
     ) -> None:
         self._source = source
         self._gateway = gateway
         self._ledger = ledger
+        self._store = store
 
     def run(
         self,
@@ -101,6 +104,7 @@ class TikTokSocialIntelligenceSlice:
             if evidence is None:
                 raise RuntimeError(f"committed TikTok evidence is missing: {evidence_id}")
             posts.extend(normalize_tiktok_videos(evidence.payload))
+        self._store.upsert_posts(tuple(posts))
         return SliceObservation(
             TikTokSource.source_id,
             result.evidence_ids,
