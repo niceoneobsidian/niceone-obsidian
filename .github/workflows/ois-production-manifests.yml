@@ -29,7 +29,7 @@ jobs:
       - name: Helm lint
         run: helm lint deploy/helm/ois-kernel-core
       - name: Render default production chart
-        run: helm template ois deploy/helm/ois-kernel-core --namespace ois-system > /tmp/ois-rendered.yaml
+        run: helm template ois deploy/helm/ois-kernel-core --namespace ois-system --include-crds > /tmp/ois-rendered.yaml
       - name: Verify rendered production security contract
         run: |
           grep -q 'kind: CustomResourceDefinition' /tmp/ois-rendered.yaml
