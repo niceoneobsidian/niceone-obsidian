@@ -96,7 +96,11 @@ class IngestionPipeline:
             error=health_error,
             events_ingested=accepted,
             latency_ms=latency_ms,
-            metadata={"received": received, "duplicates": duplicates, "rejected": rejected},
+            metadata={
+                "received": received,
+                "duplicates": duplicates,
+                "rejected": rejected,
+            },
         )
 
         brief: SocialResearchBrief | None = None
