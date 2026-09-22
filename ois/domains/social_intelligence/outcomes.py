@@ -25,7 +25,7 @@ class OutcomeLedger:
         pairs=[(float(json.loads(r["metrics"]).get(metric)),float(r["value"]),float(r["confidence"])) for r in rows if isinstance(json.loads(r["metrics"]).get(metric),(int,float))]
         if not pairs:return CalibrationReport(0,0.,0.,0.,())
         errors=[a-b for a,b,_ in pairs]; mae=sum(abs(e) for e in errors)/len(errors); rmse=math.sqrt(sum(e*e for e in errors)/len(errors))
-        buckets=[[] for _ in range(bins)]
+        buckets: list[list[tuple[float, float]]] = [[] for _ in range(bins)]
         for p,a,c in pairs:buckets[min(bins-1,int(c*bins))].append((p,a))
         report=tuple({"lower":i/bins,"upper":(i+1)/bins,"predicted":sum(p for p,_ in x)/len(x),"actual":sum(a for _,a in x)/len(x),"count":len(x)} for i,x in enumerate(buckets) if x)
         return CalibrationReport(len(pairs),mae,rmse,sum(c for *_,c in pairs)/len(pairs),report)
