@@ -31,9 +31,7 @@ class RawEvidence:
         payload: dict[str, Any],
         connector_version: str = "unknown",
     ) -> RawEvidence:
-        encoded = json.dumps(
-            payload, sort_keys=True, separators=(",", ":")
-        ).encode()
+        encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
         return cls(
             evidence_id,
             source_id,
