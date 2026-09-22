@@ -1,0 +1,30 @@
+name: Temporary PR149 formatter
+
+on:
+  push:
+    branches:
+      - tmp/format-pr149
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install "ruff==0.9.10"
+      - run: python -m ruff format ois/domains/social_intelligence/prediction_store.py ois/domains/social_intelligence/store.py tests/contract/test_social_intelligence_g1_foundation.py
+      - name: Commit formatted files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet; then
+            exit 0
+          fi
+          git add ois/domains/social_intelligence/prediction_store.py ois/domains/social_intelligence/store.py tests/contract/test_social_intelligence_g1_foundation.py
+          git commit -m "chore: apply Ruff formatting"
+          git push
