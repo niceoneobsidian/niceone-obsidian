@@ -1,4 +1,5 @@
 """PostgreSQL persistence for the focused Social Intelligence slice."""
+
 from __future__ import annotations
 
 import json
@@ -17,10 +18,9 @@ class PostgresSocialSliceStore:
         self._connection = connection
 
     def initialize(self) -> None:
-        with self._connection.transaction():
-            with self._connection.cursor() as cur:
-                cur.execute(
-                    """
+        with self._connection.transaction(), self._connection.cursor() as cur:
+            cur.execute(
+                """
                     CREATE TABLE IF NOT EXISTS social_intelligence_posts (
                         provider TEXT NOT NULL,
                         platform TEXT NOT NULL,
@@ -30,15 +30,14 @@ class PostgresSocialSliceStore:
                         PRIMARY KEY (provider, platform, external_id)
                     )
                     """
-                )
+            )
 
     def upsert_posts(self, posts: tuple[SocialPost, ...]) -> int:
         count = 0
-        with self._connection.transaction():
-            with self._connection.cursor() as cur:
-                for post in posts:
-                    cur.execute(
-                        """
+        with self._connection.transaction(), self._connection.cursor() as cur:
+            for post in posts:
+                cur.execute(
+                    """
                         INSERT INTO social_intelligence_posts
                         (provider, platform, external_id, payload, observed_at)
                         VALUES (%s,%s,%s,%s::jsonb,%s)
@@ -46,15 +45,15 @@ class PostgresSocialSliceStore:
                         DO UPDATE SET payload=excluded.payload,
                                       observed_at=excluded.observed_at
                         """,
-                        (
-                            post.provider,
-                            post.platform,
-                            post.external_id,
-                            json.dumps(post.model_dump(mode="json"), sort_keys=True),
-                            post.observed_at or datetime.now(UTC),
-                        ),
-                    )
-                    count += 1
+                    (
+                        post.provider,
+                        post.platform,
+                        post.external_id,
+                        json.dumps(post.model_dump(mode="json"), sort_keys=True),
+                        post.observed_at or datetime.now(UTC),
+                    ),
+                )
+                count += 1
         return count
 
     def get(self, external_id: str) -> SocialPost | None:
@@ -73,4 +72,5 @@ class PostgresSocialSliceStore:
     def count(self) -> int:
         with self._connection.cursor() as cur:
             cur.execute("SELECT count(*) FROM social_intelligence_posts")
-            return int(cur.fetchone()[0])
+            row = cur.fetchone()
+            return int(row[0]) if row else 0
