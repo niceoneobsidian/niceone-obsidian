@@ -243,8 +243,7 @@ class OISProductionSupervisor:
         workflow_name: str,
         version_tag: str,
     ) -> dict[str, Any]:
-        async with self.pool.connection() as conn:
-            async with conn.cursor() as cur:
+        async with self.pool.connection() as conn, conn.cursor() as cur:
                 await cur.execute(
                     "SELECT set_config('app.current_tenant_id', %s, true)",
                     (tenant_id,),
@@ -459,8 +458,7 @@ class OISProductionSupervisor:
         signature = self._sign_hash(
             f"{tenant_id}:{thread_id}:{scenario_id}:{payload_hash}"
         )
-        async with self.pool.connection() as conn:
-            async with conn.cursor() as cur:
+        async with self.pool.connection() as conn, conn.cursor() as cur:
                 await cur.execute(
                     "SELECT set_config('app.current_tenant_id', %s, true)",
                     (tenant_id,),
