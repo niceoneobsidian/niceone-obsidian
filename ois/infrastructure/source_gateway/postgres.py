@@ -144,8 +144,7 @@ class PostgresSourceLedger:
         )
 
     def mark_published(self, event_id: str) -> None:
-        with self._connection.transaction():
-            with self._connection.cursor() as cur:
+        with self._connection.transaction(), self._connection.cursor() as cur:
                 cur.execute(
                     """
                     UPDATE source_outbox
@@ -192,8 +191,7 @@ class PostgresSourceLedger:
         idempotency_key: str,
     ) -> bool:
         now = datetime.now(UTC)
-        with self._connection.transaction():
-            with self._connection.cursor() as cur:
+        with self._connection.transaction(), self._connection.cursor() as cur:
                 cur.execute(
                     """
                     INSERT INTO publication_ledger
@@ -223,8 +221,7 @@ class PostgresSourceLedger:
         error: str | None = None,
     ) -> None:
         now = datetime.now(UTC)
-        with self._connection.transaction():
-            with self._connection.cursor() as cur:
+        with self._connection.transaction(), self._connection.cursor() as cur:
                 cur.execute(
                     """
                     UPDATE publication_ledger
