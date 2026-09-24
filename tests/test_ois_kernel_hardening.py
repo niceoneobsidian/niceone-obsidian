@@ -49,9 +49,7 @@ def test_signature_is_tenant_bound() -> None:
     supervisor = supervisor_with_fetchone((manifest, supervisor_hash, wrong))
 
     with pytest.raises(EvidenceVerificationFailure):
-        asyncio.run(
-            supervisor.verify_artifact_promotion_gate(TENANT, "flow", "v1")
-        )
+        asyncio.run(supervisor.verify_artifact_promotion_gate(TENANT, "flow", "v1"))
 
 
 def test_manifest_provenance_hash_must_match_payload() -> None:
@@ -62,9 +60,7 @@ def test_manifest_provenance_hash_must_match_payload() -> None:
         f"{TENANT}:flow:v1:{incorrect_provenance}".encode(),
         hashlib.sha256,
     ).hexdigest()
-    supervisor = supervisor_with_fetchone(
-        (manifest, incorrect_provenance, signature)
-    )
+    supervisor = supervisor_with_fetchone((manifest, incorrect_provenance, signature))
 
     with pytest.raises(EvidenceVerificationFailure, match="manifest"):
         asyncio.run(
@@ -86,13 +82,16 @@ def test_valid_manifest_provenance_and_signature_are_accepted() -> None:
     ).hexdigest()
     supervisor = supervisor_with_fetchone((manifest, provenance, signature))
 
-    assert asyncio.run(
-        supervisor.verify_artifact_promotion_gate(
-            TENANT,
-            "flow",
-            "v1",
+    assert (
+        asyncio.run(
+            supervisor.verify_artifact_promotion_gate(
+                TENANT,
+                "flow",
+                "v1",
+            )
         )
-    ) == manifest
+        == manifest
+    )
 
 
 def test_lease_release_before_acquire_is_safe() -> None:

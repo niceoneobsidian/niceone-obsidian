@@ -132,16 +132,16 @@ class EvidenceLedger:
             separators=(",", ":"),
         )
         async with self.pool.connection() as conn, conn.cursor() as cur:
-                await cur.execute(
-                    "SELECT set_config('app.current_tenant_id', %s, true)",
-                    (tenant_id,),
-                )
-                await cur.execute(
-                    "SELECT pg_advisory_xact_lock(hashtext(%s))",
-                    (f"{tenant_id}:{thread_id}",),
-                )
-                await cur.execute(
-                    """
+            await cur.execute(
+                "SELECT set_config('app.current_tenant_id', %s, true)",
+                (tenant_id,),
+            )
+            await cur.execute(
+                "SELECT pg_advisory_xact_lock(hashtext(%s))",
+                (f"{tenant_id}:{thread_id}",),
+            )
+            await cur.execute(
+                """
                     SELECT
                         COALESCE(MAX(sequence_no), 0),
                         COALESCE(
@@ -159,23 +159,23 @@ class EvidenceLedger:
                     WHERE tenant_id = %s
                       AND thread_id = %s
                     """,
-                    (tenant_id, thread_id, tenant_id, thread_id),
-                )
-                row = await cur.fetchone()
-                if row is None:
-                    raise RuntimeError("failed to allocate evidence sequence")
-                sequence_no, previous_hash = row
-                sequence = int(sequence_no) + 1
-                event_hash = hashlib.sha256(
-                    f"{tenant_id}:{thread_id}:{sequence}:{event_type}:"
-                    f"{payload_hash}:{previous_hash}:{context_json}".encode()
-                ).hexdigest()
-                signature = self.sign(
-                    f"{tenant_id}:{thread_id}:{sequence}:{event_type}:"
-                    f"{payload_hash}:{previous_hash}:{event_hash}"
-                )
-                await cur.execute(
-                    """
+                (tenant_id, thread_id, tenant_id, thread_id),
+            )
+            row = await cur.fetchone()
+            if row is None:
+                raise RuntimeError("failed to allocate evidence sequence")
+            sequence_no, previous_hash = row
+            sequence = int(sequence_no) + 1
+            event_hash = hashlib.sha256(
+                f"{tenant_id}:{thread_id}:{sequence}:{event_type}:"
+                f"{payload_hash}:{previous_hash}:{context_json}".encode()
+            ).hexdigest()
+            signature = self.sign(
+                f"{tenant_id}:{thread_id}:{sequence}:{event_type}:"
+                f"{payload_hash}:{previous_hash}:{event_hash}"
+            )
+            await cur.execute(
+                """
                     INSERT INTO ois_attestation_evidence (
                         tenant_id,
                         thread_id,
@@ -190,23 +190,23 @@ class EvidenceLedger:
                     VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
                     RETURNING evidence_id
                     """,
-                    (
-                        tenant_id,
-                        thread_id,
-                        sequence,
-                        event_type,
-                        payload_hash,
-                        previous_hash,
-                        event_hash,
-                        context_json,
-                        signature,
-                    ),
-                )
-                inserted = await cur.fetchone()
-                if inserted is None:
-                    raise RuntimeError("evidence insert returned no identifier")
-                await conn.commit()
-                return str(inserted[0])
+                (
+                    tenant_id,
+                    thread_id,
+                    sequence,
+                    event_type,
+                    payload_hash,
+                    previous_hash,
+                    event_hash,
+                    context_json,
+                    signature,
+                ),
+            )
+            inserted = await cur.fetchone()
+            if inserted is None:
+                raise RuntimeError("evidence insert returned no identifier")
+            await conn.commit()
+            return str(inserted[0])
 
 
 class OISProductionSupervisor:
@@ -244,12 +244,12 @@ class OISProductionSupervisor:
         version_tag: str,
     ) -> dict[str, Any]:
         async with self.pool.connection() as conn, conn.cursor() as cur:
-                await cur.execute(
-                    "SELECT set_config('app.current_tenant_id', %s, true)",
-                    (tenant_id,),
-                )
-                await cur.execute(
-                    """
+            await cur.execute(
+                "SELECT set_config('app.current_tenant_id', %s, true)",
+                (tenant_id,),
+            )
+            await cur.execute(
+                """
                     SELECT
                         manifest_payload,
                         provenance_hash,
@@ -259,14 +259,12 @@ class OISProductionSupervisor:
                       AND workflow_name = %s
                       AND version_tag = %s
                     """,
-                    (tenant_id, workflow_name, version_tag),
-                )
-                record = await cur.fetchone()
+                (tenant_id, workflow_name, version_tag),
+            )
+            record = await cur.fetchone()
 
         if not record:
-            raise EvidenceVerificationFailure(
-                "Promotion denied: no signed artifact attestation"
-            )
+            raise EvidenceVerificationFailure("Promotion denied: no signed artifact attestation")
 
         manifest, provenance_hash, signature = record
         manifest = cast(dict[str, Any], manifest)
@@ -276,13 +274,9 @@ class OISProductionSupervisor:
                 "Promotion denied: manifest does not match provenance hash"
             )
 
-        expected = self._sign_hash(
-            f"{tenant_id}:{workflow_name}:{version_tag}:{provenance_hash}"
-        )
+        expected = self._sign_hash(f"{tenant_id}:{workflow_name}:{version_tag}:{provenance_hash}")
         if not hmac.compare_digest(expected, signature):
-            raise EvidenceVerificationFailure(
-                "Registry artifact signature mismatch"
-            )
+            raise EvidenceVerificationFailure("Registry artifact signature mismatch")
         return manifest
 
     @staticmethod
@@ -383,9 +377,7 @@ class OISProductionSupervisor:
                         digest,
                         current["side_effect_hash"],
                     ):
-                        raise FencingTokenMismatch(
-                            "Side-effect hash changed after approval"
-                        )
+                        raise FencingTokenMismatch("Side-effect hash changed after approval")
                     return {"current_state": "RESUME"}
 
                 builder = StateGraph(WorkflowState)
@@ -400,9 +392,7 @@ class OISProductionSupervisor:
                     config={"configurable": {"thread_id": thread_id}},
                 )
                 if not isinstance(result, dict):
-                    raise StateRecoveryFailure(
-                        "LangGraph returned an invalid state"
-                    )
+                    raise StateRecoveryFailure("LangGraph returned an invalid state")
 
                 result_state = dict(result)
                 result_state["fencing_token"] = state["fencing_token"]
@@ -452,19 +442,15 @@ class OISProductionSupervisor:
             sort_keys=True,
             default=str,
         )
-        payload_hash = hashlib.sha256(
-            f"{serialized}:{diagnostic_log}".encode()
-        ).hexdigest()
-        signature = self._sign_hash(
-            f"{tenant_id}:{thread_id}:{scenario_id}:{payload_hash}"
-        )
+        payload_hash = hashlib.sha256(f"{serialized}:{diagnostic_log}".encode()).hexdigest()
+        signature = self._sign_hash(f"{tenant_id}:{thread_id}:{scenario_id}:{payload_hash}")
         async with self.pool.connection() as conn, conn.cursor() as cur:
-                await cur.execute(
-                    "SELECT set_config('app.current_tenant_id', %s, true)",
-                    (tenant_id,),
-                )
-                await cur.execute(
-                    """
+            await cur.execute(
+                "SELECT set_config('app.current_tenant_id', %s, true)",
+                (tenant_id,),
+            )
+            await cur.execute(
+                """
                     INSERT INTO ois_kernel_dead_letter_queue (
                         tenant_id,
                         thread_id,
@@ -475,13 +461,13 @@ class OISProductionSupervisor:
                     )
                     VALUES (%s,%s,%s,%s,%s,%s)
                     """,
-                    (
-                        tenant_id,
-                        thread_id,
-                        scenario_id,
-                        diagnostic_log,
-                        serialized,
-                        signature,
-                    ),
-                )
-                await conn.commit()
+                (
+                    tenant_id,
+                    thread_id,
+                    scenario_id,
+                    diagnostic_log,
+                    serialized,
+                    signature,
+                ),
+            )
+            await conn.commit()

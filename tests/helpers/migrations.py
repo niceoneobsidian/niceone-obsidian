@@ -52,8 +52,7 @@ def apply_migrations(
         )
 
         cursor.execute(
-            "SELECT version, checksum FROM schema_migrations "
-            "ORDER BY CAST(version AS INTEGER)"
+            "SELECT version, checksum FROM schema_migrations ORDER BY CAST(version AS INTEGER)"
         )
         applied_migrations = {row[0]: row[1] for row in cursor.fetchall()}
 

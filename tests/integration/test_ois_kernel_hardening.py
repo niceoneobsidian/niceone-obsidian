@@ -93,19 +93,8 @@ def test_kernel_rls_policies_include_write_checks(
         )
         policies = cursor.fetchall()
 
-    policy_map = {
-        (row[0], row[1]): (row[2], row[3])
-        for row in policies
-    }
-    assert policy_map[
-        ("ois_artifact_registry", "tenant_registry_insert")
-    ][0] == "INSERT"
-    assert policy_map[
-        ("ois_artifact_registry", "tenant_registry_insert")
-    ][1] is not None
-    assert policy_map[
-        ("ois_graph_state_store", "tenant_state_update")
-    ][0] == "UPDATE"
-    assert policy_map[
-        ("ois_graph_state_store", "tenant_state_update")
-    ][1] is not None
+    policy_map = {(row[0], row[1]): (row[2], row[3]) for row in policies}
+    assert policy_map[("ois_artifact_registry", "tenant_registry_insert")][0] == "INSERT"
+    assert policy_map[("ois_artifact_registry", "tenant_registry_insert")][1] is not None
+    assert policy_map[("ois_graph_state_store", "tenant_state_update")][0] == "UPDATE"
+    assert policy_map[("ois_graph_state_store", "tenant_state_update")][1] is not None

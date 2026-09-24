@@ -19,8 +19,5 @@ def test_migration_versions_are_unique_and_numeric() -> None:
 
 
 def test_migration_versions_are_contiguous() -> None:
-    versions = sorted(
-        int(path.name.split("_", 1)[0])
-        for path in MIGRATIONS_DIR.glob("*.sql")
-    )
+    versions = sorted(int(path.name.split("_", 1)[0]) for path in MIGRATIONS_DIR.glob("*.sql"))
     assert versions == list(range(1, len(versions) + 1))
