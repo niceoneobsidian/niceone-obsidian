@@ -132,9 +132,7 @@ class TikTokSocialIntelligenceSlice:
                 workspace_id=workspace_id,
             )
             if evidence is None:
-                raise RuntimeError(
-                    f"committed TikTok evidence is missing: {evidence_id}"
-                )
+                raise RuntimeError(f"committed TikTok evidence is missing: {evidence_id}")
             posts.extend(normalize_tiktok_videos(evidence.payload))
         self._store.upsert_posts(
             tuple(posts),
