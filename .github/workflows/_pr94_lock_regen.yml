@@ -1,0 +1,36 @@
+name: PR94 Lock Regeneration
+
+on:
+  push:
+    branches:
+      - feat/ois-kernel-production-integration
+
+permissions:
+  contents: write
+
+jobs:
+  regenerate:
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+      - name: Install uv
+        run: python -m pip install "uv==0.12.17"
+      - name: Regenerate lock files
+        run: |
+          uv lock
+          uv export --frozen --format requirements-txt --hashes --no-emit-project --extra test -o requirements.lock
+      - name: Commit generated lock files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add uv.lock requirements.lock
+          if git diff --cached --quiet; then
+            echo "Lock files already current."
+            exit 0
+          fi
+          git commit -m "build: regenerate PR94 lock files"
+          git push origin HEAD:feat/ois-kernel-production-integration
