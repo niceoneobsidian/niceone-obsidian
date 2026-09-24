@@ -39,81 +39,81 @@ class PostgresSourceLedger:
 
         with self._connection.transaction(), self._connection.cursor() as cur:
             cur.execute(
-                    """
-                    INSERT INTO raw_evidence
-                    (evidence_id, tenant_id, workspace_id, source_id, source_record_id,
-                     payload, payload_hash, collected_at, connector_version,
-                     schema_version, ingestion_run_id)
-                    VALUES (%s,%s,%s,%s,%s,%s::jsonb,%s,%s,%s,%s,%s)
-                    ON CONFLICT DO NOTHING
-                    RETURNING evidence_id
-                    """,
-                    (
-                        evidence.evidence_id,
-                        evidence.tenant_id,
-                        evidence.workspace_id,
-                        evidence.source_id,
-                        evidence.source_record_id,
-                        json.dumps(evidence.payload, default=str),
-                        evidence.payload_hash,
-                        evidence.collected_at,
-                        evidence.connector_version,
-                        evidence.schema_version,
-                        evidence.ingestion_run_id,
-                    ),
-                )
-                inserted = cur.fetchone() is not None
+            """
+            INSERT INTO raw_evidence
+            (evidence_id, tenant_id, workspace_id, source_id, source_record_id,
+            payload, payload_hash, collected_at, connector_version,
+            schema_version, ingestion_run_id)
+            VALUES (%s,%s,%s,%s,%s,%s::jsonb,%s,%s,%s,%s,%s)
+            ON CONFLICT DO NOTHING
+            RETURNING evidence_id
+            """,
+            (
+            evidence.evidence_id,
+            evidence.tenant_id,
+            evidence.workspace_id,
+            evidence.source_id,
+            evidence.source_record_id,
+            json.dumps(evidence.payload, default=str),
+            evidence.payload_hash,
+            evidence.collected_at,
+            evidence.connector_version,
+            evidence.schema_version,
+            evidence.ingestion_run_id,
+            ),
+            )
+            inserted = cur.fetchone() is not None
 
-                if not inserted:
-                    cur.execute(
-                        """
-                        SELECT evidence_id
-                        FROM raw_evidence
-                        WHERE tenant_id=%s AND workspace_id=%s
-                          AND source_id=%s AND source_record_id=%s
-                          AND payload_hash=%s
-                        """,
-                        (
-                            evidence.tenant_id,
-                            evidence.workspace_id,
-                            evidence.source_id,
-                            evidence.source_record_id,
-                            evidence.payload_hash,
-                        ),
-                    )
-                    existing = cur.fetchone()
-                    if existing is None:
-                        raise RuntimeError(
-                            "duplicate evidence was reported but could not be located"
-                        )
-                    event = OutboxEvent(
-                        event_id=event.event_id,
-                        tenant_id=event.tenant_id,
-                        workspace_id=event.workspace_id,
-                        event_type=event.event_type,
-                        aggregate_id=existing[0],
-                        payload={**event.payload, "evidence_id": existing[0]},
-                        created_at=event.created_at,
-                    )
+            if not inserted:
+            cur.execute(
+            """
+            SELECT evidence_id
+            FROM raw_evidence
+            WHERE tenant_id=%s AND workspace_id=%s
+            AND source_id=%s AND source_record_id=%s
+            AND payload_hash=%s
+            """,
+            (
+            evidence.tenant_id,
+            evidence.workspace_id,
+            evidence.source_id,
+            evidence.source_record_id,
+            evidence.payload_hash,
+            ),
+            )
+            existing = cur.fetchone()
+            if existing is None:
+            raise RuntimeError(
+            "duplicate evidence was reported but could not be located"
+            )
+            event = OutboxEvent(
+            event_id=event.event_id,
+            tenant_id=event.tenant_id,
+            workspace_id=event.workspace_id,
+            event_type=event.event_type,
+            aggregate_id=existing[0],
+            payload={**event.payload, "evidence_id": existing[0]},
+            created_at=event.created_at,
+            )
 
-                cur.execute(
-                    """
-                    INSERT INTO source_outbox
-                    (event_id, tenant_id, workspace_id, event_type, aggregate_id,
-                     payload, created_at)
-                    VALUES (%s,%s,%s,%s,%s,%s::jsonb,%s)
-                    ON CONFLICT (event_id) DO NOTHING
-                    """,
-                    (
-                        event.event_id,
-                        event.tenant_id,
-                        event.workspace_id,
-                        event.event_type,
-                        event.aggregate_id,
-                        json.dumps(event.payload, default=str),
-                        event.created_at,
-                    ),
-                )
+            cur.execute(
+            """
+            INSERT INTO source_outbox
+            (event_id, tenant_id, workspace_id, event_type, aggregate_id,
+            payload, created_at)
+            VALUES (%s,%s,%s,%s,%s,%s::jsonb,%s)
+            ON CONFLICT (event_id) DO NOTHING
+            """,
+            (
+            event.event_id,
+            event.tenant_id,
+            event.workspace_id,
+            event.event_type,
+            event.aggregate_id,
+            json.dumps(event.payload, default=str),
+            event.created_at,
+            ),
+            )
         return True
 
     def pending(self, *, limit: int = 100) -> tuple[OutboxEvent, ...]:
@@ -146,13 +146,13 @@ class PostgresSourceLedger:
     def mark_published(self, event_id: str) -> None:
         with self._connection.transaction(), self._connection.cursor() as cur:
             cur.execute(
-                    """
-                    UPDATE source_outbox
-                    SET published_at = COALESCE(published_at, %s)
-                    WHERE event_id = %s
-                    """,
-                    (datetime.now(UTC), event_id),
-                )
+            """
+            UPDATE source_outbox
+            SET published_at = COALESCE(published_at, %s)
+            WHERE event_id = %s
+            """,
+            (datetime.now(UTC), event_id),
+            )
 
     def evidence(
         self,
@@ -193,24 +193,24 @@ class PostgresSourceLedger:
         now = datetime.now(UTC)
         with self._connection.transaction(), self._connection.cursor() as cur:
             cur.execute(
-                    """
-                    INSERT INTO publication_ledger
-                    (publication_id,event_id,destination,idempotency_key,status,attempts,
-                     created_at,updated_at)
-                    VALUES (%s,%s,%s,%s,'pending',0,%s,%s)
-                    ON CONFLICT (destination,idempotency_key) DO NOTHING
-                    RETURNING publication_id
-                    """,
-                    (
-                        publication_id,
-                        event_id,
-                        destination,
-                        idempotency_key,
-                        now,
-                        now,
-                    ),
-                )
-                return cur.fetchone() is not None
+            """
+            INSERT INTO publication_ledger
+            (publication_id,event_id,destination,idempotency_key,status,attempts,
+            created_at,updated_at)
+            VALUES (%s,%s,%s,%s,'pending',0,%s,%s)
+            ON CONFLICT (destination,idempotency_key) DO NOTHING
+            RETURNING publication_id
+            """,
+            (
+            publication_id,
+            event_id,
+            destination,
+            idempotency_key,
+            now,
+            now,
+            ),
+            )
+            return cur.fetchone() is not None
 
     def record_publication_attempt(
         self,
@@ -223,25 +223,25 @@ class PostgresSourceLedger:
         now = datetime.now(UTC)
         with self._connection.transaction(), self._connection.cursor() as cur:
             cur.execute(
-                    """
-                    UPDATE publication_ledger
-                    SET attempts = attempts + 1,
-                        status = %s,
-                        last_error = %s,
-                        updated_at = %s,
-                        published_at = CASE WHEN %s THEN %s ELSE published_at END
-                    WHERE destination = %s AND idempotency_key = %s
-                    """,
-                    (
-                        "published" if success else "failed",
-                        error,
-                        now,
-                        success,
-                        now,
-                        destination,
-                        idempotency_key,
-                    ),
-                )
+            """
+            UPDATE publication_ledger
+            SET attempts = attempts + 1,
+            status = %s,
+            last_error = %s,
+            updated_at = %s,
+            published_at = CASE WHEN %s THEN %s ELSE published_at END
+            WHERE destination = %s AND idempotency_key = %s
+            """,
+            (
+            "published" if success else "failed",
+            error,
+            now,
+            success,
+            now,
+            destination,
+            idempotency_key,
+            ),
+            )
 
     def publication(
         self,
