@@ -32,11 +32,23 @@ class SliceObservation:
 
 
 def normalize_tiktok_videos(raw: dict[str, Any]) -> tuple[SocialPost, ...]:
-    videos = raw.get("data", {}).get("videos", ())
+    data = raw.get("data")
+    if not isinstance(data, dict):
+        return ()
+    videos = data.get("videos", ())
+    if not isinstance(videos, list):
+        return ()
     observed_at = datetime.now(UTC)
     posts: list[SocialPost] = []
     for video in videos:
-        video_id = str(video["id"])
+        if not isinstance(video, dict):
+            continue
+        video_id = video.get("id")
+        if video_id is None:
+            continue
+        video_id = str(video_id).strip()
+        if not video_id:
+            continue
         posts.append(
             SocialPost(
                 provider="tiktok_display_v2",
@@ -60,13 +72,21 @@ def normalize_tiktok_videos(raw: dict[str, Any]) -> tuple[SocialPost, ...]:
 
 
 def _int(value: Any) -> int | None:
-    return None if value is None else int(value)
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError, OverflowError):
+        return None
 
 
 def _timestamp(value: Any) -> datetime | None:
     if value is None:
         return None
-    return datetime.fromtimestamp(int(value), UTC)
+    try:
+        return datetime.fromtimestamp(int(value), UTC)
+    except (TypeError, ValueError, OverflowError, OSError):
+        return None
 
 
 class TikTokSocialIntelligenceSlice:
