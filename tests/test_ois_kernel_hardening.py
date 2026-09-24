@@ -39,7 +39,8 @@ def test_unsigned_artifact_is_rejected() -> None:
 
 def test_signature_is_tenant_bound() -> None:
     manifest = {"routing_dag": []}
-    provenance = supervisor_hash = OISProductionSupervisor.canonical_manifest_hash(manifest)
+    provenance = OISProductionSupervisor.canonical_manifest_hash(manifest)
+    supervisor_hash = provenance
     wrong = hmac.new(
         SECRET,
         f"other:flow:v1:{provenance}".encode(),
@@ -48,7 +49,9 @@ def test_signature_is_tenant_bound() -> None:
     supervisor = supervisor_with_fetchone((manifest, supervisor_hash, wrong))
 
     with pytest.raises(EvidenceVerificationFailure):
-        asyncio.run(supervisor.verify_artifact_promotion_gate(TENANT, "flow", "v1")
+        asyncio.run(
+            supervisor.verify_artifact_promotion_gate(TENANT, "flow", "v1")
+        )
 
 
 def test_manifest_provenance_hash_must_match_payload() -> None:
