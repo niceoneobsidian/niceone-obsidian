@@ -126,11 +126,21 @@ class TikTokSocialIntelligenceSlice:
         # This makes the slice prove the real durable boundary rather than relying
         # on the connector response remaining in process memory.
         for evidence_id in result.evidence_ids:
-            evidence = self._ledger.evidence(evidence_id, tenant_id=tenant_id, workspace_id=workspace_id)
+            evidence = self._ledger.evidence(
+                evidence_id,
+                tenant_id=tenant_id,
+                workspace_id=workspace_id,
+            )
             if evidence is None:
-                raise RuntimeError(f"committed TikTok evidence is missing: {evidence_id}")
+                raise RuntimeError(
+                    f"committed TikTok evidence is missing: {evidence_id}"
+                )
             posts.extend(normalize_tiktok_videos(evidence.payload))
-        self._store.upsert_posts(tuple(posts), tenant_id=tenant_id, workspace_id=workspace_id)
+        self._store.upsert_posts(
+            tuple(posts),
+            tenant_id=tenant_id,
+            workspace_id=workspace_id,
+        )
         return SliceObservation(
             TikTokSource.source_id,
             result.evidence_ids,
