@@ -381,8 +381,16 @@ class OISProductionSupervisor:
                     return {"current_state": "RESUME"}
 
                 builder = StateGraph(WorkflowState)
-                builder.add_node("evaluate_step", evaluate_step)
-                builder.add_node("apply_step", apply_step)
+                builder.add_node(
+                    "evaluate_step",
+                    evaluate_step,
+                    input_schema=WorkflowState,
+                )
+                builder.add_node(
+                    "apply_step",
+                    apply_step,
+                    input_schema=WorkflowState,
+                )
                 builder.add_edge(START, "evaluate_step")
                 builder.add_edge("evaluate_step", "apply_step")
                 builder.add_edge("apply_step", END)
