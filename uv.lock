@@ -460,6 +460,7 @@ dependencies = [
 [package.optional-dependencies]
 test = [
     { name = "psycopg", extra = ["binary"] },
+    { name = "psycopg-pool" },
     { name = "pytest" },
     { name = "testcontainers" },
 ]
