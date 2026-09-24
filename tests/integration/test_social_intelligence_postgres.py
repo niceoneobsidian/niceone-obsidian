@@ -4,6 +4,8 @@ from datetime import UTC, datetime
 
 from ois.domains.social_intelligence.postgres_store import PostgresSocialSliceStore
 from ois.domains.social_intelligence.schemas import SocialPost
+from ois.infrastructure.source_gateway.evidence import RawEvidence, canonical_hash
+from ois.infrastructure.source_gateway.outbox import OutboxEvent
 from ois.infrastructure.source_gateway.postgres import PostgresSourceLedger
 from tests.helpers.migrations import apply_migrations
 
@@ -85,10 +87,6 @@ def test_publication_ledger_is_idempotent(postgres_connection):
 
 
 def test_duplicate_ingestion_repairs_missing_outbox(postgres_connection):
-    from datetime import datetime
-    from ois.infrastructure.source_gateway.evidence import RawEvidence, canonical_hash
-    from ois.infrastructure.source_gateway.outbox import OutboxEvent
-
     ledger = PostgresSourceLedger(postgres_connection)
     payload = {"data": {"videos": [{"id": "repair-1"}]}}
     evidence = RawEvidence(
