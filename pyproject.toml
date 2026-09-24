@@ -97,3 +97,12 @@ test = [
     "psycopg[binary]>=3.3.6,<4",
     "testcontainers[postgres]>=4.15,<5"
 ]
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+check_untyped_defs = false
+disallow_untyped_defs = false
