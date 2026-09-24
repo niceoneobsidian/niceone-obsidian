@@ -5,7 +5,7 @@ import hmac
 import json
 import logging
 import secrets
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 
 import redis.asyncio as redis
 from opentelemetry import metrics, trace
@@ -131,8 +131,7 @@ class EvidenceLedger:
             sort_keys=True,
             separators=(",", ":"),
         )
-        async with self.pool.connection() as conn:
-            async with conn.cursor() as cur:
+        async with self.pool.connection() as conn, conn.cursor() as cur:
                 await cur.execute(
                     "SELECT set_config('app.current_tenant_id', %s, true)",
                     (tenant_id,),
@@ -271,6 +270,7 @@ class OISProductionSupervisor:
             )
 
         manifest, provenance_hash, signature = record
+        manifest = cast(dict[str, Any], manifest)
         actual_hash = self.canonical_manifest_hash(manifest)
         if not hmac.compare_digest(actual_hash, provenance_hash):
             raise EvidenceVerificationFailure(
@@ -350,7 +350,7 @@ class OISProductionSupervisor:
 
                 async def evaluate_step(
                     current: WorkflowState,
-                ) -> dict[str, Any]:
+                ) -> WorkflowState:
                     payload = client_input.get(
                         "proposed_side_effect",
                         {"action": "noop"},
@@ -370,7 +370,7 @@ class OISProductionSupervisor:
 
                 async def apply_step(
                     current: WorkflowState,
-                ) -> dict[str, Any]:
+                ) -> WorkflowState:
                     if current.get("resolution") != "APPROVED":
                         return {"current_state": "ABORT"}
                     digest = hashlib.sha256(
@@ -445,7 +445,7 @@ class OISProductionSupervisor:
         thread_id: str,
         scenario_id: str,
         diagnostic_log: str,
-        state_dump: dict[str, Any],
+        state_dump: WorkflowState,
     ) -> None:
         recovery_counter.add(1, {"scenario": scenario_id})
         serialized = json.dumps(
