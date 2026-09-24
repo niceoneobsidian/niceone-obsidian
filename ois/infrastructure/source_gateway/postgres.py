@@ -37,8 +37,7 @@ class PostgresSourceLedger:
         ):
             raise PermissionError("evidence and outbox event scopes/aggregate differ")
 
-        with self._connection.transaction():
-            with self._connection.cursor() as cur:
+        with self._connection.transaction(), self._connection.cursor() as cur:
                 cur.execute(
                     """
                     INSERT INTO raw_evidence
