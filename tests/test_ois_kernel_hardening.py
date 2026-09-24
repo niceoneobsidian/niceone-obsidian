@@ -48,7 +48,7 @@ def test_signature_is_tenant_bound() -> None:
     supervisor = supervisor_with_fetchone((manifest, supervisor_hash, wrong))
 
     with pytest.raises(EvidenceVerificationFailure):
-        await supervisor.verify_artifact_promotion_gate(TENANT, "flow", "v1")
+        asyncio.run(supervisor.verify_artifact_promotion_gate(TENANT, "flow", "v1")
 
 
 def test_manifest_provenance_hash_must_match_payload() -> None:
