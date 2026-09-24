@@ -3,8 +3,8 @@ from __future__ import annotations
 import asyncio
 
 import psycopg
-import pytest
 from psycopg_pool import AsyncConnectionPool
+import pytest
 
 from production.ois_production_kernel import EvidenceLedger
 
