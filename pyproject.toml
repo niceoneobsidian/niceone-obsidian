@@ -98,7 +98,3 @@ test = [
     "testcontainers[postgres]>=4.15,<5"
 ]
 
-[[tool.mypy.overrides]]
-module = "tests.*"
-check_untyped_defs = false
-disallow_untyped_defs = false
