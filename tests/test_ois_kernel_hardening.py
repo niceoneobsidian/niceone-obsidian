@@ -1,6 +1,6 @@
 import hashlib
 import hmac
-from unittest.mock import AsyncMock, MagicMock
+from typing import Any\nfrom unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -19,7 +19,7 @@ SECRET = b"test-only-secret"
 TENANT = "4a2b2520-cb96-48eb-b12e-1e479aaef232"
 
 
-def supervisor_with_fetchone(row):
+def supervisor_with_fetchone(row: Any) -> OISProductionSupervisor:
     cursor = AsyncMock()
     cursor.fetchone.return_value = row
     conn = AsyncMock()
@@ -30,14 +30,14 @@ def supervisor_with_fetchone(row):
 
 
 @pytest.mark.asyncio
-async def test_unsigned_artifact_is_rejected():
+async def test_unsigned_artifact_is_rejected() -> None:
     supervisor = supervisor_with_fetchone(None)
     with pytest.raises(EvidenceVerificationFailure):
         await supervisor.verify_artifact_promotion_gate(TENANT, "flow", "v1")
 
 
 @pytest.mark.asyncio
-async def test_signature_is_tenant_bound():
+async def test_signature_is_tenant_bound() -> None:
     manifest = {"routing_dag": []}
     provenance = supervisor_hash = OISProductionSupervisor.canonical_manifest_hash(manifest)
     wrong = hmac.new(
@@ -52,7 +52,7 @@ async def test_signature_is_tenant_bound():
 
 
 @pytest.mark.asyncio
-async def test_manifest_provenance_hash_must_match_payload():
+async def test_manifest_provenance_hash_must_match_payload() -> None:
     manifest = {"routing_dag": []}
     incorrect_provenance = hashlib.sha256(b"different-manifest").hexdigest()
     signature = hmac.new(
@@ -73,7 +73,7 @@ async def test_manifest_provenance_hash_must_match_payload():
 
 
 @pytest.mark.asyncio
-async def test_valid_manifest_provenance_and_signature_are_accepted():
+async def test_valid_manifest_provenance_and_signature_are_accepted() -> None:
     manifest = {"routing_dag": ["evaluate_step", "apply_step"]}
     provenance = OISProductionSupervisor.canonical_manifest_hash(manifest)
     signature = hmac.new(
@@ -91,7 +91,7 @@ async def test_valid_manifest_provenance_and_signature_are_accepted():
 
 
 @pytest.mark.asyncio
-async def test_lease_release_before_acquire_is_safe():
+async def test_lease_release_before_acquire_is_safe() -> None:
     client = AsyncMock()
     lease = FencedLease(client, "lease:test")
 
@@ -113,5 +113,5 @@ async def test_lease_release_before_acquire_is_safe():
         (EvidenceVerificationFailure(), "RC-12"),
     ],
 )
-def test_failure_classifier_is_explicit(exception, scenario):
+def test_failure_classifier_is_explicit(exception: Exception, scenario: str) -> None:
     assert OISProductionSupervisor.classify_failure(exception) == scenario
