@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import hmac
 from typing import Any
@@ -30,15 +31,13 @@ def supervisor_with_fetchone(row: Any) -> OISProductionSupervisor:
     return OISProductionSupervisor(pool, AsyncMock(), SECRET)
 
 
-@pytest.mark.asyncio
-async def test_unsigned_artifact_is_rejected() -> None:
+def test_unsigned_artifact_is_rejected() -> None:
     supervisor = supervisor_with_fetchone(None)
     with pytest.raises(EvidenceVerificationFailure):
-        await supervisor.verify_artifact_promotion_gate(TENANT, "flow", "v1")
+        asyncio.run(supervisor.verify_artifact_promotion_gate(TENANT, "flow", "v1"))
 
 
-@pytest.mark.asyncio
-async def test_signature_is_tenant_bound() -> None:
+def test_signature_is_tenant_bound() -> None:
     manifest = {"routing_dag": []}
     provenance = supervisor_hash = OISProductionSupervisor.canonical_manifest_hash(manifest)
     wrong = hmac.new(
@@ -52,8 +51,7 @@ async def test_signature_is_tenant_bound() -> None:
         await supervisor.verify_artifact_promotion_gate(TENANT, "flow", "v1")
 
 
-@pytest.mark.asyncio
-async def test_manifest_provenance_hash_must_match_payload() -> None:
+def test_manifest_provenance_hash_must_match_payload() -> None:
     manifest = {"routing_dag": []}
     incorrect_provenance = hashlib.sha256(b"different-manifest").hexdigest()
     signature = hmac.new(
@@ -66,15 +64,16 @@ async def test_manifest_provenance_hash_must_match_payload() -> None:
     )
 
     with pytest.raises(EvidenceVerificationFailure, match="manifest"):
-        await supervisor.verify_artifact_promotion_gate(
-            TENANT,
-            "flow",
-            "v1",
+        asyncio.run(
+            supervisor.verify_artifact_promotion_gate(
+                TENANT,
+                "flow",
+                "v1",
+            )
         )
 
 
-@pytest.mark.asyncio
-async def test_valid_manifest_provenance_and_signature_are_accepted() -> None:
+def test_valid_manifest_provenance_and_signature_are_accepted() -> None:
     manifest = {"routing_dag": ["evaluate_step", "apply_step"]}
     provenance = OISProductionSupervisor.canonical_manifest_hash(manifest)
     signature = hmac.new(
@@ -84,19 +83,20 @@ async def test_valid_manifest_provenance_and_signature_are_accepted() -> None:
     ).hexdigest()
     supervisor = supervisor_with_fetchone((manifest, provenance, signature))
 
-    assert await supervisor.verify_artifact_promotion_gate(
-        TENANT,
-        "flow",
-        "v1",
+    assert asyncio.run(
+        supervisor.verify_artifact_promotion_gate(
+            TENANT,
+            "flow",
+            "v1",
+        )
     ) == manifest
 
 
-@pytest.mark.asyncio
-async def test_lease_release_before_acquire_is_safe() -> None:
+def test_lease_release_before_acquire_is_safe() -> None:
     client = AsyncMock()
     lease = FencedLease(client, "lease:test")
 
-    await lease.release()
+    asyncio.run(lease.release())
 
     client.eval.assert_not_awaited()
 
