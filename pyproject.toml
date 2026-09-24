@@ -95,7 +95,6 @@ exclude = [
 [project.optional-dependencies]
 test = [
     "pytest>=9,<10",
-    "pytest-asyncio>=1,<2",
     "psycopg[binary]>=3.3.6,<4",
     "psycopg-pool>=3.2,<4",
     "testcontainers[postgres]>=4.15,<5"
