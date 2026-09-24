@@ -5,6 +5,7 @@ production path: raw evidence and its outbox event are committed atomically,
 while publication attempts are recorded idempotently and never inferred from
 in-memory state.
 """
+
 from __future__ import annotations
 
 import json
@@ -15,7 +16,6 @@ import psycopg
 
 from .evidence import RawEvidence, canonical_hash
 from .outbox import OutboxEvent
-
 
 
 class PostgresSourceLedger:
@@ -84,7 +84,9 @@ class PostgresSourceLedger:
                     )
                     existing = cur.fetchone()
                     if existing is None:
-                        raise RuntimeError("duplicate evidence was reported but could not be located")
+                        raise RuntimeError(
+                            "duplicate evidence was reported but could not be located"
+                        )
                     event = OutboxEvent(
                         event_id=event.event_id,
                         tenant_id=event.tenant_id,
@@ -214,7 +216,12 @@ class PostgresSourceLedger:
                 return cur.fetchone() is not None
 
     def record_publication_attempt(
-        self, *, destination: str, idempotency_key: str, success: bool, error: str | None = None
+        self,
+        *,
+        destination: str,
+        idempotency_key: str,
+        success: bool,
+        error: str | None = None,
     ) -> None:
         now = datetime.now(UTC)
         with self._connection.transaction():
@@ -240,7 +247,12 @@ class PostgresSourceLedger:
                     ),
                 )
 
-    def publication(self, *, destination: str, idempotency_key: str) -> dict[str, Any] | None:
+    def publication(
+        self,
+        *,
+        destination: str,
+        idempotency_key: str,
+    ) -> dict[str, Any] | None:
         with self._connection.cursor() as cur:
             cur.execute(
                 """
