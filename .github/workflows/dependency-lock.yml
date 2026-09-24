@@ -24,9 +24,7 @@ on:
       - "requirements.lock"
       - ".github/workflows/dependency-lock.yml"
   push:
-    branches:
-      - main
-      - "dependabot/**"
+    branches: [main]
     paths:
       - "pyproject.toml"
       - "uv.lock"
@@ -43,7 +41,7 @@ jobs:
   verify:
     name: Verify lock consistency
     # Skipped when regenerating: the lock does not exist or is stale until write-lock runs.
-    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.write_lock) && !(github.event_name == 'push' && startsWith(github.ref_name, 'dependabot/')) }}
+    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.write_lock) }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -96,7 +94,7 @@ jobs:
 
   write-lock:
     name: Regenerate and commit lock files
-    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.write_lock) || (github.event_name == 'push' && startsWith(github.ref_name, 'dependabot/')) }}
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.write_lock }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
