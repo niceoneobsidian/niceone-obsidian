@@ -34,7 +34,7 @@ def supervisor_with_fetchone(row: Any) -> OISProductionSupervisor:
 def test_unsigned_artifact_is_rejected() -> None:
     supervisor = supervisor_with_fetchone(None)
     with pytest.raises(EvidenceVerificationFailure):
-        asyncio.run(supervisor.verify_artifact_promotion_gate(TENANT, "flow", "v1"))
+        asyncio.run(supervisor.verify_artifact_promotion_gate(TENANT, "flow", "v1")))
 
 
 def test_signature_is_tenant_bound() -> None:
