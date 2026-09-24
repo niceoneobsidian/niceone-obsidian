@@ -7,6 +7,7 @@ normalized SocialPost -> persisted intelligence observation.
 It does not claim live activation until a deployment supplies an authorized
 TikTok access token and the live acceptance test records evidence.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -16,8 +17,9 @@ from typing import Any
 
 from ois.domains.social_intelligence.schemas import SocialMetric, SocialPost
 from ois.infrastructure.source_gateway import PostgresSourceLedger, SourceGateway
-from .postgres_store import PostgresSocialSliceStore
 from ois.integrations.tiktok.source import TikTokSource, TikTokSourceRun
+
+from .postgres_store import PostgresSocialSliceStore
 
 
 @dataclass(frozen=True)
@@ -71,7 +73,11 @@ class TikTokSocialIntelligenceSlice:
     """Execute one authorized TikTok acquisition run through the production path."""
 
     def __init__(
-        self, *, source: TikTokSource, gateway: SourceGateway, ledger: PostgresSourceLedger,
+        self,
+        *,
+        source: TikTokSource,
+        gateway: SourceGateway,
+        ledger: PostgresSourceLedger,
         store: PostgresSocialSliceStore,
     ) -> None:
         self._source = source
@@ -115,5 +121,5 @@ class TikTokSocialIntelligenceSlice:
 
 
 def observation_key(post: SocialPost) -> str:
-    payload = post.model_dump_json(sort_keys=True)
+    payload = post.model_dump_json()
     return hashlib.sha256(payload.encode()).hexdigest()
