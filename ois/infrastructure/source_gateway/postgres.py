@@ -17,55 +17,6 @@ from .evidence import RawEvidence, canonical_hash
 from .outbox import OutboxEvent
 
 
-SCHEMA = """
-CREATE TABLE IF NOT EXISTS raw_evidence (
-    evidence_id TEXT PRIMARY KEY,
-    tenant_id TEXT NOT NULL,
-    workspace_id TEXT NOT NULL,
-    source_id TEXT NOT NULL,
-    source_record_id TEXT NOT NULL,
-    payload JSONB NOT NULL,
-    payload_hash TEXT NOT NULL,
-    collected_at TIMESTAMPTZ NOT NULL,
-    connector_version TEXT NOT NULL,
-    schema_version TEXT NOT NULL,
-    ingestion_run_id TEXT NOT NULL,
-    UNIQUE (tenant_id, workspace_id, source_id, source_record_id, payload_hash)
-);
-
-CREATE TABLE IF NOT EXISTS source_outbox (
-    event_id TEXT PRIMARY KEY,
-    tenant_id TEXT NOT NULL,
-    workspace_id TEXT NOT NULL,
-    event_type TEXT NOT NULL,
-    aggregate_id TEXT NOT NULL,
-    payload JSONB NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL,
-    published_at TIMESTAMPTZ
-);
-
-CREATE INDEX IF NOT EXISTS idx_source_outbox_pending
-    ON source_outbox (created_at, event_id)
-    WHERE published_at IS NULL;
-
-CREATE TABLE IF NOT EXISTS publication_ledger (
-    publication_id TEXT PRIMARY KEY,
-    event_id TEXT NOT NULL,
-    destination TEXT NOT NULL,
-    idempotency_key TEXT NOT NULL,
-    status TEXT NOT NULL CHECK (status IN ('pending', 'published', 'failed')),
-    attempts INTEGER NOT NULL DEFAULT 0,
-    last_error TEXT,
-    created_at TIMESTAMPTZ NOT NULL,
-    updated_at TIMESTAMPTZ NOT NULL,
-    published_at TIMESTAMPTZ,
-    UNIQUE (destination, idempotency_key)
-);
-
-CREATE INDEX IF NOT EXISTS idx_publication_ledger_event
-    ON publication_ledger (event_id, destination);
-"""
-
 
 class PostgresSourceLedger:
     """Atomic raw-evidence/outbox store plus durable publication ledger."""
@@ -74,9 +25,7 @@ class PostgresSourceLedger:
         self._connection = connection
 
     def initialize(self) -> None:
-        with self._connection.transaction():
-            with self._connection.cursor() as cur:
-                cur.execute(SCHEMA)
+        raise RuntimeError("Database schema must be applied through repository migrations")
 
     def commit_ingest(self, evidence: RawEvidence, event: OutboxEvent) -> bool:
         if canonical_hash(evidence.payload) != evidence.payload_hash:
@@ -114,8 +63,37 @@ class PostgresSourceLedger:
                         evidence.ingestion_run_id,
                     ),
                 )
-                if cur.fetchone() is None:
-                    return False
+                inserted = cur.fetchone() is not None
+
+                if not inserted:
+                    cur.execute(
+                        """
+                        SELECT evidence_id
+                        FROM raw_evidence
+                        WHERE tenant_id=%s AND workspace_id=%s
+                          AND source_id=%s AND source_record_id=%s
+                          AND payload_hash=%s
+                        """,
+                        (
+                            evidence.tenant_id,
+                            evidence.workspace_id,
+                            evidence.source_id,
+                            evidence.source_record_id,
+                            evidence.payload_hash,
+                        ),
+                    )
+                    existing = cur.fetchone()
+                    if existing is None:
+                        raise RuntimeError("duplicate evidence was reported but could not be located")
+                    event = OutboxEvent(
+                        event_id=event.event_id,
+                        tenant_id=event.tenant_id,
+                        workspace_id=event.workspace_id,
+                        event_type=event.event_type,
+                        aggregate_id=existing[0],
+                        payload={**event.payload, "evidence_id": existing[0]},
+                        created_at=event.created_at,
+                    )
 
                 cur.execute(
                     """
@@ -123,6 +101,7 @@ class PostgresSourceLedger:
                     (event_id, tenant_id, workspace_id, event_type, aggregate_id,
                      payload, created_at)
                     VALUES (%s,%s,%s,%s,%s,%s::jsonb,%s)
+                    ON CONFLICT (event_id) DO NOTHING
                     """,
                     (
                         event.event_id,
@@ -175,21 +154,33 @@ class PostgresSourceLedger:
                     (datetime.now(UTC), event_id),
                 )
 
-    def evidence(self, evidence_id: str) -> RawEvidence | None:
+    def evidence(
+        self,
+        evidence_id: str,
+        *,
+        tenant_id: str,
+        workspace_id: str,
+    ) -> RawEvidence | None:
         with self._connection.cursor() as cur:
             cur.execute(
                 """
                 SELECT evidence_id, tenant_id, workspace_id, source_id, source_record_id,
                        payload, payload_hash, collected_at, connector_version,
                        schema_version, ingestion_run_id
-                FROM raw_evidence WHERE evidence_id = %s
+                FROM raw_evidence
+                WHERE evidence_id = %s
+                  AND tenant_id = %s
+                  AND workspace_id = %s
                 """,
-                (evidence_id,),
+                (evidence_id, tenant_id, workspace_id),
             )
             row = cur.fetchone()
         if row is None:
             return None
-        return RawEvidence(*row)
+        evidence = RawEvidence(*row)
+        if canonical_hash(evidence.payload) != evidence.payload_hash:
+            raise ValueError("stored raw evidence failed hash verification")
+        return evidence
 
     def record_publication(
         self,
