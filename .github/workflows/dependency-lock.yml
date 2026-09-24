@@ -24,7 +24,9 @@ on:
       - "requirements.lock"
       - ".github/workflows/dependency-lock.yml"
   push:
-    branches: [main]
+    branches:
+      - main
+      - "dependabot/**"
     paths:
       - "pyproject.toml"
       - "uv.lock"
