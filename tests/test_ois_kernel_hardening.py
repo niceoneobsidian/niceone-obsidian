@@ -23,6 +23,7 @@ TENANT = "4a2b2520-cb96-48eb-b12e-1e479aaef232"
 
 def supervisor_with_fetchone(row: Any) -> OISProductionSupervisor:
     cursor = MagicMock()
+    cursor.execute = AsyncMock()
     cursor.fetchone = AsyncMock(return_value=row)
     conn = MagicMock()
     conn.cursor.return_value.__aenter__ = AsyncMock(return_value=cursor)
