@@ -83,9 +83,7 @@ class PostgresSourceLedger:
                 )
                 existing = cur.fetchone()
                 if existing is None:
-                    raise RuntimeError(
-                        "duplicate evidence was reported but could not be located"
-                    )
+                    raise RuntimeError("duplicate evidence was reported but could not be located")
                 event = OutboxEvent(
                     event_id=event.event_id,
                     tenant_id=event.tenant_id,
