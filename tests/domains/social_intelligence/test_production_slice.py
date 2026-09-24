@@ -43,3 +43,23 @@ def test_scope_and_hash_contracts():
     assert event.aggregate_id == evidence.evidence_id
     assert evidence.tenant_id == event.tenant_id
     assert canonical_hash(evidence.payload) == evidence.payload_hash
+
+
+def test_tiktok_normalization_skips_malformed_records():
+    assert normalize_tiktok_videos({}) == ()
+    assert normalize_tiktok_videos({"data": {"videos": "not-a-list"}}) == ()
+    assert normalize_tiktok_videos({"data": {"videos": [{"id": None}, {}, {"id": "ok", "like_count": "bad", "create_time": "bad"}]}})[0].external_id == "ok"
+
+
+def test_production_verified_requires_evidence():
+    import pytest
+    from ois.domains.social_intelligence.readiness import ReadinessCheck
+
+    with pytest.raises(ValueError):
+        ReadinessCheck(
+            check_id="SI-01",
+            requirement="one real platform",
+            status="production_verified",
+            evidence=(),
+            verified_at=datetime.now(UTC),
+        )
