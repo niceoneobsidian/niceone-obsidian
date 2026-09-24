@@ -33,7 +33,8 @@ class PostgresSocialSliceStore:
                 cur.execute(
                     """
                         INSERT INTO social_intelligence_posts
-                        (tenant_id, workspace_id, provider, platform, external_id, payload, observed_at)
+                        (tenant_id, workspace_id, provider, platform, external_id, payload,
+                         observed_at)
                         VALUES (%s,%s,%s,%s,%s,%s::jsonb,%s)
                         ON CONFLICT (tenant_id, workspace_id, provider, platform, external_id)
                         DO UPDATE SET payload=excluded.payload,
