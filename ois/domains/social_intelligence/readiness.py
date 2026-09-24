@@ -21,7 +21,7 @@ class ReadinessCheck:
     def __post_init__(self) -> None:
         if self.status == "production_verified":
             if not self.evidence:
-                raise ValueError(f"{this.check_id} requires evidence before production verification")
+                raise ValueError(f"{self.check_id} requires evidence before production verification")
             if self.verified_at is None:
                 raise ValueError(f"{this.check_id} requires verified_at before production verification")
 
