@@ -1,6 +1,7 @@
 import hashlib
 import hmac
-from typing import Any\nfrom unittest.mock import AsyncMock, MagicMock
+from typing import Any
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
