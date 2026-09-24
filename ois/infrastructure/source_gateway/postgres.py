@@ -38,7 +38,7 @@ class PostgresSourceLedger:
             raise PermissionError("evidence and outbox event scopes/aggregate differ")
 
         with self._connection.transaction(), self._connection.cursor() as cur:
-                cur.execute(
+            cur.execute(
                     """
                     INSERT INTO raw_evidence
                     (evidence_id, tenant_id, workspace_id, source_id, source_record_id,
@@ -145,7 +145,7 @@ class PostgresSourceLedger:
 
     def mark_published(self, event_id: str) -> None:
         with self._connection.transaction(), self._connection.cursor() as cur:
-                cur.execute(
+            cur.execute(
                     """
                     UPDATE source_outbox
                     SET published_at = COALESCE(published_at, %s)
@@ -192,7 +192,7 @@ class PostgresSourceLedger:
     ) -> bool:
         now = datetime.now(UTC)
         with self._connection.transaction(), self._connection.cursor() as cur:
-                cur.execute(
+            cur.execute(
                     """
                     INSERT INTO publication_ledger
                     (publication_id,event_id,destination,idempotency_key,status,attempts,
@@ -222,7 +222,7 @@ class PostgresSourceLedger:
     ) -> None:
         now = datetime.now(UTC)
         with self._connection.transaction(), self._connection.cursor() as cur:
-                cur.execute(
+            cur.execute(
                     """
                     UPDATE publication_ledger
                     SET attempts = attempts + 1,
