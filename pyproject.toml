@@ -97,4 +97,3 @@ test = [
     "psycopg[binary]>=3.3.6,<4",
     "testcontainers[postgres]>=4.15,<5"
 ]
-
