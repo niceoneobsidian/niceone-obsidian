@@ -9,8 +9,8 @@
 - Immutable UPDATE/DELETE triggers for evidence, DLQ and registry.
 - Tenant-bound cryptographic promotion verification.
 - Redis lease ownership token with monotonic fencing counter.
-- Append-only evidence sequence with previous-hash chaining.
-- LangGraph supervisor execution boundary with HITL interrupt.
+- Append-only evidence sequence with transaction-scoped advisory locking and event-hash chaining.
+- LangGraph supervisor execution boundary with HITL interrupt; durable resume remains gated on a configured persistent checkpointer.
 - Failure classification into recovery scenarios.
 - Cryptographically sealed DLQ containment.
 - Promotion negative tests for unsigned and cross-tenant-bound signatures.
@@ -24,8 +24,10 @@
 5. Recovery is classified rather than sending every exception to RC-04.
 6. Evidence contains an ordered previous-hash chain.
 7. Redis fencing tokens are monotonic, not merely random nonces.
-8. Production secrets are supplied externally; no production secret is embedded.
-9. The implementation status does not claim staging or production verification from mocks.
+8. Evidence sequence allocation is serialized per tenant/thread and stores a complete event hash.
+9. Promotion verifies the canonical manifest hash before checking the promotion signature.
+10. Production secrets are supplied externally; no production secret is embedded.
+11. The implementation status does not claim staging or production verification from mocks.
 
 ## Verification boundary
 
@@ -38,6 +40,7 @@ Required next gates:
 - Live PostgreSQL RLS adversarial test.
 - Live Redis lease expiry/split-brain fencing test.
 - Full RC-01 through RC-12 behavioural matrix.
+- Configure and verify a persistent PostgreSQL checkpointer for restart-safe HITL resume.
 - Checkpoint corruption/recovery tests against the actual checkpointer implementation.
 - OpenTelemetry exporter/collector verification.
 - Real artifact registration and signature provenance flow.
