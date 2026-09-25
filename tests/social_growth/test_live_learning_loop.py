@@ -12,7 +12,7 @@ from ois.domains.social_growth.persistence import SQLiteSocialEventStore
 from ois.domains.social_intelligence.intelligence import ModalityObservation
 
 
-def test_live_learning_loop_links_evidence_genome_experiment_and_outcome():
+def test_live_learning_loop_links_evidence_genome_experiment_and_outcome() -> None:
     now = datetime.now(UTC)
     experiment = ExperimentSpec(
         experiment_id="exp-1",

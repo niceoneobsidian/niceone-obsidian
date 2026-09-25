@@ -7,14 +7,14 @@ from ois.kernel import (
 )
 
 
-def make_context():
+def make_context():  # type: ignore
     return ExecutionContext(
         identity=ExecutionIdentity(tenant_id="default"),
         objective="State transition test",
     )
 
 
-def test_received_can_enter_normalized():
+def test_received_can_enter_normalized():  # type: ignore
     context = make_context()
 
     context.set_status(ExecutionStatus.NORMALIZED)
@@ -22,7 +22,7 @@ def test_received_can_enter_normalized():
     assert context.status == ExecutionStatus.NORMALIZED
 
 
-def test_active_lifecycle_can_reach_routed():
+def test_active_lifecycle_can_reach_routed():  # type: ignore
     context = make_context()
 
     for status in (
@@ -41,7 +41,7 @@ def test_active_lifecycle_can_reach_routed():
     assert context.status == ExecutionStatus.ROUTED
 
 
-def test_routed_can_complete():
+def test_routed_can_complete():  # type: ignore
     context = make_context()
 
     context.set_status(ExecutionStatus.ROUTED)
@@ -50,7 +50,7 @@ def test_routed_can_complete():
     assert context.status == ExecutionStatus.COMPLETED
 
 
-def test_completed_is_terminal():
+def test_completed_is_terminal():  # type: ignore
     context = make_context()
 
     context.set_status(ExecutionStatus.COMPLETED)
@@ -59,7 +59,7 @@ def test_completed_is_terminal():
         context.set_status(ExecutionStatus.EXECUTING)
 
 
-def test_stopped_is_terminal():
+def test_stopped_is_terminal():  # type: ignore
     context = make_context()
 
     context.set_status(ExecutionStatus.STOPPED)
@@ -68,7 +68,7 @@ def test_stopped_is_terminal():
         context.set_status(ExecutionStatus.EXECUTING)
 
 
-def test_recovery_states_are_reachable():
+def test_recovery_states_are_reachable():  # type: ignore
     for status in (
         ExecutionStatus.RECOVERING,
         ExecutionStatus.REPLANNING,

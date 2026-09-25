@@ -33,14 +33,14 @@ def make_bundle(key: bytes) -> dict:
     return data
 
 
-def test_valid_bundle(tmp_path):
+def test_valid_bundle(tmp_path) -> None:
     key = b"test-key"
     path = tmp_path / "bundle.json"
     path.write_text(json.dumps(make_bundle(key)), encoding="utf-8")
     assert SecOpsEvidenceScanner(key).scan_bundle_compliance(path)
 
 
-def test_tampered_bundle_fails(tmp_path):
+def test_tampered_bundle_fails(tmp_path) -> None:
     key = b"test-key"
     data = make_bundle(key)
     data["historical_event_ledger"][0]["event_type"] = "tampered"
@@ -49,14 +49,14 @@ def test_tampered_bundle_fails(tmp_path):
     assert not SecOpsEvidenceScanner(key).scan_bundle_compliance(path)
 
 
-def test_wrong_key_fails(tmp_path):
+def test_wrong_key_fails(tmp_path) -> None:
     data = make_bundle(b"correct-key")
     path = tmp_path / "bundle.json"
     path.write_text(json.dumps(data), encoding="utf-8")
     assert not SecOpsEvidenceScanner(b"wrong-key").scan_bundle_compliance(path)
 
 
-def test_missing_payload_hash_fails(tmp_path):
+def test_missing_payload_hash_fails(tmp_path) -> None:
     key = b"test-key"
     data = make_bundle(key)
     data["historical_event_ledger"][0]["payload_hash"] = "0" * 64
@@ -65,7 +65,7 @@ def test_missing_payload_hash_fails(tmp_path):
     assert not SecOpsEvidenceScanner(key).scan_bundle_compliance(path)
 
 
-def test_payload_hash_mismatch_fails(tmp_path):
+def test_payload_hash_mismatch_fails(tmp_path) -> None:
     key = b"test-key"
     data = make_bundle(key)
     data["historical_event_ledger"][0]["payload"]["result"] = "tampered"

@@ -1,0 +1,383 @@
+tests/contract/test_social_intelligence_m14_m17.py:44: error: "object" has no attribute "version"  [attr-defined]
+tests/contract/test_social_intelligence_m14_m17.py:45: error: "object" has no attribute "hook"  [attr-defined]
+tests/contract/test_social_intelligence_m14_m17.py:46: error: "object" has no attribute "audio"  [attr-defined]
+tests/contract/test_social_intelligence_m14_m17.py:47: error: "object" has no attribute "fingerprint"  [attr-defined]
+tests/contract/test_social_intelligence_m14_m17.py:51: error: Argument 1 to "predict_content" has incompatible type "object"; expected "ContentGenome"  [arg-type]
+tests/contract/test_social_intelligence_m14_m17.py:60: error: Argument 2 to "CreativeVariant" has incompatible type "object"; expected "ContentGenome"  [arg-type]
+tests/contract/test_social_intelligence_m14_m17.py:61: error: Argument 2 to "CreativeVariant" has incompatible type "object"; expected "ContentGenome"  [arg-type]
+tests/contract/test_social_intelligence_m14_m17.py:75: error: Argument 1 to "predict_content" has incompatible type "object"; expected "ContentGenome"  [arg-type]
+tests/contract/test_future_planes.py:19: error: Value of type "object" is not indexable  [index]
+tests/social_growth/test_end_to_end_loop.py:32: error: "append" of "list" does not return a value (it only ever returns None)  [func-returns-value]
+tests/integration/test_postgres_outbox_worker.py:66: error: "object" has no attribute "effect_id"  [attr-defined]
+tests/integration/test_postgres_outbox_worker.py:67: error: "object" has no attribute "idempotency_key"  [attr-defined]
+tests/integration/test_testcontainers_smoke.py:22: error: Value of type "tuple[Any, ...] | None" is not indexable  [index]
+test_recovery_conformance_v1.py:72: error: Function is missing a type annotation for one or more parameters  [no-untyped-def]
+tests/integration/test_migrations.py:37: error: Value of type "tuple[Any, ...] | None" is not indexable  [index]
+tests/integration/test_postgres_fenced_mutations.py:157: error: Argument "registry" to "ExecutionRuntime" has incompatible type "NoopRegistry"; expected "CapabilityRegistry"  [arg-type]
+test_tiktok_kernel_integration.py:16: error: Function is missing a return type annotation  [no-untyped-def]
+test_tiktok_kernel_integration.py:37: error: Function is missing a return type annotation  [no-untyped-def]
+test_tiktok_kernel_integration.py:37: note: Use "-> None" if function does not return a value
+test_tiktok_kernel_integration.py:43: error: Function is missing a return type annotation  [no-untyped-def]
+test_tiktok_kernel_integration.py:43: note: Use "-> None" if function does not return a value
+test_tiktok_kernel_integration.py:68: error: Function is missing a return type annotation  [no-untyped-def]
+test_tiktok_kernel_integration.py:68: note: Use "-> None" if function does not return a value
+test_tiktok_kernel_integration.py:80: error: Argument 1 to "execute" of "Supervisor" has incompatible type "**dict[str, object]"; expected "str | None"  [arg-type]
+test_tiktok_kernel_integration.py:80: error: Argument 1 to "execute" of "Supervisor" has incompatible type "**dict[str, object]"; expected "dict[str, Any] | None"  [arg-type]
+test_tiktok_kernel_integration.py:80: note: "dict" is invariant -- see https://mypy.readthedocs.io/en/stable/common_issues.html#variance
+test_tiktok_kernel_integration.py:80: note: Consider using "Mapping" instead, which is covariant in the value type
+test_tiktok_kernel_integration.py:81: error: Argument 1 to "execute" of "Supervisor" has incompatible type "**dict[str, object]"; expected "str | None"  [arg-type]
+test_tiktok_kernel_integration.py:81: error: Argument 1 to "execute" of "Supervisor" has incompatible type "**dict[str, object]"; expected "dict[str, Any] | None"  [arg-type]
+test_tiktok_kernel_integration.py:81: note: "dict" is invariant -- see https://mypy.readthedocs.io/en/stable/common_issues.html#variance
+test_tiktok_kernel_integration.py:81: note: Consider using "Mapping" instead, which is covariant in the value type
+test_tiktok_growth_acquisition.py:22: error: Function is missing a return type annotation  [no-untyped-def]
+test_tiktok_growth_acquisition.py:22: note: Use "-> None" if function does not return a value
+test_tiktok_growth_acquisition.py:31: error: Function is missing a return type annotation  [no-untyped-def]
+test_tiktok_growth_acquisition.py:31: note: Use "-> None" if function does not return a value
+test_tiktok_growth_acquisition.py:38: error: Function is missing a return type annotation  [no-untyped-def]
+test_tiktok_growth_acquisition.py:38: note: Use "-> None" if function does not return a value
+test_tiktok_growth_acquisition.py:47: error: Function is missing a return type annotation  [no-untyped-def]
+test_tiktok_growth_acquisition.py:47: note: Use "-> None" if function does not return a value
+test_kernel_validation.py:19: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_validation.py:47: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_validation.py:51: error: Function is missing a type annotation  [no-untyped-def]
+test_kernel_validation.py:65: error: Function is missing a type annotation  [no-untyped-def]
+test_kernel_validation.py:78: error: Function is missing a type annotation  [no-untyped-def]
+test_kernel_validation.py:90: error: Function is missing a type annotation  [no-untyped-def]
+test_kernel_validation.py:103: error: Function is missing a type annotation  [no-untyped-def]
+test_kernel_validation.py:117: error: Function is missing a type annotation  [no-untyped-def]
+test_kernel_validation.py:130: error: Function is missing a type annotation  [no-untyped-def]
+test_kernel_supervisor_orchestrator_integration.py:17: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_supervisor_orchestrator_integration.py:28: error: Function is missing a type annotation  [no-untyped-def]
+test_kernel_supervisor_orchestrator_integration.py:39: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_supervisor_orchestrator_integration.py:39: note: Use "-> None" if function does not return a value
+test_kernel_supervisor_agent_selection.py:15: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_supervisor_agent_selection.py:24: error: Function is missing a type annotation  [no-untyped-def]
+test_kernel_supervisor_agent_selection.py:28: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_supervisor_agent_selection.py:28: note: Use "-> None" if function does not return a value
+test_kernel_supervisor_agent_selection.py:42: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_supervisor_agent_selection.py:42: note: Use "-> None" if function does not return a value
+test_kernel_supervisor_agent_selection.py:49: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_supervisor_agent_selection.py:49: note: Use "-> None" if function does not return a value
+test_kernel_supervisor.py:20: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_supervisor.py:29: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_supervisor.py:38: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_supervisor.py:41: error: Argument "execution_id" to "ExecutionIdentity" has incompatible type "str"; expected "UUID"  [arg-type]
+test_kernel_supervisor.py:48: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_supervisor.py:61: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_supervisor.py:61: note: Use "-> None" if function does not return a value
+test_kernel_supervisor.py:76: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_supervisor.py:76: note: Use "-> None" if function does not return a value
+test_kernel_supervisor.py:92: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_supervisor.py:92: note: Use "-> None" if function does not return a value
+test_kernel_state_machine.py:57: error: Function is missing a type annotation  [no-untyped-def]
+test_kernel_state_machine.py:66: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_state_machine.py:66: note: Use "-> None" if function does not return a value
+test_kernel_state_machine.py:94: error: Function is missing a type annotation  [no-untyped-def]
+test_kernel_state_machine.py:102: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_state_machine.py:102: note: Use "-> None" if function does not return a value
+test_kernel_state_machine.py:125: error: Function is missing a type annotation  [no-untyped-def]
+test_kernel_state_machine.py:144: error: Function is missing a type annotation  [no-untyped-def]
+test_kernel_state_machine.py:160: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_state_machine.py:160: note: Use "-> None" if function does not return a value
+test_kernel_state.py:10: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_state.py:17: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_state.py:17: note: Use "-> None" if function does not return a value
+test_kernel_state.py:25: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_state.py:25: note: Use "-> None" if function does not return a value
+test_kernel_state.py:44: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_state.py:44: note: Use "-> None" if function does not return a value
+test_kernel_state.py:53: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_state.py:53: note: Use "-> None" if function does not return a value
+test_kernel_state.py:62: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_state.py:62: note: Use "-> None" if function does not return a value
+test_kernel_state.py:71: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_state.py:71: note: Use "-> None" if function does not return a value
+test_kernel_runtime_terminal.py:23: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_runtime_terminal.py:32: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_runtime_terminal.py:41: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_runtime_terminal.py:52: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_runtime_terminal.py:59: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_runtime_terminal.py:59: note: Use "-> None" if function does not return a value
+test_kernel_runtime_terminal.py:83: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_runtime_terminal.py:83: note: Use "-> None" if function does not return a value
+test_kernel_runtime_recovery.py:19: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_runtime_recovery.py:28: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_runtime_recovery.py:32: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_runtime_recovery.py:49: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_runtime_recovery.py:58: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_runtime_recovery.py:58: note: Use "-> None" if function does not return a value
+test_kernel_runtime_recovery.py:87: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_runtime_recovery.py:87: note: Use "-> None" if function does not return a value
+test_kernel_runtime_recovery.py:112: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_runtime_recovery.py:112: note: Use "-> None" if function does not return a value
+test_kernel_runtime_policy.py:20: error: Function is missing a type annotation  [no-untyped-def]
+test_kernel_runtime_policy.py:26: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_runtime_policy.py:29: error: Function is missing a type annotation  [no-untyped-def]
+test_kernel_runtime_policy.py:41: error: Function is missing a type annotation  [no-untyped-def]
+test_kernel_runtime_policy.py:50: error: Function is missing a type annotation  [no-untyped-def]
+test_kernel_runtime_policy.py:63: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_runtime_policy.py:63: note: Use "-> None" if function does not return a value
+test_kernel_runtime_policy.py:97: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_runtime_policy.py:97: note: Use "-> None" if function does not return a value
+test_kernel_runtime_policy.py:129: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_runtime_policy.py:129: note: Use "-> None" if function does not return a value
+test_kernel_runtime_policy.py:162: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_runtime_policy.py:162: note: Use "-> None" if function does not return a value
+test_kernel_runtime_policy.py:195: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_runtime_policy.py:195: note: Use "-> None" if function does not return a value
+test_kernel_runtime_idempotency_integration.py:21: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_runtime_idempotency_integration.py:21: note: Use "-> None" if function does not return a value
+test_kernel_runtime_idempotency_integration.py:25: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_runtime_idempotency_integration.py:35: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_runtime_idempotency_integration.py:48: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_runtime_idempotency_integration.py:57: error: Function is missing a type annotation  [no-untyped-def]
+test_kernel_runtime_idempotency_integration.py:69: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_runtime_idempotency_integration.py:69: note: Use "-> None" if function does not return a value
+test_kernel_runtime_idempotency_integration.py:96: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_runtime_idempotency_integration.py:96: note: Use "-> None" if function does not return a value
+test_kernel_runtime_idempotency_integration.py:123: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_runtime_idempotency_integration.py:123: note: Use "-> None" if function does not return a value
+test_kernel_runtime_idempotency_integration.py:163: error: Function is missing a type annotation  [no-untyped-def]
+test_kernel_runtime.py:19: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_runtime.py:38: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_registry.py:18: error: Function is missing a type annotation  [no-untyped-def]
+test_kernel_registry.py:26: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_registry.py:29: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_registry.py:40: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_registry.py:47: error: Function is missing a type annotation  [no-untyped-def]
+test_kernel_registry.py:58: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_registry.py:65: error: Function is missing a type annotation  [no-untyped-def]
+test_kernel_registry.py:74: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_registry.py:74: note: Use "-> None" if function does not return a value
+test_kernel_registry.py:89: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_registry.py:89: note: Use "-> None" if function does not return a value
+test_kernel_registry.py:101: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_registry.py:101: note: Use "-> None" if function does not return a value
+test_kernel_registry.py:117: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_registry.py:117: note: Use "-> None" if function does not return a value
+test_kernel_registry.py:127: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_registry.py:127: note: Use "-> None" if function does not return a value
+test_kernel_registry.py:139: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_registry.py:139: note: Use "-> None" if function does not return a value
+test_kernel_registry.py:149: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_registry.py:149: note: Use "-> None" if function does not return a value
+test_kernel_registry.py:160: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_registry.py:160: note: Use "-> None" if function does not return a value
+test_kernel_registry.py:176: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_registry.py:176: note: Use "-> None" if function does not return a value
+test_kernel_recovery_orchestration.py:20: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_recovery_orchestration.py:20: note: Use "-> None" if function does not return a value
+test_kernel_recovery_orchestration.py:24: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_recovery_orchestration.py:33: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_recovery_orchestration.py:38: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_recovery_orchestration.py:45: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_recovery_orchestration.py:70: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_recovery_orchestration.py:82: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_recovery_orchestration.py:82: note: Use "-> None" if function does not return a value
+test_kernel_recovery_exhaustion.py:31: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_recovery_exhaustion.py:31: note: Use "-> None" if function does not return a value
+test_kernel_recovery_exhaustion.py:51: error: Non-overlapping equality check (left operand type: "Literal[ExecutionStatus.RECOVERING]", right operand type: "Literal[ExecutionStatus.ESCALATED]")  [comparison-overlap]
+test_kernel_recovery_exhaustion.py:57: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_recovery_exhaustion.py:57: note: Use "-> None" if function does not return a value
+test_kernel_recovery_exhaustion.py:69: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_recovery_exhaustion.py:69: note: Use "-> None" if function does not return a value
+test_kernel_recovery_exhaustion.py:87: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_recovery_exhaustion.py:87: note: Use "-> None" if function does not return a value
+test_kernel_recovery_exhaustion.py:104: error: Non-overlapping equality check (left operand type: "Literal[ExecutionStatus.RECOVERING]", right operand type: "Literal[ExecutionStatus.ESCALATED]")  [comparison-overlap]
+test_kernel_recovery_exhaustion.py:108: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_recovery_exhaustion.py:108: note: Use "-> None" if function does not return a value
+test_kernel_recovery_exhaustion.py:128: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_recovery_exhaustion.py:128: note: Use "-> None" if function does not return a value
+test_kernel_recovery_exhaustion.py:139: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_recovery_exhaustion.py:139: note: Use "-> None" if function does not return a value
+test_kernel_recovery_exhaustion.py:153: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_recovery_exhaustion.py:153: note: Use "-> None" if function does not return a value
+test_kernel_recovery_exhaustion.py:172: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_recovery_exhaustion.py:172: note: Use "-> None" if function does not return a value
+test_kernel_recovery_exhaustion.py:177: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_recovery_exhaustion.py:177: note: Use "-> None" if function does not return a value
+test_kernel_recovery_exhaustion.py:187: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_recovery_exhaustion.py:187: note: Use "-> None" if function does not return a value
+test_kernel_recovery.py:8: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_recovery.py:15: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_recovery.py:15: note: Use "-> None" if function does not return a value
+test_kernel_recovery.py:28: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_recovery.py:28: note: Use "-> None" if function does not return a value
+test_kernel_recovery.py:40: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_recovery.py:40: note: Use "-> None" if function does not return a value
+test_kernel_recovery.py:52: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_recovery.py:52: note: Use "-> None" if function does not return a value
+test_kernel_recovery.py:64: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_recovery.py:64: note: Use "-> None" if function does not return a value
+test_kernel_recovery.py:77: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_recovery.py:77: note: Use "-> None" if function does not return a value
+test_kernel_recovery.py:90: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_recovery.py:90: note: Use "-> None" if function does not return a value
+test_kernel_recovery.py:102: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_recovery.py:102: note: Use "-> None" if function does not return a value
+test_kernel_recovery.py:114: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_recovery.py:114: note: Use "-> None" if function does not return a value
+test_kernel_recovery.py:126: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_recovery.py:126: note: Use "-> None" if function does not return a value
+test_kernel_recovery.py:138: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_recovery.py:138: note: Use "-> None" if function does not return a value
+test_kernel_recovery.py:151: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_recovery.py:151: note: Use "-> None" if function does not return a value
+test_kernel_public_supervisor.py:4: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_public_supervisor.py:4: note: Use "-> None" if function does not return a value
+test_kernel_public_durable_checkpoint.py:4: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_public_durable_checkpoint.py:4: note: Use "-> None" if function does not return a value
+test_kernel_policy.py:13: error: Function is missing a type annotation  [no-untyped-def]
+test_kernel_policy.py:27: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_policy.py:27: note: Use "-> None" if function does not return a value
+test_kernel_policy.py:41: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_policy.py:41: note: Use "-> None" if function does not return a value
+test_kernel_policy.py:59: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_policy.py:59: note: Use "-> None" if function does not return a value
+test_kernel_policy.py:77: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_policy.py:77: note: Use "-> None" if function does not return a value
+test_kernel_policy.py:95: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_policy.py:95: note: Use "-> None" if function does not return a value
+test_kernel_policy.py:113: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_policy.py:113: note: Use "-> None" if function does not return a value
+test_kernel_policy.py:131: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_policy.py:131: note: Use "-> None" if function does not return a value
+test_kernel_policy.py:149: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_policy.py:149: note: Use "-> None" if function does not return a value
+test_kernel_policy.py:167: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_policy.py:167: note: Use "-> None" if function does not return a value
+test_kernel_planning.py:24: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_planning.py:45: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_planning.py:56: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_planning.py:63: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_planning.py:75: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_planning.py:87: error: Function is missing a type annotation  [no-untyped-def]
+test_kernel_planning.py:204: error: Non-overlapping equality check (left operand type: "Literal[TaskStatus.PENDING]", right operand type: "Literal[TaskStatus.READY]")  [comparison-overlap]
+test_kernel_orchestrator_boundaries.py:48: error: Function is missing a type annotation  [no-untyped-def]
+test_kernel_orchestrator_boundaries.py:54: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_orchestrator_boundaries.py:63: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_orchestrator_boundaries.py:85: error: Function is missing a type annotation  [no-untyped-def]
+test_kernel_orchestrator_boundaries.py:98: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_orchestrator_boundaries.py:105: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_orchestrator_boundaries.py:105: note: Use "-> None" if function does not return a value
+test_kernel_orchestrator_boundaries.py:140: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_orchestrator_boundaries.py:140: note: Use "-> None" if function does not return a value
+test_kernel_orchestrator_boundaries.py:182: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_orchestrator_boundaries.py:182: note: Use "-> None" if function does not return a value
+test_kernel_orchestrator_boundaries.py:224: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_orchestrator_boundaries.py:224: note: Use "-> None" if function does not return a value
+test_kernel_orchestrator_boundaries.py:254: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_orchestrator_boundaries.py:254: note: Use "-> None" if function does not return a value
+test_kernel_orchestrator.py:20: error: Function is missing a type annotation  [no-untyped-def]
+test_kernel_orchestrator.py:26: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_orchestrator.py:35: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_orchestrator.py:57: error: Function is missing a type annotation  [no-untyped-def]
+test_kernel_orchestrator.py:70: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_orchestrator.py:79: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_orchestrator.py:79: note: Use "-> None" if function does not return a value
+test_kernel_orchestrator.py:124: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_orchestrator.py:126: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_orchestrator.py:126: note: Use "-> None" if function does not return a value
+test_kernel_orchestrator.py:130: error: Function is missing a type annotation  [no-untyped-def]
+test_kernel_idempotency.py:5: error: Function is missing a type annotation  [no-untyped-def]
+test_kernel_idempotency.py:14: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_idempotency.py:14: note: Use "-> None" if function does not return a value
+test_kernel_idempotency.py:24: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_idempotency.py:24: note: Use "-> None" if function does not return a value
+test_kernel_idempotency.py:31: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_idempotency.py:31: note: Use "-> None" if function does not return a value
+test_kernel_idempotency.py:43: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_idempotency.py:43: note: Use "-> None" if function does not return a value
+test_kernel_idempotency.py:57: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_idempotency.py:57: note: Use "-> None" if function does not return a value
+test_kernel_idempotency.py:67: error: Function is missing a type annotation  [no-untyped-def]
+test_kernel_idempotency.py:98: error: Function is missing a type annotation  [no-untyped-def]
+test_kernel_idempotency.py:111: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_idempotency.py:111: note: Use "-> None" if function does not return a value
+test_kernel_durable_checkpoint.py:8: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_durable_checkpoint.py:17: error: Function is missing a type annotation  [no-untyped-def]
+test_kernel_durable_checkpoint.py:35: error: Function is missing a type annotation  [no-untyped-def]
+test_kernel_durable_checkpoint.py:52: error: Function is missing a type annotation  [no-untyped-def]
+test_kernel_durable_checkpoint.py:58: error: Argument 1 to "load" of "JsonFileCheckpointStore" has incompatible type "str"; expected "UUID"  [arg-type]
+test_kernel_dag.py:21: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_dag.py:40: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_checkpoint_recovery_integration.py:19: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_checkpoint_recovery_integration.py:19: note: Use "-> None" if function does not return a value
+test_kernel_checkpoint_recovery_integration.py:23: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_checkpoint_recovery_integration.py:33: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_checkpoint_recovery_integration.py:47: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_checkpoint_recovery_integration.py:56: error: Function is missing a type annotation  [no-untyped-def]
+test_kernel_checkpoint_recovery_integration.py:68: error: Function is missing a type annotation  [no-untyped-def]
+test_kernel_checkpoint_recovery_integration.py:105: error: Function is missing a type annotation  [no-untyped-def]
+test_kernel_checkpoint_recovery_integration.py:139: error: Function is missing a type annotation  [no-untyped-def]
+test_kernel_checkpoint_recovery_integration.py:186: error: Function is missing a type annotation  [no-untyped-def]
+test_kernel_checkpoint_evidence.py:13: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_checkpoint_evidence.py:20: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_checkpoint_evidence.py:20: note: Use "-> None" if function does not return a value
+test_kernel_checkpoint_evidence.py:39: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_checkpoint_evidence.py:39: note: Use "-> None" if function does not return a value
+test_kernel_checkpoint_evidence.py:56: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_checkpoint_evidence.py:56: note: Use "-> None" if function does not return a value
+test_kernel_checkpoint_evidence.py:68: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_checkpoint_evidence.py:68: note: Use "-> None" if function does not return a value
+test_kernel_checkpoint_evidence.py:83: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_checkpoint_evidence.py:83: note: Use "-> None" if function does not return a value
+test_kernel_checkpoint_evidence.py:98: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_checkpoint_evidence.py:98: note: Use "-> None" if function does not return a value
+test_kernel_checkpoint_evidence.py:106: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_checkpoint_evidence.py:106: note: Use "-> None" if function does not return a value
+test_kernel_checkpoint_evidence.py:136: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_checkpoint_evidence.py:136: note: Use "-> None" if function does not return a value
+test_kernel_checkpoint_evidence.py:160: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_checkpoint_evidence.py:160: note: Use "-> None" if function does not return a value
+test_kernel_checkpoint_evidence.py:176: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_checkpoint_evidence.py:176: note: Use "-> None" if function does not return a value
+test_kernel_checkpoint_evidence.py:200: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_checkpoint_evidence.py:200: note: Use "-> None" if function does not return a value
+test_kernel_cancellation.py:21: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_cancellation.py:21: note: Use "-> None" if function does not return a value
+test_kernel_cancellation.py:25: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_cancellation.py:34: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_cancellation.py:50: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_cancellation.py:59: error: Function is missing a type annotation  [no-untyped-def]
+test_kernel_cancellation.py:71: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_cancellation.py:71: note: Use "-> None" if function does not return a value
+test_kernel_cancellation.py:78: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_cancellation.py:78: note: Use "-> None" if function does not return a value
+test_kernel_cancellation.py:93: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_cancellation.py:93: note: Use "-> None" if function does not return a value
+test_kernel_cancellation.py:122: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_cancellation.py:122: note: Use "-> None" if function does not return a value
+test_kernel_cancellation.py:157: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_cancellation.py:157: note: Use "-> None" if function does not return a value
+test_kernel_cancellation.py:189: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_cancellation.py:189: note: Use "-> None" if function does not return a value
+test_kernel_agent_registry_routing.py:21: error: Function is missing a type annotation for one or more parameters  [no-untyped-def]
+test_kernel_agent_registry_routing.py:33: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_agent_registry_routing.py:36: error: Function is missing a type annotation  [no-untyped-def]
+test_kernel_agent_registry_routing.py:40: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_agent_registry_routing.py:47: error: Function is missing a type annotation  [no-untyped-def]
+test_kernel_agent_registry_routing.py:56: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_agent_registry_routing.py:56: note: Use "-> None" if function does not return a value
+test_kernel_agent_registry_routing.py:72: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_agent_registry_routing.py:72: note: Use "-> None" if function does not return a value
+test_kernel_agent_registry_routing.py:86: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_agent_registry_routing.py:100: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_agent_registry_routing.py:102: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_agent_registry_routing.py:118: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_agent_registry_routing.py:118: note: Use "-> None" if function does not return a value
+test_kernel_agent_registry_routing.py:141: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_agent_registry_routing.py:141: note: Use "-> None" if function does not return a value
+test_kernel_agent_registry_routing.py:163: error: Function is missing a return type annotation  [no-untyped-def]
+test_kernel_agent_registry_routing.py:163: note: Use "-> None" if function does not return a value
+tests/integration/test_persistence_coordination.py:214: error: Argument "cancellation" to "ExecutionRuntime" has incompatible type "RedisCancellationToken"; expected "CancellationToken | None"  [arg-type]
+tests/integration/test_persistence_coordination.py:233: error: Value of type "Mapping[str, Any] | None" is not indexable  [index]
+test_p0_integrated_spine.py:30: error: Function is missing a type annotation  [no-untyped-def]
+tests/architecture/test_execution_boundaries.py:24: error: Argument 1 to "ExecutionRequest" has incompatible type "**dict[str, object]"; expected "str"  [arg-type]
+tests/architecture/test_execution_boundaries.py:24: error: Argument 1 to "ExecutionRequest" has incompatible type "**dict[str, object]"; expected "Mapping[str, object]"  [arg-type]
+tests/architecture/test_execution_boundaries.py:24: error: Argument 1 to "ExecutionRequest" has incompatible type "**dict[str, object]"; expected "str | None"  [arg-type]
+tests/architecture/test_execution_boundaries.py:24: error: Argument 1 to "ExecutionRequest" has incompatible type "**dict[str, object]"; expected "datetime | None"  [arg-type]
+tests/architecture/test_execution_boundaries.py:24: error: Argument 1 to "ExecutionRequest" has incompatible type "**dict[str, object]"; expected "Mapping[str, object] | None"  [arg-type]
+tests/social_growth/test_chat_ingestion.py:28: error: Item "None" of "str | None" has no attribute "startswith"  [union-attr]
+tests/social_growth/test_chat_ingestion.py:57: error: Item "None" of "MetricObservation | None" has no attribute "value"  [union-attr]
+Found 259 errors in 42 files (checked 278 source files)

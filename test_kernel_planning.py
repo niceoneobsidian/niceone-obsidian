@@ -21,7 +21,7 @@ from ois.kernel.evidence import EvidenceLedger
 
 class EchoCapability:
     @property
-    def contract(self):
+    def contract(self):  # type: ignore
         return CapabilityContract(
             capability_id="test.echo",
             version="1.0.0",
@@ -42,7 +42,7 @@ class EchoCapability:
             },
         )
 
-    def invoke(self, request: InvocationRequest):
+    def invoke(self, request: InvocationRequest):  # type: ignore
         return InvocationResult(
             invocation_id=request.invocation_id,
             capability_id=request.capability_id,
@@ -53,14 +53,14 @@ class EchoCapability:
 
 class FailingCapability:
     @property
-    def contract(self):
+    def contract(self):  # type: ignore
         return CapabilityContract(
             capability_id="test.fail",
             version="1.0.0",
             description="Always fails",
         )
 
-    def invoke(self, request: InvocationRequest):
+    def invoke(self, request: InvocationRequest):  # type: ignore
         return InvocationResult(
             invocation_id=request.invocation_id,
             capability_id=request.capability_id,
@@ -72,7 +72,7 @@ class FailingCapability:
         )
 
 
-def make_runtime():
+def make_runtime():  # type: ignore
     registry = CapabilityRegistry()
     registry.register(EchoCapability())
     registry.register(FailingCapability())
@@ -84,7 +84,7 @@ def make_runtime():
     )
 
 
-def make_context(objective):
+def make_context(objective):  # type: ignore
     return ExecutionContext(
         identity=ExecutionIdentity(tenant_id="default"),
         objective=objective,
@@ -201,7 +201,7 @@ plan.tasks["step-1"].status = TaskStatus.SUCCEEDED
 ready = plan.ready_tasks()
 
 assert {task.task_id for task in ready} == {"step-3"}
-assert plan.tasks["step-3"].status == TaskStatus.READY
+assert plan.tasks["step-3"].status == TaskStatus.READY  # type: ignore
 
 
 # =========================

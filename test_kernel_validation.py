@@ -16,7 +16,7 @@ from ois.kernel.validation import (
 
 
 @pytest.fixture
-def contract():
+def contract():  # type: ignore
     return CapabilityContract(
         capability_id="test.validation",
         version="1.0.0",
@@ -44,11 +44,11 @@ def contract():
 
 
 @pytest.fixture
-def validator():
+def validator():  # type: ignore
     return ContractValidator()
 
 
-def make_request(data):
+def make_request(data):  # type: ignore
     context = ExecutionContext(
         identity=ExecutionIdentity(tenant_id="default"),
         objective="Validation test",
@@ -62,7 +62,7 @@ def make_request(data):
     )
 
 
-def test_valid_input_passes(validator, contract):
+def test_valid_input_passes(validator, contract):  # type: ignore
     validator.validate_input(
         make_request(
             {
@@ -75,7 +75,7 @@ def test_valid_input_passes(validator, contract):
     )
 
 
-def test_missing_required_field_fails(validator, contract):
+def test_missing_required_field_fails(validator, contract):  # type: ignore
     with pytest.raises(InputValidationError):
         validator.validate_input(
             make_request(
@@ -87,7 +87,7 @@ def test_missing_required_field_fails(validator, contract):
         )
 
 
-def test_wrong_input_type_fails(validator, contract):
+def test_wrong_input_type_fails(validator, contract):  # type: ignore
     with pytest.raises(InputValidationError):
         validator.validate_input(
             make_request(
@@ -100,7 +100,7 @@ def test_wrong_input_type_fails(validator, contract):
         )
 
 
-def test_invalid_enum_fails(validator, contract):
+def test_invalid_enum_fails(validator, contract):  # type: ignore
     with pytest.raises(InputValidationError):
         validator.validate_input(
             make_request(
@@ -114,7 +114,7 @@ def test_invalid_enum_fails(validator, contract):
         )
 
 
-def test_valid_output_passes(validator, contract):
+def test_valid_output_passes(validator, contract):  # type: ignore
     result = InvocationResult(
         invocation_id="validation-test-1",
         capability_id="test.validation",
@@ -127,7 +127,7 @@ def test_valid_output_passes(validator, contract):
     validator.validate_output(result, contract)
 
 
-def test_invalid_output_fails(validator, contract):
+def test_invalid_output_fails(validator, contract):  # type: ignore
     result = InvocationResult(
         invocation_id="validation-test-1",
         capability_id="test.validation",

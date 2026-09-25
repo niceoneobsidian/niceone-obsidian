@@ -4,7 +4,7 @@ from ois.application.state import ExecutionState, transition
 from ois.recovery.engine import RecoveryPlane
 
 
-def test_retry_decision_enters_retry_pending():
+def test_retry_decision_enters_retry_pending() -> None:
     decision = RecoveryPlane().decide(failure="timeout", attempt=1, max_attempts=3)
     assert decision.action == "retry"
     assert (
@@ -12,7 +12,7 @@ def test_retry_decision_enters_retry_pending():
     )
 
 
-def test_exhausted_recovery_escalates():
+def test_exhausted_recovery_escalates() -> None:
     decision = RecoveryPlane().decide(failure="timeout", attempt=3, max_attempts=3)
     assert decision.action == "escalate"
     assert (
@@ -21,6 +21,6 @@ def test_exhausted_recovery_escalates():
     )
 
 
-def test_invalid_transition_fails_closed():
+def test_invalid_transition_fails_closed() -> None:
     with pytest.raises(ValueError):
         transition(ExecutionState.VERIFIED, ExecutionState.EXECUTING)

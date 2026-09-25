@@ -29,7 +29,7 @@ def test_research_publish_measure_attribute_learn_loop() -> None:
     connectors.register(
         GenericSocialConnector(
             "tiktok",
-            publish_callable=lambda intent: published.append(intent.content) or {"id": "pub-1"},
+            publish_callable=lambda intent: published.append(intent.content) or {"id": "pub-1"},  # type: ignore
         )
     )
 

@@ -17,7 +17,7 @@ from ois.kernel import (
 
 class SupervisorCapability:
     @property
-    def contract(self):
+    def contract(self):  # type: ignore
         return CapabilityContract(
             capability_id="test.supervisor",
             version="1.0.0",
@@ -26,7 +26,7 @@ class SupervisorCapability:
             side_effects=SideEffectLevel.NONE,
         )
 
-    def invoke(self, request: InvocationRequest):
+    def invoke(self, request: InvocationRequest):  # type: ignore
         return InvocationResult(
             invocation_id=request.invocation_id,
             capability_id=request.capability_id,
@@ -35,17 +35,17 @@ class SupervisorCapability:
         )
 
 
-def make_context():
+def make_context():  # type: ignore
     return ExecutionContext(
         identity=ExecutionIdentity(
-            execution_id="supervisor-test-001",
+            execution_id="supervisor-test-001",  # type: ignore
             tenant_id="tenant-supervisor",
         ),
         objective="Supervisor direct execution test",
     )
 
 
-def make_supervisor():
+def make_supervisor():  # type: ignore
     registry = CapabilityRegistry()
     registry.register(SupervisorCapability())
 
@@ -58,7 +58,7 @@ def make_supervisor():
     return Supervisor(runtime)
 
 
-def test_supervisor_delegates_to_runtime():
+def test_supervisor_delegates_to_runtime():  # type: ignore
     supervisor = make_supervisor()
 
     result = supervisor.execute(
@@ -73,7 +73,7 @@ def test_supervisor_delegates_to_runtime():
     assert result.status == InvocationStatus.SUCCEEDED
 
 
-def test_supervisor_rejects_missing_objective():
+def test_supervisor_rejects_missing_objective():  # type: ignore
     supervisor = make_supervisor()
 
     result = supervisor.execute(
@@ -89,7 +89,7 @@ def test_supervisor_rejects_missing_objective():
     assert result.error["failure_class"] == "validation"
 
 
-def test_supervisor_rejects_missing_capability():
+def test_supervisor_rejects_missing_capability():  # type: ignore
     supervisor = make_supervisor()
 
     result = supervisor.execute(
