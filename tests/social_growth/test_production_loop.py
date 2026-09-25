@@ -12,7 +12,14 @@ NOW = datetime(2026, 9, 25, 12, 0, tzinfo=UTC)
 
 
 def _stages(*, live: bool = True) -> tuple[StageEvidence, ...]:
-    names = ("source", "evidence", "intelligence", "growth", "outcome", "learning")
+    names = (
+        "source",
+        "evidence",
+        "intelligence",
+        "growth",
+        "outcome",
+        "learning",
+    )
     result: list[StageEvidence] = []
     previous = ""
     for index, name in enumerate(names):
