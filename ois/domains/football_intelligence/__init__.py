@@ -1,19 +1,28 @@
 """OIS Football Intelligence domain.
 
 Kernel-agnostic football state, deterministic baselines, ensemble prediction,
-calibration and abstention primitives. Platform registration remains owned by OIS.
+calibration, abstention and governed replay primitives.
 """
 
+from .benchmark import FootballBenchmarkResult, FootballReplayBenchmark
 from .ensemble import FootballEnsemble
 from .models import DixonColesModel, EloModel, PoissonModel
+from .providers import StatsBombOpenDataProvider, StatsBombReplayInput
+from .replay import FootballReplay, FootballReplayResult
 from .schemas import FootballPrediction, MatchState, TeamSnapshot
 
 __all__ = [
     "DixonColesModel",
     "EloModel",
+    "FootballBenchmarkResult",
     "FootballEnsemble",
     "FootballPrediction",
+    "FootballReplay",
+    "FootballReplayBenchmark",
+    "FootballReplayResult",
     "MatchState",
     "PoissonModel",
+    "StatsBombOpenDataProvider",
+    "StatsBombReplayInput",
     "TeamSnapshot",
 ]
