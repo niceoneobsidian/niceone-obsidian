@@ -46,7 +46,9 @@ class KnowledgeWorldStore:
         )
         self.db.commit()
 
-    def upsert_entity(self, entity_id: str, entity_type: str, attributes: dict[str, Any]) -> WorldEntity:
+    def upsert_entity(
+        self, entity_id: str, entity_type: str, attributes: dict[str, Any]
+    ) -> WorldEntity:
         row = self.db.execute(
             "SELECT version FROM world_entities WHERE entity_id=?", (entity_id,)
         ).fetchone()
@@ -87,7 +89,9 @@ class KnowledgeWorldStore:
              source, confidence, version, observed.isoformat()),
         )
         self.db.commit()
-        return WorldFact(fact_id, subject_id, predicate, object_value, source, confidence, version, observed)
+        return WorldFact(
+            fact_id, subject_id, predicate, object_value, source, confidence, version, observed
+        )
 
     def facts(self, subject_id: str, predicate: str | None = None) -> tuple[WorldFact, ...]:
         sql = "SELECT * FROM world_facts WHERE subject_id=?"
@@ -98,7 +102,10 @@ class KnowledgeWorldStore:
         sql += " ORDER BY version"
         rows = self.db.execute(sql, params).fetchall()
         return tuple(
-            WorldFact(r[0], r[1], r[2], json.loads(r[3]), r[4], float(r[5]), int(r[6]), datetime.fromisoformat(r[7]))
+            WorldFact(
+                r[0], r[1], r[2], json.loads(r[3]), r[4], float(r[5]), int(r[6]),
+                datetime.fromisoformat(r[7]),
+            )
             for r in rows
         )
 
@@ -107,7 +114,10 @@ class KnowledgeWorldStore:
             "SELECT * FROM world_facts WHERE predicate=? ORDER BY observed_at", (predicate,)
         ).fetchall()
         return tuple(
-            WorldFact(r[0], r[1], r[2], json.loads(r[3]), r[4], float(r[5]), int(r[6]), datetime.fromisoformat(r[7]))
+            WorldFact(
+                r[0], r[1], r[2], json.loads(r[3]), r[4], float(r[5]), int(r[6]),
+                datetime.fromisoformat(r[7]),
+            )
             for r in rows
             if json.loads(r[3]) == object_value
         )
