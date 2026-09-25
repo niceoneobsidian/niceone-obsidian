@@ -4,6 +4,17 @@ name = "niceone-obsidian"
 version = "0.0.0"
 requires-python = ">=3.12"
 dependencies = [
+  "psycopg[binary]>=3.3.4,<4",
+  "psycopg-pool>=3.2,<4",
+  "redis>=5,<7",
+  "opentelemetry-api>=1.25,<2",
+  "pydantic>=2.7,<3",
+]
+
+[project.optional-dependencies]
+test = [
+  "pytest>=8,<9",
+  "pytest-asyncio>=0.23,<2",
   "pydantic>=2.7,<3",
   "psycopg[binary]>=3.3.6,<4",
   "langgraph>=1.2.12,<2",
@@ -47,10 +58,6 @@ select = [
   "SIM",
 ]
 
-# The Social Intelligence inventory is a declarative, machine-maintained manifest.
-# Its long structure lists are intentionally kept readable as grouped data rather
-# than reformatted into generated noise. Keep normal linting and type checking for
-# the module, while allowing the manifest's long data rows and formatting to remain stable.
 [tool.ruff.lint.per-file-ignores]
 "ois/domains/social_intelligence/inventory.py" = ["E501"]
 
