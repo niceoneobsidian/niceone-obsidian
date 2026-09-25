@@ -12,6 +12,9 @@ dependencies = [
   "opentelemetry-api>=1.44,<2",
 ]
 
+[project.scripts]
+ois = "ois.cli:main"
+
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
