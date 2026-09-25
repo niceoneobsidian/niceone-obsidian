@@ -1,8 +1,8 @@
 """Cross-source research over provenance-backed graph evidence."""
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable
 
 from ois.domains.social_growth.schemas import Evidence, SocialResearchBrief
 
@@ -28,19 +28,13 @@ class CrossSourceResearch:
         entity = self._graph.get_node(entity_id)
         if entity is None:
             return ()
-        if (entity.tenant_id, entity.workspace_id) != (
-            tenant_id,
-            workspace_id,
-        ):
+        if (entity.tenant_id, entity.workspace_id) != (tenant_id, workspace_id):
             raise PermissionError("cross-scope research access")
 
         evidence_ids: list[str] = []
         sources: set[str] = set()
         for evidence in self._graph.nodes(kind="evidence", limit=10000):
-            if (evidence.tenant_id, evidence.workspace_id) != (
-                tenant_id,
-                workspace_id,
-            ):
+            if (evidence.tenant_id, evidence.workspace_id) != (tenant_id, workspace_id):
                 continue
             for edge in self._graph.neighbors(
                 evidence.node_id, kinds={"supports", "mentions"}
@@ -80,9 +74,7 @@ class CrossSourceResearch:
         confidences: list[float] = []
 
         for name in names:
-            entity = self._graph.get_node(
-                deterministic_entity_id("topic", name)
-            )
+            entity = self._graph.get_node(deterministic_entity_id("topic", name))
             if entity is None:
                 continue
             for finding in self.corroboration(
@@ -99,16 +91,13 @@ class CrossSourceResearch:
                             Evidence(
                                 source_id=node.source_id or "unknown",
                                 uri=node.payload.get("uri"),
-                                excerpt=node.payload.get("excerpt")
-                                or node.payload.get("text"),
+                                excerpt=node.payload.get("excerpt") or node.payload.get("text"),
                                 observed_at=node.observed_at,
                                 confidence=finding.confidence,
                             )
                         )
 
-        confidence = (
-            sum(confidences) / len(confidences) if confidences else 0.0
-        )
+        confidence = sum(confidences) / len(confidences) if confidences else 0.0
         return SocialResearchBrief(
             query=query,
             sources=evidence,
