@@ -10,7 +10,14 @@ from .graph import GraphEdge, GraphNode, SQLiteEvidenceGraph
 from .graph_ingestion import EvidenceGraphProjector
 from .ingestion import IngestionPipeline, IngestionReport
 from .pipeline import G1ResearchPipeline
+from .postgres_store import PostgresSocialSliceStore
 from .prediction_store import CalibrationReport, PredictionDataset
+from .production_slice import (
+    SliceObservation,
+    TikTokSocialIntelligenceSlice,
+    normalize_tiktok_videos,
+)
+from .readiness import ReadinessCheck, SocialIntelligenceReadinessManifest, build_readiness_manifest
 from .registry import build_social_tool_registry, provider_capability_contracts
 from .research import CrossSourceResearch
 from .schemas import (
@@ -39,6 +46,13 @@ __all__ = [
     "PredictionDataset",
     "SQLiteEvidenceGraph",
     "SQLiteIntelligenceStore",
+    "PostgresSocialSliceStore",
+    "SliceObservation",
+    "TikTokSocialIntelligenceSlice",
+    "normalize_tiktok_videos",
+    "ReadinessCheck",
+    "SocialIntelligenceReadinessManifest",
+    "build_readiness_manifest",
     "SocialAnalytics",
     "SocialPost",
     "SocialProfile",

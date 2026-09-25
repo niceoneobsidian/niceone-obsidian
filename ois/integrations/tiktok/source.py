@@ -11,6 +11,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from ois.infrastructure.source_gateway import SourceGateway, SourceRequest
+from ois.infrastructure.source_gateway import CredentialRef, SourceGateway, SourceRequest
 
 from .client import TikTokDisplayClient, TikTokPage
 
@@ -68,6 +69,12 @@ class TikTokSource:
                     source_record_id=source_record_id,
                     payload=page.raw,
                     credential=None,
+                    credential=CredentialRef(
+                        credential_id=credential_id,
+                        tenant_id=tenant_id,
+                        provider="tiktok",
+                        scopes=("user.info.basic", "video.list"),
+                    ),
                     connector_version="tiktok-display-v2",
                     schema_version="tiktok.display.v2",
                 )
