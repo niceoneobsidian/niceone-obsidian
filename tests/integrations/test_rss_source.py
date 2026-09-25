@@ -1,9 +1,9 @@
 from datetime import UTC, datetime
 
 from ois.infrastructure.source_gateway import (
+    SourceGateway,
     SQLiteOutboxStore,
     SQLiteRawEvidenceWriter,
-    SourceGateway,
 )
 from ois.integrations.rss.source import RSSItem, RSSSource
 
