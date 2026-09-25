@@ -6,7 +6,7 @@ import pytest
 
 from ois.domains.social_intelligence.graph import SQLiteEvidenceGraph
 from ois.domains.social_intelligence.pipeline import G1ResearchPipeline
-from ois.infrastructure.source_gateway import SQLiteSourceLedger, SourceGateway
+from ois.infrastructure.source_gateway import SourceGateway, SQLiteSourceLedger
 from ois.integrations.rss.source import RSSSource
 from ois.integrations.tiktok.client import TikTokDisplayClient
 from ois.integrations.tiktok.source import TikTokSource
