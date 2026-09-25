@@ -39,7 +39,6 @@ class SocialIntelligenceReadinessManifest:
 
     @property
     def production_ready(self) -> bool:
-        return all(check.status == "production_verified" for check in self.checks)
         return all(
             check.status == "production_verified"
             and bool(check.evidence)

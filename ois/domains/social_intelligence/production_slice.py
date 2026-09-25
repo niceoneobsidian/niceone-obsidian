@@ -32,11 +32,6 @@ class SliceObservation:
 
 
 def normalize_tiktok_videos(raw: dict[str, Any]) -> tuple[SocialPost, ...]:
-    videos = raw.get("data", {}).get("videos", ())
-    observed_at = datetime.now(UTC)
-    posts: list[SocialPost] = []
-    for video in videos:
-        video_id = str(video["id"])
     data = raw.get("data")
     if not isinstance(data, dict):
         return ()
@@ -77,7 +72,6 @@ def normalize_tiktok_videos(raw: dict[str, Any]) -> tuple[SocialPost, ...]:
 
 
 def _int(value: Any) -> int | None:
-    return None if value is None else int(value)
     if value is None:
         return None
     try:
@@ -89,7 +83,6 @@ def _int(value: Any) -> int | None:
 def _timestamp(value: Any) -> datetime | None:
     if value is None:
         return None
-    return datetime.fromtimestamp(int(value), UTC)
     try:
         return datetime.fromtimestamp(int(value), UTC)
     except (TypeError, ValueError, OverflowError, OSError):
@@ -133,11 +126,6 @@ class TikTokSocialIntelligenceSlice:
         # This makes the slice prove the real durable boundary rather than relying
         # on the connector response remaining in process memory.
         for evidence_id in result.evidence_ids:
-            evidence = self._ledger.evidence(evidence_id)
-            if evidence is None:
-                raise RuntimeError(f"committed TikTok evidence is missing: {evidence_id}")
-            posts.extend(normalize_tiktok_videos(evidence.payload))
-        self._store.upsert_posts(tuple(posts))
             evidence = self._ledger.evidence(
                 evidence_id,
                 tenant_id=tenant_id,
