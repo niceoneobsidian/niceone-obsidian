@@ -10,7 +10,6 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from ois.infrastructure.source_gateway import SourceGateway, SourceRequest
 from ois.infrastructure.source_gateway import CredentialRef, SourceGateway, SourceRequest
 
 from .client import TikTokDisplayClient, TikTokPage
@@ -68,7 +67,6 @@ class TikTokSource:
                     source_id=self.source_id,
                     source_record_id=source_record_id,
                     payload=page.raw,
-                    credential=None,
                     credential=CredentialRef(
                         credential_id=credential_id,
                         tenant_id=tenant_id,
