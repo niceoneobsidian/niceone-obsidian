@@ -1,0 +1,13 @@
+{
+  "manifest_version": "1.0.0",
+  "system": "niceone-obsidian",
+  "domain": "social_growth",
+  "focus": "real-source to outcome production proof",
+  "platform": "tiktok",
+  "required_stages": ["source", "evidence", "intelligence", "growth", "outcome", "learning"],
+  "verification_rule": "Every stage must be backed by live evidence, an artifact hash, and a lineage reference to the preceding stage. Test or fixture evidence cannot promote the loop.",
+  "status": "implemented",
+  "production_verified": false,
+  "evidence": [],
+  "verification_gate": "authorized production execution must emit a complete six-stage certificate"
+}
