@@ -34,7 +34,10 @@ class CrossSourceResearch:
         evidence_ids: list[str] = []
         sources: set[str] = set()
         for evidence in self._graph.nodes(kind="evidence", limit=10000):
-            if (evidence.tenant_id, evidence.workspace_id) != (tenant_id, workspace_id):
+            if (evidence.tenant_id, evidence.workspace_id) != (
+                tenant_id,
+                workspace_id,
+            ):
                 continue
             for edge in self._graph.neighbors(
                 evidence.node_id, kinds={"supports", "mentions"}
@@ -74,7 +77,9 @@ class CrossSourceResearch:
         confidences: list[float] = []
 
         for name in names:
-            entity = self._graph.get_node(deterministic_entity_id("topic", name))
+            entity = self._graph.get_node(
+                deterministic_entity_id("topic", name)
+            )
             if entity is None:
                 continue
             for finding in self.corroboration(
@@ -91,13 +96,16 @@ class CrossSourceResearch:
                             Evidence(
                                 source_id=node.source_id or "unknown",
                                 uri=node.payload.get("uri"),
-                                excerpt=node.payload.get("excerpt") or node.payload.get("text"),
+                                excerpt=node.payload.get("excerpt")
+                                or node.payload.get("text"),
                                 observed_at=node.observed_at,
                                 confidence=finding.confidence,
                             )
                         )
 
-        confidence = sum(confidences) / len(confidences) if confidences else 0.0
+        confidence = (
+            sum(confidences) / len(confidences) if confidences else 0.0
+        )
         return SocialResearchBrief(
             query=query,
             sources=evidence,
