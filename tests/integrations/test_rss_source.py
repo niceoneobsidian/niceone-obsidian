@@ -1,11 +1,11 @@
 from datetime import UTC, datetime
 
 from ois.infrastructure.source_gateway import (
+    SQLiteOutboxStore,
     SQLiteRawEvidenceWriter,
     SourceGateway,
-    SQLiteOutboxStore,
 )
-from ois.integrations.rss.source import RSSSource, RSSItem
+from ois.integrations.rss.source import RSSItem, RSSSource
 
 
 def test_rss_item_preserves_source_identity() -> None:
@@ -42,7 +42,6 @@ def test_rss_source_commits_items_through_gateway(monkeypatch) -> None:
     )
     evidence = SQLiteRawEvidenceWriter()
     outbox = SQLiteOutboxStore()
-    ledger = SQLiteSourceLedger()
     gateway = SourceGateway(evidence=evidence, outbox=outbox)
     source = RSSSource(feed_url="https://example.test/rss", gateway=gateway)
 
