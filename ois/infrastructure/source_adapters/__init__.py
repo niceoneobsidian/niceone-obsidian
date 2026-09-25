@@ -10,7 +10,7 @@ from .database import DatabaseSourceAdapter
 from .file import FileSourceAdapter
 from .github import GitHubSourceAdapter
 from .http import HttpSourceAdapter
-from .polling import PollingSourceAdapter
+from .polling import PollPage, PollingSourceAdapter
 from .rss import RSSSourceAdapter
 from .webhook import WebhookVerifier
 
@@ -21,6 +21,7 @@ __all__ = [
     "FileSourceAdapter",
     "GitHubSourceAdapter",
     "HttpSourceAdapter",
+    "PollPage",
     "PollingSourceAdapter",
     "RSSSourceAdapter",
     "SourceAdapter",
