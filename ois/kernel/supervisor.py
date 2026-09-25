@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
 
+from ois.observability_telemetry import SupervisorExecutionTracker
+
 from .contracts import InvocationRequest, InvocationResult, InvocationStatus
 from .evidence import EvidenceLedger
 from .policy import DefaultPolicyEngine, PolicyEngine
@@ -77,6 +79,7 @@ class Supervisor:
         policy: PolicyEngine | None = None,
         evidence: EvidenceLedger | None = None,
         availability: Any = None,
+        telemetry: SupervisorExecutionTracker | None = None,
     ) -> None:
         self.runtime = runtime
         self.agent_registry = agent_registry
@@ -85,6 +88,7 @@ class Supervisor:
         self.policy = policy or DefaultPolicyEngine()
         self.evidence = evidence
         self.availability = availability
+        self.telemetry = telemetry
 
     def select_agent(
         self,
@@ -177,7 +181,7 @@ class Supervisor:
                 raise SupervisorError("orchestrator is required for plan execution")
             if context is None:
                 raise SupervisorError("context is required for plan execution")
-            return self.orchestrator.execute(plan, context)
+            return self._execute_plan(plan, context)
 
         if self.runtime is None:
             raise SupervisorError("runtime is required for direct execution")
@@ -216,7 +220,7 @@ class Supervisor:
                 },
             )
 
-        return self.runtime.execute(
+        return self._execute_direct(
             context=context,
             capability_id=capability_id,
             version=version,
@@ -224,6 +228,48 @@ class Supervisor:
             invocation_id=invocation_id,
         )
 
+    def _execute_plan(self, plan: Any, context: ExecutionContext) -> Any:
+        workflow_id = context.identity.workflow_id or "unknown"
+        if self.telemetry is None:
+            return self.orchestrator.execute(plan, context)
+        with self.telemetry.track_execution(
+            context.identity.tenant_id,
+            str(context.identity.execution_id),
+            workflow_id,
+        ):
+            return self.orchestrator.execute(plan, context)
+
+    def _execute_direct(
+        self,
+        *,
+        context: Any,
+        capability_id: str,
+        version: str,
+        input_data: dict[str, Any],
+        invocation_id: str,
+    ) -> Any:
+        if self.telemetry is None or context is None:
+            return self.runtime.execute(
+                context=context,
+                capability_id=capability_id,
+                version=version,
+                input_data=input_data,
+                invocation_id=invocation_id,
+            )
+
+        workflow_id = getattr(context.identity, "workflow_id", None) or capability_id
+        with self.telemetry.track_execution(
+            context.identity.tenant_id,
+            str(context.identity.execution_id),
+            workflow_id,
+        ):
+            return self.runtime.execute(
+                context=context,
+                capability_id=capability_id,
+                version=version,
+                input_data=input_data,
+                invocation_id=invocation_id,
+            )
     def decide(
         self,
         request: SupervisionRequest | None = None,
