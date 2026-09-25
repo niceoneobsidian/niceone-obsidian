@@ -1,7 +1,5 @@
 from datetime import UTC, datetime
 
-from ois.domains.social_intelligence.production_slice import normalize_tiktok_videos
-from ois.domains.social_intelligence.readiness import build_readiness_manifest
 import pytest
 
 from ois.domains.social_intelligence.production_slice import normalize_tiktok_videos
