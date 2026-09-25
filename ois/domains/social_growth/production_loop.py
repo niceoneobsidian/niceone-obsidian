@@ -8,12 +8,20 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Iterable
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
-from typing import Iterable, Literal
+from typing import Literal
 
 StageName = Literal["source", "evidence", "intelligence", "growth", "outcome", "learning"]
-_REQUIRED_ORDER: tuple[StageName, ...] = ("source", "evidence", "intelligence", "growth", "outcome", "learning")
+_REQUIRED_ORDER: tuple[StageName, ...] = (
+    "source",
+    "evidence",
+    "intelligence",
+    "growth",
+    "outcome",
+    "learning",
+)
 
 
 @dataclass(frozen=True)
@@ -51,7 +59,9 @@ class ProductionLoopCertificate:
 
 
 def canonical_hash(value: object) -> str:
-    encoded = json.dumps(value, sort_keys=True, separators=(",", ":"), default=str).encode("utf-8")
+    encoded = json.dumps(
+        value, sort_keys=True, separators=(",", ":"), default=str
+    ).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()
 
 
@@ -95,31 +105,34 @@ def verify_production_loop(
     elif verified_at.tzinfo is None:
         failures.append("verified_at must be timezone-aware")
 
-    by_stage: dict[str, StageEvidence] = {}
-    for item in evidence:
-        if item.stage in by_stage:
-            failures.append(f"duplicate stage evidence: {item.stage}")
-        by_stage[item.stage] = item
+    by_stage: dict[StageName, StageEvidence] = {}
+    for evidence_item in evidence:
+        if evidence_item.stage in by_stage:
+            failures.append(f"duplicate stage evidence: {evidence_item.stage}")
+        by_stage[evidence_item.stage] = evidence_item
 
     for expected in _REQUIRED_ORDER:
-        item = by_stage.get(expected)
-        if item is None:
+        stage_item = by_stage.get(expected)
+        if stage_item is None:
             failures.append(f"missing required stage: {expected}")
             continue
-        if not item.live:
+        if not stage_item.live:
             failures.append(f"{expected} evidence is not marked live")
-        if not item.artifact_hash:
+        if not stage_item.artifact_hash:
             failures.append(f"{expected} artifact_hash is empty")
 
     ordered = [by_stage[s] for s in _REQUIRED_ORDER if s in by_stage]
-    for previous, current in zip(ordered, ordered[1:]):
+    for previous, current in zip(ordered, ordered[1:], strict=True):
         if previous.evidence_id not in current.source_refs:
             failures.append(
-                f"{current.stage} does not reference prior evidence {previous.evidence_id}"
+                f"{current.stage} does not reference prior evidence "
+                f"{previous.evidence_id}"
             )
 
     lineage = _lineage_hash(ordered)
-    status: Literal["failed", "production_verified"] = "production_verified" if not failures else "failed"
+    status: Literal["failed", "production_verified"] = (
+        "production_verified" if not failures else "failed"
+    )
     return ProductionLoopCertificate(
         certificate_id=certificate_id,
         loop_id=loop_id,
