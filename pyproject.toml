@@ -70,9 +70,9 @@ markers = [
 ]
 
 [tool.mypy]
-python_version = "3.12"
 warn_return_any = true
 warn_unused_configs = true
+python_version = "3.12"
 warn_redundant_casts = true
 warn_unused_ignores = true
 disallow_untyped_defs = true
@@ -97,10 +97,6 @@ test = [
     "psycopg[binary]>=3.3.6,<4",
     "testcontainers[postgres]>=4.15,<5"
 ]
-
-python_version = "3.12"
-warn_return_any = true
-warn_unused_configs = true
 
 [[tool.mypy.overrides]]
 module = "tests.*"

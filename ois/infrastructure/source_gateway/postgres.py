@@ -5,6 +5,7 @@ production path: raw evidence and its outbox event are committed atomically,
 while publication attempts are recorded idempotently and never inferred from
 in-memory state.
 """
+
 from __future__ import annotations
 
 import json
@@ -15,7 +16,6 @@ import psycopg
 
 from .evidence import RawEvidence, canonical_hash
 from .outbox import OutboxEvent
-
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS raw_evidence (
@@ -74,9 +74,8 @@ class PostgresSourceLedger:
         self._connection = connection
 
     def initialize(self) -> None:
-        with self._connection.transaction():
-            with self._connection.cursor() as cur:
-                cur.execute(SCHEMA)
+        with self._connection.transaction(), self._connection.cursor() as cur:
+            cur.execute(SCHEMA)
 
     def commit_ingest(self, evidence: RawEvidence, event: OutboxEvent) -> bool:
         if canonical_hash(evidence.payload) != evidence.payload_hash:
@@ -88,10 +87,9 @@ class PostgresSourceLedger:
         ):
             raise PermissionError("evidence and outbox event scopes/aggregate differ")
 
-        with self._connection.transaction():
-            with self._connection.cursor() as cur:
-                cur.execute(
-                    """
+        with self._connection.transaction(), self._connection.cursor() as cur:
+            cur.execute(
+                """
                     INSERT INTO raw_evidence
                     (evidence_id, tenant_id, workspace_id, source_id, source_record_id,
                      payload, payload_hash, collected_at, connector_version,
@@ -100,40 +98,40 @@ class PostgresSourceLedger:
                     ON CONFLICT DO NOTHING
                     RETURNING evidence_id
                     """,
-                    (
-                        evidence.evidence_id,
-                        evidence.tenant_id,
-                        evidence.workspace_id,
-                        evidence.source_id,
-                        evidence.source_record_id,
-                        json.dumps(evidence.payload, default=str),
-                        evidence.payload_hash,
-                        evidence.collected_at,
-                        evidence.connector_version,
-                        evidence.schema_version,
-                        evidence.ingestion_run_id,
-                    ),
-                )
-                if cur.fetchone() is None:
-                    return False
+                (
+                    evidence.evidence_id,
+                    evidence.tenant_id,
+                    evidence.workspace_id,
+                    evidence.source_id,
+                    evidence.source_record_id,
+                    json.dumps(evidence.payload, default=str),
+                    evidence.payload_hash,
+                    evidence.collected_at,
+                    evidence.connector_version,
+                    evidence.schema_version,
+                    evidence.ingestion_run_id,
+                ),
+            )
+            if cur.fetchone() is None:
+                return False
 
-                cur.execute(
-                    """
+            cur.execute(
+                """
                     INSERT INTO source_outbox
                     (event_id, tenant_id, workspace_id, event_type, aggregate_id,
                      payload, created_at)
                     VALUES (%s,%s,%s,%s,%s,%s::jsonb,%s)
                     """,
-                    (
-                        event.event_id,
-                        event.tenant_id,
-                        event.workspace_id,
-                        event.event_type,
-                        event.aggregate_id,
-                        json.dumps(event.payload, default=str),
-                        event.created_at,
-                    ),
-                )
+                (
+                    event.event_id,
+                    event.tenant_id,
+                    event.workspace_id,
+                    event.event_type,
+                    event.aggregate_id,
+                    json.dumps(event.payload, default=str),
+                    event.created_at,
+                ),
+            )
         return True
 
     def pending(self, *, limit: int = 100) -> tuple[OutboxEvent, ...]:
@@ -164,16 +162,15 @@ class PostgresSourceLedger:
         )
 
     def mark_published(self, event_id: str) -> None:
-        with self._connection.transaction():
-            with self._connection.cursor() as cur:
-                cur.execute(
-                    """
+        with self._connection.transaction(), self._connection.cursor() as cur:
+            cur.execute(
+                """
                     UPDATE source_outbox
                     SET published_at = COALESCE(published_at, %s)
                     WHERE event_id = %s
                     """,
-                    (datetime.now(UTC), event_id),
-                )
+                (datetime.now(UTC), event_id),
+            )
 
     def evidence(self, evidence_id: str) -> RawEvidence | None:
         with self._connection.cursor() as cur:
@@ -200,10 +197,9 @@ class PostgresSourceLedger:
         idempotency_key: str,
     ) -> bool:
         now = datetime.now(UTC)
-        with self._connection.transaction():
-            with self._connection.cursor() as cur:
-                cur.execute(
-                    """
+        with self._connection.transaction(), self._connection.cursor() as cur:
+            cur.execute(
+                """
                     INSERT INTO publication_ledger
                     (publication_id,event_id,destination,idempotency_key,status,attempts,
                      created_at,updated_at)
@@ -211,25 +207,24 @@ class PostgresSourceLedger:
                     ON CONFLICT (destination,idempotency_key) DO NOTHING
                     RETURNING publication_id
                     """,
-                    (
-                        publication_id,
-                        event_id,
-                        destination,
-                        idempotency_key,
-                        now,
-                        now,
-                    ),
-                )
-                return cur.fetchone() is not None
+                (
+                    publication_id,
+                    event_id,
+                    destination,
+                    idempotency_key,
+                    now,
+                    now,
+                ),
+            )
+            return cur.fetchone() is not None
 
     def record_publication_attempt(
         self, *, destination: str, idempotency_key: str, success: bool, error: str | None = None
     ) -> None:
         now = datetime.now(UTC)
-        with self._connection.transaction():
-            with self._connection.cursor() as cur:
-                cur.execute(
-                    """
+        with self._connection.transaction(), self._connection.cursor() as cur:
+            cur.execute(
+                """
                     UPDATE publication_ledger
                     SET attempts = attempts + 1,
                         status = %s,
@@ -238,16 +233,16 @@ class PostgresSourceLedger:
                         published_at = CASE WHEN %s THEN %s ELSE published_at END
                     WHERE destination = %s AND idempotency_key = %s
                     """,
-                    (
-                        "published" if success else "failed",
-                        error,
-                        now,
-                        success,
-                        now,
-                        destination,
-                        idempotency_key,
-                    ),
-                )
+                (
+                    "published" if success else "failed",
+                    error,
+                    now,
+                    success,
+                    now,
+                    destination,
+                    idempotency_key,
+                ),
+            )
 
     def publication(self, *, destination: str, idempotency_key: str) -> dict[str, Any] | None:
         with self._connection.cursor() as cur:

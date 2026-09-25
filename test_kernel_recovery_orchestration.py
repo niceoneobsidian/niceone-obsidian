@@ -17,11 +17,11 @@ from ois.kernel.evidence import EvidenceLedger
 
 
 class FailingCapability:
-    def __init__(self):
+    def __init__(self):  # type: ignore
         self.invocations = 0
 
     @property
-    def contract(self):
+    def contract(self):  # type: ignore
         return CapabilityContract(
             capability_id="test.recovery.failure",
             version="1.0.0",
@@ -30,19 +30,19 @@ class FailingCapability:
             side_effects=SideEffectLevel.NONE,
         )
 
-    def invoke(self, request: InvocationRequest):
+    def invoke(self, request: InvocationRequest):  # type: ignore
         self.invocations += 1
         raise RuntimeError("intentional recovery failure")
 
 
-def make_context():
+def make_context():  # type: ignore
     return ExecutionContext(
         identity=ExecutionIdentity(tenant_id="tenant-test"),
         objective="Recovery orchestration boundary test",
     )
 
 
-def make_system():
+def make_system():  # type: ignore
     capability = FailingCapability()
 
     registry = CapabilityRegistry()
@@ -67,7 +67,7 @@ def make_system():
     return capability, checkpoint, evidence, supervisor
 
 
-def make_plan():
+def make_plan():  # type: ignore
     return (
         PlanBuilder(objective="Verify recovery orchestration boundary")
         .task(
@@ -79,7 +79,7 @@ def make_plan():
     )
 
 
-def test_recovery_failure_remains_visible_to_supervisor():
+def test_recovery_failure_remains_visible_to_supervisor():  # type: ignore
     capability, checkpoint, evidence, supervisor = make_system()
 
     context = make_context()

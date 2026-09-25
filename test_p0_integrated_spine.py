@@ -27,7 +27,7 @@ class FlakyCapability:
     def __init__(self) -> None:
         self.calls = 0
 
-    def invoke(self, request):
+    def invoke(self, request):  # type: ignore
         self.calls += 1
         if self.calls == 1:
             return InvocationResult(
