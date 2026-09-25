@@ -1,11 +1,10 @@
 """G1 Phase 3/4 orchestration: outbox -> graph -> cross-source research."""
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable
 
 from ois.domains.social_growth.schemas import SocialResearchBrief
-from ois.infrastructure.source_gateway.evidence import RawEvidence
 from ois.infrastructure.source_gateway.outbox import OutboxStore
 
 from .graph import EvidenceGraph
