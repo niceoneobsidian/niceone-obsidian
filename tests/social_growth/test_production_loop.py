@@ -74,7 +74,10 @@ def test_missing_lineage_reference_fails() -> None:
         verified_at=NOW,
     )
     assert certificate.production_verified is False
-    assert any("growth does not reference prior evidence" in failure for failure in certificate.failures)
+    assert any(
+        "growth does not reference prior evidence" in failure
+        for failure in certificate.failures
+    )
 
 
 def test_missing_stage_fails_closed() -> None:
