@@ -77,7 +77,9 @@ class ModelGateway:
         ]
         if request.preferred_model:
             preferred = [m for m in candidates if m.model_id == request.preferred_model]
-            candidates = preferred + [m for m in candidates if m.model_id != request.preferred_model]
+            candidates = preferred + [
+                m for m in candidates if m.model_id != request.preferred_model
+            ]
         candidates.sort(key=lambda m: (m.priority, m.model_id, m.version))
         for index, candidate in enumerate(candidates):
             cost = request.max_tokens / 1000 * candidate.cost_per_1k_tokens
