@@ -2,6 +2,10 @@ from datetime import UTC, datetime
 
 from ois.domains.social_intelligence.production_slice import normalize_tiktok_videos
 from ois.domains.social_intelligence.readiness import build_readiness_manifest
+import pytest
+
+from ois.domains.social_intelligence.production_slice import normalize_tiktok_videos
+from ois.domains.social_intelligence.readiness import ReadinessCheck, build_readiness_manifest
 from ois.infrastructure.source_gateway.evidence import RawEvidence, canonical_hash
 from ois.infrastructure.source_gateway.outbox import OutboxEvent
 
@@ -67,3 +71,31 @@ def test_scope_and_hash_contracts() -> None:
     assert event.aggregate_id == evidence.evidence_id
     assert evidence.tenant_id == event.tenant_id
     assert canonical_hash(evidence.payload) == evidence.payload_hash
+
+
+def test_tiktok_normalization_skips_malformed_records() -> None:
+    assert normalize_tiktok_videos({}) == ()
+    assert normalize_tiktok_videos({"data": {"videos": "not-a-list"}}) == ()
+    posts = normalize_tiktok_videos(
+        {
+            "data": {
+                "videos": [
+                    {"id": None},
+                    {},
+                    {"id": "ok", "like_count": "bad", "create_time": "bad"},
+                ]
+            }
+        }
+    )
+    assert posts[0].external_id == "ok"
+
+
+def test_production_verified_requires_evidence() -> None:
+    with pytest.raises(ValueError):
+        ReadinessCheck(
+            check_id="SI-01",
+            requirement="one real platform",
+            status="production_verified",
+            evidence=(),
+            verified_at=datetime.now(UTC),
+        )

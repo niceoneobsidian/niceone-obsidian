@@ -18,6 +18,8 @@ def test_execution_validation_recovery_chain() -> None:
     result = ExecutionPlane().execute(
         lambda data: data["x"] + 1,  # type: ignore[index]
         ExecutionRequest("x", "1", {"x": 1}),
+        lambda data: data["x"] + 1,
+        ExecutionRequest("x", "1", {"x": 1}),  # type: ignore
     )
     assert ValidationPlane().validate(result).valid
     assert RecoveryPlane().decide(failure="failed", attempt=1, max_attempts=2).action == "retry"

@@ -76,6 +76,7 @@ class PostgresSourceLedger:
     def initialize(self) -> None:
         with self._connection.transaction(), self._connection.cursor() as cur:
             cur.execute(SCHEMA)
+        raise RuntimeError("Database schema must be applied through repository migrations")
 
     def commit_ingest(self, evidence: RawEvidence, event: OutboxEvent) -> bool:
         if canonical_hash(evidence.payload) != evidence.payload_hash:
@@ -98,6 +99,14 @@ class PostgresSourceLedger:
                     ON CONFLICT DO NOTHING
                     RETURNING evidence_id
                     """,
+                INSERT INTO raw_evidence
+                (evidence_id, tenant_id, workspace_id, source_id, source_record_id,
+                 payload, payload_hash, collected_at, connector_version,
+                 schema_version, ingestion_run_id)
+                VALUES (%s,%s,%s,%s,%s,%s::jsonb,%s,%s,%s,%s,%s)
+                ON CONFLICT DO NOTHING
+                RETURNING evidence_id
+                """,
                 (
                     evidence.evidence_id,
                     evidence.tenant_id,
@@ -122,6 +131,46 @@ class PostgresSourceLedger:
                      payload, created_at)
                     VALUES (%s,%s,%s,%s,%s,%s::jsonb,%s)
                     """,
+            inserted = cur.fetchone() is not None
+
+            if not inserted:
+                cur.execute(
+                    """
+                    SELECT evidence_id
+                    FROM raw_evidence
+                    WHERE tenant_id=%s AND workspace_id=%s
+                      AND source_id=%s AND source_record_id=%s
+                      AND payload_hash=%s
+                    """,
+                    (
+                        evidence.tenant_id,
+                        evidence.workspace_id,
+                        evidence.source_id,
+                        evidence.source_record_id,
+                        evidence.payload_hash,
+                    ),
+                )
+                existing = cur.fetchone()
+                if existing is None:
+                    raise RuntimeError("duplicate evidence was reported but could not be located")
+                event = OutboxEvent(
+                    event_id=event.event_id,
+                    tenant_id=event.tenant_id,
+                    workspace_id=event.workspace_id,
+                    event_type=event.event_type,
+                    aggregate_id=existing[0],
+                    payload={**event.payload, "evidence_id": existing[0]},
+                    created_at=event.created_at,
+                )
+
+            cur.execute(
+                """
+                INSERT INTO source_outbox
+                (event_id, tenant_id, workspace_id, event_type, aggregate_id,
+                 payload, created_at)
+                VALUES (%s,%s,%s,%s,%s,%s::jsonb,%s)
+                ON CONFLICT (event_id) DO NOTHING
+                """,
                 (
                     event.event_id,
                     event.tenant_id,
@@ -173,6 +222,20 @@ class PostgresSourceLedger:
             )
 
     def evidence(self, evidence_id: str) -> RawEvidence | None:
+                UPDATE source_outbox
+                SET published_at = COALESCE(published_at, %s)
+                WHERE event_id = %s
+                """,
+                (datetime.now(UTC), event_id),
+            )
+
+    def evidence(
+        self,
+        evidence_id: str,
+        *,
+        tenant_id: str,
+        workspace_id: str,
+    ) -> RawEvidence | None:
         with self._connection.cursor() as cur:
             cur.execute(
                 """
@@ -182,11 +245,21 @@ class PostgresSourceLedger:
                 FROM raw_evidence WHERE evidence_id = %s
                 """,
                 (evidence_id,),
+                FROM raw_evidence
+                WHERE evidence_id = %s
+                  AND tenant_id = %s
+                  AND workspace_id = %s
+                """,
+                (evidence_id, tenant_id, workspace_id),
             )
             row = cur.fetchone()
         if row is None:
             return None
         return RawEvidence(*row)
+        evidence = RawEvidence(*row)
+        if canonical_hash(evidence.payload) != evidence.payload_hash:
+            raise ValueError("stored raw evidence failed hash verification")
+        return evidence
 
     def record_publication(
         self,
@@ -207,6 +280,13 @@ class PostgresSourceLedger:
                     ON CONFLICT (destination,idempotency_key) DO NOTHING
                     RETURNING publication_id
                     """,
+                INSERT INTO publication_ledger
+                (publication_id,event_id,destination,idempotency_key,status,attempts,
+                 created_at,updated_at)
+                VALUES (%s,%s,%s,%s,'pending',0,%s,%s)
+                ON CONFLICT (destination,idempotency_key) DO NOTHING
+                RETURNING publication_id
+                """,
                 (
                     publication_id,
                     event_id,
@@ -220,6 +300,12 @@ class PostgresSourceLedger:
 
     def record_publication_attempt(
         self, *, destination: str, idempotency_key: str, success: bool, error: str | None = None
+        self,
+        *,
+        destination: str,
+        idempotency_key: str,
+        success: bool,
+        error: str | None = None,
     ) -> None:
         now = datetime.now(UTC)
         with self._connection.transaction(), self._connection.cursor() as cur:
@@ -233,6 +319,14 @@ class PostgresSourceLedger:
                         published_at = CASE WHEN %s THEN %s ELSE published_at END
                     WHERE destination = %s AND idempotency_key = %s
                     """,
+                UPDATE publication_ledger
+                SET attempts = attempts + 1,
+                    status = %s,
+                    last_error = %s,
+                    updated_at = %s,
+                    published_at = CASE WHEN %s THEN %s ELSE published_at END
+                WHERE destination = %s AND idempotency_key = %s
+                """,
                 (
                     "published" if success else "failed",
                     error,
@@ -245,6 +339,12 @@ class PostgresSourceLedger:
             )
 
     def publication(self, *, destination: str, idempotency_key: str) -> dict[str, Any] | None:
+    def publication(
+        self,
+        *,
+        destination: str,
+        idempotency_key: str,
+    ) -> dict[str, Any] | None:
         with self._connection.cursor() as cur:
             cur.execute(
                 """

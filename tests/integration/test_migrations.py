@@ -50,7 +50,7 @@ def test_schema_migrations_records_all_migrations(
         rows = cursor.fetchall()
 
     recorded_versions = [row[0] for row in rows]
-    expected_versions = ["001", "002", "003", "004", "005", "006"]
+    expected_versions = ["001", "002", "003", "004", "005", "006", "007"]
     assert recorded_versions == expected_versions
 
     for row in rows:

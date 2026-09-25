@@ -18,6 +18,17 @@ class ReadinessCheck:
     verified_at: datetime | None = None
     notes: str = ""
 
+    def __post_init__(self) -> None:
+        if self.status == "production_verified":
+            if not self.evidence:
+                raise ValueError(
+                    f"{self.check_id} requires evidence before production verification"
+                )
+            if self.verified_at is None:
+                raise ValueError(
+                    f"{self.check_id} requires verified_at before production verification"
+                )
+
 
 @dataclass(frozen=True)
 class SocialIntelligenceReadinessManifest:
@@ -29,6 +40,12 @@ class SocialIntelligenceReadinessManifest:
     @property
     def production_ready(self) -> bool:
         return all(check.status == "production_verified" for check in self.checks)
+        return all(
+            check.status == "production_verified"
+            and bool(check.evidence)
+            and check.verified_at is not None
+            for check in self.checks
+        )
 
     def as_dict(self) -> dict[str, object]:
         payload = asdict(self)
