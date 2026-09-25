@@ -17,7 +17,9 @@ def test_model_gateway_fallback_and_budget() -> None:
     gateway.register(
         ModelSpec("primary", "1", FakeModel(), frozenset({"generation"}), priority=10)
     )
-    gateway.register(ModelSpec("fallback", "1", FakeModel(), frozenset({"generation"}), priority=20))
+    gateway.register(
+        ModelSpec("fallback", "1", FakeModel(), frozenset({"generation"}), priority=20)
+    )
     gateway.set_health("primary", "1", False)
     result = gateway.invoke(ModelRequest("generation", "hello"))
     assert result.model_id == "fallback"
