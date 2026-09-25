@@ -84,7 +84,8 @@ class ModelGateway:
             if request.budget is None or cost <= request.budget:
                 return candidate, index > 0
         raise ModelGatewayError(
-            f"No healthy model satisfies capability={request.capability!r} and budget"
+            "No healthy model satisfies "
+            f"capability={request.capability!r} and budget"
         )
 
     def invoke(self, request: ModelRequest, **kwargs: Any) -> ModelResponse:
