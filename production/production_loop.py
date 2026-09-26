@@ -116,9 +116,7 @@ class ProductionLoopProof:
         )
         lineage_hash = hashlib.sha256(lineage_payload.encode()).hexdigest()
         status: Literal["production_verified", "rejected"] = (
-            "production_verified"
-            if all(by_stage[stage] for stage in STAGES)
-            else "rejected"
+            "production_verified" if all(by_stage[stage] for stage in STAGES) else "rejected"
         )
         return ProductionLoopCertificate(
             certificate_id,
