@@ -59,7 +59,10 @@ class ModelGateway:
             spec.model_id,
             spec.version,
             spec,
-            metadata={"capabilities": sorted(spec.capabilities), "priority": spec.priority},
+            metadata={
+                "capabilities": sorted(spec.capabilities),
+                "priority": spec.priority,
+            },
         )
         self._health[(spec.model_id, spec.version)] = spec.healthy
 
@@ -77,7 +80,9 @@ class ModelGateway:
             and request.max_tokens <= entry.value.max_tokens
         ]
         if request.preferred_model:
-            preferred = [m for m in candidates if m.model_id == request.preferred_model]
+            preferred = [
+                m for m in candidates if m.model_id == request.preferred_model
+            ]
             candidates = preferred + [
                 m for m in candidates if m.model_id != request.preferred_model
             ]
