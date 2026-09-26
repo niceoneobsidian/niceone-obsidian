@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import psycopg
@@ -44,7 +44,7 @@ def test_rc04_bounds_retries_and_routes_to_separate_recovery_pool(monkeypatch):
         recovery_cur = AsyncMock()
         recovery_conn = AsyncMock()
         recovery_conn.cursor.return_value = AsyncContext(recovery_cur)
-        recovery_pool = AsyncMock()
+        recovery_pool = MagicMock()
         recovery_pool.connection.return_value = AsyncContext(recovery_conn)
 
         redis_client = AsyncMock()
