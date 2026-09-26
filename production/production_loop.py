@@ -32,7 +32,7 @@ class LoopArtifact:
         source_ref: str,
         execution_id: str,
         occurred_at: datetime | None = None,
-    ) -> "LoopArtifact":
+    ) -> LoopArtifact:
         canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str)
         return cls(
             stage,
