@@ -7,6 +7,7 @@ ordinary governed source rather than a privileged runtime dependency.
 from __future__ import annotations
 
 import json
+from typing import cast
 from urllib.request import Request, urlopen
 
 from ois.infrastructure.source_gateway import CredentialRef, SourceGateway, SourceRequest
@@ -42,7 +43,7 @@ class GitHubSourceAdapter:
             headers["Authorization"] = f"Bearer {self._token}"
         request = Request(self.url, headers=headers)
         with urlopen(request, timeout=self._timeout) as response:
-            return json.loads(response.read().decode("utf-8"))
+            return cast(list[object] | dict[str, object], json.loads(response.read().decode("utf-8")))
 
     def health(self) -> AdapterHealth:
         try:
@@ -61,7 +62,7 @@ class GitHubSourceAdapter:
     ) -> AdapterResult:
         payload = self._fetch()
         records = payload if isinstance(payload, list) else [payload]
-        credential = None
+        credential: CredentialRef | None = None
         if credential_id:
             credential = CredentialRef(
                 credential_id=credential_id,
