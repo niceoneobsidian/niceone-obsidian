@@ -34,7 +34,7 @@ def gateway():
     )
 
 
-def test_cursor_store_is_tenant_scoped_and_versioned():
+def test_cursor_store_is_tenant_scoped_and_versioned() -> None:
     store = SQLiteCursorStore()
     first = store.advance("tenant-a", "ws-a", "tiktok", "c1")
     assert first.version == 1
@@ -46,7 +46,7 @@ def test_cursor_store_is_tenant_scoped_and_versioned():
     assert store.get("tenant-b", "ws-a", "tiktok") is None
 
 
-def test_gateway_enforces_tenant_credential_scope():
+def test_gateway_enforces_tenant_credential_scope() -> None:
     g, _, _ = gateway()
     with pytest.raises(PermissionError):
         g.ingest(
@@ -61,7 +61,7 @@ def test_gateway_enforces_tenant_credential_scope():
         )
 
 
-def test_gateway_persists_hashed_evidence_and_outbox():
+def test_gateway_persists_hashed_evidence_and_outbox() -> None:
     g, evidence, outbox = gateway()
     result = g.ingest(
         SourceRequest(
@@ -82,7 +82,7 @@ def test_gateway_persists_hashed_evidence_and_outbox():
     assert len(outbox.pending()) == 1
 
 
-def test_gateway_rate_limits_before_external_side_effects():
+def test_gateway_rate_limits_before_external_side_effects() -> None:
     g, _, outbox = gateway()
     first = g.ingest(SourceRequest("tenant-a", "ws-a", "tiktok", "1", {"x": 1}))
     second = g.ingest(SourceRequest("tenant-a", "ws-a", "tiktok", "2", {"x": 2}))
@@ -92,7 +92,7 @@ def test_gateway_rate_limits_before_external_side_effects():
     assert len(outbox.pending()) == 1
 
 
-def test_atomic_ledger_commits_evidence_and_outbox_together():
+def test_atomic_ledger_commits_evidence_and_outbox_together() -> None:
     ledger = SQLiteSourceLedger()
     gateway = SourceGateway(evidence=cast(Any, ledger), outbox=cast(Any, ledger))
     result = gateway.ingest(SourceRequest("tenant-a", "ws-a", "fixture", "1", {"x": 1}))
@@ -101,7 +101,7 @@ def test_atomic_ledger_commits_evidence_and_outbox_together():
     assert [e.event_id for e in ledger.pending()] == [result.event_id]
 
 
-def test_outbox_is_idempotent_and_ordered():
+def test_outbox_is_idempotent_and_ordered() -> None:
     store = SQLiteOutboxStore()
     now = datetime.now(UTC)
     event = OutboxEvent("e1", "t", "w", "test", "a", {"n": 1}, now)

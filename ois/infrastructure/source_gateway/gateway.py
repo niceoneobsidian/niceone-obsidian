@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any, cast
-from uuid import uuid4
+from uuid import NAMESPACE_URL, uuid4, uuid5
 
 from .credentials import CredentialRef, CredentialResolver, TenantScope
 from .evidence import RawEvidence, RawEvidenceWriter, canonical_hash
@@ -79,9 +79,15 @@ class SourceGateway:
         if bucket is not None and not bucket.acquire():
             return SourceResponse(False, "", "", "", "rate_limited")
 
-        evidence_id = self._id()
-        event_id = self._id()
         payload_hash = canonical_hash(request.payload)
+        evidence_id = str(
+            uuid5(
+                NAMESPACE_URL,
+                f"{request.tenant_id}:{request.workspace_id}:{request.source_id}:"
+                f"{request.source_record_id}:{payload_hash}",
+            )
+        )
+        event_id = str(uuid5(NAMESPACE_URL, f"source-outbox:{evidence_id}"))
 
         evidence = RawEvidence(
             evidence_id=evidence_id,

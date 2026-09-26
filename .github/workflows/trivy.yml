@@ -50,7 +50,7 @@ jobs:
           ignore-unfixed: true
 
       - name: Upload Trivy results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: trivy-results
           path: trivy-results.sarif

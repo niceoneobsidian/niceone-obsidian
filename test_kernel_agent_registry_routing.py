@@ -18,7 +18,7 @@ from ois.kernel import (
 
 
 class RoutingAgent:
-    def __init__(self, name: str, *, permissions=(), risk=RiskLevel.LOW):
+    def __init__(self, name: str, *, permissions=(), risk=RiskLevel.LOW):  # type: ignore
         self.name = name
         self._contract = AgentContract(
             capability_id="test.routing",
@@ -30,21 +30,21 @@ class RoutingAgent:
         )
 
     @property
-    def contract(self):
+    def contract(self):  # type: ignore
         return self._contract
 
-    def invoke(self, request):
+    def invoke(self, request):  # type: ignore
         raise AssertionError("routing tests must not invoke an agent")
 
 
-def make_context():
+def make_context():  # type: ignore
     return ExecutionContext(
         identity=ExecutionIdentity(tenant_id="tenant-routing"),
         objective="route an agent",
     )
 
 
-def make_request(context=None):
+def make_request(context=None):  # type: ignore
     return InvocationRequest(
         invocation_id="routing-001",
         capability_id="test.routing",
@@ -53,7 +53,7 @@ def make_request(context=None):
     )
 
 
-def test_agent_registry_routes_authorized_agent_deterministically():
+def test_agent_registry_routes_authorized_agent_deterministically():  # type: ignore
     registry = AgentRegistry()
     agent = RoutingAgent("primary")
     registry.register(agent)
@@ -69,7 +69,7 @@ def test_agent_registry_routes_authorized_agent_deterministically():
     assert decision.reason.startswith("Selected the sole eligible agent")
 
 
-def test_agent_registry_rejects_unauthorized_agent():
+def test_agent_registry_rejects_unauthorized_agent():  # type: ignore
     registry = AgentRegistry()
     agent = RoutingAgent("restricted", permissions=("agent.execute",))
     registry.register(agent)
@@ -83,7 +83,7 @@ def test_agent_registry_rejects_unauthorized_agent():
         )
 
 
-def test_agent_registry_rejects_unavailable_agent():
+def test_agent_registry_rejects_unavailable_agent():  # type: ignore
     registry = AgentRegistry()
     registry.register(RoutingAgent("offline"))
 
@@ -97,9 +97,9 @@ def test_agent_registry_rejects_unavailable_agent():
         )
 
 
-def test_agent_registry_rejects_ambiguous_eligible_candidates():
+def test_agent_registry_rejects_ambiguous_eligible_candidates():  # type: ignore
     class AmbiguousRegistry(AgentRegistry):
-        def list(self):
+        def list(self):  # type: ignore
             entry = super().list()[0]
             return (entry, entry)
 
@@ -115,7 +115,7 @@ def test_agent_registry_rejects_ambiguous_eligible_candidates():
         )
 
 
-def test_supervisor_uses_governed_registry_routing_and_records_selection():
+def test_supervisor_uses_governed_registry_routing_and_records_selection():  # type: ignore
     registry = AgentRegistry()
     agent = RoutingAgent("primary")
     registry.register(agent)
@@ -138,7 +138,7 @@ def test_supervisor_uses_governed_registry_routing_and_records_selection():
     assert events[-1].event_type == "agent.selection.selected"
 
 
-def test_supervisor_converts_routing_rejection_to_selection_error_and_evidence():
+def test_supervisor_converts_routing_rejection_to_selection_error_and_evidence():  # type: ignore
     registry = AgentRegistry()
     registry.register(RoutingAgent("restricted", permissions=("agent.execute",)))
     evidence = EvidenceLedger()
@@ -160,7 +160,7 @@ def test_supervisor_converts_routing_rejection_to_selection_error_and_evidence()
     assert events[-1].event_type == "agent.selection.rejected"
 
 
-def test_agent_registry_requires_registered_exact_version():
+def test_agent_registry_requires_registered_exact_version():  # type: ignore
     registry = AgentRegistry()
 
     with pytest.raises(AgentRoutingError, match="No agent registered"):

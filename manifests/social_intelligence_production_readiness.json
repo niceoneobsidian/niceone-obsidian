@@ -1,0 +1,72 @@
+{
+  "manifest_version": "1.0.0",
+  "system": "niceone-obsidian",
+  "domain": "social_intelligence",
+  "focus": "depth-over-breadth production slice",
+  "platform": {
+    "id": "tiktok",
+    "adapter": "tiktok.display.v2",
+    "api": "TikTok Display API v2"
+  },
+  "path": [
+    "authorized credential",
+    "TikTok Display API",
+    "Source Gateway",
+    "PostgreSQL raw evidence",
+    "PostgreSQL transactional outbox",
+    "durable publication ledger",
+    "normalized SocialPost",
+    "Social Intelligence persistence"
+  ],
+  "checks": [
+    {
+      "id": "SI-01",
+      "requirement": "one real platform",
+      "status": "implemented",
+      "evidence": [
+        "ois/integrations/tiktok/client.py",
+        "ois/integrations/tiktok/oauth.py",
+        "ois/integrations/tiktok/source.py"
+      ]
+    },
+    {
+      "id": "SI-02",
+      "requirement": "one PostgreSQL-backed production path",
+      "status": "implemented",
+      "evidence": [
+        "ois/infrastructure/source_gateway/postgres.py",
+        "ois/domains/social_intelligence/postgres_store.py"
+      ],
+      "verification_gate": "authorized live PostgreSQL integration test"
+    },
+    {
+      "id": "SI-03",
+      "requirement": "one durable publication ledger",
+      "status": "implemented",
+      "evidence": [
+        "publication_ledger table",
+        "destination + idempotency_key uniqueness",
+        "attempt/status/error/published_at persistence"
+      ]
+    },
+    {
+      "id": "SI-04",
+      "requirement": "one fully verified Social Intelligence slice",
+      "status": "tested",
+      "evidence": [
+        "tests/domains/social_intelligence/test_production_slice.py",
+        "ois/domains/social_intelligence/production_slice.py"
+      ],
+      "verification_gate": "authorized live TikTok request writes raw evidence, outbox, normalized post and publication evidence"
+    },
+    {
+      "id": "SI-05",
+      "requirement": "evidence-backed readiness manifest",
+      "status": "tested",
+      "evidence": [
+        "ois/domains/social_intelligence/readiness.py"
+      ]
+    }
+  ],
+  "promotion_rule": "production_verified only after live evidence is attached to every required check; implementation or unit tests alone cannot promote readiness"
+}
