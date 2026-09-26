@@ -23,7 +23,7 @@ class RSSSourceAdapter:
         for item in root.findall(".//item") + root.findall(
             ".//{http://www.w3.org/2005/Atom}entry"
         ):
-            def value(name: str) -> str:
+            def value(item: ET.Element, name: str) -> str:
                 node = item.find(name)
                 if node is None:
                     node = item.find(f"{{http://www.w3.org/2005/Atom}}{name}")
@@ -31,11 +31,11 @@ class RSSSourceAdapter:
 
             entries.append(
                 {
-                    "id": value("guid") or value("id") or value("link"),
-                    "title": value("title"),
-                    "link": value("link"),
-                    "published": value("pubDate") or value("published"),
-                    "summary": value("description") or value("summary"),
+                    "id": value(item, "guid") or value(item, "id") or value(item, "link"),
+                    "title": value(item, "title"),
+                    "link": value(item, "link"),
+                    "published": value(item, "pubDate") or value(item, "published"),
+                    "summary": value(item, "description") or value(item, "summary"),
                 }
             )
         return entries
