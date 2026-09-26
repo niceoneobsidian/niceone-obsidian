@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from typing import cast
 from urllib.request import Request, urlopen
 
 from ois.infrastructure.source_gateway import CredentialRef, SourceGateway, SourceRequest
@@ -46,7 +47,7 @@ class HttpSourceAdapter:
             raw = response.read()
             content_type = response.headers.get("Content-Type", "")
         if "json" in content_type:
-            return json.loads(raw.decode("utf-8"))
+            return cast(object, json.loads(raw.decode("utf-8")))
         return raw.decode("utf-8")
 
     def health(self) -> AdapterHealth:
@@ -61,11 +62,11 @@ class HttpSourceAdapter:
         *,
         tenant_id: str,
         workspace_id: str,
-        gateway,
+        gateway: SourceGateway,
         credential_id: str | None = None,
-    ) -> object:
+    ) -> AdapterResult:
         payload = self._fetch()
-        credential = None
+        credential: CredentialRef | None = None
         if credential_id:
             credential = CredentialRef(
                 credential_id=credential_id,
