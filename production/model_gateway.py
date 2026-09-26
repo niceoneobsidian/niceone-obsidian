@@ -92,7 +92,6 @@ class ModelGateway:
             if request.budget is None or cost <= request.budget:
                 higher_priority_exists = any(
                     entry.value.model_id != candidate.model_id
-                    and entry.value.version != candidate.version
                     and request.capability in entry.value.capabilities
                     and request.max_tokens <= entry.value.max_tokens
                     and entry.value.priority < candidate.priority
