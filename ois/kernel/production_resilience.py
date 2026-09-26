@@ -7,9 +7,9 @@ import json
 import logging
 import random
 import secrets
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from collections.abc import Awaitable, Callable
 from typing import Any
 
 import psycopg
