@@ -4,25 +4,22 @@ name = "niceone-obsidian"
 version = "0.0.0"
 requires-python = ">=3.12"
 dependencies = [
+  "pydantic>=2.7,<3",
   "psycopg[binary]>=3.3.4,<4",
   "psycopg-pool>=3.2,<4",
-  "redis>=5,<7",
-  "opentelemetry-api>=1.25,<2",
-  "pydantic>=2.7,<3",
-]
-
-[project.optional-dependencies]
-test = [
-  "pytest>=8,<9",
-  "pytest-asyncio>=0.23,<2",
-  "pydantic>=2.7,<3",
-  "psycopg[binary]>=3.3.6,<4",
   "langgraph>=1.2.11,<2",
   "langgraph-checkpoint-postgres>=3.1.2,<4",
   "redis>=8.1,<9",
   "opentelemetry-api>=1.44,<2",
 ]
 
+[project.optional-dependencies]
+test = [
+  "pytest>=9,<10",
+  "psycopg[binary]>=3.3.6,<4",
+  "psycopg-pool>=3.2,<4",
+  "testcontainers[postgres]>=4.15,<5",
+]
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
