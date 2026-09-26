@@ -1,11 +1,6 @@
 """Governed live-source adapters built on the OIS Source Gateway."""
 
-from .base import (
-    AdapterHealth,
-    AdapterResult,
-    SourceAdapter,
-    SourceAdapterRegistry,
-)
+from .base import AdapterHealth, AdapterResult, SourceAdapter, SourceAdapterRegistry
 from .database import DatabaseSourceAdapter
 from .file import FileSourceAdapter
 from .github import GitHubSourceAdapter
