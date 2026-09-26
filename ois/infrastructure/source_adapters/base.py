@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any, Protocol
+from typing import Protocol
 
-from ois.infrastructure.source_gateway import SourceGateway, SourceResponse, SourceRequest
+from ois.infrastructure.source_gateway import SourceGateway, SourceRequest, SourceResponse
 
 
 @dataclass(frozen=True)
