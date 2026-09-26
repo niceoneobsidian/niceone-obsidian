@@ -13,7 +13,7 @@ from ois.infrastructure.source_adapters import (
     SourceAdapterRegistry,
     WebhookVerifier,
 )
-from ois.infrastructure.source_gateway import SQLiteSourceLedger, SourceGateway
+from ois.infrastructure.source_gateway import SourceGateway, SQLiteSourceLedger
 
 
 def gateway() -> tuple[SourceGateway, SQLiteSourceLedger]:
