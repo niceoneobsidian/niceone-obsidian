@@ -34,16 +34,8 @@ class EvidenceGraphProjector:
             return ()
 
         raw = self._load_evidence(event)
-        payload = (
-            raw.payload
-            if raw is not None
-            else event.payload.get("payload", {})
-        )
-        source_id = (
-            raw.source_id
-            if raw is not None
-            else event.payload.get("source_id")
-        )
+        payload = raw.payload if raw is not None else event.payload.get("payload", {})
+        source_id = raw.source_id if raw is not None else event.payload.get("source_id")
         observed_at = (
             raw.collected_at
             if raw is not None
