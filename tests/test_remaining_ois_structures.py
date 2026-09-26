@@ -29,7 +29,11 @@ def test_knowledge_world_is_versioned_and_provenanced() -> None:
     second = store.upsert_entity("post-1", "post", {"topic": "growth"})
     assert (first.version, second.version) == (1, 2)
     fact = store.assert_fact(
-        "post-1", "platform", "tiktok", source="live:tiktok", confidence=0.99,
+        "post-1",
+        "platform",
+        "tiktok",
+        source="live:tiktok",
+        confidence=0.99,
     )
     assert fact.version == 1
     assert store.facts("post-1")[0].source == "live:tiktok"
