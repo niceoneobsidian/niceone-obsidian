@@ -63,9 +63,9 @@ def test_g1_e2e_outbox_to_research() -> None:
     report = pipeline.project_pending()
     assert report.consumed == 2
     assert report.projected >= 4
-    assert graph.get_node(
-        deterministic_entity_id("topic", "AI agents")
-    ) is not None
+    assert (
+        graph.get_node(deterministic_entity_id("topic", "AI agents")) is not None
+    )
 
     brief = pipeline.research(
         query="AI agents",
