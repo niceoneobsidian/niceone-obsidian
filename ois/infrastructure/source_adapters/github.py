@@ -79,10 +79,16 @@ class GitHubSourceAdapter:
                     tenant_id=tenant_id,
                     workspace_id=workspace_id,
                     source_id=self.source_id,
-                    source_record_id=str(
-                        item.get("sha") or item.get("id") or index
-                    ) if isinstance(item, dict) else str(index),
-                    payload=cast(dict[str, object], item) if isinstance(item, dict) else {"value": item},
+                    source_record_id=(
+                        str(item.get("sha") or item.get("id") or index)
+                        if isinstance(item, dict)
+                        else str(index)
+                    ),
+                    payload=(
+                        cast(dict[str, object], item)
+                        if isinstance(item, dict)
+                        else {"value": item}
+                    ),
                     credential=credential,
                     connector_version="github-rest-v1",
                     schema_version="github.resource.v1",
