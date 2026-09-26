@@ -31,7 +31,9 @@ def test_live_cross_source_g1_acceptance() -> None:
 
     rss_url = os.getenv(
         "OIS_G1_RSS_URL",
-        "https://news.google.com/rss/search?q=" + quote(topic) + "&hl=en-US&gl=US&ceid=US:en",
+        "https://news.google.com/rss/search?q="
+        + quote(topic)
+        + "&hl=en-US&gl=US&ceid=US:en",
     )
 
     ledger = SQLiteSourceLedger()
