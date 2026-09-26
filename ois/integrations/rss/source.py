@@ -125,7 +125,9 @@ def _parse_items(root: ElementTree.Element) -> list[RSSItem]:
     for index, item in enumerate(items):
         title = _text(item.find("title")) or ""
         uri = _text(item.find("link"))
-        item_id = _text(item.find("guid")) or uri or f"rss-item-{index}"
+        item_id = (
+            _text(item.find("guid")) or uri or f"rss-item-{index}"
+        )
         description = _text(item.find("description"))
         published_at = _parse_date(_text(item.find("pubDate")))
         parsed.append(RSSItem(item_id, title, uri, published_at, description))
