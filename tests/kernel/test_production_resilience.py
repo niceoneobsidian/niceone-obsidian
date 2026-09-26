@@ -48,13 +48,7 @@ def test_rc04_bounds_retries_and_routes_to_separate_recovery_pool(monkeypatch):
         recovery_pool.connection.return_value = AsyncContext(recovery_conn)
 
         redis_client = AsyncMock()
-        redis_client.eval.side_effect = [
-            [1, 7],
-            [1, b"owner", 7],
-            [1, b"owner", 7],
-            [1, b"owner", 7],
-            [0],
-        ]
+        redis_client.eval.side_effect = [[1, 7], [0]]
 
         kernel = OISProductionResilience(
             db_pool,
@@ -64,6 +58,7 @@ def test_rc04_bounds_retries_and_routes_to_separate_recovery_pool(monkeypatch):
             lease_ttl_ms=100,
         )
         kernel.evidence.append = AsyncMock()
+        kernel.leases.assert_current = AsyncMock()
         monkeypatch.setattr("ois.kernel.production_resilience.asyncio.sleep", AsyncMock())
 
         ctx = KernelTaskContext(
@@ -131,7 +126,7 @@ def test_rc05_release_is_conditional_on_nonce():
 
 
 def test_recovery_matrix_contains_all_twelve_ids():
-    assert RECOVERY_SCENARIO_IDS == tuple(f"RC-{index:02d}" for index in range(1, 13))
+    assert tuple(f"RC-{index:02d}" for index in range(1, 13)) == RECOVERY_SCENARIO_IDS
 
 
 def test_recovery_matrix_fails_closed_when_handler_missing():
