@@ -4,7 +4,7 @@ import sqlite3
 
 from production.knowledge_world import KnowledgeWorldStore
 from production.model_gateway import ModelGateway, ModelRequest, ModelSpec
-from production.production_loop import LoopArtifact, ProductionLoopProof, STAGES
+from production.production_loop import STAGES, LoopArtifact, ProductionLoopProof
 
 
 class FakeModel:
