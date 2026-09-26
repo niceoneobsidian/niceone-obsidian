@@ -102,7 +102,9 @@ class KnowledgeWorldStore:
             fact_id, subject_id, predicate, object_value, source, confidence, version, observed
         )
 
-    def facts(self, subject_id: str, predicate: str | None = None) -> tuple[WorldFact, ...]:
+    def facts(
+        self, subject_id: str, predicate: str | None = None
+    ) -> tuple[WorldFact, ...]:
         sql = "SELECT * FROM world_facts WHERE subject_id=?"
         params: list[Any] = [subject_id]
         if predicate is not None:
