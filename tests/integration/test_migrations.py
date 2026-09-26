@@ -42,7 +42,7 @@ def test_database_is_postgresql(
 def test_schema_migrations_records_all_migrations(
     migrated_postgres: str,
 ) -> None:
-    """Verify that every applied migration is recorded with a valid SHA256 checksum."""
+    """Verify that every repository migration is recorded with a valid SHA256 checksum."""
     with psycopg.connect(migrated_postgres) as connection, connection.cursor() as cursor:
         cursor.execute(
             "SELECT version, name, checksum, applied_at FROM schema_migrations ORDER BY version"
@@ -50,7 +50,10 @@ def test_schema_migrations_records_all_migrations(
         rows = cursor.fetchall()
 
     recorded_versions = [row[0] for row in rows]
-    expected_versions = ["001", "002", "003", "004", "005", "006", "007"]
+    expected_versions = sorted(
+        path.name.split("_", 1)[0]
+        for path in MIGRATIONS_DIR.glob("*.sql")
+    )
     assert recorded_versions == expected_versions
 
     for row in rows:
