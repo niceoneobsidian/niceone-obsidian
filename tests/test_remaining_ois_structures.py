@@ -42,24 +42,38 @@ def test_production_loop_fails_closed_until_all_stages_exist() -> None:
     proof = ProductionLoopProof()
     partial = tuple(
         LoopArtifact.create(
-            stage, stage, "tenant-a", {"stage": stage},
-            source_ref=f"live:{stage}", execution_id="exec-1"
+            stage,
+            stage,
+            "tenant-a",
+            {"stage": stage},
+            source_ref=f"live:{stage}",
+            execution_id="exec-1",
         )
         for stage in STAGES[:-1]
     )
     rejected = proof.certify(
-        certificate_id="cert-1", tenant_id="tenant-a", execution_id="exec-1", artifacts=partial
+        certificate_id="cert-1",
+        tenant_id="tenant-a",
+        execution_id="exec-1",
+        artifacts=partial,
     )
     assert not rejected.production_verified
 
     complete = partial + (
         LoopArtifact.create(
-            "learning", "learning", "tenant-a", {"stage": "learning"},
-            source_ref="live:learning", execution_id="exec-1"
+            "learning",
+            "learning",
+            "tenant-a",
+            {"stage": "learning"},
+            source_ref="live:learning",
+            execution_id="exec-1",
         ),
     )
     certified = proof.certify(
-        certificate_id="cert-2", tenant_id="tenant-a", execution_id="exec-1", artifacts=complete
+        certificate_id="cert-2",
+        tenant_id="tenant-a",
+        execution_id="exec-1",
+        artifacts=complete,
     )
     assert certified.production_verified
     assert len(certified.lineage_hash) == 64
