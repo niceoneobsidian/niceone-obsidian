@@ -1,4 +1,5 @@
 """Governed multi-agent execution fabric using the canonical Supervisor and AgentRegistry."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
