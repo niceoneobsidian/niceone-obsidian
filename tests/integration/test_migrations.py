@@ -51,8 +51,7 @@ def test_schema_migrations_records_all_migrations(
 
     recorded_versions = [row[0] for row in rows]
     expected_versions = sorted(
-        path.name.split("_", 1)[0]
-        for path in MIGRATIONS_DIR.glob("*.sql")
+        path.name.split("_", 1)[0] for path in MIGRATIONS_DIR.glob("*.sql")
     )
     assert recorded_versions == expected_versions
 
