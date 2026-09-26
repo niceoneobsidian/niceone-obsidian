@@ -95,9 +95,3 @@ exclude = [
   '^\\.ruff_cache/',
 ]
 
-[project.optional-dependencies]
-test = [
-    "pytest>=9,<10",
-    "psycopg[binary]>=3.3.6,<4",
-    "testcontainers[postgres]>=4.15,<5"
-]
