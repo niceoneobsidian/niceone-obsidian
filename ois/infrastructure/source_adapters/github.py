@@ -43,7 +43,10 @@ class GitHubSourceAdapter:
             headers["Authorization"] = f"Bearer {self._token}"
         request = Request(self.url, headers=headers)
         with urlopen(request, timeout=self._timeout) as response:
-            return cast(list[object] | dict[str, object], json.loads(response.read().decode("utf-8")))
+            return cast(
+                list[object] | dict[str, object],
+                json.loads(response.read().decode("utf-8")),
+            )
 
     def health(self) -> AdapterHealth:
         try:
@@ -79,7 +82,7 @@ class GitHubSourceAdapter:
                     source_record_id=str(
                         item.get("sha") or item.get("id") or index
                     ) if isinstance(item, dict) else str(index),
-                    payload=item,
+                    payload=cast(dict[str, object], item) if isinstance(item, dict) else {"value": item},
                     credential=credential,
                     connector_version="github-rest-v1",
                     schema_version="github.resource.v1",
