@@ -1,4 +1,5 @@
 """Fail-closed proof object for the real-source -> outcome -> learning loop."""
+
 from __future__ import annotations
 
 import hashlib
