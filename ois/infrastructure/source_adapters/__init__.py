@@ -1,18 +1,18 @@
 """Governed live-source adapters built on the OIS Source Gateway."""
 
-from .base import (
+from ois.infrastructure.source_adapters.base import (
     AdapterHealth,
     AdapterResult,
     SourceAdapter,
     SourceAdapterRegistry,
 )
-from .database import DatabaseSourceAdapter
-from .file import FileSourceAdapter
-from .github import GitHubSourceAdapter
-from .http import HttpSourceAdapter
-from .polling import PollPage, PollingSourceAdapter
-from .rss import RSSSourceAdapter
-from .webhook import WebhookVerifier
+from ois.infrastructure.source_adapters.database import DatabaseSourceAdapter
+from ois.infrastructure.source_adapters.file import FileSourceAdapter
+from ois.infrastructure.source_adapters.github import GitHubSourceAdapter
+from ois.infrastructure.source_adapters.http import HttpSourceAdapter
+from ois.infrastructure.source_adapters.polling import PollPage, PollingSourceAdapter
+from ois.infrastructure.source_adapters.rss import RSSSourceAdapter
+from ois.infrastructure.source_adapters.webhook import WebhookVerifier
 
 __all__ = [
     "AdapterHealth",
