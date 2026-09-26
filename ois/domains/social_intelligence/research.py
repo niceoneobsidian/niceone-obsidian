@@ -77,9 +77,7 @@ class CrossSourceResearch:
         confidences: list[float] = []
 
         for name in names:
-            entity = self._graph.get_node(
-                deterministic_entity_id("topic", name)
-            )
+            entity = self._graph.get_node(deterministic_entity_id("topic", name))
             if entity is None:
                 continue
             for finding in self.corroboration(
