@@ -42,8 +42,9 @@ def test_rc04_bounds_retries_and_routes_to_separate_recovery_pool(monkeypatch):
     async def scenario():
         db_pool = BrokenPool()
         recovery_cur = AsyncMock()
-        recovery_conn = AsyncMock()
+        recovery_conn = MagicMock()
         recovery_conn.cursor.return_value = AsyncContext(recovery_cur)
+        recovery_conn.commit = AsyncMock()
         recovery_pool = MagicMock()
         recovery_pool.connection.return_value = AsyncContext(recovery_conn)
 
