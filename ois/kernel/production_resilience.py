@@ -9,7 +9,8 @@ import random
 import secrets
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any, Awaitable, Callable
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 import psycopg
 import redis.asyncio as redis
@@ -199,8 +200,7 @@ class PostgresEvidenceChain:
             "recorded_at": datetime.now(UTC).isoformat(),
         }
         payload_hash = hashlib.sha256(self._canonical(payload).encode()).hexdigest()
-        async with self.pool.connection() as conn:
-            async with conn.cursor() as cur:
+        async with self.pool.connection() as conn, conn.cursor() as cur:
                 await cur.execute(
                     "SELECT event_hash FROM ois_attestation_evidence "
                     "WHERE tenant_id = %s AND thread_id = %s ORDER BY sequence_no DESC LIMIT 1",
@@ -274,8 +274,7 @@ class OISProductionResilience:
             f"{ctx.tenant_id}:{ctx.thread_id}:{scenario_id}:{context_hash}".encode(),
             hashlib.sha256,
         ).hexdigest()
-        async with self.recovery_pool.connection() as conn:
-            async with conn.cursor() as cur:
+        async with self.recovery_pool.connection() as conn, conn.cursor() as cur:
                 await self._set_tenant(cur, ctx.tenant_id)
                 await cur.execute(
                     """
@@ -318,8 +317,7 @@ class OISProductionResilience:
                 while True:
                     try:
                         await self.leases.assert_current(lease)
-                        async with self.db_pool.connection() as conn:
-                            async with conn.cursor() as cur:
+                        async with self.db_pool.connection() as conn, conn.cursor() as cur:
                                 await self._set_tenant(cur, ctx.tenant_id)
                                 await self.leases.assert_current(lease)
                                 result = await db_operation(cur, lease.fencing_token)
