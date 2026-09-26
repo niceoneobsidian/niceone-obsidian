@@ -62,9 +62,7 @@ def test_database_adapter_ingests_rows() -> None:
         connection_factory=lambda: connection,
         query="SELECT id, value FROM source",
     )
-    result = adapter.ingest(
-        tenant_id="t1", workspace_id="w1", gateway=gateway_instance
-    )
+    result = adapter.ingest(tenant_id="t1", workspace_id="w1", gateway=gateway_instance)
     assert result.records == 2
     assert all(ledger.evidence(item) is not None for item in result.evidence_ids)
 
@@ -84,9 +82,7 @@ def test_polling_advances_cursor_after_gateway_acceptance() -> None:
         get_cursor=lambda: cursor[0],
         set_cursor=lambda value: cursor.__setitem__(0, value),
     )
-    result = adapter.ingest(
-        tenant_id="t1", workspace_id="w1", gateway=gateway_instance
-    )
+    result = adapter.ingest(tenant_id="t1", workspace_id="w1", gateway=gateway_instance)
     assert result.records == 2
     assert cursor[0] is None
     assert len(ledger.pending()) == 2

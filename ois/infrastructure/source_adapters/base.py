@@ -30,8 +30,7 @@ class AdapterResult:
 class SourceAdapter(Protocol):
     source_id: str
 
-    def health(self) -> AdapterHealth:
-        ...
+    def health(self) -> AdapterHealth: ...
 
     def ingest(
         self,
@@ -40,8 +39,7 @@ class SourceAdapter(Protocol):
         workspace_id: str,
         gateway: SourceGateway,
         credential_id: str | None = None,
-    ) -> AdapterResult:
-        ...
+    ) -> AdapterResult: ...
 
 
 class SourceAdapterRegistry:

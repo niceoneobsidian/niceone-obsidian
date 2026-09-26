@@ -85,9 +85,7 @@ class GitHubSourceAdapter:
                         else str(index)
                     ),
                     payload=(
-                        cast(dict[str, object], item)
-                        if isinstance(item, dict)
-                        else {"value": item}
+                        cast(dict[str, object], item) if isinstance(item, dict) else {"value": item}
                     ),
                     credential=credential,
                     connector_version="github-rest-v1",

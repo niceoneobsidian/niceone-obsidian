@@ -20,9 +20,7 @@ class WebhookVerifier:
 
     def verify(self, payload: bytes, signature: str) -> bool:
         supplied = signature.removeprefix("sha256=")
-        expected = hmac.new(
-            self._secret, payload, hashlib.sha256
-        ).hexdigest()
+        expected = hmac.new(self._secret, payload, hashlib.sha256).hexdigest()
         return hmac.compare_digest(supplied, expected)
 
     def ingest(

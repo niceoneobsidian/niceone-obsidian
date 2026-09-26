@@ -20,9 +20,8 @@ class RSSSourceAdapter:
         with urllib.request.urlopen(self._url, timeout=self._timeout) as response:
             root = ET.fromstring(response.read())
         entries = []
-        for item in root.findall(".//item") + root.findall(
-            ".//{http://www.w3.org/2005/Atom}entry"
-        ):
+        for item in root.findall(".//item") + root.findall(".//{http://www.w3.org/2005/Atom}entry"):
+
             def value(item: ET.Element, name: str) -> str:
                 node = item.find(name)
                 if node is None:
