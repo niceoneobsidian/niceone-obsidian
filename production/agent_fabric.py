@@ -34,9 +34,7 @@ class AgentFabric:
         for task in tasks:
             self.registry.resolve(task.capability_id, task.version)
 
-    def execute(
-        self, tasks: tuple[AgentTask, ...], context: ExecutionContext
-    ) -> AgentFabricResult:
+    def execute(self, tasks: tuple[AgentTask, ...], context: ExecutionContext) -> AgentFabricResult:
         self.validate(tasks)
         results: list[Any] = []
         for index, task in enumerate(tasks):
