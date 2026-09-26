@@ -1,4 +1,5 @@
 """Governed model routing with health, budget, and deterministic fallback."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
