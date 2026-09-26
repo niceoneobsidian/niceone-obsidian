@@ -40,7 +40,9 @@ class G1ResearchPipeline:
             projected += len(created)
             event_ids.append(event.event_id)
             self._outbox.mark_published(event.event_id)
-        return ProjectionReport(len(events), projected, tuple(event_ids))
+        return ProjectionReport(
+            len(events), projected, tuple(event_ids)
+        )
 
     def research(
         self,
