@@ -1,4 +1,5 @@
 """Durable semantic-world repository with versioned facts, provenance, and retrieval."""
+
 from __future__ import annotations
 
 import json
