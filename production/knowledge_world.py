@@ -112,7 +112,13 @@ class KnowledgeWorldStore:
         rows = self.db.execute(sql, params).fetchall()
         return tuple(
             WorldFact(
-                r[0], r[1], r[2], json.loads(r[3]), r[4], float(r[5]), int(r[6]),
+                r[0],
+                r[1],
+                r[2],
+                json.loads(r[3]),
+                r[4],
+                float(r[5]),
+                int(r[6]),
                 datetime.fromisoformat(r[7]),
             )
             for r in rows
