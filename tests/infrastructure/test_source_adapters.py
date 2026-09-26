@@ -8,12 +8,12 @@ import sqlite3
 from ois.infrastructure.source_adapters import (
     DatabaseSourceAdapter,
     FileSourceAdapter,
-    PollPage,
     PollingSourceAdapter,
+    PollPage,
     SourceAdapterRegistry,
     WebhookVerifier,
 )
-from ois.infrastructure.source_gateway import SQLiteSourceLedger, SourceGateway
+from ois.infrastructure.source_gateway import SourceGateway, SQLiteSourceLedger
 
 
 def gateway() -> tuple[SourceGateway, SQLiteSourceLedger]:
