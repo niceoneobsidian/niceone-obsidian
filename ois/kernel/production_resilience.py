@@ -118,7 +118,9 @@ class FencedLeaseManager:
         result = await self.client.eval(READ_LEASE_LUA, 1, lease.key)
         if int(result[0]) != 1:
             raise FencingTokenMismatch("RC-05 lease no longer exists")
-        current_nonce = result[1].decode("utf-8") if isinstance(result[1], bytes) else str(result[1])
+        current_nonce = (
+            result[1].decode("utf-8") if isinstance(result[1], bytes) else str(result[1])
+        )
         if current_nonce != lease.owner_nonce:
             raise FencingTokenMismatch("RC-05 lease is no longer owned by this worker")
         if int(result[2]) != lease.fencing_token:
@@ -263,7 +265,9 @@ class OISProductionResilience:
     ) -> None:
         if self.recovery_pool is None:
             raise RecoverySinkUnavailable("RC-04 durable recovery_pool is not configured")
-        canonical = json.dumps(state_dump, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+        canonical = json.dumps(
+            state_dump, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+        )
         context_hash = hashlib.sha256(canonical.encode()).hexdigest()
         signature = hmac.new(
             self.evidence.secret,
@@ -320,7 +324,9 @@ class OISProductionResilience:
                                 await self.leases.assert_current(lease)
                                 result = await db_operation(cur, lease.fencing_token)
                                 if heartbeat.lost.is_set():
-                                    raise FencingTokenMismatch("RC-05 heartbeat lost during protected operation")
+                                    raise FencingTokenMismatch(
+                                        "RC-05 heartbeat lost during protected operation"
+                                    )
                                 await self.leases.assert_current(lease)
                                 await conn.commit()
                         await self.evidence.append(
@@ -352,7 +358,11 @@ class OISProductionResilience:
                             ctx.tenant_id,
                             ctx.thread_id,
                             "RECOVERY_RETRY",
-                            {"scenario_id": scenario_id, "retry_count": retry_count, "delay_s": delay},
+                            {
+                                "scenario_id": scenario_id,
+                                "retry_count": retry_count,
+                                "delay_s": delay,
+                            },
                         )
                         await asyncio.sleep(delay)
                     except FencingTokenMismatch:
