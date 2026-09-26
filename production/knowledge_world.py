@@ -77,7 +77,8 @@ class KnowledgeWorldStore:
         if not 0 <= confidence <= 1:
             raise ValueError("confidence must be between 0 and 1")
         row = self.db.execute(
-            "SELECT COALESCE(MAX(version),0) FROM world_facts WHERE subject_id=? AND predicate=?",
+            "SELECT COALESCE(MAX(version),0) FROM world_facts "
+            "WHERE subject_id=? AND predicate=?",
             (subject_id, predicate),
         ).fetchone()
         version = int(row[0]) + 1
@@ -85,8 +86,16 @@ class KnowledgeWorldStore:
         observed = datetime.now(UTC)
         self.db.execute(
             "INSERT INTO world_facts VALUES (?,?,?,?,?,?,?,?)",
-            (fact_id, subject_id, predicate, json.dumps(object_value, sort_keys=True, default=str),
-             source, confidence, version, observed.isoformat()),
+            (
+                fact_id,
+                subject_id,
+                predicate,
+                json.dumps(object_value, sort_keys=True, default=str),
+                source,
+                confidence,
+                version,
+                observed.isoformat(),
+            ),
         )
         self.db.commit()
         return WorldFact(
@@ -103,7 +112,13 @@ class KnowledgeWorldStore:
         rows = self.db.execute(sql, params).fetchall()
         return tuple(
             WorldFact(
-                r[0], r[1], r[2], json.loads(r[3]), r[4], float(r[5]), int(r[6]),
+                r[0],
+                r[1],
+                r[2],
+                json.loads(r[3]),
+                r[4],
+                float(r[5]),
+                int(r[6]),
                 datetime.fromisoformat(r[7]),
             )
             for r in rows
