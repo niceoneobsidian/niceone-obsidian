@@ -111,7 +111,10 @@ class ModelGateway:
         model, fallback = self.resolve(request)
         started = monotonic()
         output = model.provider.generate(
-            model=model.model_id, prompt=request.prompt, max_tokens=request.max_tokens, **kwargs
+            model=model.model_id,
+            prompt=request.prompt,
+            max_tokens=request.max_tokens,
+            **kwargs,
         )
         latency_ms = (monotonic() - started) * 1000
         cost = request.max_tokens / 1000 * model.cost_per_1k_tokens
