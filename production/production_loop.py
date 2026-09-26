@@ -77,10 +77,10 @@ class ProductionLoopCertificate:
             "lineage_hash": self.lineage_hash,
             "artifacts": [
                 {
-                **asdict(a),
-                "occurred_at": a.occurred_at.isoformat(),
-            }
-            for a in self.artifacts
+                    **asdict(a),
+                    "occurred_at": a.occurred_at.isoformat(),
+                }
+                for a in self.artifacts
             ],
         }
 
