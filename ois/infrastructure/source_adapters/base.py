@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from collections.abc import Sequence
 from typing import Protocol
 
-from ois.infrastructure.source_gateway import SourceGateway, SourceRequest, SourceResponse
+from ois.infrastructure.source_gateway import SourceGateway, SourceResponse
 
 
 @dataclass(frozen=True)
@@ -66,7 +67,7 @@ class SourceAdapterRegistry:
     @staticmethod
     def response(
         source_id: str,
-        responses: list[SourceResponse],
+        responses: Sequence[SourceResponse],
     ) -> AdapterResult:
         accepted = [item for item in responses if item.accepted]
         return AdapterResult(
