@@ -123,7 +123,7 @@ def verify_production_loop(
 
     ordered = [by_stage[s] for s in _REQUIRED_ORDER if s in by_stage]
     # Ordered stages follow the required sequence.
-    for previous, current in zip(ordered, ordered[1:]):
+    for previous, current in zip(ordered, ordered[1:], strict=True):
         if previous.evidence_id not in current.source_refs:
             failures.append(
                 f"{current.stage} does not reference prior evidence "
