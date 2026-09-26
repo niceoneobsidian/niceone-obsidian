@@ -39,7 +39,10 @@ class GraphEdge:
 
 def canonical_hash(payload: Any) -> str:
     encoded = json.dumps(
-        payload, sort_keys=True, separators=(",", ":"), default=str
+        payload,
+        sort_keys=True,
+        separators=(",", ":"),
+        default=str,
     ).encode()
     return hashlib.sha256(encoded).hexdigest()
 
@@ -144,7 +147,8 @@ class SQLiteEvidenceGraph:
 
     def get_node(self, node_id: str) -> GraphNode | None:
         row = self._db.execute(
-            "SELECT * FROM graph_nodes WHERE node_id=?", (node_id,)
+            "SELECT * FROM graph_nodes WHERE node_id=?",
+            (node_id,),
         ).fetchone()
         if row is None:
             return None
