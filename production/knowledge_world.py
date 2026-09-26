@@ -77,8 +77,7 @@ class KnowledgeWorldStore:
         if not 0 <= confidence <= 1:
             raise ValueError("confidence must be between 0 and 1")
         row = self.db.execute(
-            "SELECT COALESCE(MAX(version),0) FROM world_facts "
-            "WHERE subject_id=? AND predicate=?",
+            "SELECT COALESCE(MAX(version),0) FROM world_facts WHERE subject_id=? AND predicate=?",
             (subject_id, predicate),
         ).fetchone()
         version = int(row[0]) + 1
@@ -102,9 +101,7 @@ class KnowledgeWorldStore:
             fact_id, subject_id, predicate, object_value, source, confidence, version, observed
         )
 
-    def facts(
-        self, subject_id: str, predicate: str | None = None
-    ) -> tuple[WorldFact, ...]:
+    def facts(self, subject_id: str, predicate: str | None = None) -> tuple[WorldFact, ...]:
         sql = "SELECT * FROM world_facts WHERE subject_id=?"
         params: list[Any] = [subject_id]
         if predicate is not None:
@@ -114,13 +111,7 @@ class KnowledgeWorldStore:
         rows = self.db.execute(sql, params).fetchall()
         return tuple(
             WorldFact(
-                r[0],
-                r[1],
-                r[2],
-                json.loads(r[3]),
-                r[4],
-                float(r[5]),
-                int(r[6]),
+                r[0], r[1], r[2], json.loads(r[3]), r[4], float(r[5]), int(r[6]),
                 datetime.fromisoformat(r[7]),
             )
             for r in rows
