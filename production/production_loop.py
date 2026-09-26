@@ -8,7 +8,14 @@ from datetime import UTC, datetime
 from typing import Literal
 
 Stage = Literal["source", "evidence", "intelligence", "growth", "outcome", "learning"]
-STAGES: tuple[Stage, ...] = ("source", "evidence", "intelligence", "growth", "outcome", "learning")
+STAGES: tuple[Stage, ...] = (
+    "source",
+    "evidence",
+    "intelligence",
+    "growth",
+    "outcome",
+    "learning",
+)
 
 
 @dataclass(frozen=True)
