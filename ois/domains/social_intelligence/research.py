@@ -1,4 +1,5 @@
 """Cross-source research over provenance-backed graph evidence."""
+
 from __future__ import annotations
 
 from collections.abc import Iterable
@@ -39,9 +40,7 @@ class CrossSourceResearch:
                 workspace_id,
             ):
                 continue
-            for edge in self._graph.neighbors(
-                evidence.node_id, kinds={"supports", "mentions"}
-            ):
+            for edge in self._graph.neighbors(evidence.node_id, kinds={"supports", "mentions"}):
                 if edge.to_id != entity_id:
                     continue
                 if evidence.source_id:
@@ -94,16 +93,13 @@ class CrossSourceResearch:
                             Evidence(
                                 source_id=node.source_id or "unknown",
                                 uri=node.payload.get("uri"),
-                                excerpt=node.payload.get("excerpt")
-                                or node.payload.get("text"),
+                                excerpt=node.payload.get("excerpt") or node.payload.get("text"),
                                 observed_at=node.observed_at,
                                 confidence=finding.confidence,
                             )
                         )
 
-        confidence = (
-            sum(confidences) / len(confidences) if confidences else 0.0
-        )
+        confidence = sum(confidences) / len(confidences) if confidences else 0.0
         return SocialResearchBrief(
             query=query,
             sources=evidence,

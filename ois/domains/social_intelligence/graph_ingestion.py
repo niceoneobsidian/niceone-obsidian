@@ -1,4 +1,5 @@
 """Project source outbox evidence into the G1 provenance graph."""
+
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -23,9 +24,7 @@ class EvidenceReader(Protocol):
 class EvidenceGraphProjector:
     """Materialize durable raw evidence referenced by outbox events."""
 
-    def __init__(
-        self, graph: EvidenceGraph, evidence_reader: EvidenceReader | None = None
-    ) -> None:
+    def __init__(self, graph: EvidenceGraph, evidence_reader: EvidenceReader | None = None) -> None:
         self._graph = graph
         self._evidence_reader = evidence_reader
 
@@ -37,9 +36,7 @@ class EvidenceGraphProjector:
         payload = raw.payload if raw is not None else event.payload.get("payload", {})
         source_id = raw.source_id if raw is not None else event.payload.get("source_id")
         observed_at = (
-            raw.collected_at
-            if raw is not None
-            else _parse_time(event.payload.get("collected_at"))
+            raw.collected_at if raw is not None else _parse_time(event.payload.get("collected_at"))
         )
         payload_hash = (
             raw.payload_hash
@@ -100,8 +97,7 @@ class EvidenceGraphProjector:
         evidence = self._evidence_reader.evidence(event.aggregate_id)
         if evidence is None:
             raise KeyError(
-                f"raw evidence not found for outbox event {event.event_id}: "
-                f"{event.aggregate_id}"
+                f"raw evidence not found for outbox event {event.event_id}: {event.aggregate_id}"
             )
         if (evidence.tenant_id, evidence.workspace_id) != (
             event.tenant_id,

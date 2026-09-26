@@ -1,4 +1,5 @@
 """Evidence/entity graph for provenance-first G1 intelligence."""
+
 from __future__ import annotations
 
 import hashlib
@@ -119,8 +120,7 @@ class SQLiteEvidenceGraph:
         if left is None or right is None:
             raise KeyError("both graph edge endpoints must exist")
         if any(
-            (node.tenant_id, node.workspace_id)
-            != (edge.tenant_id, edge.workspace_id)
+            (node.tenant_id, node.workspace_id) != (edge.tenant_id, edge.workspace_id)
             for node in (left, right)
         ):
             raise PermissionError("cross-scope graph edge")
@@ -191,9 +191,7 @@ class SQLiteEvidenceGraph:
             for row in rows
         )
 
-    def nodes(
-        self, *, kind: NodeKind | None = None, limit: int = 1000
-    ) -> tuple[GraphNode, ...]:
+    def nodes(self, *, kind: NodeKind | None = None, limit: int = 1000) -> tuple[GraphNode, ...]:
         query = "SELECT * FROM graph_nodes"
         params: tuple[Any, ...] = ()
         if kind:

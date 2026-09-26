@@ -78,9 +78,7 @@ def test_outbox_projects_evidence_and_entity() -> None:
         datetime.now(UTC),
     )
     assert "e1" in projector.project(event)
-    assert graph.get_node(
-        deterministic_entity_id("topic", "AI agents")
-    ) is not None
+    assert graph.get_node(deterministic_entity_id("topic", "AI agents")) is not None
 
 
 def test_cross_source_research_corroborates() -> None:

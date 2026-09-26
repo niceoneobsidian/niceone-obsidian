@@ -4,6 +4,7 @@ This adapter treats a public RSS feed as a production external source. It
 never persists credentials and writes each fetched feed document through the
 same Raw Evidence + Outbox path used by authenticated social connectors.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -29,9 +30,7 @@ class RSSItem:
             "id": self.item_id,
             "title": self.title,
             "uri": self.uri,
-            "published_at": self.published_at.isoformat()
-            if self.published_at
-            else None,
+            "published_at": self.published_at.isoformat() if self.published_at else None,
             "description": self.description,
             "topics": topics,
         }
@@ -105,9 +104,7 @@ class RSSSource:
             if not result.accepted and result.reason == "duplicate_evidence":
                 continue
             if not result.accepted:
-                raise RuntimeError(
-                    f"gateway rejected RSS item {item.item_id}: {result.reason}"
-                )
+                raise RuntimeError(f"gateway rejected RSS item {item.item_id}: {result.reason}")
             evidence_ids.append(result.evidence_id)
             event_ids.append(result.event_id)
 
@@ -125,9 +122,7 @@ def _parse_items(root: ElementTree.Element) -> list[RSSItem]:
     for index, item in enumerate(items):
         title = _text(item.find("title")) or ""
         uri = _text(item.find("link"))
-        item_id = (
-            _text(item.find("guid")) or uri or f"rss-item-{index}"
-        )
+        item_id = _text(item.find("guid")) or uri or f"rss-item-{index}"
         description = _text(item.find("description"))
         published_at = _parse_date(_text(item.find("pubDate")))
         parsed.append(RSSItem(item_id, title, uri, published_at, description))

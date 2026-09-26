@@ -25,15 +25,11 @@ def test_live_cross_source_g1_acceptance() -> None:
     token = os.getenv("OIS_TIKTOK_ACCESS_TOKEN")
     topic = os.getenv("OIS_G1_CROSS_SOURCE_TOPIC")
     if not token or not topic:
-        pytest.skip(
-            "OIS_TIKTOK_ACCESS_TOKEN and OIS_G1_CROSS_SOURCE_TOPIC are required"
-        )
+        pytest.skip("OIS_TIKTOK_ACCESS_TOKEN and OIS_G1_CROSS_SOURCE_TOPIC are required")
 
     rss_url = os.getenv(
         "OIS_G1_RSS_URL",
-        "https://news.google.com/rss/search?q="
-        + quote(topic)
-        + "&hl=en-US&gl=US&ceid=US:en",
+        "https://news.google.com/rss/search?q=" + quote(topic) + "&hl=en-US&gl=US&ceid=US:en",
     )
 
     ledger = SQLiteSourceLedger()

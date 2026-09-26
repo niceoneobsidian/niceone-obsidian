@@ -1,4 +1,5 @@
 """G1 Phase 3/4 orchestration: outbox -> graph -> cross-source research."""
+
 from __future__ import annotations
 
 from collections.abc import Iterable
@@ -40,9 +41,7 @@ class G1ResearchPipeline:
             projected += len(created)
             event_ids.append(event.event_id)
             self._outbox.mark_published(event.event_id)
-        return ProjectionReport(
-            len(events), projected, tuple(event_ids)
-        )
+        return ProjectionReport(len(events), projected, tuple(event_ids))
 
     def research(
         self,
