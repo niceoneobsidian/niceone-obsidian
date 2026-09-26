@@ -82,8 +82,7 @@ def test_missing_lineage_reference_fails() -> None:
     )
     assert certificate.production_verified is False
     assert any(
-        "growth does not reference prior evidence" in failure
-        for failure in certificate.failures
+        "growth does not reference prior evidence" in failure for failure in certificate.failures
     )
 
 

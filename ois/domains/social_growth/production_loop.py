@@ -4,6 +4,7 @@ This module verifies an externally produced evidence chain:
 real source -> durable evidence -> intelligence -> growth -> outcome -> learning.
 It never fabricates platform evidence or executes external side effects.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -59,9 +60,7 @@ class ProductionLoopCertificate:
 
 
 def canonical_hash(value: object) -> str:
-    encoded = json.dumps(
-        value, sort_keys=True, separators=(",", ":"), default=str
-    ).encode("utf-8")
+    encoded = json.dumps(value, sort_keys=True, separators=(",", ":"), default=str).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()
 
 
@@ -126,8 +125,7 @@ def verify_production_loop(
     for previous, current in zip(ordered, ordered[1:], strict=False):
         if previous.evidence_id not in current.source_refs:
             failures.append(
-                f"{current.stage} does not reference prior evidence "
-                f"{previous.evidence_id}"
+                f"{current.stage} does not reference prior evidence {previous.evidence_id}"
             )
 
     lineage = _lineage_hash(ordered)
