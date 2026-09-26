@@ -35,10 +35,12 @@ def test_stale_worker_fencing_blocks_postgres_mutation() -> None:
             async with pool.connection() as conn:
                 await conn.execute(
                     "CREATE TEMP TABLE fencing_fixture "
-                    "(id integer primary key, active_fencing_token bigint not null, value text not null)"
+                    "(id integer primary key, active_fencing_token bigint not null, "
+                    "value text not null)"
                 )
                 await conn.execute(
-                    "INSERT INTO fencing_fixture (id, active_fencing_token, value) VALUES (1, %s, %s)",
+                    "INSERT INTO fencing_fixture (id, active_fencing_token, value) "
+                    "VALUES (1, %s, %s)",
                     (second.fencing_token, "worker-2"),
                 )
 
