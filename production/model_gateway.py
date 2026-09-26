@@ -68,9 +68,10 @@ class ModelGateway:
         self._health[(model_id, version)] = healthy
 
     def resolve(self, request: ModelRequest) -> tuple[ModelSpec, bool]:
+        registered = list(self.registry.snapshot())
         candidates = [
             entry.value
-            for entry in self.registry.snapshot()
+            for entry in registered
             if request.capability in entry.value.capabilities
             and self._health.get((entry.id, entry.version), False)
             and request.max_tokens <= entry.value.max_tokens
@@ -81,10 +82,22 @@ class ModelGateway:
                 m for m in candidates if m.model_id != request.preferred_model
             ]
         candidates.sort(key=lambda m: (m.priority, m.model_id, m.version))
-        for index, candidate in enumerate(candidates):
+        for candidate in candidates:
             cost = request.max_tokens / 1000 * candidate.cost_per_1k_tokens
             if request.budget is None or cost <= request.budget:
-                return candidate, index > 0
+                higher_priority_exists = any(
+                    entry.value.model_id != candidate.model_id
+                    and entry.value.version != candidate.version
+                    and request.capability in entry.value.capabilities
+                    and request.max_tokens <= entry.value.max_tokens
+                    and entry.value.priority < candidate.priority
+                    for entry in registered
+                )
+                preferred_missed = (
+                    request.preferred_model is not None
+                    and candidate.model_id != request.preferred_model
+                )
+                return candidate, higher_priority_exists or preferred_missed
         raise ModelGatewayError(
             "No healthy model satisfies "
             f"capability={request.capability!r} and budget"
