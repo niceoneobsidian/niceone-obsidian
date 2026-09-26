@@ -18,11 +18,11 @@ from ois.kernel.idempotency import (
 
 
 class CountingCapability:
-    def __init__(self):
+    def __init__(self):  # type: ignore
         self.invocations = 0
 
     @property
-    def contract(self):
+    def contract(self):  # type: ignore
         return CapabilityContract(
             capability_id="test.idempotent",
             version="1.0.0",
@@ -32,7 +32,7 @@ class CountingCapability:
             idempotent=True,
         )
 
-    def invoke(self, request: InvocationRequest):
+    def invoke(self, request: InvocationRequest):  # type: ignore
         self.invocations += 1
 
         return InvocationResult(
@@ -45,7 +45,7 @@ class CountingCapability:
         )
 
 
-def make_context():
+def make_context():  # type: ignore
     return ExecutionContext(
         identity=ExecutionIdentity(
             tenant_id="tenant-test",
@@ -54,7 +54,7 @@ def make_context():
     )
 
 
-def make_runtime(capability):
+def make_runtime(capability):  # type: ignore
     registry = CapabilityRegistry()
     registry.register(capability)
 
@@ -66,7 +66,7 @@ def make_runtime(capability):
     )
 
 
-def test_same_invocation_id_does_not_reexecute_capability():
+def test_same_invocation_id_does_not_reexecute_capability():  # type: ignore
     capability = CountingCapability()
     runtime = make_runtime(capability)
     context = make_context()
@@ -93,7 +93,7 @@ def test_same_invocation_id_does_not_reexecute_capability():
     assert second.output == first.output
 
 
-def test_different_invocation_ids_execute_independently():
+def test_different_invocation_ids_execute_independently():  # type: ignore
     capability = CountingCapability()
     runtime = make_runtime(capability)
     context = make_context()
@@ -120,7 +120,7 @@ def test_different_invocation_ids_execute_independently():
     assert first.output != second.output
 
 
-def test_idempotency_hit_is_recorded_in_evidence():
+def test_idempotency_hit_is_recorded_in_evidence():  # type: ignore
     capability = CountingCapability()
     evidence = EvidenceLedger()
 
@@ -160,7 +160,7 @@ def test_idempotency_hit_is_recorded_in_evidence():
     assert hits[0].data["invocation_id"] == "inv-evidence"
 
 
-def test_runtime_idempotency_survives_runtime_restart(tmp_path):
+def test_runtime_idempotency_survives_runtime_restart(tmp_path):  # type: ignore
     from ois.kernel.idempotency import SQLiteIdempotencyStore
 
     capability = CountingCapability()

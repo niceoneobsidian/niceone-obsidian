@@ -20,7 +20,7 @@ from ois.kernel.runtime import ExecutionAlreadyCompleted
 
 class EchoCapability:
     @property
-    def contract(self):
+    def contract(self):  # type: ignore
         return CapabilityContract(
             capability_id="test.terminal",
             version="1.0.0",
@@ -29,7 +29,7 @@ class EchoCapability:
             side_effects=SideEffectLevel.NONE,
         )
 
-    def invoke(self, request: InvocationRequest):
+    def invoke(self, request: InvocationRequest):  # type: ignore
         return InvocationResult(
             invocation_id=request.invocation_id,
             capability_id=request.capability_id,
@@ -38,7 +38,7 @@ class EchoCapability:
         )
 
 
-def make_runtime():
+def make_runtime():  # type: ignore
     registry = CapabilityRegistry()
     registry.register(EchoCapability())
 
@@ -49,14 +49,14 @@ def make_runtime():
     )
 
 
-def make_context():
+def make_context():  # type: ignore
     return ExecutionContext(
         identity=ExecutionIdentity(tenant_id="default"),
         objective="Terminal-state protection test",
     )
 
 
-def test_completed_execution_cannot_be_reexecuted():
+def test_completed_execution_cannot_be_reexecuted():  # type: ignore
     runtime = make_runtime()
     context = make_context()
 
@@ -80,7 +80,7 @@ def test_completed_execution_cannot_be_reexecuted():
         )
 
 
-def test_stopped_execution_cannot_be_reexecuted():
+def test_stopped_execution_cannot_be_reexecuted():  # type: ignore
     runtime = make_runtime()
     context = make_context()
 

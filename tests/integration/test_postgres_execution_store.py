@@ -38,7 +38,7 @@ class Connection:
         pass
 
 
-def test_state_and_evidence_use_explicit_transactions():
+def test_state_and_evidence_use_explicit_transactions() -> None:
     connections = []
 
     def factory():

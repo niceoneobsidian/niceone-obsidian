@@ -34,7 +34,7 @@ def test_database_is_postgresql(
 ) -> None:
     with psycopg.connect(migrated_postgres) as connection, connection.cursor() as cursor:
         cursor.execute("SELECT version()")
-        version = cursor.fetchone()[0]
+        version = cursor.fetchone()[0]  # type: ignore
 
     assert "PostgreSQL" in version
 

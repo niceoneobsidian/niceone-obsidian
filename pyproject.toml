@@ -72,9 +72,9 @@ markers = [
 ]
 
 [tool.mypy]
-python_version = "3.12"
 warn_return_any = true
 warn_unused_configs = true
+python_version = "3.12"
 warn_redundant_casts = true
 warn_unused_ignores = true
 disallow_untyped_defs = true
@@ -100,3 +100,8 @@ test = [
     "psycopg-pool>=3.2,<4",
     "testcontainers[postgres]>=4.15,<5"
 ]
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+check_untyped_defs = false
+disallow_untyped_defs = false

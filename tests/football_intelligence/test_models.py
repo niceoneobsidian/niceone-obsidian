@@ -22,7 +22,7 @@ def match() -> MatchState:
     )
 
 
-def test_baselines_return_normalized_probabilities():
+def test_baselines_return_normalized_probabilities() -> None:
     for model in (EloModel(), PoissonModel(), DixonColesModel()):
         prediction = model.predict(match())
         assert abs(prediction.home + prediction.draw + prediction.away - 1.0) < 1e-9
@@ -30,7 +30,7 @@ def test_baselines_return_normalized_probabilities():
         assert prediction.expected_away_goals >= 0
 
 
-def test_dixon_coles_is_normalized_and_distinct():
+def test_dixon_coles_is_normalized_and_distinct() -> None:
     base = PoissonModel().predict(match())
     dc = DixonColesModel().predict(match())
     assert abs(dc.home + dc.draw + dc.away - 1.0) < 1e-9

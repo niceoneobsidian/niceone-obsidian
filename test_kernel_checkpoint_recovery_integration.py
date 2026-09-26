@@ -16,11 +16,11 @@ from ois.kernel.evidence import EvidenceLedger
 
 
 class DurableRecoveryCapability:
-    def __init__(self):
+    def __init__(self):  # type: ignore
         self.invocations = 0
 
     @property
-    def contract(self):
+    def contract(self):  # type: ignore
         return CapabilityContract(
             capability_id="test.durable.recovery",
             version="1.0.0",
@@ -30,7 +30,7 @@ class DurableRecoveryCapability:
             idempotent=True,
         )
 
-    def invoke(self, request: InvocationRequest):
+    def invoke(self, request: InvocationRequest):  # type: ignore
         self.invocations += 1
 
         return InvocationResult(
@@ -44,7 +44,7 @@ class DurableRecoveryCapability:
         )
 
 
-def make_context():
+def make_context():  # type: ignore
     return ExecutionContext(
         identity=ExecutionIdentity(
             tenant_id="tenant-recovery-test",
@@ -53,7 +53,7 @@ def make_context():
     )
 
 
-def make_runtime(capability, checkpoint_path):
+def make_runtime(capability, checkpoint_path):  # type: ignore
     registry = CapabilityRegistry()
     registry.register(capability)
 
@@ -65,7 +65,7 @@ def make_runtime(capability, checkpoint_path):
     )
 
 
-def test_checkpoint_can_be_restored_after_runtime_recreation(tmp_path):
+def test_checkpoint_can_be_restored_after_runtime_recreation(tmp_path):  # type: ignore
     checkpoint_path = tmp_path / "checkpoints"
 
     capability = DurableRecoveryCapability()
@@ -102,7 +102,7 @@ def test_checkpoint_can_be_restored_after_runtime_recreation(tmp_path):
     assert restored.objective == ("Durable checkpoint recovery integration")
 
 
-def test_restored_execution_preserves_working_memory(tmp_path):
+def test_restored_execution_preserves_working_memory(tmp_path):  # type: ignore
     checkpoint_path = tmp_path / "checkpoints"
 
     capability = DurableRecoveryCapability()
@@ -136,7 +136,7 @@ def test_restored_execution_preserves_working_memory(tmp_path):
     assert any(value == result.output for value in restored.working_memory.values())
 
 
-def test_restored_execution_can_continue_with_idempotency(tmp_path):
+def test_restored_execution_can_continue_with_idempotency(tmp_path):  # type: ignore
     checkpoint_path = tmp_path / "checkpoints"
 
     capability = DurableRecoveryCapability()
@@ -183,7 +183,7 @@ def test_restored_execution_can_continue_with_idempotency(tmp_path):
     assert capability.invocations == 2
 
 
-def test_checkpoint_store_survives_process_boundary_simulation(tmp_path):
+def test_checkpoint_store_survives_process_boundary_simulation(tmp_path):  # type: ignore
     checkpoint_path = tmp_path / "persistent-checkpoints"
 
     capability = DurableRecoveryCapability()

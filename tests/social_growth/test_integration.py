@@ -4,7 +4,7 @@ from ois.registries.capability_registry import CapabilityRegistry
 from ois.registries.workflow_registry import WorkflowRegistry
 
 
-def test_social_domain_registers_into_existing_ois_registries():
+def test_social_domain_registers_into_existing_ois_registries() -> None:
     capabilities = CapabilityRegistry()
     agents = AgentRegistry()
     workflows = WorkflowRegistry()

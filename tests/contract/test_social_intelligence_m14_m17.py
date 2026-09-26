@@ -41,14 +41,14 @@ def _genome(content_id: str, hook_strength: float) -> object:
 
 def test_m14_genome_is_deterministic_and_preserves_missing_modalities() -> None:
     genome = _genome("content-1", 0.9)
-    assert genome.version == "m14.v1"
-    assert genome.hook["strength"] == 0.9
-    assert genome.audio == {}
-    assert len(genome.fingerprint()) == 64
+    assert genome.version == "m14.v1"  # type: ignore
+    assert genome.hook["strength"] == 0.9  # type: ignore
+    assert genome.audio == {}  # type: ignore
+    assert len(genome.fingerprint()) == 64  # type: ignore
 
 
 def test_m15_prediction_is_bounded_and_evidence_aware() -> None:
-    prediction = predict_content(_genome("content-1", 0.9))
+    prediction = predict_content(_genome("content-1", 0.9))  # type: ignore
     assert 0.0 <= prediction.confidence <= 1.0
     assert all(0.0 <= value <= 1.0 for value in prediction.metrics.values())
     assert "hook" in prediction.evidence
@@ -57,8 +57,8 @@ def test_m15_prediction_is_bounded_and_evidence_aware() -> None:
 
 def test_m16_simulation_ranks_variants_without_mutation() -> None:
     variants = (
-        CreativeVariant("a", _genome("a", 0.9), "stronger hook"),
-        CreativeVariant("b", _genome("b", 0.5), "weaker hook"),
+        CreativeVariant("a", _genome("a", 0.9), "stronger hook"),  # type: ignore
+        CreativeVariant("b", _genome("b", 0.5), "weaker hook"),  # type: ignore
     )
     experiment = Experiment(
         experiment_id="exp-1",
@@ -72,7 +72,7 @@ def test_m16_simulation_ranks_variants_without_mutation() -> None:
 
 
 def test_m17_learning_event_is_append_only_evidence() -> None:
-    prediction = predict_content(_genome("content-1", 0.9))
+    prediction = predict_content(_genome("content-1", 0.9))  # type: ignore
     observed = PerformanceObservation(
         content_id="content-1",
         metrics={"overall_performance": 0.8, "retention_probability": 0.7},

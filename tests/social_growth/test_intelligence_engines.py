@@ -24,26 +24,26 @@ def event(text: str, platform: str = "tiktok", entities: list[str] | None = None
     )
 
 
-def test_quality_accepts_evidenced_events():
+def test_quality_accepts_evidenced_events() -> None:
     report = validate_events([event("great launch")])
     assert report.accepted == 1
     assert report.rejected == 0
 
 
-def test_entity_resolution_groups_normalized_labels():
+def test_entity_resolution_groups_normalized_labels() -> None:
     result = resolve_entities(
         [event("brand", entities=["Acme Brand"]), event("brand", entities=["Acme Brand"])]
     )
     assert result["acme brand"] == ("Acme Brand",)
 
 
-def test_topic_clustering_returns_dominant_topic():
+def test_topic_clustering_returns_dominant_topic() -> None:
     result = cluster_topics([event("ai tools ai growth"), event("ai strategy")])
     assert result[0][0] == "ai"
     assert result[0][2] == 2
 
 
-def test_trend_detection_returns_rising_signal():
+def test_trend_detection_returns_rising_signal() -> None:
     base = datetime(2026, 1, 1, tzinfo=UTC)
     events = [
         SocialEvent(
@@ -65,14 +65,14 @@ def test_trend_detection_returns_rising_signal():
     assert any(s.value == "alpha" for s in signals)
 
 
-def test_audience_profiles_group_by_platform():
+def test_audience_profiles_group_by_platform() -> None:
     profiles = build_audience_profiles(
         [event("ai strategy", "tiktok"), event("ai tools", "tiktok"), event("seo", "youtube")]
     )
     assert {p.audience_id for p in profiles} == {"platform:tiktok", "platform:youtube"}
 
 
-def test_competitor_profiles_compute_share_of_voice():
+def test_competitor_profiles_compute_share_of_voice() -> None:
     profiles = build_competitor_profiles(
         [
             event("Acme launch", entities=["Acme"]),
@@ -84,7 +84,7 @@ def test_competitor_profiles_compute_share_of_voice():
     assert acme.share_of_voice == 2 / 3
 
 
-def test_creative_patterns_extract_hooks():
+def test_creative_patterns_extract_hooks() -> None:
     patterns = extract_creative_patterns([event("You won't believe this. Here is why.")])
     assert patterns[0].pattern_type == "hook"
     assert patterns[0].pattern == "You won't believe this"

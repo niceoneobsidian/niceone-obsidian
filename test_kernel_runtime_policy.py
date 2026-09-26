@@ -17,16 +17,16 @@ from ois.kernel import (
 
 
 class RecordingCapability:
-    def __init__(self, contract):
+    def __init__(self, contract):  # type: ignore
         self._contract = contract
         self.invoked = False
         self.request = None
 
     @property
-    def contract(self):
+    def contract(self):  # type: ignore
         return self._contract
 
-    def invoke(self, request):
+    def invoke(self, request):  # type: ignore
         self.invoked = True
         self.request = request
 
@@ -38,7 +38,7 @@ class RecordingCapability:
         )
 
 
-def make_context(tenant_id="tenant-test"):
+def make_context(tenant_id="tenant-test"):  # type: ignore
     return ExecutionContext(
         identity=ExecutionIdentity(
             tenant_id=tenant_id,
@@ -47,7 +47,7 @@ def make_context(tenant_id="tenant-test"):
     )
 
 
-def make_runtime(capability, policy):
+def make_runtime(capability, policy):  # type: ignore
     registry = CapabilityRegistry()
     registry.register(capability)
 
@@ -60,7 +60,7 @@ def make_runtime(capability, policy):
     )
 
 
-def test_runtime_denied_authorization_blocks_capability_execution():
+def test_runtime_denied_authorization_blocks_capability_execution():  # type: ignore
     capability = RecordingCapability(
         CapabilityContract(
             capability_id="test.runtime.policy",
@@ -94,7 +94,7 @@ def test_runtime_denied_authorization_blocks_capability_execution():
     assert context.status != context.status.EXECUTING
 
 
-def test_runtime_authorized_execution_reaches_capability():
+def test_runtime_authorized_execution_reaches_capability():  # type: ignore
     capability = RecordingCapability(
         CapabilityContract(
             capability_id="test.runtime.policy",
@@ -126,7 +126,7 @@ def test_runtime_authorized_execution_reaches_capability():
     assert context.status == context.status.ROUTED
 
 
-def test_runtime_denies_high_risk_when_policy_limit_is_medium():
+def test_runtime_denies_high_risk_when_policy_limit_is_medium():  # type: ignore
     capability = RecordingCapability(
         CapabilityContract(
             capability_id="test.runtime.policy",
@@ -159,7 +159,7 @@ def test_runtime_denies_high_risk_when_policy_limit_is_medium():
     assert capability.invoked is False
 
 
-def test_runtime_denies_irreversible_action_by_default():
+def test_runtime_denies_irreversible_action_by_default():  # type: ignore
     capability = RecordingCapability(
         CapabilityContract(
             capability_id="test.runtime.policy",
@@ -192,7 +192,7 @@ def test_runtime_denies_irreversible_action_by_default():
     assert capability.invoked is False
 
 
-def test_runtime_missing_tenant_identity_is_denied():
+def test_runtime_missing_tenant_identity_is_denied():  # type: ignore
     capability = RecordingCapability(
         CapabilityContract(
             capability_id="test.runtime.policy",

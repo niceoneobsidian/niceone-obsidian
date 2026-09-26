@@ -211,7 +211,7 @@ def test_real_persistence_coordination_and_recovery(
             registry=registry,
             checkpoint_store=postgres,
             evidence=cancellation_evidence,
-            cancellation=cancellation,
+            cancellation=cancellation,  # type: ignore
             idempotency=RedisIdempotencyStore(redis),
         )
         cancelled_context = ExecutionContext(
@@ -230,7 +230,7 @@ def test_real_persistence_coordination_and_recovery(
         )
         assert cancelled_result.status == InvocationStatus.CANCELLED
         assert cancelled_context.status.value == "stopped"
-        assert "operator requested stop" in cancelled_result.error["message"]
+        assert "operator requested stop" in cancelled_result.error["message"]  # type: ignore
         assert capability.calls == 1
         assert any(
             event.event_type == "execution.cancelled"

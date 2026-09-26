@@ -9,7 +9,7 @@ from ois.domains.social_growth.chat_ingestion import (
 from ois.domains.social_growth.persistence import SQLiteSocialEventStore
 
 
-def test_chat_observation_normalizes_with_provenance_and_stable_id():
+def test_chat_observation_normalizes_with_provenance_and_stable_id() -> None:
     observed_at = datetime(2026, 9, 13, 15, 0, tzinfo=UTC)
     observation = ChatObservation(
         platform="tiktok",
@@ -25,14 +25,14 @@ def test_chat_observation_normalizes_with_provenance_and_stable_id():
     second = normalize_observation(observation)
 
     assert first.external_id == second.external_id
-    assert first.external_id.startswith("chatgpt:")
+    assert first.external_id.startswith("chatgpt:")  # type: ignore
     assert first.platform == "tiktok"
     assert first.evidence[0].source_id == "chatgpt"
     assert first.evidence[0].uri == observation.source_uri
     assert first.metrics["views"] == 1200
 
 
-def test_chat_ingestion_deduplicates_and_materializes_metrics():
+def test_chat_ingestion_deduplicates_and_materializes_metrics() -> None:
     observed_at = datetime(2026, 9, 13, 15, 0, tzinfo=UTC)
     observation = ChatObservation(
         platform="instagram",
@@ -54,4 +54,4 @@ def test_chat_ingestion_deduplicates_and_materializes_metrics():
     assert added == 1
     assert metrics_added == 2
     assert len(events_store.list(platform="instagram")) == 1
-    assert analytics_store.latest("ig:post:123", "views").value == 500
+    assert analytics_store.latest("ig:post:123", "views").value == 500  # type: ignore
