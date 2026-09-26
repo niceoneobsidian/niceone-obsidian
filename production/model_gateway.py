@@ -80,9 +80,7 @@ class ModelGateway:
             and request.max_tokens <= entry.value.max_tokens
         ]
         if request.preferred_model:
-            preferred = [
-                m for m in candidates if m.model_id == request.preferred_model
-            ]
+            preferred = [m for m in candidates if m.model_id == request.preferred_model]
             candidates = preferred + [
                 m for m in candidates if m.model_id != request.preferred_model
             ]
@@ -103,8 +101,7 @@ class ModelGateway:
                 )
                 return candidate, higher_priority_exists or preferred_missed
         raise ModelGatewayError(
-            "No healthy model satisfies "
-            f"capability={request.capability!r} and budget"
+            f"No healthy model satisfies capability={request.capability!r} and budget"
         )
 
     def invoke(self, request: ModelRequest, **kwargs: Any) -> ModelResponse:
