@@ -59,7 +59,7 @@ def test_rc04_bounds_retries_and_routes_to_separate_recovery_pool(monkeypatch):
         )
         kernel.evidence.append = AsyncMock()
         kernel.leases.assert_current = AsyncMock()
-        monkeypatch.setattr("ois.kernel.production_resilience.asyncio.sleep", AsyncMock())
+        monkeypatch.setattr("ois.kernel.production_resilience.LeaseHeartbeat._run", AsyncMock())
 
         ctx = KernelTaskContext(
             tenant_id=str(uuid4()),
