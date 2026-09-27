@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-from ois.observability_telemetry import OpenTelemetryTelemetryEngine, SupervisorExecutionTracker
+from ois.observability_telemetry import (
+    OpenTelemetryTelemetryEngine,
+    SupervisorExecutionTracker,
+)
 
 _engine: OpenTelemetryTelemetryEngine | None = None
 
