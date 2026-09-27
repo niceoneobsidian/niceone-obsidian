@@ -4,8 +4,8 @@ import asyncio
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
-import psycopg
 import pytest
+import psycopg
 
 from ois.kernel.production_resilience import (
     FencingTokenMismatch,
