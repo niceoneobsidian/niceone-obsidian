@@ -12,9 +12,9 @@ from __future__ import annotations
 import hashlib
 import os
 from contextlib import contextmanager
+from collections.abc import Iterator
 from dataclasses import dataclass
 from time import perf_counter
-from typing import Iterator
 
 from opentelemetry import metrics, trace
 from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
