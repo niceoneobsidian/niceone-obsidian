@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from ois.registries import AgentRegistry, CapabilityRegistry, ModelRegistry, ToolRegistry
-from ois.routing import RouteRequest, Router
+from ois.routing import Router, RouteRequest
 
 
 def test_resolves_capability_by_exact_identity() -> None:

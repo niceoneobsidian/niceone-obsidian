@@ -1,4 +1,5 @@
 """Leakage-safe evaluation primitives for football forecasts."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass

@@ -1,0 +1,6 @@
+# Governance and phase-control files require repository-owner review.
+/config/phase-gates.json @niceoneobsidian
+/scripts/validate_phase_gates.py @niceoneobsidian
+/.github/workflows/phase-gates.yml @niceoneobsidian
+/.github/CODEOWNERS @niceoneobsidian
+/docs/implementation-sequence.md @niceoneobsidian

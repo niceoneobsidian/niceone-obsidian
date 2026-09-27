@@ -1,0 +1,38 @@
+services:
+  ois-postgres:
+    image: postgres:16-alpine
+    container_name: ois-postgres-engine
+    environment:
+      POSTGRES_USER: ois_admin
+      POSTGRES_PASSWORD: ois_local_only
+      POSTGRES_DB: ois_kernel_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - ois_pg_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ois_admin -d ois_kernel_db"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  ois-redis:
+    image: redis:7.4-alpine
+    container_name: ois-redis-coordinator
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - ois_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+      start_period: 3s
+
+volumes:
+  ois_pg_data:
+  ois_redis_data:

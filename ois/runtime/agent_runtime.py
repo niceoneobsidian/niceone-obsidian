@@ -13,16 +13,13 @@ class AgentLLMGateway(Protocol):
         model: str,
         messages: list[dict[str, Any]],
         metadata: dict[str, Any] | None = None,
-    ) -> Any:
-        ...
+    ) -> Any: ...
 
 
 class AgentMemory(Protocol):
-    def load(self, agent_id: str, session_id: str) -> list[dict[str, Any]]:
-        ...
+    def load(self, agent_id: str, session_id: str) -> list[dict[str, Any]]: ...
 
-    def append(self, agent_id: str, session_id: str, item: dict[str, Any]) -> None:
-        ...
+    def append(self, agent_id: str, session_id: str, item: dict[str, Any]) -> None: ...
 
 
 @dataclass(frozen=True)

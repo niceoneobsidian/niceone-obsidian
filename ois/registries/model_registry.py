@@ -1,7 +1,3 @@
-"""Model registry."""
+from .core import ModelRegistry
 
-from .base import Registry
-
-
-class ModelRegistry(Registry[object]):
-    """Registry for model providers and versions."""
+__all__ = ["ModelRegistry"]

@@ -98,9 +98,7 @@ class InMemoryWorkflowEngine:
 
 @dataclass
 class InMemoryWorkerFabric:
-    queues: dict[str, deque[dict[str, Any]]] = field(
-        default_factory=lambda: defaultdict(deque)
-    )
+    queues: dict[str, deque[dict[str, Any]]] = field(default_factory=lambda: defaultdict(deque))
     workers: dict[str, WorkerSpec] = field(default_factory=dict)
     attempts: dict[str, int] = field(default_factory=dict)
     results: dict[str, Any] = field(default_factory=dict)
@@ -156,15 +154,10 @@ class InMemoryModelRouter:
             route
             for route in self.routes
             if required.issubset(route.capabilities)
-            and all(
-                route.constraints.get(key) == value
-                for key, value in constraints.items()
-            )
+            and all(route.constraints.get(key) == value for key, value in constraints.items())
         ]
         if not candidates:
-            raise LookupError(
-                f"no model route satisfies capabilities={sorted(required)}"
-            )
+            raise LookupError(f"no model route satisfies capabilities={sorted(required)}")
         return min(candidates, key=lambda route: sum(route.cost_profile.values()))
 
 
@@ -172,9 +165,7 @@ class InMemoryModelRouter:
 class InMemoryLLMGateway:
     spec: LLMGatewaySpec
     router: InMemoryModelRouter
-    providers: dict[str, Callable[[str, dict[str, Any]], Any]] = field(
-        default_factory=dict
-    )
+    providers: dict[str, Callable[[str, dict[str, Any]], Any]] = field(default_factory=dict)
     telemetry: list[dict[str, Any]] = field(default_factory=list)
 
     def register_provider(
@@ -239,9 +230,7 @@ class InMemoryAgentRuntime:
 
     def register(self, workspace: AgentWorkspace) -> None:
         if workspace.agent_id in self.workspaces:
-            raise ValueError(
-                f"agent workspace already registered: {workspace.agent_id}"
-            )
+            raise ValueError(f"agent workspace already registered: {workspace.agent_id}")
         self.workspaces[workspace.agent_id] = workspace
 
     def open_session(self, agent_id: str, session_id: str) -> dict[str, Any]:
@@ -258,9 +247,7 @@ class InMemoryAgentRuntime:
         return dict(record)
 
     def append(self, session_id: str, role: str, content: Any) -> None:
-        self.sessions[session_id]["messages"].append(
-            {"role": role, "content": content}
-        )
+        self.sessions[session_id]["messages"].append({"role": role, "content": content})
 
     def close(self, session_id: str) -> None:
         self.sessions[session_id]["status"] = "closed"
@@ -277,25 +264,13 @@ class InMemoryContextEngine:
         context: dict[str, Any] = {
             "objective": request.objective,
             "evidence": [
-                self.evidence[ref]
-                for ref in request.evidence_refs
-                if ref in self.evidence
+                self.evidence[ref] for ref in request.evidence_refs if ref in self.evidence
             ],
-            "memory": [
-                self.memory[ref]
-                for ref in request.memory_refs
-                if ref in self.memory
-            ],
+            "memory": [self.memory[ref] for ref in request.memory_refs if ref in self.memory],
             "knowledge": [
-                self.knowledge[ref]
-                for ref in request.knowledge_refs
-                if ref in self.knowledge
+                self.knowledge[ref] for ref in request.knowledge_refs if ref in self.knowledge
             ],
-            "skills": [
-                self.skills[ref]
-                for ref in request.skill_refs
-                if ref in self.skills
-            ],
+            "skills": [self.skills[ref] for ref in request.skill_refs if ref in self.skills],
         }
         if request.token_budget is not None:
             context["token_budget"] = request.token_budget
@@ -375,9 +350,7 @@ class InMemoryReasoningRegistry:
             and set(pattern.prerequisites).issubset(available)
         ]
         if not candidates:
-            raise LookupError(
-                f"no reasoning pattern for objective={objective_class}"
-            )
+            raise LookupError(f"no reasoning pattern for objective={objective_class}")
         return min(
             candidates,
             key=lambda pattern: (
@@ -474,9 +447,7 @@ class InMemoryLearningFabric:
     ) -> LearningCandidate:
         current = self.candidates[ref_id]
         if not approved or not evidence_refs:
-            raise PermissionError(
-                "promotion requires explicit approval and evaluation evidence"
-            )
+            raise PermissionError("promotion requires explicit approval and evaluation evidence")
         promoted = LearningCandidate(
             ref_id=current.ref_id,
             version=current.version,
@@ -501,20 +472,12 @@ class FabricRuntime:
     context: InMemoryContextEngine = field(default_factory=InMemoryContextEngine)
     knowledge: InMemoryKnowledgeEngine = field(default_factory=InMemoryKnowledgeEngine)
     middleware: InMemoryMiddleware = field(
-        default_factory=lambda: InMemoryMiddleware(
-            MiddlewareSpec("ois.middleware")
-        )
+        default_factory=lambda: InMemoryMiddleware(MiddlewareSpec("ois.middleware"))
     )
-    reasoning: InMemoryReasoningRegistry = field(
-        default_factory=InMemoryReasoningRegistry
-    )
+    reasoning: InMemoryReasoningRegistry = field(default_factory=InMemoryReasoningRegistry)
     studio: InMemoryStudio = field(default_factory=InMemoryStudio)
-    components: InMemoryComponentRegistry = field(
-        default_factory=InMemoryComponentRegistry
-    )
-    multimodal: InMemoryMultimodalEngine = field(
-        default_factory=InMemoryMultimodalEngine
-    )
+    components: InMemoryComponentRegistry = field(default_factory=InMemoryComponentRegistry)
+    multimodal: InMemoryMultimodalEngine = field(default_factory=InMemoryMultimodalEngine)
     social: InMemorySocialFabric = field(default_factory=InMemorySocialFabric)
     learning: InMemoryLearningFabric = field(default_factory=InMemoryLearningFabric)
 

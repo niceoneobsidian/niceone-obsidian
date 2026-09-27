@@ -5,17 +5,18 @@ replace Kernel policy; execution authorization is composed with the canonical
 Kernel PolicyEngine by control_plane.lifecycle. Deployment authorization is
 kept here because deployment is a Control Plane lifecycle operation.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from hashlib import sha256
 from typing import Any, Protocol
 from uuid import uuid4
 
 
 def _now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def _digest(value: Any) -> str:
@@ -88,7 +89,9 @@ class EvidenceLedger:
             raise ValueError("duplicate evidence event")
         previous = self._events[-1].content_hash if self._events else None
         content_hash = _digest((event_id, execution_id, event_type, payload, previous))
-        event = EvidenceEvent(event_id, execution_id, event_type, dict(payload), _now(), previous, content_hash)
+        event = EvidenceEvent(
+            event_id, execution_id, event_type, dict(payload), _now(), previous, content_hash
+        )
         self._events.append(event)
         self._ids.add(event_id)
         return event
@@ -101,7 +104,9 @@ class EvidenceLedger:
     def verify_chain(self) -> bool:
         previous = None
         for event in self._events:
-            expected = _digest((event.event_id, event.execution_id, event.event_type, event.payload, previous))
+            expected = _digest(
+                (event.event_id, event.execution_id, event.event_type, event.payload, previous)
+            )
             if event.previous_hash != previous or event.content_hash != expected:
                 return False
             previous = event.content_hash
@@ -139,12 +144,16 @@ class InMemoryDeploymentAdapter:
 
 
 class ProductionControlPlane:
-    def __init__(self, *, authorization: RBACABAC, evidence: EvidenceLedger, deployment: DeploymentAdapter) -> None:
+    def __init__(
+        self, *, authorization: RBACABAC, evidence: EvidenceLedger, deployment: DeploymentAdapter
+    ) -> None:
         self.authorization = authorization
         self.evidence = evidence
         self.deployment = deployment
 
-    def activate(self, subject: Subject, candidate: str, environment: str, *, previous: str | None = None) -> DeploymentRecord:
+    def activate(
+        self, subject: Subject, candidate: str, environment: str, *, previous: str | None = None
+    ) -> DeploymentRecord:
         self.authorization.authorize(
             subject,
             AuthorizationPolicy(
@@ -154,12 +163,27 @@ class ProductionControlPlane:
             ),
         )
         execution_id = str(uuid4())
-        approval = self.evidence.append(execution_id, "deployment.approval", {"candidate": candidate, "environment": environment})
+        approval = self.evidence.append(
+            execution_id,
+            "deployment.approval",
+            {"candidate": candidate, "environment": environment},
+        )
         if not approval:
             raise RuntimeError("approval evidence was not recorded")
         self.deployment.deploy(candidate, environment)
-        self.evidence.append(execution_id, "deployment.activated", {"candidate": candidate, "environment": environment})
-        return DeploymentRecord(str(uuid4()), candidate, previous, environment, "ACTIVE", tuple(e.event_id for e in self.evidence.events(execution_id)))
+        self.evidence.append(
+            execution_id,
+            "deployment.activated",
+            {"candidate": candidate, "environment": environment},
+        )
+        return DeploymentRecord(
+            str(uuid4()),
+            candidate,
+            previous,
+            environment,
+            "ACTIVE",
+            tuple(e.event_id for e in self.evidence.events(execution_id)),
+        )
 
     def rollback(self, subject: Subject, target: str, environment: str) -> DeploymentRecord:
         self.authorization.authorize(
@@ -171,7 +195,22 @@ class ProductionControlPlane:
             ),
         )
         execution_id = str(uuid4())
-        self.evidence.append(execution_id, "deployment.rollback.approved", {"target": target, "environment": environment})
+        self.evidence.append(
+            execution_id,
+            "deployment.rollback.approved",
+            {"target": target, "environment": environment},
+        )
         self.deployment.rollback(target, environment)
-        self.evidence.append(execution_id, "deployment.rollback.verified", {"target": target, "environment": environment})
-        return DeploymentRecord(str(uuid4()), target, None, environment, "ROLLED_BACK", tuple(e.event_id for e in self.evidence.events(execution_id)))
+        self.evidence.append(
+            execution_id,
+            "deployment.rollback.verified",
+            {"target": target, "environment": environment},
+        )
+        return DeploymentRecord(
+            str(uuid4()),
+            target,
+            None,
+            environment,
+            "ROLLED_BACK",
+            tuple(e.event_id for e in self.evidence.events(execution_id)),
+        )

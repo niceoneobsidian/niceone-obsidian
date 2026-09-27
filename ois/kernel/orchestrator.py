@@ -66,7 +66,7 @@ class PlanOrchestrator:
                             input_data=dict(task.input_data),
                             invocation_id=invocation_id,
                         )
-                    
+
                     if result.status != InvocationStatus.SUCCEEDED:
                         task.status = TaskStatus.FAILED
                         task.error = result.error

@@ -1,9 +1,10 @@
 """Evidence-gated measurement, canary and learning lifecycle."""
+
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from statistics import mean
-from typing import Iterable
 
 
 @dataclass(frozen=True)
@@ -33,7 +34,14 @@ class CanaryDecision:
 class LearningLoop:
     """Turns measured outcomes into candidates without self-authorizing promotion."""
 
-    def evaluate(self, candidate: str, measurements: Iterable[Measurement], *, baseline: float, minimum_score: float) -> Evaluation:
+    def evaluate(
+        self,
+        candidate: str,
+        measurements: Iterable[Measurement],
+        *,
+        baseline: float,
+        minimum_score: float,
+    ) -> Evaluation:
         values = [m.value for m in measurements]
         if not values:
             return Evaluation(candidate, 0.0, baseline, False, "no measurements")
@@ -49,11 +57,15 @@ class LearningLoop:
 
 
 class CanaryController:
-    def __init__(self, *, minimum_success_rate: float = 0.99, maximum_latency_ms: float = 1000.0) -> None:
+    def __init__(
+        self, *, minimum_success_rate: float = 0.99, maximum_latency_ms: float = 1000.0
+    ) -> None:
         self.minimum_success_rate = minimum_success_rate
         self.maximum_latency_ms = maximum_latency_ms
 
-    def decide(self, candidate: str, traffic_percent: int, *, successes: int, total: int, latency_ms: float) -> CanaryDecision:
+    def decide(
+        self, candidate: str, traffic_percent: int, *, successes: int, total: int, latency_ms: float
+    ) -> CanaryDecision:
         if not 1 <= traffic_percent <= 100:
             raise ValueError("traffic_percent must be between 1 and 100")
         success_rate = successes / total if total else 0.0

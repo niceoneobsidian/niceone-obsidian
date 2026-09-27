@@ -17,10 +17,10 @@ from ois.kernel import (
     PlanOrchestrator,
     RecoveryPolicy,
     RiskLevel,
+    SideEffectLevel,
     SQLiteCheckpointStore,
     SQLiteEvidenceLedger,
     SQLiteIdempotencyStore,
-    SideEffectLevel,
     TaskNode,
     TaskStatus,
 )
@@ -124,9 +124,7 @@ def test_plan_resume_skips_succeeded_tasks_and_replays_only_pending(tmp_path: Pa
     context = make_context()
     plan = ExecutionPlan(objective=context.objective)
     plan.add_task(TaskNode("first", "test.first", "1.0.0"))
-    plan.add_task(
-        TaskNode("second", "test.second", "1.0.0", dependencies=("first",))
-    )
+    plan.add_task(TaskNode("second", "test.second", "1.0.0", dependencies=("first",)))
 
     first_result = runtime.execute(
         context,
@@ -141,9 +139,7 @@ def test_plan_resume_skips_succeeded_tasks_and_replays_only_pending(tmp_path: Pa
     context.plan = plan.to_dict()
     checkpoint.save(context)
 
-    resumed_plan, resumed_context = PlanOrchestrator(runtime).resume(
-        context.identity.execution_id
-    )
+    resumed_plan, resumed_context = PlanOrchestrator(runtime).resume(context.identity.execution_id)
 
     assert resumed_plan.is_complete()
     assert resumed_context.status == resumed_context.status.COMPLETED
@@ -158,8 +154,7 @@ def test_corrupt_checkpoint_is_rejected(tmp_path: Path) -> None:
     checkpoint.save(context)
     with sqlite3.connect(database) as connection:
         connection.execute(
-            "UPDATE execution_checkpoints SET state_hash = 'corrupt' "
-            "WHERE execution_id = ?",
+            "UPDATE execution_checkpoints SET state_hash = 'corrupt' WHERE execution_id = ?",
             (str(context.identity.execution_id),),
         )
         connection.commit()
@@ -178,12 +173,8 @@ def test_failure_is_not_cached_as_success(tmp_path: Path) -> None:
     runtime = make_runtime(capability, tmp_path)
     context = make_context()
 
-    first = runtime.execute(
-        context, "test.failure", "1.0.0", {}, invocation_id="failure-1"
-    )
-    second = runtime.execute(
-        context, "test.failure", "1.0.0", {}, invocation_id="failure-1"
-    )
+    first = runtime.execute(context, "test.failure", "1.0.0", {}, invocation_id="failure-1")
+    second = runtime.execute(context, "test.failure", "1.0.0", {}, invocation_id="failure-1")
 
     assert first.status == InvocationStatus.FAILED
     assert second.status == InvocationStatus.FAILED

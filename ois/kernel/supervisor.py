@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import StrEnum
 from typing import Any
 
 from .contracts import InvocationRequest, InvocationResult, InvocationStatus
@@ -17,6 +18,28 @@ class SupervisorError(Exception):
 
 class AgentSelectionError(SupervisorError):
     """Raised when an execution cannot be delegated to an agent."""
+
+
+class SupervisionAction(StrEnum):
+    EXECUTE = "execute"
+    COMPLETE = "complete"
+    RETRY = "retry"
+    REPLAN = "replan"
+    ESCALATE = "escalate"
+    STOP = "stop"
+
+
+@dataclass(frozen=True)
+class SupervisionRequest:
+    objective: str
+    plan_validated: bool
+    authorized: bool
+    status: str
+    failure: Any = None
+    retry_allowed: bool = False
+    recovery_allowed: bool = False
+    approval_required: bool = False
+    approval_granted: bool = False
 
 
 @dataclass(frozen=True)
@@ -200,6 +223,76 @@ class Supervisor:
             input_data=input_data,
             invocation_id=invocation_id,
         )
+
+    def decide(
+        self,
+        request: SupervisionRequest | None = None,
+        *,
+        objective: str = "objective",
+        plan_validated: bool = True,
+        authorized: bool = True,
+        status: str = "pending",
+        failure: Any = None,
+        retry_allowed: bool = False,
+        recovery_allowed: bool = False,
+        approval_required: bool = False,
+        approval_granted: bool = False,
+    ) -> SupervisionDecision:
+        """Compatibility decision API backed by the canonical Supervisor policy."""
+        if request is None:
+            request = SupervisionRequest(
+                objective=objective,
+                plan_validated=plan_validated,
+                authorized=authorized,
+                status=status,
+                failure=failure,
+                retry_allowed=retry_allowed,
+                recovery_allowed=recovery_allowed,
+                approval_required=approval_required,
+                approval_granted=approval_granted,
+            )
+        if not request.objective.strip():
+            return SupervisionDecision("stop", "objective is required", True)
+        if request.approval_required and not request.approval_granted:
+            return SupervisionDecision(
+                "escalate", "human approval is required before execution", False
+            )
+        if not request.authorized:
+            return SupervisionDecision(
+                "escalate",
+                "authorization is not granted by the execution boundary",
+                False,
+            )
+        if not request.plan_validated:
+            return SupervisionDecision("replan", "execution plan has not passed validation", False)
+        if request.status in {"completed", "success", "succeeded"}:
+            return SupervisionDecision("complete", "execution completed successfully", True)
+        failure_value = getattr(request.failure, "value", request.failure)
+        if failure_value == "safety":
+            return SupervisionDecision("stop", "safety failures terminate execution", True)
+        if failure_value == "permission":
+            return SupervisionDecision("escalate", "permission failures require escalation", False)
+        if failure_value == "plan":
+            return SupervisionDecision(
+                "replan", "plan failure requires a new executable plan", False
+            )
+        if request.retry_allowed:
+            return SupervisionDecision(
+                "retry", "bounded retry is permitted by recovery policy", False
+            )
+        if request.recovery_allowed:
+            return SupervisionDecision(
+                "replan",
+                "bounded recovery is permitted; replan before continuing",
+                False,
+            )
+        if request.failure is not None:
+            return SupervisionDecision(
+                "escalate",
+                f"failure {failure_value} has no safe automatic action",
+                False,
+            )
+        return SupervisionDecision("execute", "plan is authorized and ready", False)
 
     def inspect(self, context: Any) -> SupervisionDecision:
         """Inspect the latest failure and produce a bounded recovery decision."""
