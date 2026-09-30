@@ -27,7 +27,10 @@ def is_gvisor_runtime() -> bool:
 
 
 def assert_raw_socket_blocked() -> None:
-    """Verify the sandbox lacks CAP_NET_RAW; this tests privilege restriction, not host namespace access."""
+    """Verify the sandbox lacks CAP_NET_RAW.
+
+    This tests privilege restriction, not host namespace access.
+    """
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_RAW)
     except PermissionError:

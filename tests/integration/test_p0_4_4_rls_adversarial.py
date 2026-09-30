@@ -28,7 +28,9 @@ async def pool() -> AsyncConnectionPool:
             )
             await conn.execute("ALTER TABLE ois_rls_adversarial_fixture ENABLE ROW LEVEL SECURITY")
             await conn.execute("ALTER TABLE ois_rls_adversarial_fixture FORCE ROW LEVEL SECURITY")
-            await conn.execute("DROP POLICY IF EXISTS tenant_isolation ON ois_rls_adversarial_fixture")
+            await conn.execute(
+                "DROP POLICY IF EXISTS tenant_isolation ON ois_rls_adversarial_fixture"
+            )
             await conn.execute(
                 "CREATE POLICY tenant_isolation ON ois_rls_adversarial_fixture "
                 "USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid) "
@@ -40,7 +42,10 @@ async def pool() -> AsyncConnectionPool:
             set_local_tenant(conn, "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
             await conn.execute("DELETE FROM ois_rls_adversarial_fixture")
             await conn.execute(
-                "INSERT INTO ois_rls_adversarial_fixture (id, tenant_id, secret) VALUES (%s, %s, %s)",
+                (
+                    "INSERT INTO ois_rls_adversarial_fixture "
+                    "(id, tenant_id, secret) VALUES (%s, %s, %s)"
+                ),
                 ("tenant-a-record", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "A-secret"),
             )
             await conn.commit()
@@ -48,7 +53,10 @@ async def pool() -> AsyncConnectionPool:
         async with pool.connection() as conn:
             set_local_tenant(conn, "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
             await conn.execute(
-                "INSERT INTO ois_rls_adversarial_fixture (id, tenant_id, secret) VALUES (%s, %s, %s)",
+                (
+                    "INSERT INTO ois_rls_adversarial_fixture "
+                    "(id, tenant_id, secret) VALUES (%s, %s, %s)"
+                ),
                 ("tenant-b-record", "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", "B-secret"),
             )
             await conn.commit()
@@ -103,7 +111,10 @@ async def test_cross_tenant_write_is_rejected(pool: AsyncConnectionPool) -> None
         set_local_tenant(conn, "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
         with pytest.raises(errors.InsufficientPrivilege):
             await conn.execute(
-                "INSERT INTO ois_rls_adversarial_fixture (id, tenant_id, secret) VALUES (%s, %s, %s)",
+                (
+                    "INSERT INTO ois_rls_adversarial_fixture "
+                    "(id, tenant_id, secret) VALUES (%s, %s, %s)"
+                ),
                 ("forbidden", "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", "leak"),
             )
         await conn.rollback()

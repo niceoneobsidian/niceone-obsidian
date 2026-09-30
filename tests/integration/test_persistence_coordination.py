@@ -80,11 +80,12 @@ def test_real_persistence_coordination_and_recovery(
     assert redis.ping()
 
     execution_id = uuid4()
+    tenant_id = str(uuid4())
     transaction_id = f"ois-test-{uuid4()}"
     state = ExecutionContext(
         identity=ExecutionIdentity(
             execution_id=execution_id,
-            tenant_id="conformance",
+            tenant_id=tenant_id,
         ),
         objective="recovery conformance",
         metadata={"step_index": 0},
@@ -137,7 +138,7 @@ def test_real_persistence_coordination_and_recovery(
             )
             connection.commit()
 
-        recovered = postgres.fetch_last_valid_checkpoint(execution_id, tenant_id="conformance")
+        recovered = postgres.fetch_last_valid_checkpoint(execution_id, tenant_id=tenant_id)
         assert recovered is not None
         assert recovered.objective == "recovery conformance"
         assert recovered.metadata["step_index"] == 0
@@ -177,7 +178,7 @@ def test_real_persistence_coordination_and_recovery(
         runtime_state = ExecutionContext(
             identity=ExecutionIdentity(
                 execution_id=uuid4(),
-                tenant_id="conformance",
+                tenant_id=tenant_id,
             ),
             objective="duplicate execution",
         )
@@ -217,7 +218,7 @@ def test_real_persistence_coordination_and_recovery(
         cancelled_context = ExecutionContext(
             identity=ExecutionIdentity(
                 execution_id=cancelled_execution_id,
-                tenant_id="conformance",
+                tenant_id=tenant_id,
             ),
             objective="cancellation conformance",
         )

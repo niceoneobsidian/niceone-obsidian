@@ -3,10 +3,9 @@ from __future__ import annotations
 import asyncio
 import json
 from collections.abc import Awaitable, Callable
-from typing import Any
+from typing import Any, cast
 
 import redis.asyncio as redis
-
 
 TaskHandler = Callable[[dict[str, Any]], Awaitable[None]]
 
@@ -42,13 +41,22 @@ class WorkerCrashRecoveryEngine:
             if "BUSYGROUP" not in str(exc):
                 raise
 
-    async def consume_once(self, consumer: str, handler: TaskHandler, *, block_ms: int = 1000) -> bool:
-        messages = await self.redis.xreadgroup(
-            self.group,
-            consumer,
-            {self.stream: ">"},
-            count=1,
-            block=block_ms,
+    async def consume_once(
+        self,
+        consumer: str,
+        handler: TaskHandler,
+        *,
+        block_ms: int = 1000,
+    ) -> bool:
+        messages = cast(
+            list[tuple[str | bytes, list[tuple[str | bytes, dict[Any, Any]]]]],
+            await self.redis.xreadgroup(
+                self.group,
+                consumer,
+                {self.stream: ">"},
+                count=1,
+                block=block_ms,
+            ),
         )
         if not messages:
             return False

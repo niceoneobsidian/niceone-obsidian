@@ -4,7 +4,11 @@ import os
 
 import pytest
 
-from production.sandbox import assert_mount_remount_blocked, assert_raw_socket_blocked, is_gvisor_runtime
+from production.sandbox import (
+    assert_mount_remount_blocked,
+    assert_raw_socket_blocked,
+    is_gvisor_runtime,
+)
 
 
 @pytest.mark.sandbox
