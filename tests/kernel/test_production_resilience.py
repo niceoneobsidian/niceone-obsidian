@@ -4,15 +4,15 @@ import asyncio
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
-import pytest
 import psycopg
+import pytest
 
 from ois.kernel.production_resilience import (
+    RECOVERY_SCENARIO_IDS,
     FencingTokenMismatch,
     KernelPanicException,
     KernelTaskContext,
     OISProductionResilience,
-    RECOVERY_SCENARIO_IDS,
     RetryExhaustedException,
     validate_recovery_matrix,
 )
