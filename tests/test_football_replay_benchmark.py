@@ -26,7 +26,9 @@ class _Provider:
 
     @staticmethod
     def _kickoff(record: dict) -> datetime:
-        return datetime.fromisoformat(f"{record['match_date']}T{record['kick_off'][:8]}").replace(tzinfo=UTC)
+        return datetime.fromisoformat(f"{record['match_date']}T{record['kick_off'][:8]}").replace(
+            tzinfo=UTC
+        )
 
     @staticmethod
     def _outcome(record: dict) -> str:
@@ -38,7 +40,9 @@ class _Provider:
 
 
 class _Replay:
-    def run_statsbomb(self, competition_id: int, season_id: int, match_id: int, *, provider: _Provider) -> object:
+    def run_statsbomb(
+        self, competition_id: int, season_id: int, match_id: int, *, provider: _Provider
+    ) -> object:
         record = next(item for item in provider.records if item["match_id"] == match_id)
         outcome = provider._outcome(record)
         probabilities = {"home": 0.8, "draw": 0.1, "away": 0.1}
@@ -66,7 +70,12 @@ def test_benchmark_is_dataset_pinned_and_measures_corpus() -> None:
     ]
     benchmark = FootballReplayBenchmark(provider=_Provider(records), replay=_Replay())
 
-    result = benchmark.run(11, 1, limit=2, min_history_matches=1)
+    result = benchmark.run(
+        11,
+        1,
+        match_ids=[2, 3],
+        min_history_matches=1,
+    )
 
     assert result.requested_matches == 2
     assert result.evaluated_matches == 2

@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from hashlib import sha256
-import json
 from typing import Any
 
 from .evaluation import CalibrationReport, evaluate_predictions
@@ -86,7 +86,9 @@ class FootballReplayBenchmark:
                 skipped += 1
                 continue
             try:
-                result = self.replay.run_statsbomb(competition_id, season_id, target_id, provider=self.provider)
+                result = self.replay.run_statsbomb(
+                    competition_id, season_id, target_id, provider=self.provider
+                )
                 predictions.append(result.prediction)
                 outcomes.append(self.provider._outcome(target))
             except (KeyError, TypeError, ValueError, OSError) as exc:

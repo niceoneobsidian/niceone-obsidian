@@ -8,9 +8,10 @@ No post-match event data is used to construct the prediction state.
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any, Callable
+from typing import Any
 from urllib.request import Request, urlopen
 
 from ..schemas import FootballEvidence, MatchState, TeamSnapshot
@@ -132,7 +133,9 @@ class StatsBombOpenDataProvider:
             lineup_confidence=0.5,
         )
 
-    def load_replay(self, competition_id: int, season_id: int, match_id: int) -> StatsBombReplayInput:
+    def load_replay(
+        self, competition_id: int, season_id: int, match_id: int
+    ) -> StatsBombReplayInput:
         matches = self.load_matches(competition_id, season_id)
         target = next((m for m in matches if int(m.get("match_id", -1)) == match_id), None)
         if target is None:

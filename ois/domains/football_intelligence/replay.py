@@ -65,7 +65,10 @@ class FootballReplay:
             evidence_type="football.match_outcome",
             source_id=source_id,
             payload={"match_id": match.match_id, "outcome": actual_outcome},
-            provenance={"mode": "replay", "source_type": "provider" if raw_source_payload else "fixture"},
+            provenance={
+                "mode": "replay",
+                "source_type": "provider" if raw_source_payload else "fixture",
+            },
             observed_at=observed_at,
         )
 
