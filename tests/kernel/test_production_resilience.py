@@ -75,9 +75,7 @@ def test_rc04_bounds_retries_and_routes_to_separate_recovery_pool(monkeypatch):
             raise AssertionError("operation must not run when connection acquisition fails")
 
         with pytest.raises(RetryExhaustedException):
-            await kernel.execute_fenced_transaction(
-                ctx, "RC-04", operation, {"state": "frozen"}
-            )
+            await kernel.execute_fenced_transaction(ctx, "RC-04", operation, {"state": "frozen"})
 
         assert db_pool.calls == 3
         assert recovery_pool.connection.called

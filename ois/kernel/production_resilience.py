@@ -201,34 +201,34 @@ class PostgresEvidenceChain:
         }
         payload_hash = hashlib.sha256(self._canonical(payload).encode()).hexdigest()
         async with self.pool.connection() as conn, conn.cursor() as cur:
-                await cur.execute(
-                    "SELECT event_hash FROM ois_attestation_evidence "
-                    "WHERE tenant_id = %s AND thread_id = %s ORDER BY sequence_no DESC LIMIT 1",
-                    (tenant_id, thread_id),
-                )
-                row = await cur.fetchone()
-                previous_hash = row[0] if row else None
-                event_hash = self._event_hash(payload, previous_hash)
-                signature = self._signature(tenant_id, thread_id, event_hash)
-                await cur.execute(
-                    """
+            await cur.execute(
+                "SELECT event_hash FROM ois_attestation_evidence "
+                "WHERE tenant_id = %s AND thread_id = %s ORDER BY sequence_no DESC LIMIT 1",
+                (tenant_id, thread_id),
+            )
+            row = await cur.fetchone()
+            previous_hash = row[0] if row else None
+            event_hash = self._event_hash(payload, previous_hash)
+            signature = self._signature(tenant_id, thread_id, event_hash)
+            await cur.execute(
+                """
                     INSERT INTO ois_attestation_evidence
                       (tenant_id, thread_id, event_type, payload_hash, context_snapshot,
                        previous_event_hash, event_hash, attestation_signature)
                     VALUES (%s, %s, %s, %s, %s::jsonb, %s, %s, %s)
                     """,
-                    (
-                        tenant_id,
-                        thread_id,
-                        event_type,
-                        payload_hash,
-                        self._canonical(context),
-                        previous_hash,
-                        event_hash,
-                        signature,
-                    ),
-                )
-                await conn.commit()
+                (
+                    tenant_id,
+                    thread_id,
+                    event_type,
+                    payload_hash,
+                    self._canonical(context),
+                    previous_hash,
+                    event_hash,
+                    signature,
+                ),
+            )
+            await conn.commit()
         return event_hash
 
 
@@ -275,25 +275,25 @@ class OISProductionResilience:
             hashlib.sha256,
         ).hexdigest()
         async with self.recovery_pool.connection() as conn, conn.cursor() as cur:
-                await self._set_tenant(cur, ctx.tenant_id)
-                await cur.execute(
-                    """
+            await self._set_tenant(cur, ctx.tenant_id)
+            await cur.execute(
+                """
                     INSERT INTO ois_kernel_dead_letter_queue
                       (tenant_id, thread_id, last_scenario_id, error_diagnostic_log,
                        frozen_context_data, context_hash, cryptographic_seal_signature)
                     VALUES (%s, %s, %s, %s, %s::jsonb, %s, %s)
                     """,
-                    (
-                        ctx.tenant_id,
-                        ctx.thread_id,
-                        scenario_id,
-                        error_message,
-                        canonical,
-                        context_hash,
-                        signature,
-                    ),
-                )
-                await conn.commit()
+                (
+                    ctx.tenant_id,
+                    ctx.thread_id,
+                    scenario_id,
+                    error_message,
+                    canonical,
+                    context_hash,
+                    signature,
+                ),
+            )
+            await conn.commit()
 
     async def execute_fenced_transaction(
         self,
@@ -318,15 +318,15 @@ class OISProductionResilience:
                     try:
                         await self.leases.assert_current(lease)
                         async with self.db_pool.connection() as conn, conn.cursor() as cur:
-                                await self._set_tenant(cur, ctx.tenant_id)
-                                await self.leases.assert_current(lease)
-                                result = await db_operation(cur, lease.fencing_token)
-                                if heartbeat.lost.is_set():
-                                    raise FencingTokenMismatch(
-                                        "RC-05 heartbeat lost during protected operation"
-                                    )
-                                await self.leases.assert_current(lease)
-                                await conn.commit()
+                            await self._set_tenant(cur, ctx.tenant_id)
+                            await self.leases.assert_current(lease)
+                            result = await db_operation(cur, lease.fencing_token)
+                            if heartbeat.lost.is_set():
+                                raise FencingTokenMismatch(
+                                    "RC-05 heartbeat lost during protected operation"
+                                )
+                            await self.leases.assert_current(lease)
+                            await conn.commit()
                         await self.evidence.append(
                             ctx.tenant_id,
                             ctx.thread_id,
