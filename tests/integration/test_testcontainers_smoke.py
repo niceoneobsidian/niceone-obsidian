@@ -19,7 +19,7 @@ def test_testcontainers_can_start_postgres() -> None:
 
         with psycopg.connect(dsn) as connection, connection.cursor() as cursor:
             cursor.execute("SELECT version()")
-            version = cursor.fetchone()[0]
+            version = cursor.fetchone()[0]  # type: ignore
 
         assert version is not None
         assert "PostgreSQL" in version

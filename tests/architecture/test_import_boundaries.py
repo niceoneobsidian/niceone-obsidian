@@ -13,7 +13,7 @@ def imports(path: Path):
             yield node.module
 
 
-def test_application_does_not_import_infrastructure():
+def test_application_does_not_import_infrastructure() -> None:
     application = ROOT / "ois" / "application"
     forbidden = ("psycopg", "redis", "boto3")
     for path in application.rglob("*.py"):

@@ -10,7 +10,7 @@ from ois.kernel import (
 )
 
 
-def make_request(tenant_id="tenant-test"):
+def make_request(tenant_id="tenant-test"):  # type: ignore
     return InvocationRequest(
         invocation_id="policy-test-001",
         capability_id="test.policy",
@@ -24,7 +24,7 @@ def make_request(tenant_id="tenant-test"):
     )
 
 
-def test_low_risk_capability_is_authorized():
+def test_low_risk_capability_is_authorized():  # type: ignore
     engine = DefaultPolicyEngine()
 
     contract = CapabilityContract(
@@ -38,7 +38,7 @@ def test_low_risk_capability_is_authorized():
     assert engine.authorize(request, contract) is True
 
 
-def test_missing_tenant_is_denied():
+def test_missing_tenant_is_denied():  # type: ignore
     engine = DefaultPolicyEngine()
 
     contract = CapabilityContract(
@@ -56,7 +56,7 @@ def test_missing_tenant_is_denied():
     assert "tenant identity" in " ".join(decision.reasons).lower()
 
 
-def test_excessive_risk_is_denied():
+def test_excessive_risk_is_denied():  # type: ignore
     engine = DefaultPolicyEngine(
         maximum_risk=RiskLevel.MEDIUM,
     )
@@ -74,7 +74,7 @@ def test_excessive_risk_is_denied():
     assert any("risk" in reason.lower() for reason in decision.reasons)
 
 
-def test_missing_permission_is_denied():
+def test_missing_permission_is_denied():  # type: ignore
     engine = DefaultPolicyEngine(
         allowed_permissions=(),
     )
@@ -92,7 +92,7 @@ def test_missing_permission_is_denied():
     assert any("missing permissions" in reason.lower() for reason in decision.reasons)
 
 
-def test_irreversible_side_effect_is_denied_by_default():
+def test_irreversible_side_effect_is_denied_by_default():  # type: ignore
     engine = DefaultPolicyEngine(
         allow_irreversible=False,
     )
@@ -110,7 +110,7 @@ def test_irreversible_side_effect_is_denied_by_default():
     assert any("irreversible" in reason.lower() for reason in decision.reasons)
 
 
-def test_high_risk_requires_approval():
+def test_high_risk_requires_approval():  # type: ignore
     engine = DefaultPolicyEngine(
         maximum_risk=RiskLevel.HIGH,
     )
@@ -128,7 +128,7 @@ def test_high_risk_requires_approval():
     assert decision.requires_approval is True
 
 
-def test_critical_risk_requires_approval():
+def test_critical_risk_requires_approval():  # type: ignore
     engine = DefaultPolicyEngine(
         maximum_risk=RiskLevel.CRITICAL,
     )
@@ -146,7 +146,7 @@ def test_critical_risk_requires_approval():
     assert decision.requires_approval is True
 
 
-def test_irreversible_action_requires_approval():
+def test_irreversible_action_requires_approval():  # type: ignore
     engine = DefaultPolicyEngine(
         allow_irreversible=True,
     )
@@ -164,7 +164,7 @@ def test_irreversible_action_requires_approval():
     assert decision.requires_approval is True
 
 
-def test_authorize_raises_when_policy_denies():
+def test_authorize_raises_when_policy_denies():  # type: ignore
     engine = DefaultPolicyEngine()
 
     contract = CapabilityContract(

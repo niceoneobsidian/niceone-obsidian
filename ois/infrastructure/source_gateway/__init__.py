@@ -9,6 +9,7 @@ from .gateway import SourceGateway, SourceRequest, SourceResponse
 from .ledger import SQLiteSourceLedger
 from .limits import RateLimitPolicy, RateLimitState, TokenBucket
 from .outbox import OutboxEvent, OutboxStore, SQLiteOutboxStore
+from .postgres import PostgresSourceLedger
 
 __all__ = [
     "CredentialRef",
@@ -16,6 +17,7 @@ __all__ = [
     "InMemoryCredentialResolver",
     "OutboxEvent",
     "OutboxStore",
+    "PostgresSourceLedger",
     "RateLimitPolicy",
     "RateLimitState",
     "RawEvidence",

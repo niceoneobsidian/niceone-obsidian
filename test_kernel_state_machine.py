@@ -54,7 +54,7 @@ def make_context(status: ExecutionStatus = ExecutionStatus.RECEIVED) -> Executio
         ExecutionStatus.FAILED,
     ],
 )
-def test_terminal_states_reject_all_further_transitions(terminal_status, attempted_next):
+def test_terminal_states_reject_all_further_transitions(terminal_status, attempted_next):  # type: ignore
     context = make_context(status=terminal_status)
 
     with pytest.raises(ValueError):
@@ -63,7 +63,7 @@ def test_terminal_states_reject_all_further_transitions(terminal_status, attempt
     assert context.status == terminal_status
 
 
-def test_terminal_state_rejection_does_not_touch_updated_at():
+def test_terminal_state_rejection_does_not_touch_updated_at():  # type: ignore
     context = make_context(status=ExecutionStatus.COMPLETED)
     original_updated_at = context.updated_at
 
@@ -91,7 +91,7 @@ def test_terminal_state_rejection_does_not_touch_updated_at():
         (ExecutionStatus.EXECUTING, ExecutionStatus.STOPPED),
     ],
 )
-def test_valid_transitions_succeed_and_update_state(from_status, to_status):
+def test_valid_transitions_succeed_and_update_state(from_status, to_status):  # type: ignore
     context = make_context(status=from_status)
 
     context.set_status(to_status)
@@ -99,7 +99,7 @@ def test_valid_transitions_succeed_and_update_state(from_status, to_status):
     assert context.status == to_status
 
 
-def test_valid_transition_updates_timestamp():
+def test_valid_transition_updates_timestamp():  # type: ignore
     context = make_context(status=ExecutionStatus.RECEIVED)
     original_updated_at = context.updated_at
 
@@ -122,7 +122,7 @@ def test_valid_transition_updates_timestamp():
         ExecutionStatus.CHECKPOINTING,
     ],
 )
-def test_recovering_status_reachable_from_multiple_prior_states(prior_status):
+def test_recovering_status_reachable_from_multiple_prior_states(prior_status):  # type: ignore
     """RECOVERING must not have hidden state-dependent branching —
     it should be reachable (and behave the same) regardless of which
     non-terminal state preceded it."""
@@ -141,7 +141,7 @@ def test_recovering_status_reachable_from_multiple_prior_states(prior_status):
         ExecutionStatus.REPLANNING,
     ],
 )
-def test_recovering_status_can_proceed_onward_consistently(prior_status):
+def test_recovering_status_can_proceed_onward_consistently(prior_status):  # type: ignore
     """From RECOVERING (regardless of how we got there), forward
     progress to EXECUTING must be uniformly allowed."""
     context = make_context(status=prior_status)
@@ -157,7 +157,7 @@ def test_recovering_status_can_proceed_onward_consistently(prior_status):
 # ---------------------------------------------------------------------------
 
 
-def test_escalated_status_is_now_guarded_as_terminal():
+def test_escalated_status_is_now_guarded_as_terminal():  # type: ignore
     """
     ESCALATED is now hardened as a terminal status in
     ExecutionContext.set_status(), matching COMPLETED/STOPPED, so that

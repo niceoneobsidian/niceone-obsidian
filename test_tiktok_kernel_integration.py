@@ -13,7 +13,7 @@ from ois.kernel import (
 )
 
 
-def make_runtime():
+def make_runtime():  # type: ignore
     registry = AgentRegistry()
     agent = register_tiktok_capabilities(registry)
     runtime = ExecutionRuntime(
@@ -34,13 +34,13 @@ def make_context() -> ExecutionContext:
     )
 
 
-def test_tiktok_capability_is_registered():
+def test_tiktok_capability_is_registered():  # type: ignore
     registry, agent, _ = make_runtime()
     assert agent.contract.capability_id == "tiktok.content.plan"
     assert registry.has("tiktok.content.plan", "1.0.0")
 
 
-def test_tiktok_capability_executes_through_runtime_and_supervisor():
+def test_tiktok_capability_executes_through_runtime_and_supervisor():  # type: ignore
     _, _, runtime = make_runtime()
     result = Supervisor(runtime).execute(
         objective="Create a TikTok content plan",
@@ -65,7 +65,7 @@ def test_tiktok_capability_executes_through_runtime_and_supervisor():
     assert result.metadata["execution_provenance"]["input_sha256"]
 
 
-def test_tiktok_capability_is_idempotent_at_runtime_boundary():
+def test_tiktok_capability_is_idempotent_at_runtime_boundary():  # type: ignore
     _, _, runtime = make_runtime()
     context = make_context()
     kwargs = dict(
@@ -77,8 +77,8 @@ def test_tiktok_capability_is_idempotent_at_runtime_boundary():
         context=context,
     )
 
-    first = Supervisor(runtime).execute(**kwargs)
-    second = Supervisor(runtime).execute(**kwargs)
+    first = Supervisor(runtime).execute(**kwargs)  # type: ignore
+    second = Supervisor(runtime).execute(**kwargs)  # type: ignore
 
     assert first.status == InvocationStatus.SUCCEEDED
     assert second.status == InvocationStatus.SUCCEEDED
