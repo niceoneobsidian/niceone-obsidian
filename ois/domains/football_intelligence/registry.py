@@ -31,13 +31,40 @@ FOOTBALL_CAPABILITIES: tuple[DomainCapability, ...] = (
         "FootballDataBatch",
     ),
     DomainCapability(
-        "football.team_state", "Build team strength state", "MatchHistory", "TeamSnapshot"
+        "football.live_feed",
+        "Collect live multi-provider match state",
+        "FeedQuery",
+        "ReconciledMatchSet",
     ),
     DomainCapability(
-        "football.player_state", "Build player availability/state", "PlayerDataBatch", "PlayerState"
+        "football.match_stats",
+        "Collect match team statistics",
+        "MatchId",
+        "TeamStatFeed",
     ),
     DomainCapability(
-        "football.features", "Build leakage-safe match features", "MatchState", "FeatureVector"
+        "football.player_stats",
+        "Collect match player statistics",
+        "MatchId",
+        "PlayerStatFeed",
+    ),
+    DomainCapability(
+        "football.team_state",
+        "Build team strength state",
+        "MatchHistory",
+        "TeamSnapshot",
+    ),
+    DomainCapability(
+        "football.player_state",
+        "Build player availability/state",
+        "PlayerDataBatch",
+        "PlayerState",
+    ),
+    DomainCapability(
+        "football.features",
+        "Build leakage-safe match features",
+        "MatchState",
+        "FeatureVector",
     ),
     DomainCapability(
         "football.predict_1x2",
@@ -52,7 +79,10 @@ FOOTBALL_CAPABILITIES: tuple[DomainCapability, ...] = (
         "SimulationResult",
     ),
     DomainCapability(
-        "football.tactical_analysis", "Analyze tactical matchup", "MatchState", "TacticalAnalysis"
+        "football.tactical_analysis",
+        "Analyze tactical matchup",
+        "MatchState",
+        "TacticalAnalysis",
     ),
     DomainCapability(
         "football.live_update",
@@ -67,7 +97,10 @@ FOOTBALL_CAPABILITIES: tuple[DomainCapability, ...] = (
         "CalibrationReport",
     ),
     DomainCapability(
-        "football.backtest", "Run walk-forward backtests", "DatasetSpec", "BacktestReport"
+        "football.backtest",
+        "Run walk-forward backtests",
+        "DatasetSpec",
+        "BacktestReport",
     ),
     DomainCapability(
         "football.abstain",
@@ -85,7 +118,14 @@ FOOTBALL_CAPABILITIES: tuple[DomainCapability, ...] = (
 
 FOOTBALL_AGENTS: tuple[FootballAgentSpec, ...] = (
     FootballAgentSpec(
-        "football.data_agent", "Football data ingestion and validation", ("football.ingest",)
+        "football.data_agent",
+        "Football data ingestion and validation",
+        (
+            "football.ingest",
+            "football.live_feed",
+            "football.match_stats",
+            "football.player_stats",
+        ),
     ),
     FootballAgentSpec(
         "football.team_agent",
@@ -93,17 +133,25 @@ FOOTBALL_AGENTS: tuple[FootballAgentSpec, ...] = (
         ("football.team_state", "football.features"),
     ),
     FootballAgentSpec(
-        "football.player_agent", "Player and lineup intelligence", ("football.player_state",)
+        "football.player_agent",
+        "Player and lineup intelligence",
+        ("football.player_state", "football.player_stats"),
     ),
     FootballAgentSpec(
-        "football.tactical_agent", "Tactical matchup intelligence", ("football.tactical_analysis",)
+        "football.tactical_agent",
+        "Tactical matchup intelligence",
+        ("football.tactical_analysis",),
     ),
     FootballAgentSpec(
         "football.prediction_agent",
         "Statistical and ensemble prediction",
         ("football.predict_1x2", "football.simulate"),
     ),
-    FootballAgentSpec("football.live_agent", "Live match intelligence", ("football.live_update",)),
+    FootballAgentSpec(
+        "football.live_agent",
+        "Live match intelligence",
+        ("football.live_update", "football.live_feed"),
+    ),
     FootballAgentSpec(
         "football.evaluation_agent",
         "Calibration and walk-forward evaluation",
@@ -126,6 +174,7 @@ def manifest() -> dict[str, Any]:
             {"workflow_id": "football.predict", "version": 1},
             {"workflow_id": "football.backtest", "version": 1},
             {"workflow_id": "football.live_prediction", "version": 1},
+            {"workflow_id": "football.feed_snapshot", "version": 1},
         ],
         "model_registry_namespace": "football",
         "connector_contract": "FootballDataConnector",
