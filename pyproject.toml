@@ -20,6 +20,9 @@ test = [
   "psycopg-pool>=3.2,<4",
   "testcontainers[postgres]>=4.15,<5",
 ]
+[project.scripts]
+ois = "ois.cli:main"
+
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
