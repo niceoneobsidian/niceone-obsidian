@@ -27,6 +27,11 @@ test = [
   "psycopg[binary]>=3.3.6,<4",
   "psycopg-pool>=3.2,<4",
   "testcontainers[postgres]>=4.15,<5",
+  "pytest-asyncio>=1,<2",
+  "ruff==0.9.10",
+  "mypy",
+  "bandit",
+  "pip-licenses",
 ]
 [project.scripts]
 ois = "ois.cli:main"
@@ -104,19 +109,6 @@ exclude = [
   '^\.mypy_cache/',
   '^\.pytest_cache/',
   '^\.ruff_cache/',
-]
-
-[project.optional-dependencies]
-test = [
-    "pytest>=9,<10",
-  "pytest-asyncio>=1,<2",
-    "psycopg[binary]>=3.3.6,<4",
-    "psycopg-pool>=3.2,<4",
-    "testcontainers[postgres]>=4.15,<5",
-    "ruff==0.9.10",
-    "mypy",
-    "bandit",
-    "pip-licenses",
 ]
 
 [[tool.mypy.overrides]]
