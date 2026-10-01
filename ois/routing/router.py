@@ -46,8 +46,11 @@ class Router:
         request: RouteRequest,
     ) -> RouteResult:
         entry = registry.resolve(request.object_id, request.version)
+        object_id = entry.id
+        version = entry.version
+        value = entry.value
         return RouteResult(
-            object_id=entry.id,
-            version=entry.version,
-            value=entry.value,
+            object_id=object_id,
+            version=version,
+            value=value,
         )

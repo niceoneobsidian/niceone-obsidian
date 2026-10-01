@@ -21,7 +21,9 @@ def attribute_by_prediction_version(
         roi = [item.roi_if_staked for item in items if item.roi_if_staked is not None]
         result[version] = {
             "count": len(items),
-            "accuracy": sum(bool(item.correct) for item in decided) / len(decided) if decided else 0.0,
+            "accuracy": sum(bool(item.correct) for item in decided) / len(decided)
+            if decided
+            else 0.0,
             "mean_edge": sum(item.edge for item in items) / len(items) if items else 0.0,
             "roi_sum": sum(roi),
         }

@@ -6,7 +6,35 @@ requires-python = ">=3.12"
 dependencies = [
   "pydantic>=2.7,<3",
   "psycopg[binary]>=3.3.4,<4",
+  "langgraph>=1.2.11,<2",
+  "pydantic>=2.7,<3",
+  "psycopg[binary]>=3.3.6,<4",
+  "psycopg-pool>=3.2,<4",
+  "pydantic>=2.7,<3",
+  "langgraph>=1.2.12,<2",
+  "langgraph-checkpoint-postgres>=3.1.2,<4",
+  "opentelemetry-api>=1.44,<2",
+  "opentelemetry-sdk>=1.44,<2",
+  "opentelemetry-exporter-otlp-proto-grpc>=1.44,<2",
+  "psycopg[binary]>=3.3.6,<4",
+  "pydantic>=2.7,<3",
+  "redis>=8.1,<9",
 ]
+
+[project.optional-dependencies]
+test = [
+  "pytest>=9,<10",
+  "psycopg[binary]>=3.3.6,<4",
+  "psycopg-pool>=3.2,<4",
+  "testcontainers[postgres]>=4.15,<5",
+  "pytest-asyncio>=1,<2",
+  "ruff==0.9.10",
+  "mypy",
+  "bandit",
+  "pip-licenses",
+]
+[project.scripts]
+ois = "ois.cli:main"
 
 [build-system]
 requires = ["setuptools>=68"]
@@ -43,10 +71,6 @@ select = [
   "SIM",
 ]
 
-# The Social Intelligence inventory is a declarative, machine-maintained manifest.
-# Its long structure lists are intentionally kept readable as grouped data rather
-# than reformatted into generated noise. Keep normal linting and type checking for
-# the module, while allowing the manifest's long data rows and formatting to remain stable.
 [tool.ruff.lint.per-file-ignores]
 "ois/domains/social_intelligence/inventory.py" = ["E501"]
 
@@ -58,10 +82,17 @@ exclude = [
   "ois/domains/social_intelligence/inventory.py",
 ]
 
+[tool.pytest.ini_options]
+markers = [
+  "integration: requires live PostgreSQL or Redis infrastructure",
+  "sandbox: must execute inside the OIS gVisor runtime",
+  "recovery: deterministic recovery conformance scenarios",
+]
+
 [tool.mypy]
-python_version = "3.12"
 warn_return_any = true
 warn_unused_configs = true
+python_version = "3.12"
 warn_redundant_casts = true
 warn_unused_ignores = true
 disallow_untyped_defs = true
@@ -79,3 +110,8 @@ exclude = [
   '^\.pytest_cache/',
   '^\.ruff_cache/',
 ]
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+check_untyped_defs = false
+disallow_untyped_defs = false

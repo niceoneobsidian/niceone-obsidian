@@ -9,7 +9,7 @@ from ois.domains.football_intelligence.schemas import FootballPrediction
 from .evaluation import evaluate_market_event
 from .markets import MarketType, Selection
 from .registry import manifest
-from .schemas import MarketEvent, MarketEvaluation, MarketOutcome
+from .schemas import MarketEvaluation, MarketEvent, MarketOutcome
 from .settlement import settle_market
 
 DOMAIN_ID = "football_market_intelligence"

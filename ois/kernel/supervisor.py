@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import StrEnum
 from typing import Any
+
+from ois.observability_telemetry import SupervisorExecutionTracker
 
 from .contracts import InvocationRequest, InvocationResult, InvocationStatus
 from .evidence import EvidenceLedger
@@ -17,6 +20,28 @@ class SupervisorError(Exception):
 
 class AgentSelectionError(SupervisorError):
     """Raised when an execution cannot be delegated to an agent."""
+
+
+class SupervisionAction(StrEnum):
+    EXECUTE = "execute"
+    COMPLETE = "complete"
+    RETRY = "retry"
+    REPLAN = "replan"
+    ESCALATE = "escalate"
+    STOP = "stop"
+
+
+@dataclass(frozen=True)
+class SupervisionRequest:
+    objective: str
+    plan_validated: bool
+    authorized: bool
+    status: str
+    failure: Any = None
+    retry_allowed: bool = False
+    recovery_allowed: bool = False
+    approval_required: bool = False
+    approval_granted: bool = False
 
 
 @dataclass(frozen=True)
@@ -54,6 +79,7 @@ class Supervisor:
         policy: PolicyEngine | None = None,
         evidence: EvidenceLedger | None = None,
         availability: Any = None,
+        telemetry: SupervisorExecutionTracker | None = None,
     ) -> None:
         self.runtime = runtime
         self.agent_registry = agent_registry
@@ -62,6 +88,7 @@ class Supervisor:
         self.policy = policy or DefaultPolicyEngine()
         self.evidence = evidence
         self.availability = availability
+        self.telemetry = telemetry
 
     def select_agent(
         self,
@@ -154,7 +181,7 @@ class Supervisor:
                 raise SupervisorError("orchestrator is required for plan execution")
             if context is None:
                 raise SupervisorError("context is required for plan execution")
-            return self.orchestrator.execute(plan, context)
+            return self._execute_plan(plan, context)
 
         if self.runtime is None:
             raise SupervisorError("runtime is required for direct execution")
@@ -193,13 +220,126 @@ class Supervisor:
                 },
             )
 
-        return self.runtime.execute(
+        return self._execute_direct(
             context=context,
             capability_id=capability_id,
             version=version,
             input_data=input_data,
             invocation_id=invocation_id,
         )
+
+    def _execute_plan(self, plan: Any, context: ExecutionContext) -> Any:
+        workflow_id = context.identity.workflow_id or "unknown"
+        if self.telemetry is None:
+            return self.orchestrator.execute(plan, context)
+        with self.telemetry.track_execution(
+            context.identity.tenant_id,
+            str(context.identity.execution_id),
+            workflow_id,
+        ):
+            return self.orchestrator.execute(plan, context)
+
+    def _execute_direct(
+        self,
+        *,
+        context: Any,
+        capability_id: str,
+        version: str,
+        input_data: dict[str, Any],
+        invocation_id: str,
+    ) -> Any:
+        if self.telemetry is None or context is None:
+            return self.runtime.execute(
+                context=context,
+                capability_id=capability_id,
+                version=version,
+                input_data=input_data,
+                invocation_id=invocation_id,
+            )
+
+        workflow_id = getattr(context.identity, "workflow_id", None) or capability_id
+        with self.telemetry.track_execution(
+            context.identity.tenant_id,
+            str(context.identity.execution_id),
+            workflow_id,
+        ):
+            return self.runtime.execute(
+                context=context,
+                capability_id=capability_id,
+                version=version,
+                input_data=input_data,
+                invocation_id=invocation_id,
+            )
+
+    def decide(
+        self,
+        request: SupervisionRequest | None = None,
+        *,
+        objective: str = "objective",
+        plan_validated: bool = True,
+        authorized: bool = True,
+        status: str = "pending",
+        failure: Any = None,
+        retry_allowed: bool = False,
+        recovery_allowed: bool = False,
+        approval_required: bool = False,
+        approval_granted: bool = False,
+    ) -> SupervisionDecision:
+        """Compatibility decision API backed by the canonical Supervisor policy."""
+        if request is None:
+            request = SupervisionRequest(
+                objective=objective,
+                plan_validated=plan_validated,
+                authorized=authorized,
+                status=status,
+                failure=failure,
+                retry_allowed=retry_allowed,
+                recovery_allowed=recovery_allowed,
+                approval_required=approval_required,
+                approval_granted=approval_granted,
+            )
+        if not request.objective.strip():
+            return SupervisionDecision("stop", "objective is required", True)
+        if request.approval_required and not request.approval_granted:
+            return SupervisionDecision(
+                "escalate", "human approval is required before execution", False
+            )
+        if not request.authorized:
+            return SupervisionDecision(
+                "escalate",
+                "authorization is not granted by the execution boundary",
+                False,
+            )
+        if not request.plan_validated:
+            return SupervisionDecision("replan", "execution plan has not passed validation", False)
+        if request.status in {"completed", "success", "succeeded"}:
+            return SupervisionDecision("complete", "execution completed successfully", True)
+        failure_value = getattr(request.failure, "value", request.failure)
+        if failure_value == "safety":
+            return SupervisionDecision("stop", "safety failures terminate execution", True)
+        if failure_value == "permission":
+            return SupervisionDecision("escalate", "permission failures require escalation", False)
+        if failure_value == "plan":
+            return SupervisionDecision(
+                "replan", "plan failure requires a new executable plan", False
+            )
+        if request.retry_allowed:
+            return SupervisionDecision(
+                "retry", "bounded retry is permitted by recovery policy", False
+            )
+        if request.recovery_allowed:
+            return SupervisionDecision(
+                "replan",
+                "bounded recovery is permitted; replan before continuing",
+                False,
+            )
+        if request.failure is not None:
+            return SupervisionDecision(
+                "escalate",
+                f"failure {failure_value} has no safe automatic action",
+                False,
+            )
+        return SupervisionDecision("execute", "plan is authorized and ready", False)
 
     def inspect(self, context: Any) -> SupervisionDecision:
         """Inspect the latest failure and produce a bounded recovery decision."""

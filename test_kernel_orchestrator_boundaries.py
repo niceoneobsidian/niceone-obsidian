@@ -45,13 +45,13 @@ from ois.kernel.types import ExecutionStatus
 
 
 class RecordingCapability:
-    def __init__(self, capability_id, should_fail=False):
+    def __init__(self, capability_id, should_fail=False):  # type: ignore
         self.capability_id = capability_id
         self.should_fail = should_fail
         self.invocations = 0
 
     @property
-    def contract(self):
+    def contract(self):  # type: ignore
         return CapabilityContract(
             capability_id=self.capability_id,
             version="1.0.0",
@@ -60,7 +60,7 @@ class RecordingCapability:
             side_effects=SideEffectLevel.NONE,
         )
 
-    def invoke(self, request: InvocationRequest):
+    def invoke(self, request: InvocationRequest):  # type: ignore
         self.invocations += 1
 
         if self.should_fail:
@@ -82,7 +82,7 @@ class RecordingCapability:
         )
 
 
-def make_runtime(*capabilities):
+def make_runtime(*capabilities):  # type: ignore
     registry = CapabilityRegistry()
 
     for capability in capabilities:
@@ -95,14 +95,14 @@ def make_runtime(*capabilities):
     )
 
 
-def make_context():
+def make_context():  # type: ignore
     return ExecutionContext(
         identity=ExecutionIdentity(tenant_id="tenant-test"),
         objective="Orchestrator recovery boundary test",
     )
 
 
-def test_single_failed_task_halts_plan_without_completing():
+def test_single_failed_task_halts_plan_without_completing():  # type: ignore
     upstream = RecordingCapability("test.upstream")
     downstream = RecordingCapability("test.downstream", should_fail=True)
 
@@ -137,7 +137,7 @@ def test_single_failed_task_halts_plan_without_completing():
     assert downstream.invocations == 1
 
 
-def test_sibling_branch_runs_independently_after_earlier_branch_fails_in_same_batch():
+def test_sibling_branch_runs_independently_after_earlier_branch_fails_in_same_batch():  # type: ignore
     """
     Branch isolation is implemented: branch-fail and branch-ok have NO
     dependency relationship and are both ready in the same batch.
@@ -179,7 +179,7 @@ def test_sibling_branch_runs_independently_after_earlier_branch_fails_in_same_ba
     assert result.tasks["branch-ok"].status == TaskStatus.SUCCEEDED
 
 
-def test_blocked_plan_raises_when_no_task_is_ready_and_none_failed():
+def test_blocked_plan_raises_when_no_task_is_ready_and_none_failed():  # type: ignore
     """
     Force a blocked state deterministically: task-stuck is manually set
     to RUNNING before execute() is called, so it is never picked up by
@@ -221,7 +221,7 @@ def test_blocked_plan_raises_when_no_task_is_ready_and_none_failed():
     assert blocked_capability.invocations == 0
 
 
-def test_failed_plan_never_marks_execution_context_completed():
+def test_failed_plan_never_marks_execution_context_completed():  # type: ignore
     ok = RecordingCapability("test.ok")
     fails = RecordingCapability("test.fails", should_fail=True)
 
@@ -251,7 +251,7 @@ def test_failed_plan_never_marks_execution_context_completed():
     assert context.status != ExecutionStatus.COMPLETED
 
 
-def test_fully_successful_plan_marks_execution_context_completed():
+def test_fully_successful_plan_marks_execution_context_completed():  # type: ignore
     first = RecordingCapability("test.first")
     second = RecordingCapability("test.second")
 

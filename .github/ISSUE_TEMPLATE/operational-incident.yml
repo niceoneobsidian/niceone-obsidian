@@ -1,0 +1,23 @@
+name: Operational incident
+description: Record a service or runtime incident.
+title: "[INCIDENT] "
+labels: ["incident"]
+body:
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+    validations:
+      required: true
+  - type: textarea
+    id: timeline
+    attributes:
+      label: Timeline
+    validations:
+      required: true
+  - type: textarea
+    id: recovery
+    attributes:
+      label: Recovery and evidence
+    validations:
+      required: true

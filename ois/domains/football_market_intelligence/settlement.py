@@ -22,19 +22,33 @@ def settle_market(event: MarketEvent, home_goals: int, away_goals: int) -> Marke
     selected_value: float
 
     if event.market_type is MarketType.RESULT:
-        selected_value = {Selection.HOME_WIN: 1, Selection.DRAW: 0, Selection.AWAY_WIN: -1}[event.selection]
+        selected_value = {Selection.HOME_WIN: 1, Selection.DRAW: 0, Selection.AWAY_WIN: -1}[
+            event.selection
+        ]
         actual = 1 if margin > 0 else 0 if margin == 0 else -1
         status = OutcomeStatus.WIN if actual == selected_value else OutcomeStatus.LOSS
     elif event.market_type is MarketType.DOUBLE_CHANCE:
-        actual = {Selection.HOME_OR_DRAW: margin >= 0, Selection.DRAW_OR_AWAY: margin <= 0, Selection.HOME_OR_AWAY: margin != 0}[event.selection]
+        actual = {
+            Selection.HOME_OR_DRAW: margin >= 0,
+            Selection.DRAW_OR_AWAY: margin <= 0,
+            Selection.HOME_OR_AWAY: margin != 0,
+        }[event.selection]
         status = OutcomeStatus.WIN if actual else OutcomeStatus.LOSS
     elif event.market_type is MarketType.TOTAL_GOALS:
         assert line is not None
         status = _over_under_status(total, line, event.selection)
     elif event.market_type is MarketType.TEAM_GOALS:
         assert line is not None
-        value = home_goals if event.selection in {Selection.HOME_OVER, Selection.HOME_UNDER} else away_goals
-        selection = Selection.OVER if event.selection in {Selection.HOME_OVER, Selection.AWAY_OVER} else Selection.UNDER
+        value = (
+            home_goals
+            if event.selection in {Selection.HOME_OVER, Selection.HOME_UNDER}
+            else away_goals
+        )
+        selection = (
+            Selection.OVER
+            if event.selection in {Selection.HOME_OVER, Selection.AWAY_OVER}
+            else Selection.UNDER
+        )
         status = _over_under_status(value, line, selection)
     elif event.market_type is MarketType.BTTS:
         btts = home_goals > 0 and away_goals > 0
@@ -43,7 +57,13 @@ def settle_market(event: MarketEvent, home_goals: int, away_goals: int) -> Marke
     elif event.market_type is MarketType.HANDICAP:
         assert line is not None
         adjusted = margin + line if event.selection is Selection.HOME_HANDICAP else -margin + line
-        status = OutcomeStatus.WIN if adjusted > 0 else OutcomeStatus.LOSS if adjusted < 0 else OutcomeStatus.PUSH
+        status = (
+            OutcomeStatus.WIN
+            if adjusted > 0
+            else OutcomeStatus.LOSS
+            if adjusted < 0
+            else OutcomeStatus.PUSH
+        )
     elif event.market_type is MarketType.SPECIAL:
         if event.selection is Selection.HOME_1UP:
             status = OutcomeStatus.WIN if margin >= 1 else OutcomeStatus.LOSS

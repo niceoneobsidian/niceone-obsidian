@@ -19,7 +19,7 @@ def make_context() -> ExecutionContext:
     )
 
 
-def test_plan_is_focused_and_limited():
+def test_plan_is_focused_and_limited():  # type: ignore
     plan = build_tiktok_plan(TikTokContentBrief(topic="TikTok SEO strategy"))
     assert plan.hook
     assert plan.caption
@@ -28,14 +28,14 @@ def test_plan_is_focused_and_limited():
     assert "no_guaranteed_virality_claim" in plan.quality_checks
 
 
-def test_agent_contract_is_stable():
+def test_agent_contract_is_stable():  # type: ignore
     agent = TikTokContentAgent()
     assert agent.contract.capability_id == "tiktok.content.plan"
     assert agent.contract.version == "1.0.0"
     assert agent.contract.idempotent is True
 
 
-def test_empty_topic_is_rejected():
+def test_empty_topic_is_rejected():  # type: ignore
     try:
         build_tiktok_plan(TikTokContentBrief(topic=""))
     except ValueError as exc:
@@ -44,7 +44,7 @@ def test_empty_topic_is_rejected():
         raise AssertionError("Expected ValueError")
 
 
-def test_execution_provenance_is_not_reference_provenance():
+def test_execution_provenance_is_not_reference_provenance():  # type: ignore
     result = TikTokContentAgent().invoke(
         InvocationRequest(
             invocation_id="tiktok-provenance-001",

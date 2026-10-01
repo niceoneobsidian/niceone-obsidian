@@ -24,7 +24,7 @@ class Check:
 CHECKS = (
     Check("Ruff lint", ("ruff", "check", "."), "ruff"),
     Check("Ruff format", ("ruff", "format", "--check", "."), "ruff"),
-    Check("Mypy", ("python", "-m", "mypy", "ois"), "python"),
+    Check("Mypy", ("python", "-m", "mypy", "ois", "ops", "production"), "python"),
     Check(
         "Bandit",
         ("bandit", "-r", ".", "-x", "./.git,./.venv,./venv,./tests", "-lll", "-iii"),
