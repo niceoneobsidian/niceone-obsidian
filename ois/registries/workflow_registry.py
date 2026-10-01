@@ -1,7 +1,3 @@
-"""Workflow registry."""
+from .core import WorkflowRegistry
 
-from .base import Registry
-
-
-class WorkflowRegistry(Registry[object]):
-    """Registry for versioned workflows."""
+__all__ = ["WorkflowRegistry"]

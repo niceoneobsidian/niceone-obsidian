@@ -5,14 +5,14 @@ from ois.kernel.recovery import RecoveryPolicy
 from ois.kernel.types import ExecutionStatus, FailureClass
 
 
-def make_context():
+def make_context():  # type: ignore
     return ExecutionContext(
         identity=ExecutionIdentity(tenant_id="default"),
         objective="Recovery test",
     )
 
 
-def test_transient_failure_retries():
+def test_transient_failure_retries():  # type: ignore
     policy = RecoveryPolicy(max_retries=2)
     context = make_context()
 
@@ -25,7 +25,7 @@ def test_transient_failure_retries():
     assert context.status == ExecutionStatus.RECOVERING
 
 
-def test_transient_retry_limit_escalates():
+def test_transient_retry_limit_escalates():  # type: ignore
     policy = RecoveryPolicy(max_retries=2)
     context = make_context()
     context.retry_count = 2
@@ -37,7 +37,7 @@ def test_transient_retry_limit_escalates():
     assert context.status == ExecutionStatus.ESCALATED
 
 
-def test_parameter_failure_requires_correction():
+def test_parameter_failure_requires_correction():  # type: ignore
     policy = RecoveryPolicy()
     context = make_context()
 
@@ -49,7 +49,7 @@ def test_parameter_failure_requires_correction():
     assert context.status == ExecutionStatus.RECEIVED
 
 
-def test_tool_failure_uses_fallback():
+def test_tool_failure_uses_fallback():  # type: ignore
     policy = RecoveryPolicy()
     context = make_context()
 
@@ -61,7 +61,7 @@ def test_tool_failure_uses_fallback():
     assert context.status == ExecutionStatus.RECEIVED
 
 
-def test_plan_failure_triggers_replan():
+def test_plan_failure_triggers_replan():  # type: ignore
     policy = RecoveryPolicy()
     context = make_context()
 
@@ -74,7 +74,7 @@ def test_plan_failure_triggers_replan():
     assert context.status == ExecutionStatus.REPLANNING
 
 
-def test_state_failure_recovers():
+def test_state_failure_recovers():  # type: ignore
     policy = RecoveryPolicy(max_recovery_attempts=2)
     context = make_context()
 
@@ -87,7 +87,7 @@ def test_state_failure_recovers():
     assert context.status == ExecutionStatus.RECOVERING
 
 
-def test_state_recovery_limit_escalates():
+def test_state_recovery_limit_escalates():  # type: ignore
     policy = RecoveryPolicy(max_recovery_attempts=2)
     context = make_context()
     context.recovery_attempts = 2
@@ -99,7 +99,7 @@ def test_state_recovery_limit_escalates():
     assert context.status == ExecutionStatus.ESCALATED
 
 
-def test_permission_failure_escalates():
+def test_permission_failure_escalates():  # type: ignore
     policy = RecoveryPolicy()
     context = make_context()
 
@@ -111,7 +111,7 @@ def test_permission_failure_escalates():
     assert context.status == ExecutionStatus.ESCALATED
 
 
-def test_safety_failure_stops_execution():
+def test_safety_failure_stops_execution():  # type: ignore
     policy = RecoveryPolicy()
     context = make_context()
 
@@ -123,7 +123,7 @@ def test_safety_failure_stops_execution():
     assert context.status == ExecutionStatus.STOPPED
 
 
-def test_unknown_failure_escalates():
+def test_unknown_failure_escalates():  # type: ignore
     policy = RecoveryPolicy()
     context = make_context()
 
@@ -135,7 +135,7 @@ def test_unknown_failure_escalates():
     assert context.status == ExecutionStatus.ESCALATED
 
 
-def test_recovery_records_failure_and_error():
+def test_recovery_records_failure_and_error():  # type: ignore
     policy = RecoveryPolicy()
     context = make_context()
 
@@ -148,7 +148,7 @@ def test_recovery_records_failure_and_error():
     assert "reason" in context.error
 
 
-def test_invalid_recovery_limits_are_rejected():
+def test_invalid_recovery_limits_are_rejected():  # type: ignore
     with pytest.raises(ValueError):
         RecoveryPolicy(max_retries=-1)
 

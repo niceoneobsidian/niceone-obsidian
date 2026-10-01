@@ -1,0 +1,50 @@
+name: OIS persistence conformance
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  persistence:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ois_admin
+          POSTGRES_PASSWORD: ois_local_only
+          POSTGRES_DB: ois_kernel_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ois_admin -d ois_kernel_db"
+          --health-interval 3s
+          --health-timeout 3s
+          --health-retries 20
+      redis:
+        image: redis:7.4-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 3s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install project and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[test]"
+      - name: Run persistence conformance
+        env:
+          OIS_DATABASE_URL: postgresql://ois_admin:ois_local_only@localhost:5432/ois_kernel_db
+          OIS_REDIS_URL: redis://localhost:6379/0
+        run: python -m pytest -q tests/integration/test_persistence_coordination.py
