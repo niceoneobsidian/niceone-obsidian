@@ -8,6 +8,9 @@ reference distributions without changing the market contract.
 
 from __future__ import annotations
 
+# fmt: off
+# ruff: noqa: E501, I001
+
 import math
 from dataclasses import dataclass
 
