@@ -452,6 +452,7 @@ dependencies = [
     { name = "langgraph-checkpoint-postgres" },
     { name = "opentelemetry-api" },
     { name = "psycopg", extra = ["binary"] },
+    { name = "psycopg-pool" },
     { name = "pydantic" },
     { name = "redis" },
 ]
@@ -459,6 +460,7 @@ dependencies = [
 [package.optional-dependencies]
 test = [
     { name = "psycopg", extra = ["binary"] },
+    { name = "psycopg-pool" },
     { name = "pytest" },
     { name = "testcontainers" },
 ]
@@ -470,6 +472,8 @@ requires-dist = [
     { name = "opentelemetry-api", specifier = ">=1.44,<2" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.3.6,<4" },
     { name = "psycopg", extras = ["binary"], marker = "extra == 'test'", specifier = ">=3.3.6,<4" },
+    { name = "psycopg-pool", specifier = ">=3.2,<4" },
+    { name = "psycopg-pool", marker = "extra == 'test'", specifier = ">=3.2,<4" },
     { name = "pydantic", specifier = ">=2.7,<3" },
     { name = "pytest", marker = "extra == 'test'", specifier = ">=9,<10" },
     { name = "redis", specifier = ">=8.1,<9" },

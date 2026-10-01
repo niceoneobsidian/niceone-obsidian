@@ -399,7 +399,9 @@ psycopg-binary==3.3.6 ; implementation_name != 'pypy' \
 psycopg-pool==3.3.2 \
     --hash=sha256:0c70903c7f50cd7173ef0f6364bb7c9271fa3810f5746e058449a77afe579f49 \
     --hash=sha256:96971f245eee54f1632d8eaae0de5bb6e9c624c1effdd42d8d6843e534f56e07
-    # via langgraph-checkpoint-postgres
+    # via
+    #   langgraph-checkpoint-postgres
+    #   niceone-obsidian
 pydantic==2.13.5 \
     --hash=sha256:346a034f080da3755d8e9cb5e00e8b07de1d39e4f6e2c87d8ab7cafa0b269a73 \
     --hash=sha256:51a9c5f7b2f8e636f04c6cada605d9b6a3bf1348fdf945a3d8869b19bba0ee08

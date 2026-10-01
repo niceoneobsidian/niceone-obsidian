@@ -11,21 +11,33 @@ def calculate_checksum(file_path: Path) -> str:
     return hashlib.sha256(file_path.read_bytes()).hexdigest()
 
 
+def _migration_version(path: Path) -> int:
+    """Return the numeric migration version for deterministic ordering."""
+    prefix = path.name.split("_", 1)[0]
+    try:
+        return int(prefix)
+    except ValueError as exc:
+        raise RuntimeError(
+            f"Migration filename must start with a numeric version: {path.name}"
+        ) from exc
+
+
 def apply_migrations(
     connection: psycopg.Connection,
     migrations_dir: Path,
 ) -> None:
-    """Apply all SQL migrations in lexical order with history and checksum tracking.
-
-    - Creates schema_migrations if it does not exist.
-    - Validates checksums of previously applied migrations (fails closed on mismatch).
-    - Skips already-applied migrations cleanly.
-    - Applies pending migrations and records their version, name, and checksum.
-    """
-    migration_files = sorted(migrations_dir.glob("*.sql"))
+    """Apply migrations in numeric order with history and checksum tracking."""
+    migration_files = sorted(
+        migrations_dir.glob("*.sql"),
+        key=_migration_version,
+    )
 
     if not migration_files:
         raise RuntimeError(f"No migration files found in {migrations_dir}")
+
+    versions = [_migration_version(path) for path in migration_files]
+    if len(versions) != len(set(versions)):
+        raise RuntimeError("Duplicate migration version detected")
 
     with connection.transaction(), connection.cursor() as cursor:
         cursor.execute(
@@ -39,11 +51,13 @@ def apply_migrations(
             """
         )
 
-        cursor.execute("SELECT version, checksum FROM schema_migrations ORDER BY version")
+        cursor.execute(
+            "SELECT version, checksum FROM schema_migrations ORDER BY CAST(version AS INTEGER)"
+        )
         applied_migrations = {row[0]: row[1] for row in cursor.fetchall()}
 
         for migration_file in migration_files:
-            version = migration_file.name.split("_")[0]
+            version = migration_file.name.split("_", 1)[0]
             checksum = calculate_checksum(migration_file)
             sql = migration_file.read_text(encoding="utf-8")
 
