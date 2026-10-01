@@ -18,7 +18,7 @@ from .web_sources import (
 
 def normalize_observations(
     source: WebSource,
-    observations: list[WebObservation],
+    observations: list[MatchObservation | OddsObservation],
     *,
     prediction_created_at: datetime | None = None,
 ) -> NormalizationResult:
@@ -31,15 +31,18 @@ def normalize_observations(
             rejected += 1
             warnings.append(f"rejected source mismatch: {observation.observation_id}")
             continue
-        if prediction_created_at is not None and observation.source_timestamp is not None:
-            if observation.source_timestamp > prediction_created_at:
-                rejected += 1
-                warnings.append(
-                    f"rejected future observation: {observation.observation_id} "
-                    f"source={observation.source_timestamp.isoformat()} "
-                    f"prediction={prediction_created_at.isoformat()}"
-                )
-                continue
+        if (
+            prediction_created_at is not None
+            and observation.source_timestamp is not None
+            and observation.source_timestamp > prediction_created_at
+        ):
+            rejected += 1
+            warnings.append(
+                f"rejected future observation: {observation.observation_id} "
+                f"source={observation.source_timestamp.isoformat()} "
+                f"prediction={prediction_created_at.isoformat()}"
+            )
+            continue
         records.append(observation)
     return NormalizationResult(
         source_id=source.source_id,

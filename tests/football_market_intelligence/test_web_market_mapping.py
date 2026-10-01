@@ -1,7 +1,9 @@
 from datetime import UTC, datetime
 
-from ois.domains.football_market_intelligence.web_adapters import parse_odds_api, parse_sportmonks_odds
-
+from ois.domains.football_market_intelligence.web_adapters import (
+    parse_odds_api,
+    parse_sportmonks_odds,
+)
 
 OBSERVED_AT = datetime(2026, 9, 10, 12, tzinfo=UTC)
 
@@ -50,7 +52,9 @@ def test_sportmonks_preserves_provider_market_id() -> None:
             }
         ]
     }
-    records = parse_sportmonks_odds(payload, source_uri="https://example.test", observed_at=OBSERVED_AT)
+    records = parse_sportmonks_odds(
+        payload, source_uri="https://example.test", observed_at=OBSERVED_AT
+    )
     assert records[0].provider_market_key == "16"
     assert records[0].market_description == "Asian Handicap"
     assert records[0].canonical_market_key == "asian_handicap"

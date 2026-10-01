@@ -35,11 +35,13 @@ def build_market_coverage(observations: list[OddsObservation]) -> list[Bookmaker
 
     result: list[BookmakerMarketCoverage] = []
     for (provider, bookmaker), records in sorted(groups.items()):
-        market_keys = sorted({
-            record.canonical_market_key
-            for record in records
-            if record.canonical_market_key is not None
-        })
+        market_keys = sorted(
+            {
+                record.canonical_market_key
+                for record in records
+                if record.canonical_market_key is not None
+            }
+        )
         timestamps = [record.observed_at for record in records]
         result.append(
             BookmakerMarketCoverage(

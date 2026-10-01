@@ -16,7 +16,6 @@ from ois.domains.football_market_intelligence.web_normalization import (
 )
 from ois.domains.football_market_intelligence.web_sources import implied_probability
 
-
 NOW = datetime(2026, 9, 10, 12, 0, tzinfo=UTC)
 
 
@@ -61,10 +60,12 @@ def test_odds_api_normalizes_bookmaker_outcome() -> None:
             }
         ]
     }
-    records = parse_odds_api(payload, source_uri="/v4/historical/sports/soccer/odds", observed_at=NOW)
+    records = parse_odds_api(
+        payload, source_uri="/v4/historical/sports/soccer/odds", observed_at=NOW
+    )
     assert len(records) == 1
     assert records[0].match_id == "event-1"
-    assert records[0].market_type == "totals"
+    assert records[0].canonical_market_key == "totals"
     assert records[0].line == pytest.approx(2.5)
     assert records[0].implied_probability == pytest.approx(1 / 1.8)
 
@@ -83,7 +84,9 @@ def test_sportmonks_normalizes_probability_and_timestamp() -> None:
             }
         ]
     }
-    records = parse_sportmonks_odds(payload, source_uri="/odds/premium/fixtures/555", observed_at=NOW)
+    records = parse_sportmonks_odds(
+        payload, source_uri="/odds/premium/fixtures/555", observed_at=NOW
+    )
     assert len(records) == 1
     assert records[0].match_id == "555"
     assert records[0].decimal_odds == pytest.approx(2.10)
@@ -103,9 +106,7 @@ def test_future_market_evidence_is_rejected_for_prediction() -> None:
                 "bookmakers": [
                     {
                         "key": "example",
-                        "markets": [
-                            {"key": "h2h", "outcomes": [{"name": "Home", "price": 2.0}]}
-                        ],
+                        "markets": [{"key": "h2h", "outcomes": [{"name": "Home", "price": 2.0}]}],
                     }
                 ],
             }

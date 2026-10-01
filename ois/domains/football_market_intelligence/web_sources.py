@@ -62,7 +62,7 @@ class OddsObservation(WebObservation):
     implied_probability: float = Field(gt=0, le=1)
 
     @model_validator(mode="after")
-    def validate_probability(self) -> "OddsObservation":
+    def validate_probability(self) -> OddsObservation:
         expected = 1.0 / self.decimal_odds
         if abs(self.implied_probability - expected) > 1e-9:
             raise ValueError("implied_probability must equal 1 / decimal_odds")

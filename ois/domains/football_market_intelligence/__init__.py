@@ -8,13 +8,39 @@ by OIS platform services.
 from .coverage import BookmakerMarketCoverage, build_market_coverage
 from .evaluation import evaluate_market_event
 from .integration import translate_market
-from .market_catalog import MarketDefinition, MarketFamily, catalog, normalize_market_key, provider_market_mapping
+from .market_catalog import (
+    MarketDefinition,
+    MarketFamily,
+    catalog,
+    normalize_market_key,
+    provider_market_mapping,
+)
 from .markets import MarketType, Selection
 from .schemas import MarketEvent, MarketOutcome
 from .settlement import settle_market
-from .web_adapters import FOOTBALL_DATA, ODDS_API, SPORTMONKS, fetch_and_parse, parse_football_data_matches, parse_odds_api, parse_sportmonks_odds
-from .web_normalization import assert_temporal_integrity, check_provider_health, normalize_observations
-from .web_sources import MatchObservation, NormalizationResult, OddsObservation, ProviderHealth, WebObservation, WebSource, WebTransport
+from .web_adapters import (
+    FOOTBALL_DATA,
+    ODDS_API,
+    SPORTMONKS,
+    fetch_and_parse,
+    parse_football_data_matches,
+    parse_odds_api,
+    parse_sportmonks_odds,
+)
+from .web_normalization import (
+    assert_temporal_integrity,
+    check_provider_health,
+    normalize_observations,
+)
+from .web_sources import (
+    MatchObservation,
+    NormalizationResult,
+    OddsObservation,
+    ProviderHealth,
+    WebObservation,
+    WebSource,
+    WebTransport,
+)
 
 __all__ = [
     "BookmakerMarketCoverage",
