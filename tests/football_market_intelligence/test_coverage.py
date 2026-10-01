@@ -28,11 +28,13 @@ def odds(bookmaker: str, market: str, match: str, observed_at: datetime) -> Odds
 def test_build_market_coverage() -> None:
     t1 = datetime(2026, 9, 10, 10, tzinfo=UTC)
     t2 = datetime(2026, 9, 10, 11, tzinfo=UTC)
-    coverage = build_market_coverage([
-        odds("Book A", "1x2", "m1", t1),
-        odds("Book A", "corners", "m1", t2),
-        odds("Book A", "corners", "m2", t2),
-    ])
+    coverage = build_market_coverage(
+        [
+            odds("Book A", "1x2", "m1", t1),
+            odds("Book A", "corners", "m1", t2),
+            odds("Book A", "corners", "m2", t2),
+        ]
+    )
     assert len(coverage) == 1
     assert coverage[0].market_keys == ("1x2", "corners")
     assert coverage[0].match_count == 2
