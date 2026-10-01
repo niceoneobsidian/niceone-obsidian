@@ -41,13 +41,16 @@ class FootballFeedService:
 
     def live_matches(self) -> tuple[ReconciledMatch, ...]:
         """Collect live matches and deduplicate them by normalized team identity."""
-        matches: dict[tuple[str, str], ReconciledMatch] = {}
+        matches: dict[tuple[str, str, str, str | None], ReconciledMatch] = {}
         for provider in self.providers:
             for match in provider.live_matches():
                 key = _match_key(match)
                 existing = matches.get(key)
                 if existing is None:
-                    matches[key] = ReconciledMatch(match=match, sources=(provider.provider_name,))
+                    matches[key] = ReconciledMatch(
+                        match=match,
+                        sources=(provider.provider_name,),
+                    )
                 else:
                     matches[key] = ReconciledMatch(
                         match=existing.match,
@@ -56,7 +59,10 @@ class FootballFeedService:
         return tuple(
             sorted(
                 matches.values(),
-                key=lambda item: (item.match.competition, item.match.home_team),
+                key=lambda item: (
+                    item.match.competition,
+                    item.match.home_team,
+                ),
             )
         )
 
@@ -77,11 +83,14 @@ class FootballFeedService:
         )
 
 
-def _match_key(match: MatchFeed) -> tuple[str, str]:
-    """Use normalized team names as the cross-provider fallback identity."""
+def _match_key(match: MatchFeed) -> tuple[str, str, str, str | None]:
+    """Use competition and kickoff to avoid collapsing simultaneous fixtures."""
+    kickoff = match.kickoff_at.isoformat() if match.kickoff_at is not None else None
     return (
+        _normalize_name(match.competition),
         _normalize_name(match.home_team),
         _normalize_name(match.away_team),
+        kickoff,
     )
 
 
