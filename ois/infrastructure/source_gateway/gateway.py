@@ -79,6 +79,9 @@ class SourceGateway:
         if bucket is not None and not bucket.acquire():
             return SourceResponse(False, "", "", "", "rate_limited")
 
+        evidence_id = self._id()
+        event_id = self._id()
+        payload_hash = canonical_hash(request.payload)
         payload_hash = canonical_hash(request.payload)
         evidence_id = str(
             uuid5(

@@ -9,14 +9,14 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
-from enum import Enum
+from enum import StrEnum
 from threading import RLock
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
 
-class SourceStatus(str, Enum):
+class SourceStatus(StrEnum):
     """Observed reliability state of a registered source."""
 
     UNKNOWN = "unknown"
