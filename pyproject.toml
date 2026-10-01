@@ -28,7 +28,7 @@ test = [
   "psycopg-pool>=3.2,<4",
   "testcontainers[postgres]>=4.15,<5",
   "pytest-asyncio>=1,<2",
-  "ruff==0.9.10",
+  "ruff==0.16.9",
   "mypy",
   "bandit",
   "pip-licenses",
