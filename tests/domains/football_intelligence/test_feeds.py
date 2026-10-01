@@ -17,9 +17,7 @@ class FakeTransport:
         self.payloads = payloads
         self.calls: list[tuple[str, dict[str, str]]] = []
 
-    def __call__(
-        self, url: str, headers: dict[str, str], params: dict[str, str]
-    ) -> HttpResponse:
+    def __call__(self, url: str, headers: dict[str, str], params: dict[str, str]) -> HttpResponse:
         self.calls.append((url, params))
         return HttpResponse(status=200, payload=self.payloads[url])
 

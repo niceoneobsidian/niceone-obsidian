@@ -10,9 +10,10 @@ import hashlib
 import json
 import os
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any, Callable
+from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
@@ -169,7 +170,11 @@ class APIFootballProvider(FootballFeedProvider):
     provider_name = "api-football"
     base_url = "https://v3.football.api-sports.io"
 
-    def __init__(self, api_key: str | None = None, transport: Transport = default_transport) -> None:
+    def __init__(
+        self,
+        api_key: str | None = None,
+        transport: Transport = default_transport,
+    ) -> None:
         self.api_key = api_key or os.getenv("API_FOOTBALL_KEY")
         if not self.api_key:
             raise FeedConfigurationError("API_FOOTBALL_KEY is not configured")
@@ -194,7 +199,10 @@ class APIFootballProvider(FootballFeedProvider):
 
     def live_matches(self) -> tuple[MatchFeed, ...]:
         observation = self._get("/fixtures", {"live": "all"})
-        return tuple(self._match(item, observation.evidence) for item in observation.payload.get("response", []))
+        return tuple(
+            self._match(item, observation.evidence)
+            for item in observation.payload.get("response", [])
+        )
 
     def match_statistics(self, match_id: str) -> tuple[TeamStatFeed, ...]:
         observation = self._get("/fixtures/statistics", {"fixture": match_id})
@@ -290,7 +298,9 @@ class SportmonksProvider(FootballFeedProvider):
 
     def live_matches(self) -> tuple[MatchFeed, ...]:
         observation = self._get("/livescores/latest", {"include": "participants;scores"})
-        return tuple(self._match(item, observation.evidence) for item in observation.payload.get("data", []))
+        return tuple(
+            self._match(item, observation.evidence) for item in observation.payload.get("data", [])
+        )
 
     def match_statistics(self, match_id: str) -> tuple[TeamStatFeed, ...]:
         observation = self._get(
@@ -309,7 +319,9 @@ class SportmonksProvider(FootballFeedProvider):
                     provider_match_id=match_id,
                     team_id=participant_id,
                     team_name=str(team.get("name", "")),
-                    statistics={str(block.get("type_id", block.get("type", ""))): block.get("data")},
+                    statistics={
+                        str(block.get("type_id", block.get("type", ""))): block.get("data")
+                    },
                     evidence=[observation.evidence],
                 )
             )
@@ -346,8 +358,14 @@ class SportmonksProvider(FootballFeedProvider):
 
     def _match(self, item: dict[str, Any], evidence: FootballEvidence) -> MatchFeed:
         participants = item.get("participants") or []
-        home = next((p for p in participants if p.get("meta", {}).get("location") == "home"), {})
-        away = next((p for p in participants if p.get("meta", {}).get("location") == "away"), {})
+        home: dict[str, Any] = next(
+            (p for p in participants if p.get("meta", {}).get("location") == "home"),
+            {},
+        )
+        away: dict[str, Any] = next(
+            (p for p in participants if p.get("meta", {}).get("location") == "away"),
+            {},
+        )
         scores = item.get("scores") or {}
         return MatchFeed(
             provider=self.provider_name,
@@ -394,7 +412,8 @@ def _score_value(scores: dict[str, Any], location: str) -> int | None:
             participant = score.get("participant")
             if participant == location:
                 try:
-                    return int(score.get("goals"))
+                    goals = score.get("goals")
+                    return int(goals) if goals is not None else None
                 except (TypeError, ValueError):
                     return None
     return None

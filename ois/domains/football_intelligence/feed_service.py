@@ -6,9 +6,9 @@ collects, normalizes and reconciles evidence for downstream prediction models.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Iterable
 
 from .feeds import FootballFeedProvider, MatchFeed, PlayerStatFeed, TeamStatFeed
 
@@ -53,12 +53,19 @@ class FootballFeedService:
                         match=existing.match,
                         sources=existing.sources + (provider.provider_name,),
                     )
-        return tuple(sorted(matches.values(), key=lambda item: (item.match.competition, item.match.home_team)))
+        return tuple(
+            sorted(
+                matches.values(),
+                key=lambda item: (item.match.competition, item.match.home_team),
+            )
+        )
 
     def feature_snapshot(self, match: ReconciledMatch) -> MatchFeatureSnapshot:
         """Fetch team/player evidence using the provider that produced the match."""
         provider = next(
-            provider for provider in self.providers if provider.provider_name == match.match.provider
+            provider
+            for provider in self.providers
+            if provider.provider_name == match.match.provider
         )
         team_stats = provider.match_statistics(match.match.provider_match_id)
         player_stats = provider.player_statistics(match.match.provider_match_id)
