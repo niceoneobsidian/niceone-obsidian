@@ -103,7 +103,11 @@ test = [
   "pytest-asyncio>=1,<2",
     "psycopg[binary]>=3.3.6,<4",
     "psycopg-pool>=3.2,<4",
-    "testcontainers[postgres]>=4.15,<5"
+    "testcontainers[postgres]>=4.15,<5",
+    "ruff==0.9.10",
+    "mypy",
+    "bandit",
+    "pip-licenses",
 ]
 
 [[tool.mypy.overrides]]

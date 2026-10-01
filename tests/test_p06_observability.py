@@ -40,7 +40,6 @@ def test_telemetry_engine_initialize_is_idempotent() -> None:
     engine.shutdown()
 
 
-
 def test_vault_enabled_worker_contract_consumes_injected_secrets() -> None:
     manifest = (
         Path(__file__).resolve().parents[1]
@@ -51,8 +50,8 @@ def test_vault_enabled_worker_contract_consumes_injected_secrets() -> None:
 
     required = (
         'vault.hashicorp.com/agent-inject: "true"',
-        'vault.hashicorp.com/agent-inject-secret-supervisor:',
-        'vault.hashicorp.com/agent-inject-template-supervisor:',
+        "vault.hashicorp.com/agent-inject-secret-supervisor:",
+        "vault.hashicorp.com/agent-inject-template-supervisor:",
         "SUPERVISOR_HMAC_SECRET=",
         "test -r /vault/secrets/supervisor.env",
         ". /vault/secrets/supervisor.env",

@@ -270,6 +270,7 @@ class Supervisor:
                 input_data=input_data,
                 invocation_id=invocation_id,
             )
+
     def decide(
         self,
         request: SupervisionRequest | None = None,
