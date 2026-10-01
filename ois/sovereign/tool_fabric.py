@@ -40,7 +40,9 @@ class SovereignToolFabric:
             return AuthorizationDecision(False, "tool exceeds risk limit")
         return AuthorizationDecision(True, f"tool authorized via {route.provider}")
 
-    def invoke(self, tool: str, payload: dict[str, Any], *, risk_limit: str = "normal") -> dict[str, Any]:
+    def invoke(
+        self, tool: str, payload: dict[str, Any], *, risk_limit: str = "normal"
+    ) -> dict[str, Any]:
         decision = self.authorize(tool, risk_limit=risk_limit)
         if not decision.allowed:
             raise PermissionError(decision.reason)

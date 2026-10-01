@@ -1,4 +1,5 @@
 """Personal Control Interface API for governed OIS executions."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -11,6 +12,7 @@ from .control_plane import SovereignControlPlane
 
 app = FastAPI(title="OIS Personal Control Interface", version="1.0")
 
+
 class Intent(BaseModel):
     capability: str = Field(min_length=1)
     input: dict[str, Any] = Field(default_factory=dict)
@@ -20,6 +22,7 @@ class Intent(BaseModel):
 
 
 _backend: SovereignControlPlane | None = None
+
 
 def configure(control_plane: SovereignControlPlane) -> None:
     global _backend
@@ -49,4 +52,9 @@ def submit_intent(intent: Intent, x_ois_actor: str = Header(default="personal"))
         metadata=intent.metadata,
     )
     result = cp.execute(request)
-    return {"execution_id": result.execution_id, "state": result.state.value, "error": result.error, "output": result.output}
+    return {
+        "execution_id": result.execution_id,
+        "state": result.state.value,
+        "error": result.error,
+        "output": result.output,
+    }

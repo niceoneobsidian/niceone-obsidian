@@ -1,6 +1,6 @@
 """PostgreSQL schema for OIS production execution, evidence, security and backups."""
 
-SQL = r'''
+SQL = r"""
 CREATE TABLE IF NOT EXISTS ois_execution (
   execution_id UUID PRIMARY KEY,
   tenant_id TEXT NOT NULL DEFAULT 'personal',
@@ -52,11 +52,15 @@ ALTER TABLE ois_idempotency ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ois_approval ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS ois_execution_tenant ON ois_execution;
-CREATE POLICY ois_execution_tenant ON ois_execution USING (tenant_id = current_setting('ois.tenant_id', true));
+CREATE POLICY ois_execution_tenant ON ois_execution
+USING (tenant_id = current_setting('ois.tenant_id', true));
 DROP POLICY IF EXISTS ois_event_tenant ON ois_execution_event;
-CREATE POLICY ois_event_tenant ON ois_execution_event USING (tenant_id = current_setting('ois.tenant_id', true));
+CREATE POLICY ois_event_tenant ON ois_execution_event
+USING (tenant_id = current_setting('ois.tenant_id', true));
 DROP POLICY IF EXISTS ois_idempotency_tenant ON ois_idempotency;
-CREATE POLICY ois_idempotency_tenant ON ois_idempotency USING (tenant_id = current_setting('ois.tenant_id', true));
+CREATE POLICY ois_idempotency_tenant ON ois_idempotency
+USING (tenant_id = current_setting('ois.tenant_id', true));
 DROP POLICY IF EXISTS ois_approval_tenant ON ois_approval;
-CREATE POLICY ois_approval_tenant ON ois_approval USING (tenant_id = current_setting('ois.tenant_id', true));
-'''
+CREATE POLICY ois_approval_tenant ON ois_approval
+USING (tenant_id = current_setting('ois.tenant_id', true));
+"""

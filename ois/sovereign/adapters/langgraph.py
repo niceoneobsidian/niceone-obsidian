@@ -7,9 +7,14 @@ request contracts, policy, registries, evidence and activation.
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
-from typing import Any
+from typing import Any, TypedDict, cast
 
 from ..contracts import ExecutionRequest, ExecutionResult, ExecutionState
+
+
+class LangGraphState(TypedDict, total=False):
+    input: dict[str, Any]
+    execution_id: str
 
 
 class LangGraphBackend:
@@ -19,15 +24,19 @@ class LangGraphBackend:
         self.graph = graph
 
     @classmethod
-    def from_nodes(cls, nodes: Mapping[str, Callable[[dict[str, Any]], dict[str, Any]]], edges: list[tuple[str, str]]) -> "LangGraphBackend":
+    def from_nodes(
+        cls,
+        nodes: Mapping[str, Callable[[LangGraphState], LangGraphState]],
+        edges: list[tuple[str, str]],
+    ) -> LangGraphBackend:
         try:
             from langgraph.graph import END, START, StateGraph
         except ImportError as exc:
             raise RuntimeError("LangGraph adapter requires the 'langgraph' package") from exc
 
-        builder = StateGraph(dict[str, Any])
+        builder = StateGraph(LangGraphState)
         for name, node in nodes.items():
-            builder.add_node(name, node)
+            builder.add_node(name, cast(Any, node))
         if nodes:
             first = next(iter(nodes))
             builder.add_edge(START, first)
@@ -37,9 +46,19 @@ class LangGraphBackend:
 
     def execute(self, request: ExecutionRequest) -> ExecutionResult:
         try:
-            output = self.graph.invoke({"input": request.input, "execution_id": request.execution_id})
-            return ExecutionResult(request.execution_id, ExecutionState.SUCCEEDED, output=output,
-                                   evidence={"orchestrator": self.name})
+            output = self.graph.invoke(
+                {"input": request.input, "execution_id": request.execution_id}
+            )
+            return ExecutionResult(
+                request.execution_id,
+                ExecutionState.SUCCEEDED,
+                output=output,
+                evidence={"orchestrator": self.name},
+            )
         except Exception as exc:
-            return ExecutionResult(request.execution_id, ExecutionState.FAILED, error=str(exc),
-                                   evidence={"orchestrator": self.name})
+            return ExecutionResult(
+                request.execution_id,
+                ExecutionState.FAILED,
+                error=str(exc),
+                evidence={"orchestrator": self.name},
+            )

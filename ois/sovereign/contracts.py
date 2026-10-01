@@ -52,8 +52,7 @@ class ExecutionBackend(Protocol):
 
     name: str
 
-    def execute(self, request: ExecutionRequest) -> ExecutionResult:
-        ...
+    def execute(self, request: ExecutionRequest) -> ExecutionResult: ...
 
 
 class ToolAdapter(Protocol):
@@ -61,5 +60,4 @@ class ToolAdapter(Protocol):
 
     name: str
 
-    def invoke(self, tool: str, payload: dict[str, Any]) -> dict[str, Any]:
-        ...
+    def invoke(self, tool: str, payload: dict[str, Any]) -> dict[str, Any]: ...

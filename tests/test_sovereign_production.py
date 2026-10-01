@@ -1,4 +1,12 @@
-from ois.sovereign.production import EvidenceLedger, E2ERunner, ExecutionRecord, RecoveryAction, RecoveryEngine, SecurityContext, SecurityGate
+from ois.sovereign.production import (
+    E2ERunner,
+    EvidenceLedger,
+    ExecutionRecord,
+    RecoveryAction,
+    RecoveryEngine,
+    SecurityContext,
+    SecurityGate,
+)
 
 
 def test_evidence_chain_is_tamper_evident():
@@ -12,7 +20,9 @@ def test_evidence_chain_is_tamper_evident():
 
 def test_permission_denial_escalates_without_retry():
     gate = SecurityGate()
-    allowed, _ = gate.authorize(SecurityContext("a", permissions=frozenset()), {"tool:write"}, "normal")
+    allowed, _ = gate.authorize(
+        SecurityContext("a", permissions=frozenset()), {"tool:write"}, "normal"
+    )
     assert not allowed
     assert RecoveryEngine().decide("permission_denied", 0).action == RecoveryAction.ESCALATE
 

@@ -25,7 +25,9 @@ class TemporalDurabilityCandidate:
     def __init__(self, client: Any) -> None:
         self.client = client
 
-    async def start(self, workflow: Any, *, workflow_id: str, task_queue: str, args: list[Any] | None = None) -> TemporalWorkflowRef:
+    async def start(
+        self, workflow: Any, *, workflow_id: str, task_queue: str, args: list[Any] | None = None
+    ) -> TemporalWorkflowRef:
         """Start an OIS-owned workflow through a Temporal client."""
         handle = await self.client.start_workflow(
             workflow,
@@ -33,7 +35,9 @@ class TemporalDurabilityCandidate:
             id=workflow_id,
             task_queue=task_queue,
         )
-        return TemporalWorkflowRef(workflow_id=workflow_id, run_id=handle.run_id, task_queue=task_queue)
+        return TemporalWorkflowRef(
+            workflow_id=workflow_id, run_id=handle.run_id, task_queue=task_queue
+        )
 
     async def result(self, workflow_id: str) -> Any:
         """Retrieve a durable workflow result without changing OIS policy state."""

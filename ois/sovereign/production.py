@@ -1,12 +1,14 @@
 """Production control-plane services: durable state, policy, recovery and evidence."""
+
 from __future__ import annotations
 
 import hashlib
 import json
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Any, Callable
+from typing import Any
 
 
 class RecoveryAction(StrEnum):
@@ -37,6 +39,7 @@ class ExecutionRecord:
 
 class EvidenceLedger:
     """Append-only, hash-chained evidence for one execution stream."""
+
     def __init__(self) -> None:
         self._events: list[dict[str, Any]] = []
         self._ids: set[str] = set()
@@ -46,7 +49,9 @@ class EvidenceLedger:
             raise ValueError(f"duplicate evidence id: {event_id}")
         previous = self._events[-1]["hash"] if self._events else "GENESIS"
         payload = {"id": event_id, "event": event, "previous_hash": previous}
-        digest = hashlib.sha256(json.dumps(payload, sort_keys=True, default=str).encode()).hexdigest()
+        digest = hashlib.sha256(
+            json.dumps(payload, sort_keys=True, default=str).encode()
+        ).hexdigest()
         record = {**payload, "hash": digest}
         self._events.append(record)
         self._ids.add(event_id)
@@ -56,7 +61,9 @@ class EvidenceLedger:
         previous = "GENESIS"
         for record in self._events:
             payload = {"id": record["id"], "event": record["event"], "previous_hash": previous}
-            expected = hashlib.sha256(json.dumps(payload, sort_keys=True, default=str).encode()).hexdigest()
+            expected = hashlib.sha256(
+                json.dumps(payload, sort_keys=True, default=str).encode()
+            ).hexdigest()
             if expected != record["hash"]:
                 return False
             previous = record["hash"]
@@ -69,14 +76,19 @@ class EvidenceLedger:
 
 class RecoveryEngine:
     """Bounded, safety-aware recovery policy; permission failures never retry."""
+
     def __init__(self, max_retries: int = 3) -> None:
         self.max_retries = max_retries
 
-    def decide(self, error_class: str, attempt: int, *, fallback_available: bool = False) -> RecoveryDecision:
+    def decide(
+        self, error_class: str, attempt: int, *, fallback_available: bool = False
+    ) -> RecoveryDecision:
         if error_class in {"permission_denied", "policy_denied", "safety_failure"}:
             return RecoveryDecision(RecoveryAction.ESCALATE, attempt, "safety/authority failure")
         if error_class == "tool_unavailable" and fallback_available:
-            return RecoveryDecision(RecoveryAction.FALLBACK, attempt, "primary capability unavailable")
+            return RecoveryDecision(
+                RecoveryAction.FALLBACK, attempt, "primary capability unavailable"
+            )
         if error_class in {"invalid_output", "schema_error"}:
             return RecoveryDecision(RecoveryAction.REPLAN, attempt, "output contract failed")
         if attempt < self.max_retries:
@@ -104,7 +116,10 @@ class SecurityContext:
 
 class SecurityGate:
     """Defense-in-depth authorization boundary before capability execution."""
-    def authorize(self, context: SecurityContext, required_permissions: set[str], risk: str) -> tuple[bool, str]:
+
+    def authorize(
+        self, context: SecurityContext, required_permissions: set[str], risk: str
+    ) -> tuple[bool, str]:
         if not required_permissions.issubset(context.permissions):
             return False, "required permission missing"
         if risk == "critical" and "approve:critical" not in context.permissions:
@@ -114,7 +129,10 @@ class SecurityGate:
 
 class E2ERunner:
     """Deterministic E2E harness used by CI and local conformance tests."""
-    def __init__(self, execute: Callable[[ExecutionRecord], Any], *, ledger: EvidenceLedger | None = None) -> None:
+
+    def __init__(
+        self, execute: Callable[[ExecutionRecord], Any], *, ledger: EvidenceLedger | None = None
+    ) -> None:
         self.execute = execute
         self.ledger = ledger or EvidenceLedger()
         self.recovery = RecoveryEngine()
@@ -132,11 +150,17 @@ class E2ERunner:
             record.output = self.execute(record)
             record.state = "succeeded"
             self.idempotency.put(idempotency_key, record.output)
-            self.ledger.append(f"{record.execution_id}:success", {"state": record.state, "duration_ms": round((time.time()-started)*1000)})
+            self.ledger.append(
+                f"{record.execution_id}:success",
+                {"state": record.state, "duration_ms": round((time.time() - started) * 1000)},
+            )
             return record
         except PermissionError as exc:
             record.state, record.error = "escalated", str(exc)
-            self.ledger.append(f"{record.execution_id}:permission", {"state": record.state, "error_class": "permission_denied"})
+            self.ledger.append(
+                f"{record.execution_id}:permission",
+                {"state": record.state, "error_class": "permission_denied"},
+            )
             return record
         except Exception as exc:  # noqa: BLE001 - boundary classifies unknown provider failures
             record.attempts += 1
@@ -145,5 +169,8 @@ class E2ERunner:
             if decision.action == RecoveryAction.RETRY:
                 return self.run(record, idempotency_key=idempotency_key)
             record.state = "escalated"
-            self.ledger.append(f"{record.execution_id}:recovery", {"action": decision.action.value, "attempt": record.attempts})
+            self.ledger.append(
+                f"{record.execution_id}:recovery",
+                {"action": decision.action.value, "attempt": record.attempts},
+            )
             return record

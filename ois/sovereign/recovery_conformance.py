@@ -1,4 +1,5 @@
 """Recovery Conformance scenarios for OIS P0 execution safety."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -34,6 +35,7 @@ SCENARIOS = (
 def evaluate() -> dict[str, bool]:
     engine = RecoveryEngine(max_retries=3)
     return {
-        s.id: engine.decide(s.error_class, s.attempt, fallback_available=s.fallback).action == s.expected
+        s.id: engine.decide(s.error_class, s.attempt, fallback_available=s.fallback).action
+        == s.expected
         for s in SCENARIOS
     }
