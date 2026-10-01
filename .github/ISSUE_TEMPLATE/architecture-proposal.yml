@@ -1,0 +1,23 @@
+name: Architecture proposal
+description: Propose or revise an OIS architecture decision.
+title: "[ARCH] "
+labels: ["architecture"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+    validations:
+      required: true
+  - type: textarea
+    id: design
+    attributes:
+      label: Proposed design
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence and trade-offs
+    validations:
+      required: true

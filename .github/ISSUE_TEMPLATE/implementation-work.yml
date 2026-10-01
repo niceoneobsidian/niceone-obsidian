@@ -1,0 +1,23 @@
+name: Implementation work
+description: Track a concrete implementation task.
+title: "[IMPLEMENT] "
+labels: ["implementation"]
+body:
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+    validations:
+      required: true
+  - type: textarea
+    id: tests
+    attributes:
+      label: Verification plan
+    validations:
+      required: true

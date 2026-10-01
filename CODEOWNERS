@@ -1,0 +1,7 @@
+# Default ownership for security-sensitive repository surfaces.
+* @niceoneobsidian
+/.github/ @niceoneobsidian
+/scripts/ @niceoneobsidian
+/ois/ @niceoneobsidian
+/tests/ @niceoneobsidian
+/docs/ @niceoneobsidian

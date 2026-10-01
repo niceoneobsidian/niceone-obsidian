@@ -1,18 +1,19 @@
-"""Supervision boundary; policy remains authoritative."""
+"""Compatibility facade for the canonical OIS Kernel Supervisor."""
 
-from __future__ import annotations
+from ois.kernel.supervisor import (
+    AgentSelectionError,
+    SupervisionAction,
+    SupervisionDecision,
+    SupervisionRequest,
+    Supervisor,
+    SupervisorError,
+)
 
-from dataclasses import dataclass
-
-
-@dataclass(frozen=True)
-class SupervisionDecision:
-    action: str
-    reason: str
-
-
-class Supervisor:
-    def decide(self, *, status: str) -> SupervisionDecision:
-        if status == "success":
-            return SupervisionDecision("complete", "execution succeeded")
-        return SupervisionDecision("recover", "execution requires recovery")
+__all__ = [
+    "AgentSelectionError",
+    "SupervisionAction",
+    "SupervisionDecision",
+    "SupervisionRequest",
+    "Supervisor",
+    "SupervisorError",
+]

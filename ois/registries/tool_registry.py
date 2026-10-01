@@ -1,7 +1,3 @@
-"""Tool registry."""
+from .core import ToolRegistry
 
-from .base import Registry
-
-
-class ToolRegistry(Registry[object]):
-    """Registry for governed tools."""
+__all__ = ["ToolRegistry"]
