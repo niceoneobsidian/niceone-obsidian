@@ -16,7 +16,7 @@ from ois.kernel.types import ExecutionStatus, InvocationStatus
 
 class ExplodingCapability:
     @property
-    def contract(self):
+    def contract(self):  # type: ignore
         return CapabilityContract(
             capability_id="test.exploding",
             version="1.0.0",
@@ -25,11 +25,11 @@ class ExplodingCapability:
             side_effects=SideEffectLevel.NONE,
         )
 
-    def invoke(self, request: InvocationRequest):
+    def invoke(self, request: InvocationRequest):  # type: ignore
         raise RuntimeError("intentional runtime failure")
 
 
-def make_runtime():
+def make_runtime():  # type: ignore
     registry = CapabilityRegistry()
     registry.register(ExplodingCapability())
 
@@ -46,7 +46,7 @@ def make_runtime():
     return runtime, checkpoint, evidence
 
 
-def make_context():
+def make_context():  # type: ignore
     return ExecutionContext(
         identity=ExecutionIdentity(
             tenant_id="tenant-test",
@@ -55,7 +55,7 @@ def make_context():
     )
 
 
-def test_runtime_exception_enters_recovery_and_checkpoints():
+def test_runtime_exception_enters_recovery_and_checkpoints():  # type: ignore
     runtime, checkpoint, evidence = make_runtime()
     context = make_context()
 
@@ -84,7 +84,7 @@ def test_runtime_exception_enters_recovery_and_checkpoints():
     assert restored.error["recovery_action"] == "fallback"
 
 
-def test_runtime_failure_is_recorded_in_evidence():
+def test_runtime_failure_is_recorded_in_evidence():  # type: ignore
     runtime, checkpoint, evidence = make_runtime()
     context = make_context()
 
@@ -109,7 +109,7 @@ def test_runtime_failure_is_recorded_in_evidence():
     assert "intentional runtime failure" in event.data["error"]
 
 
-def test_runtime_does_not_retry_automatically():
+def test_runtime_does_not_retry_automatically():  # type: ignore
     runtime, checkpoint, evidence = make_runtime()
     context = make_context()
 

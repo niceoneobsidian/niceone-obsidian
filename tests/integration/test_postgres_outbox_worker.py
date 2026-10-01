@@ -63,8 +63,8 @@ def test_outbox_claim_is_exclusive_across_workers(
     assert (first is None) != (second is None)
     command = first or second
     assert command is not None
-    assert command.effect_id == "effect-exclusive-1"
-    assert command.idempotency_key == "idempotency-exclusive-1"
+    assert command.effect_id == "effect-exclusive-1"  # type: ignore
+    assert command.idempotency_key == "idempotency-exclusive-1"  # type: ignore
 
 
 def test_completed_outbox_effect_is_not_redelivered(

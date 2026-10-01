@@ -21,13 +21,13 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -e ".[test]"
-          python -m pip install ruff mypy bandit pip-licenses
+          python -m pip install "ruff==0.9.10" mypy bandit pip-licenses
       - name: Ruff lint
         run: ruff check ois scripts tests test_p0_integrated_spine.py
       - name: Ruff format
         run: ruff format --check ois scripts tests test_p0_integrated_spine.py
       - name: Mypy
-        run: python -m mypy ois
+        run: python -m mypy ois ops production
       - name: Bandit
         run: bandit -r ois scripts -x ./.git,./.venv,./venv,./tests -lll -iii
       - name: License compliance

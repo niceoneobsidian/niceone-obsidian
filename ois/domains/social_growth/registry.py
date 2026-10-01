@@ -72,8 +72,14 @@ SOCIAL_AGENTS: tuple[SocialAgentSpec, ...] = (
 
 def manifest() -> dict[str, Any]:
     return {
-        "capabilities": [c.__dict__.copy() for c in SOCIAL_CAPABILITIES],
-        "agents": [a.__dict__.copy() for a in SOCIAL_AGENTS],
+        "capabilities": sorted(
+            [c.__dict__.copy() for c in SOCIAL_CAPABILITIES],
+            key=lambda c: c["id"] if "id" in c else c.get("name", str(c)),
+        ),
+        "agents": sorted(
+            [a.__dict__.copy() for a in SOCIAL_AGENTS],
+            key=lambda a: a["id"] if "id" in a else a.get("name", str(a)),
+        ),
         "workflows": [
             {"workflow_id": "social.research", "version": 1},
             {"workflow_id": "social.content_publish", "version": 1},

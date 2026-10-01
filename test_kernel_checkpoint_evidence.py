@@ -10,14 +10,14 @@ from ois.kernel.checkpoint import CheckpointNotFound
 from ois.kernel.evidence import EvidenceLedger
 
 
-def make_context():
+def make_context():  # type: ignore
     return ExecutionContext(
         identity=ExecutionIdentity(tenant_id="default"),
         objective="Checkpoint test",
     )
 
 
-def test_checkpoint_save_and_restore():
+def test_checkpoint_save_and_restore():  # type: ignore
     store = InMemoryCheckpointStore()
     context = make_context()
 
@@ -36,7 +36,7 @@ def test_checkpoint_save_and_restore():
     assert restored.working_memory["value"] == "original"
 
 
-def test_checkpoint_load_returns_independent_copy():
+def test_checkpoint_load_returns_independent_copy():  # type: ignore
     store = InMemoryCheckpointStore()
     context = make_context()
 
@@ -53,7 +53,7 @@ def test_checkpoint_load_returns_independent_copy():
     assert again.working_memory["value"] == "original"
 
 
-def test_checkpoint_preserves_execution_status():
+def test_checkpoint_preserves_execution_status():  # type: ignore
     store = InMemoryCheckpointStore()
     context = make_context()
 
@@ -65,7 +65,7 @@ def test_checkpoint_preserves_execution_status():
     assert restored.status == ExecutionStatus.EXECUTING
 
 
-def test_checkpoint_snapshot_contains_expected_representation():
+def test_checkpoint_snapshot_contains_expected_representation():  # type: ignore
     store = InMemoryCheckpointStore()
     context = make_context()
 
@@ -80,7 +80,7 @@ def test_checkpoint_snapshot_contains_expected_representation():
     assert "state" in snapshot
 
 
-def test_checkpoint_delete_removes_checkpoint():
+def test_checkpoint_delete_removes_checkpoint():  # type: ignore
     store = InMemoryCheckpointStore()
     context = make_context()
 
@@ -95,7 +95,7 @@ def test_checkpoint_delete_removes_checkpoint():
         store.load(execution_id)
 
 
-def test_missing_checkpoint_snapshot_raises():
+def test_missing_checkpoint_snapshot_raises():  # type: ignore
     store = InMemoryCheckpointStore()
     execution_id = ExecutionIdentity(tenant_id="default").execution_id
 
@@ -103,7 +103,7 @@ def test_missing_checkpoint_snapshot_raises():
         store.snapshot(execution_id)
 
 
-def test_evidence_record_preserves_event_relationships():
+def test_evidence_record_preserves_event_relationships():  # type: ignore
     ledger = EvidenceLedger()
 
     execution_id = ExecutionIdentity(tenant_id="default").execution_id
@@ -133,7 +133,7 @@ def test_evidence_record_preserves_event_relationships():
     assert event2.causation_id == str(event1.event_id)
 
 
-def test_evidence_ledger_is_append_only_and_ordered():
+def test_evidence_ledger_is_append_only_and_ordered():  # type: ignore
     ledger = EvidenceLedger()
 
     execution_id = ExecutionIdentity(tenant_id="default").execution_id
@@ -157,7 +157,7 @@ def test_evidence_ledger_is_append_only_and_ordered():
     assert events[1].event_id == event2.event_id
 
 
-def test_evidence_filters_by_execution():
+def test_evidence_filters_by_execution():  # type: ignore
     ledger = EvidenceLedger()
 
     execution_id = ExecutionIdentity(tenant_id="default").execution_id
@@ -173,7 +173,7 @@ def test_evidence_filters_by_execution():
     assert ledger.list(other_execution) == ()
 
 
-def test_evidence_counts_match_events():
+def test_evidence_counts_match_events():  # type: ignore
     ledger = EvidenceLedger()
 
     execution_id = ExecutionIdentity(tenant_id="default").execution_id
@@ -197,7 +197,7 @@ def test_evidence_counts_match_events():
     assert ledger.count() == 2
 
 
-def test_evidence_event_serialization_is_json_friendly():
+def test_evidence_event_serialization_is_json_friendly():  # type: ignore
     ledger = EvidenceLedger()
 
     execution_id = ExecutionIdentity(tenant_id="default").execution_id

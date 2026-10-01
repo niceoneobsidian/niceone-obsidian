@@ -5,8 +5,9 @@ version = "0.0.0"
 requires-python = ">=3.12"
 dependencies = [
   "pydantic>=2.7,<3",
-  "psycopg[binary]>=3.3.4,<4",
-  "langgraph>=1.2.11,<2",
+  "psycopg[binary]>=3.3.6,<4",
+  "psycopg-pool>=3.2,<4",
+  "langgraph>=1.2.12,<2",
   "langgraph-checkpoint-postgres>=3.1.2,<4",
   "redis>=8.1,<9",
   "opentelemetry-api>=1.44,<2",
@@ -73,9 +74,9 @@ markers = [
 ]
 
 [tool.mypy]
-python_version = "3.12"
 warn_return_any = true
 warn_unused_configs = true
+python_version = "3.12"
 warn_redundant_casts = true
 warn_unused_ignores = true
 disallow_untyped_defs = true
@@ -97,6 +98,12 @@ exclude = [
 [project.optional-dependencies]
 test = [
     "pytest>=9,<10",
-    "psycopg[binary]>=3.3,<4",
+    "psycopg[binary]>=3.3.6,<4",
+    "psycopg-pool>=3.2,<4",
     "testcontainers[postgres]>=4.15,<5"
 ]
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+check_untyped_defs = false
+disallow_untyped_defs = false

@@ -21,10 +21,10 @@ def authorized_request(**kwargs) -> ExecutionRequest:
         },
     }
     params.update(kwargs)
-    return ExecutionRequest(**params)
+    return ExecutionRequest(**params)  # type: ignore
 
 
-def test_side_effect_requires_explicit_authorization():
+def test_side_effect_requires_explicit_authorization() -> None:
     plane = ExecutionPlane()
     request = ExecutionRequest(
         object_id="job-1",
@@ -39,7 +39,7 @@ def test_side_effect_requires_explicit_authorization():
     assert "explicit allow decision required" in (result.error or "")
 
 
-def test_authorized_execution_succeeds():
+def test_authorized_execution_succeeds() -> None:
     plane = ExecutionPlane()
     request = authorized_request()
     result = plane.execute(lambda _: "done:1", request)
@@ -47,35 +47,35 @@ def test_authorized_execution_succeeds():
     assert result.output == "done:1"
 
 
-def test_capability_mismatch_denies():
+def test_capability_mismatch_denies() -> None:
     request = authorized_request(capability="different")
     result = ExecutionPlane().execute(lambda _: "side effect", request)
     assert result.status == "denied"
     assert "capability mismatch" in (result.error or "")
 
 
-def test_missing_capability_denies():
+def test_missing_capability_denies() -> None:
     request = authorized_request(capability=None)
     result = ExecutionPlane().execute(lambda _: "side effect", request)
     assert result.status == "denied"
     assert "capability identity required" in (result.error or "")
 
 
-def test_missing_authorized_capability_denies():
+def test_missing_authorized_capability_denies() -> None:
     request = authorized_request(authorization={"decision": "allow", "version": "v1"})
     result = ExecutionPlane().execute(lambda _: "side effect", request)
     assert result.status == "denied"
     assert "authorized capability required" in (result.error or "")
 
 
-def test_missing_authorized_version_denies():
+def test_missing_authorized_version_denies() -> None:
     request = authorized_request(authorization={"decision": "allow", "capability": "publish"})
     result = ExecutionPlane().execute(lambda _: "side effect", request)
     assert result.status == "denied"
     assert "authorized version required" in (result.error or "")
 
 
-def test_version_mismatch_denies():
+def test_version_mismatch_denies() -> None:
     request = authorized_request(
         authorization={
             "decision": "allow",
@@ -88,7 +88,7 @@ def test_version_mismatch_denies():
     assert "version mismatch" in (result.error or "")
 
 
-def test_wildcard_authorized_version_denies():
+def test_wildcard_authorized_version_denies() -> None:
     request = authorized_request(
         authorization={
             "decision": "allow",
@@ -101,14 +101,14 @@ def test_wildcard_authorized_version_denies():
     assert "version mismatch" in (result.error or "")
 
 
-def test_missing_idempotency_key_denies():
+def test_missing_idempotency_key_denies() -> None:
     request = authorized_request(idempotency_key=None)
     result = ExecutionPlane().execute(lambda _: "side effect", request)
     assert result.status == "denied"
     assert "idempotency key required" in (result.error or "")
 
 
-def test_expired_deadline_denies():
+def test_expired_deadline_denies() -> None:
     request = authorized_request(deadline=datetime.now(UTC) - timedelta(seconds=1))
     result = ExecutionPlane().execute(lambda _: "side effect", request)
     assert result.status == "denied"

@@ -69,7 +69,7 @@ def test_rc05_permission_denial_never_retries() -> None:
     assert decision.terminal is False
 
 
-def test_rc06_corrupt_checkpoint_is_detected(tmp_path) -> None:
+def test_rc06_corrupt_checkpoint_is_detected(tmp_path) -> None:  # type: ignore
     context = make_context()
     store = JsonFileCheckpointStore(str(tmp_path))
     store.save(context)
