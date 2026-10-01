@@ -61,11 +61,37 @@ CAPABILITIES: tuple[DomainCapability, ...] = (
         "MarketBacktestSpec",
         "MarketBacktestReport",
     ),
+    DomainCapability(
+        "football.market_web_ingest",
+        "Ingest provider-neutral fixture, result and odds observations",
+        "WebSource+URI",
+        "NormalizationResult",
+    ),
+    DomainCapability(
+        "football.market_web_health",
+        "Check availability and latency of a registered market data provider",
+        "WebSource+URI",
+        "ProviderHealth",
+    ),
+    DomainCapability(
+        "football.market_catalog",
+        "Resolve provider market keys into canonical football market families",
+        "ProviderMarketKey",
+        "MarketDefinition",
+    ),
+    DomainCapability(
+        "football.market_coverage",
+        "Build observed bookmaker market coverage from normalized odds",
+        "OddsObservationSet",
+        "BookmakerMarketCoverage",
+    ),
 )
 
 AGENTS: tuple[AgentSpec, ...] = (
     AgentSpec(
-        "football.market_agent", "Market taxonomy and translation", ("football.market_translate",)
+        "football.market_agent",
+        "Market taxonomy and translation",
+        ("football.market_translate", "football.market_catalog"),
     ),
     AgentSpec(
         "football.market_settlement_agent",
@@ -82,6 +108,15 @@ AGENTS: tuple[AgentSpec, ...] = (
         "Market backtesting and learning orchestration",
         ("football.market_backtest",),
     ),
+    AgentSpec(
+        "football.market_data_agent",
+        "Provider ingestion, normalization, coverage and health",
+        (
+            "football.market_web_ingest",
+            "football.market_web_health",
+            "football.market_coverage",
+        ),
+    ),
 )
 
 
@@ -94,6 +129,7 @@ def manifest() -> dict[str, Any]:
             {"workflow_id": "football.market_prediction", "version": 1},
             {"workflow_id": "football.market_evaluation", "version": 1},
             {"workflow_id": "football.market_backtest", "version": 1},
+            {"workflow_id": "football.market_data_ingestion", "version": 1},
         ],
         "depends_on": "football_intelligence",
         "persistence_owner": "ois_platform",
