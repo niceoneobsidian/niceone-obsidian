@@ -6,7 +6,6 @@ permissions:
 on:
   push:
     branches: [main, "feat/**"]
-    branches: [feat/p0-recovery-conformance-final]
   pull_request:
     branches: [main]
 
