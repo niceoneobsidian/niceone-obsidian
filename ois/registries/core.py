@@ -8,13 +8,11 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from threading import RLock
-from typing import Any, Generic, TypeVar
-
-T = TypeVar("T")
+from typing import Any
 
 
 @dataclass(frozen=True)
-class RegistryEntry(Generic[T]):
+class RegistryEntry[T]:
     """Versioned generic registry entry."""
 
     id: str
@@ -23,7 +21,7 @@ class RegistryEntry(Generic[T]):
     metadata: Mapping[str, object] = field(default_factory=dict)
 
 
-class Registry(Generic[T]):
+class Registry[T]:
     """Deterministic versioned registry for non-executable registry planes."""
 
     def __init__(self) -> None:
