@@ -86,7 +86,7 @@ Implemented in this change:
 - `ois/sovereign/adapters/langgraph.py` — LangGraph orchestration adapter.
 - `ois/sovereign/adapters/temporal.py` — Temporal durability candidate seam.
 - `ois/sovereign/tool_fabric.py` — registry-first n8n/MCP routing boundary.
-- `migrations/20260908_ois_sovereign_security.sql` — PostgreSQL tenant-isolation/RLS baseline.
+- `migrations/010_ois_sovereign_security.sql` — PostgreSQL tenant-isolation/RLS baseline.
 
 The existing `PostgresDurableExecutionStore` remains the canonical OIS persistence implementation and is intentionally not duplicated. The new layer composes around it.
 
