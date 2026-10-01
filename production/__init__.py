@@ -20,6 +20,7 @@ from production.model_gateway import (
 )
 from production.production_loop import LoopArtifact, ProductionLoopCertificate, ProductionLoopProof
 from production.semantic_world import SemanticWorld
+from production.telemetry import initialize_production_telemetry, shutdown_production_telemetry
 from production.workers import LeaseQueue, Worker
 
 __all__ = [
@@ -49,4 +50,6 @@ __all__ = [
     "WorldEntity",
     "WorldFact",
     "Worker",
+    "initialize_production_telemetry",
+    "shutdown_production_telemetry",
 ]
