@@ -80,11 +80,12 @@ def test_real_persistence_coordination_and_recovery(
     assert redis.ping()
 
     execution_id = uuid4()
+    tenant_id = str(uuid4())
     transaction_id = f"ois-test-{uuid4()}"
     state = ExecutionContext(
         identity=ExecutionIdentity(
             execution_id=execution_id,
-            tenant_id="conformance",
+            tenant_id=tenant_id,
         ),
         objective="recovery conformance",
         metadata={"step_index": 0},
@@ -137,7 +138,7 @@ def test_real_persistence_coordination_and_recovery(
             )
             connection.commit()
 
-        recovered = postgres.fetch_last_valid_checkpoint(execution_id, tenant_id="conformance")
+        recovered = postgres.fetch_last_valid_checkpoint(execution_id, tenant_id=tenant_id)
         assert recovered is not None
         assert recovered.objective == "recovery conformance"
         assert recovered.metadata["step_index"] == 0
@@ -177,7 +178,7 @@ def test_real_persistence_coordination_and_recovery(
         runtime_state = ExecutionContext(
             identity=ExecutionIdentity(
                 execution_id=uuid4(),
-                tenant_id="conformance",
+                tenant_id=tenant_id,
             ),
             objective="duplicate execution",
         )
@@ -211,13 +212,13 @@ def test_real_persistence_coordination_and_recovery(
             registry=registry,
             checkpoint_store=postgres,
             evidence=cancellation_evidence,
-            cancellation=cancellation,
+            cancellation=cancellation,  # type: ignore
             idempotency=RedisIdempotencyStore(redis),
         )
         cancelled_context = ExecutionContext(
             identity=ExecutionIdentity(
                 execution_id=cancelled_execution_id,
-                tenant_id="conformance",
+                tenant_id=tenant_id,
             ),
             objective="cancellation conformance",
         )
@@ -230,7 +231,7 @@ def test_real_persistence_coordination_and_recovery(
         )
         assert cancelled_result.status == InvocationStatus.CANCELLED
         assert cancelled_context.status.value == "stopped"
-        assert "operator requested stop" in cancelled_result.error["message"]
+        assert "operator requested stop" in cancelled_result.error["message"]  # type: ignore
         assert capability.calls == 1
         assert any(
             event.event_type == "execution.cancelled"

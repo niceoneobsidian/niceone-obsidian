@@ -23,7 +23,7 @@ class FakeResponse:
         return json.dumps(self.payload).encode()
 
 
-def test_tiktok_page_enters_gateway_before_cursor_advances():
+def test_tiktok_page_enters_gateway_before_cursor_advances() -> None:
     calls = []
 
     def opener(request: Request, timeout: float):
@@ -59,7 +59,7 @@ def test_tiktok_page_enters_gateway_before_cursor_advances():
 
 
 @pytest.mark.integration
-def test_live_tiktok_display_source():
+def test_live_tiktok_display_source() -> None:
     """Opt-in proof against authorized live data.
 
     Required env: OIS_TIKTOK_ACCESS_TOKEN. This test intentionally does not

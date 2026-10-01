@@ -521,3 +521,13 @@ This repository now includes a governance baseline covering licensing, contribut
 - Security baseline: .github/SECURITY-BASELINE.md
 
 Repository administration controls such as secret scanning, push protection, maintainer 2FA requirements, and pull-request approval enforcement must be enabled in GitHub Settings. They are intentionally not represented as repository code and must be verified in the live repository settings.
+
+## License
+
+The OIS core is licensed under the **Apache License 2.0**.
+
+Apache-2.0 permits commercial use, modification, distribution, and private extensions, and provides an express patent license subject to its terms.
+
+**Niceone** and **OIS / Obsidian Intelligence System** names, logos, and other trademarks are not granted under the software license.
+
+Third-party dependencies remain subject to their respective licenses.

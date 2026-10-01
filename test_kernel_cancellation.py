@@ -18,11 +18,11 @@ from ois.kernel.evidence import EvidenceLedger
 
 
 class CancellationAwareCapability:
-    def __init__(self):
+    def __init__(self):  # type: ignore
         self.invocations = 0
 
     @property
-    def contract(self):
+    def contract(self):  # type: ignore
         return CapabilityContract(
             capability_id="test.cancellation",
             version="1.0.0",
@@ -31,7 +31,7 @@ class CancellationAwareCapability:
             side_effects=SideEffectLevel.NONE,
         )
 
-    def invoke(self, request: InvocationRequest):
+    def invoke(self, request: InvocationRequest):  # type: ignore
         self.invocations += 1
 
         token = request.cancellation
@@ -47,7 +47,7 @@ class CancellationAwareCapability:
         )
 
 
-def make_context():
+def make_context():  # type: ignore
     return ExecutionContext(
         identity=ExecutionIdentity(
             tenant_id="tenant-cancellation-test",
@@ -56,7 +56,7 @@ def make_context():
     )
 
 
-def make_runtime(capability, token=None):
+def make_runtime(capability, token=None):  # type: ignore
     registry = CapabilityRegistry()
     registry.register(capability)
 
@@ -68,14 +68,14 @@ def make_runtime(capability, token=None):
     )
 
 
-def test_cancellation_token_starts_active():
+def test_cancellation_token_starts_active():  # type: ignore
     token = CancellationToken()
 
     assert token.cancelled is False
     assert token.reason is None
 
 
-def test_cancellation_token_raises_after_cancel():
+def test_cancellation_token_raises_after_cancel():  # type: ignore
     token = CancellationToken()
     token.cancel("user requested cancellation")
 
@@ -90,7 +90,7 @@ def test_cancellation_token_raises_after_cancel():
         raise AssertionError("Expected ExecutionCancellation")
 
 
-def test_runtime_stops_before_capability_when_cancelled():
+def test_runtime_stops_before_capability_when_cancelled():  # type: ignore
     capability = CancellationAwareCapability()
     token = CancellationToken()
     token.cancel("cancel before execution")
@@ -119,7 +119,7 @@ def test_runtime_stops_before_capability_when_cancelled():
     assert context.status == ExecutionStatus.STOPPED
 
 
-def test_runtime_records_cancellation_evidence():
+def test_runtime_records_cancellation_evidence():  # type: ignore
     capability = CancellationAwareCapability()
     token = CancellationToken()
     token.cancel("operator cancellation")
@@ -154,7 +154,7 @@ def test_runtime_records_cancellation_evidence():
     assert cancellations[0].data["invocation_id"] == ("cancel-evidence-001")
 
 
-def test_cancellation_is_checkpointed():
+def test_cancellation_is_checkpointed():  # type: ignore
     capability = CancellationAwareCapability()
     token = CancellationToken()
     token.cancel("checkpoint cancellation")
@@ -186,7 +186,7 @@ def test_cancellation_is_checkpointed():
     assert restored.status == ExecutionStatus.STOPPED
 
 
-def test_cancellation_token_is_mutable_and_reusable():
+def test_cancellation_token_is_mutable_and_reusable():  # type: ignore
     token = CancellationToken()
 
     assert token.cancelled is False

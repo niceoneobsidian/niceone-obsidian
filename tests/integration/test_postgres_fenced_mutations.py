@@ -154,7 +154,7 @@ def test_runtime_requires_current_worker_lease_when_fencing_enabled() -> None:
             raise AssertionError("execution should fail before capability lookup")
 
     runtime = ExecutionRuntime(
-        registry=NoopRegistry(),
+        registry=NoopRegistry(),  # type: ignore
         checkpoint_store=type("Store", (), {})(),
         fencing=type("Fence", (), {"assert_current": lambda self, lease: None})(),
     )

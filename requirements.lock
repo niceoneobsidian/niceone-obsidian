@@ -399,7 +399,9 @@ psycopg-binary==3.3.6 ; implementation_name != 'pypy' \
 psycopg-pool==3.3.2 \
     --hash=sha256:0c70903c7f50cd7173ef0f6364bb7c9271fa3810f5746e058449a77afe579f49 \
     --hash=sha256:96971f245eee54f1632d8eaae0de5bb6e9c624c1effdd42d8d6843e534f56e07
-    # via langgraph-checkpoint-postgres
+    # via
+    #   langgraph-checkpoint-postgres
+    #   niceone-obsidian
 pydantic==2.13.5 \
     --hash=sha256:346a034f080da3755d8e9cb5e00e8b07de1d39e4f6e2c87d8ab7cafa0b269a73 \
     --hash=sha256:51a9c5f7b2f8e636f04c6cada605d9b6a3bf1348fdf945a3d8869b19bba0ee08
@@ -482,6 +484,12 @@ pygments==2.21.0 \
 pytest==9.1.1 \
     --hash=sha256:1088fbde8f2b49d95a549a195707afa7a76a3ce9bcadc26b6d71f0ffda5fe313 \
     --hash=sha256:37a86b45efb9a47a61a36449063e8e18d0cab3161329fc099eb21783169c4f0c
+    # via
+    #   niceone-obsidian
+    #   pytest-asyncio
+pytest-asyncio==1.4.0 \
+    --hash=sha256:933ca923a23075a87fb7070c0ec272a6848489824d887c85c812670932835aa1 \
+    --hash=sha256:c6c0d2259945122819f171a32ecea2c349ead889ee28176caaf492143424be42
     # via niceone-obsidian
 python-dotenv==1.2.3 \
     --hash=sha256:904552145e8bfed22162c09dab1c2b9b54fefa7b23ba780f4f26ca0316b0f0d9 \
@@ -589,6 +597,7 @@ typing-extensions==4.16.0 \
     #   psycopg-pool
     #   pydantic
     #   pydantic-core
+    #   pytest-asyncio
     #   testcontainers
     #   typing-inspection
 typing-inspection==0.4.4 \

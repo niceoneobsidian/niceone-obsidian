@@ -15,7 +15,7 @@ from ois.kernel.registry import RegistryError
 
 
 class BasicCapability:
-    def __init__(self, capability_id="test.basic", version="1.0.0"):
+    def __init__(self, capability_id="test.basic", version="1.0.0"):  # type: ignore
         self._contract = CapabilityContract(
             capability_id=capability_id,
             version=version,
@@ -23,10 +23,10 @@ class BasicCapability:
         )
 
     @property
-    def contract(self):
+    def contract(self):  # type: ignore
         return self._contract
 
-    def invoke(self, request: InvocationRequest):
+    def invoke(self, request: InvocationRequest):  # type: ignore
         return InvocationResult(
             invocation_id=request.invocation_id,
             capability_id=request.capability_id,
@@ -37,14 +37,14 @@ class BasicCapability:
 
 class TestAgent:
     @property
-    def contract(self):
+    def contract(self):  # type: ignore
         return AgentContract(
             capability_id="test.agent",
             version="1.0.0",
             description="Registry test agent",
         )
 
-    def invoke(self, request):
+    def invoke(self, request):  # type: ignore
         return InvocationResult(
             invocation_id=request.invocation_id,
             capability_id=request.capability_id,
@@ -55,14 +55,14 @@ class TestAgent:
 
 class TestTool:
     @property
-    def contract(self):
+    def contract(self):  # type: ignore
         return ToolContract(
             capability_id="test.tool",
             version="1.0.0",
             description="Registry test tool",
         )
 
-    def invoke(self, request):
+    def invoke(self, request):  # type: ignore
         return InvocationResult(
             invocation_id=request.invocation_id,
             capability_id=request.capability_id,
@@ -71,7 +71,7 @@ class TestTool:
         )
 
 
-def test_capability_registration_and_retrieval():
+def test_capability_registration_and_retrieval():  # type: ignore
     registry = CapabilityRegistry()
 
     capability = BasicCapability("test.echo", "1.0.0")
@@ -86,7 +86,7 @@ def test_capability_registration_and_retrieval():
     assert entry.contract.version == "1.0.0"
 
 
-def test_duplicate_capability_version_is_rejected():
+def test_duplicate_capability_version_is_rejected():  # type: ignore
     registry = CapabilityRegistry()
 
     registry.register(BasicCapability("test.echo", "1.0.0"))
@@ -98,7 +98,7 @@ def test_duplicate_capability_version_is_rejected():
         pass
 
 
-def test_multiple_capability_versions_can_coexist():
+def test_multiple_capability_versions_can_coexist():  # type: ignore
     registry = CapabilityRegistry()
 
     capability_v1 = BasicCapability("test.echo", "1.0.0")
@@ -114,7 +114,7 @@ def test_multiple_capability_versions_can_coexist():
     assert len(registry.list()) == 2
 
 
-def test_missing_capability_is_rejected():
+def test_missing_capability_is_rejected():  # type: ignore
     registry = CapabilityRegistry()
 
     try:
@@ -124,7 +124,7 @@ def test_missing_capability_is_rejected():
         pass
 
 
-def test_unregister_removes_only_requested_version():
+def test_unregister_removes_only_requested_version():  # type: ignore
     registry = CapabilityRegistry()
 
     registry.register(BasicCapability("test.echo", "1.0.0"))
@@ -136,7 +136,7 @@ def test_unregister_removes_only_requested_version():
     assert registry.has("test.echo", "2.0.0") is True
 
 
-def test_unregistering_missing_capability_is_rejected():
+def test_unregistering_missing_capability_is_rejected():  # type: ignore
     registry = CapabilityRegistry()
 
     try:
@@ -146,7 +146,7 @@ def test_unregistering_missing_capability_is_rejected():
         pass
 
 
-def test_registries_are_isolated():
+def test_registries_are_isolated():  # type: ignore
     registry = CapabilityRegistry()
     other_registry = CapabilityRegistry()
 
@@ -157,7 +157,7 @@ def test_registries_are_isolated():
     assert len(other_registry.list()) == 0
 
 
-def test_agent_registry_requires_agent_contract():
+def test_agent_registry_requires_agent_contract():  # type: ignore
     registry = AgentRegistry()
     agent = TestAgent()
 
@@ -173,7 +173,7 @@ def test_agent_registry_requires_agent_contract():
         pass
 
 
-def test_tool_registry_requires_tool_contract():
+def test_tool_registry_requires_tool_contract():  # type: ignore
     registry = ToolRegistry()
     tool = TestTool()
 
