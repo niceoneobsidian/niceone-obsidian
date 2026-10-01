@@ -4,14 +4,38 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from statistics import pstdev
+from typing import Literal
 
 from .models import DixonColesModel, EloModel, PoissonModel
 from .schemas import FootballPrediction, MatchState, ModelProbability
 
+WeightedField = Literal[
+    "home",
+    "draw",
+    "away",
+    "expected_home_goals",
+    "expected_away_goals",
+]
 
-def _weighted(values: list[tuple[ModelProbability, float]], field: str) -> float:
+
+def _weighted(
+    values: list[tuple[ModelProbability, float]],
+    field: WeightedField,
+) -> float:
     total = sum(weight for _, weight in values)
-    return sum(getattr(model, field) * weight for model, weight in values) / max(total, 1e-12)
+
+    if field == "home":
+        weighted_total = sum(model.home * weight for model, weight in values)
+    elif field == "draw":
+        weighted_total = sum(model.draw * weight for model, weight in values)
+    elif field == "away":
+        weighted_total = sum(model.away * weight for model, weight in values)
+    elif field == "expected_home_goals":
+        weighted_total = sum(model.expected_home_goals * weight for model, weight in values)
+    else:
+        weighted_total = sum(model.expected_away_goals * weight for model, weight in values)
+
+    return weighted_total / max(total, 1e-12)
 
 
 @dataclass(frozen=True)

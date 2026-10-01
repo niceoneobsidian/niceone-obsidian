@@ -1,4 +1,4 @@
-from ois.production import (
+from production.governance import (
     ABACRule,
     AuthorizationContext,
     CanaryController,
@@ -12,7 +12,7 @@ from ois.production import (
 
 def test_rbac_abac_is_deny_by_default() -> None:
     authorizer = __import__(
-        "ois.production.control", fromlist=["EnterpriseAuthorizer"]
+        "production.governance", fromlist=["EnterpriseAuthorizer"]
     ).EnterpriseAuthorizer(rules=(ABACRule("deploy", frozenset({"release"}), {"env": "prod"}),))
     context = AuthorizationContext(
         "u1", "t1", frozenset({"release"}), {"env": "prod"}, frozenset({"deploy"})

@@ -91,6 +91,11 @@ def test_aggregate_metrics() -> None:
     evaluations = [
         evaluate_market_event(market, settle_market(market, 2, 0)),
         evaluate_market_event(second_market, settle_market(second_market, 0, 2)),
+    winning_market = event(MarketType.RESULT, Selection.HOME_WIN)
+    losing_market = event(MarketType.RESULT, Selection.HOME_WIN)
+    evaluations = [
+        evaluate_market_event(winning_market, settle_market(winning_market, 2, 0)),
+        evaluate_market_event(losing_market, settle_market(losing_market, 0, 2)),
     ]
     metrics = aggregate_market_evaluations(evaluations)
     assert metrics["count"] == 2

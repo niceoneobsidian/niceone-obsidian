@@ -38,7 +38,11 @@ def evaluate_market_event(event: MarketEvent, outcome: MarketOutcome) -> MarketE
 
 def aggregate_market_evaluations(evaluations: list[MarketEvaluation]) -> dict[str, float | int]:
     """Return stable aggregate metrics without pretending they prove future edge."""
-    settled = [e for e in evaluations if e.status in {OutcomeStatus.WIN, OutcomeStatus.LOSS, OutcomeStatus.PUSH}]
+    settled = [
+        e
+        for e in evaluations
+        if e.status in {OutcomeStatus.WIN, OutcomeStatus.LOSS, OutcomeStatus.PUSH}
+    ]
     decided = [e for e in settled if e.correct is not None]
     roi_values = [e.roi_if_staked for e in settled if e.roi_if_staked is not None]
     return {

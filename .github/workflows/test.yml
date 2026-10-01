@@ -1,5 +1,8 @@
 name: Run Tests
 
+permissions:
+  contents: read
+
 on:
   push:
     branches: [ "main", "automation-staging" ]
@@ -11,10 +14,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
       - name: Set up Python
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
           python-version: "3.12"
 
@@ -22,8 +25,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then python -m pip install -r requirements.txt; fi
-          python -m pip install -e .
-          python -m pip install pytest
+          python -m pip install -e ".[test]"
 
       - name: Run tests
         run: python -m pytest -v

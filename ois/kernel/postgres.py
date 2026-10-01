@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterator, Mapping
 from contextlib import contextmanager
-from typing import Any, Iterator
+from typing import Any
 from uuid import UUID
 
 from .checkpoint import CheckpointNotFound
@@ -24,11 +24,10 @@ class PostgresConfigurationError(RuntimeError):
 
 
 class PostgresDurableExecutionStore:
-    """PostgreSQL system-of-record for durable execution state.
+    """PostgreSQL system-of-record for durable OIS execution state.
 
-    Checkpoints and terminal idempotency results are transactionally durable.
-    Side-effect intents can be committed in the same transaction as a checkpoint,
-    closing the application-level dual-write gap before an external effect runs.
+    The current-state table supports fast resume while the append-only history table
+    preserves every checkpoint mutation for recovery, audit, and evidence.
     """
 
     SCHEMA = """
@@ -46,6 +45,33 @@ class PostgresDurableExecutionStore:
     );
     CREATE INDEX IF NOT EXISTS idx_ois_checkpoints_tenant
         ON ois_execution_checkpoints (tenant_id, updated_at DESC);
+    CREATE TABLE IF NOT EXISTS ois_execution_checkpoint_history (
+        checkpoint_id UUID PRIMARY KEY,
+        execution_id UUID NOT NULL,
+        tenant_id TEXT NOT NULL,
+        workflow_id TEXT,
+        workflow_version TEXT,
+        step_index INTEGER NOT NULL,
+        status TEXT NOT NULL,
+        schema_version INTEGER NOT NULL DEFAULT 1,
+        state JSONB NOT NULL,
+        state_hash TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_ois_checkpoint_history_execution
+        ON ois_execution_checkpoint_history
+        (tenant_id, execution_id, step_index DESC, created_at DESC);
+    CREATE OR REPLACE FUNCTION ois_reject_checkpoint_history_mutation()
+    RETURNS trigger LANGUAGE plpgsql AS $$
+    BEGIN
+        RAISE EXCEPTION 'OIS checkpoint history is immutable';
+    END;
+    $$;
+    DROP TRIGGER IF EXISTS trg_ois_checkpoint_history_immutable
+        ON ois_execution_checkpoint_history;
+    CREATE TRIGGER trg_ois_checkpoint_history_immutable
+        BEFORE UPDATE OR DELETE ON ois_execution_checkpoint_history
+        FOR EACH ROW EXECUTE FUNCTION ois_reject_checkpoint_history_mutation();
     CREATE TABLE IF NOT EXISTS ois_idempotency_results (
         invocation_id TEXT PRIMARY KEY,
         execution_id UUID NOT NULL,
@@ -92,9 +118,8 @@ class PostgresDurableExecutionStore:
             connection.close()
 
     def initialize(self) -> None:
-        with self.connection() as connection:
-            with connection.cursor() as cursor:
-                cursor.execute(self.SCHEMA)
+        with self.connection() as connection, connection.cursor() as cursor:
+            cursor.execute(self.SCHEMA)
             connection.commit()
 
     @staticmethod
@@ -121,8 +146,23 @@ class PostgresDurableExecutionStore:
         """
 
     def save(self, context: ExecutionContext) -> None:
+        """Persist current state and append an immutable checkpoint in one transaction."""
+        self._save_with_history(context, UUID(str(UUID(int=0))))
+
+    def save_checkpoint(self, checkpoint_id: UUID, context: ExecutionContext) -> None:
+        """Persist current state and an immutable, content-addressed checkpoint."""
+        self._save_with_history(context, checkpoint_id)
+
+    def _save_with_history(self, context: ExecutionContext, checkpoint_id: UUID) -> None:
         context.touch()
         payload, digest = self._state_payload(context)
+        step_index = int(context.metadata.get("step_index", context.retry_count))
+        if checkpoint_id.int == 0:
+            checkpoint_id = UUID(
+                hashlib.sha256(
+                    f"{context.identity.execution_id}:{context.updated_at.isoformat()}".encode()
+                ).hexdigest()[:32]
+            )
         with self.connection() as connection:
             with connection.cursor() as cursor:
                 cursor.execute(
@@ -139,7 +179,56 @@ class PostgresDurableExecutionStore:
                         context.updated_at,
                     ),
                 )
+                cursor.execute(
+                    """
+                    INSERT INTO ois_execution_checkpoint_history (
+                        checkpoint_id, execution_id, tenant_id, workflow_id,
+                        workflow_version, step_index, status, schema_version,
+                        state, state_hash, created_at
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, 1, %s::jsonb, %s, %s)
+                    ON CONFLICT (checkpoint_id) DO NOTHING
+                    """,
+                    (
+                        checkpoint_id,
+                        context.identity.execution_id,
+                        context.identity.tenant_id,
+                        context.identity.workflow_id,
+                        context.identity.workflow_version,
+                        step_index,
+                        context.status.value,
+                        payload,
+                        digest,
+                        context.updated_at,
+                    ),
+                )
             connection.commit()
+
+    def fetch_last_valid_checkpoint(
+        self, execution_id: UUID, *, tenant_id: str = "default"
+    ) -> ExecutionContext | None:
+        """Recover the newest integrity- and schema-valid historical snapshot."""
+        with self.connection() as connection, connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT state, state_hash
+                FROM ois_execution_checkpoint_history
+                WHERE tenant_id = %s AND execution_id = %s
+                ORDER BY step_index DESC, created_at DESC
+                """,
+                (tenant_id, execution_id),
+            )
+            rows = cursor.fetchall()
+        for state, expected_hash in rows:
+            if isinstance(state, str):
+                state = json.loads(state)
+            canonical = json.dumps(state, sort_keys=True, separators=(",", ":"))
+            if hashlib.sha256(canonical.encode("utf-8")).hexdigest() != expected_hash:
+                continue
+            try:
+                return ExecutionContext.from_dict(state)
+            except (TypeError, ValueError, KeyError):
+                continue
+        return None
 
     def commit_checkpoint_and_side_effect(
         self,
@@ -186,13 +275,12 @@ class PostgresDurableExecutionStore:
             connection.commit()
 
     def load(self, execution_id: UUID) -> ExecutionContext:
-        with self.connection() as connection:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    "SELECT state, state_hash FROM ois_execution_checkpoints WHERE execution_id = %s",
-                    (execution_id,),
-                )
-                row = cursor.fetchone()
+        with self.connection() as connection, connection.cursor() as cursor:
+            cursor.execute(
+                ("SELECT state, state_hash FROM ois_execution_checkpoints WHERE execution_id = %s"),
+                (execution_id,),
+            )
+            row = cursor.fetchone()
         if row is None:
             raise CheckpointNotFound(f"No PostgreSQL checkpoint for execution {execution_id}")
         state = row[0]
@@ -214,13 +302,12 @@ class PostgresDurableExecutionStore:
             connection.commit()
 
     def get_idempotency(self, invocation_id: str) -> InvocationResult | None:
-        with self.connection() as connection:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    "SELECT result FROM ois_idempotency_results WHERE invocation_id = %s",
-                    (invocation_id,),
-                )
-                row = cursor.fetchone()
+        with self.connection() as connection, connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT result FROM ois_idempotency_results WHERE invocation_id = %s",
+                (invocation_id,),
+            )
+            row = cursor.fetchone()
         if row is None:
             return None
         data: Mapping[str, Any] = row[0]

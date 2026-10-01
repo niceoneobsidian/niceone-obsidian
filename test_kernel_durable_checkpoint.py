@@ -5,7 +5,7 @@ from ois.kernel import (
 )
 
 
-def make_context():
+def make_context():  # type: ignore
     return ExecutionContext(
         identity=ExecutionIdentity(
             tenant_id="tenant-durable-test",
@@ -14,7 +14,7 @@ def make_context():
     )
 
 
-def test_json_checkpoint_store_persists_execution(tmp_path):
+def test_json_checkpoint_store_persists_execution(tmp_path):  # type: ignore
     store = JsonFileCheckpointStore(str(tmp_path / "checkpoints"))
 
     context = make_context()
@@ -32,7 +32,7 @@ def test_json_checkpoint_store_persists_execution(tmp_path):
     assert restored.working_memory["answer"] == {"value": 42}
 
 
-def test_json_checkpoint_survives_store_recreation(tmp_path):
+def test_json_checkpoint_survives_store_recreation(tmp_path):  # type: ignore
     checkpoint_path = tmp_path / "checkpoints"
 
     first_store = JsonFileCheckpointStore(str(checkpoint_path))
@@ -49,13 +49,13 @@ def test_json_checkpoint_survives_store_recreation(tmp_path):
     assert restored.working_memory["survives_restart"] is True
 
 
-def test_json_checkpoint_missing_execution_raises(tmp_path):
+def test_json_checkpoint_missing_execution_raises(tmp_path):  # type: ignore
     from ois.kernel import CheckpointNotFound
 
     store = JsonFileCheckpointStore(str(tmp_path / "checkpoints"))
 
     try:
-        store.load("missing-execution")
+        store.load("missing-execution")  # type: ignore
     except CheckpointNotFound:
         pass
     else:

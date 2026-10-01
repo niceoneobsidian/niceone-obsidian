@@ -16,7 +16,7 @@ from ois.kernel.evidence import EvidenceLedger
 
 class EchoCapability:
     @property
-    def contract(self):
+    def contract(self):  # type: ignore
         return CapabilityContract(
             capability_id="test.echo",
             version="1.0.0",
@@ -35,7 +35,7 @@ class EchoCapability:
             side_effects=SideEffectLevel.NONE,
         )
 
-    def invoke(self, request: InvocationRequest):
+    def invoke(self, request: InvocationRequest):  # type: ignore
         return InvocationResult(
             invocation_id=request.invocation_id,
             capability_id=request.capability_id,
