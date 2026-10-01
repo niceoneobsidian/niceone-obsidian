@@ -2,7 +2,7 @@ from ois.kernel import InvocationResult, InvocationStatus
 from ois.kernel.idempotency import InMemoryIdempotencyStore
 
 
-def make_result(invocation_id="inv-1"):
+def make_result(invocation_id="inv-1"):  # type: ignore
     return InvocationResult(
         invocation_id=invocation_id,
         capability_id="test.capability",
@@ -11,7 +11,7 @@ def make_result(invocation_id="inv-1"):
     )
 
 
-def test_idempotency_store_returns_cached_result():
+def test_idempotency_store_returns_cached_result():  # type: ignore
     store = InMemoryIdempotencyStore()
     result = make_result()
 
@@ -21,14 +21,14 @@ def test_idempotency_store_returns_cached_result():
     assert store.exists("inv-1") is True
 
 
-def test_idempotency_store_returns_none_for_unknown_invocation():
+def test_idempotency_store_returns_none_for_unknown_invocation():  # type: ignore
     store = InMemoryIdempotencyStore()
 
     assert store.get("missing") is None
     assert store.exists("missing") is False
 
 
-def test_same_invocation_id_reuses_cached_result():
+def test_same_invocation_id_reuses_cached_result():  # type: ignore
     store = InMemoryIdempotencyStore()
 
     first = make_result()
@@ -40,7 +40,7 @@ def test_same_invocation_id_reuses_cached_result():
     assert store.get("inv-1") is first
 
 
-def test_different_invocation_ids_are_distinct():
+def test_different_invocation_ids_are_distinct():  # type: ignore
     store = InMemoryIdempotencyStore()
 
     first = make_result("inv-1")
@@ -54,7 +54,7 @@ def test_different_invocation_ids_are_distinct():
     assert store.get("inv-1") != store.get("inv-2")
 
 
-def test_idempotency_is_public_kernel_api():
+def test_idempotency_is_public_kernel_api():  # type: ignore
     from ois.kernel import (
         IdempotencyStore,
         InMemoryIdempotencyStore,
@@ -64,7 +64,7 @@ def test_idempotency_is_public_kernel_api():
     assert InMemoryIdempotencyStore is not None
 
 
-def test_sqlite_idempotency_survives_store_recreation(tmp_path):
+def test_sqlite_idempotency_survives_store_recreation(tmp_path):  # type: ignore
     from ois.kernel.idempotency import SQLiteIdempotencyStore
 
     database = tmp_path / "idempotency.db"
@@ -95,7 +95,7 @@ def test_sqlite_idempotency_survives_store_recreation(tmp_path):
     second_store.close()
 
 
-def test_sqlite_idempotency_unknown_invocation_returns_none(tmp_path):
+def test_sqlite_idempotency_unknown_invocation_returns_none(tmp_path):  # type: ignore
     from ois.kernel.idempotency import SQLiteIdempotencyStore
 
     database = tmp_path / "idempotency.db"
@@ -108,7 +108,7 @@ def test_sqlite_idempotency_unknown_invocation_returns_none(tmp_path):
     store.close()
 
 
-def test_sqlite_idempotency_is_public_kernel_api():
+def test_sqlite_idempotency_is_public_kernel_api():  # type: ignore
     from ois.kernel import SQLiteIdempotencyStore
 
     assert SQLiteIdempotencyStore is not None

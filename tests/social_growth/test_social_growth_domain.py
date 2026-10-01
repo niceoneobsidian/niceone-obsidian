@@ -25,28 +25,28 @@ def event(text: str, **metrics) -> SocialEvent:
     )
 
 
-def test_sentiment_and_topics_are_deterministic():
+def test_sentiment_and_topics_are_deterministic() -> None:
     assert sentiment_score("great amazing") > 0
     assert topic_counts([event("python python ai")])[0] == ("python", 2)
 
 
-def test_engagement_rate():
+def test_engagement_rate() -> None:
     assert engagement_rate(event("hello", likes=10, comments=5, impressions=100)) == 0.15
 
 
-def test_signal_generation():
+def test_signal_generation() -> None:
     signals = signals_from_events([event("great ai")])
     assert any(s.signal_type == "sentiment" for s in signals)
     assert any(s.signal_type == "topic" for s in signals)
 
 
-def test_research_brief():
+def test_research_brief() -> None:
     brief = build_research_brief("ai trends", [event("great ai")])
     assert brief.query == "ai trends"
     assert brief.signals
 
 
-def test_connector_registry_and_validation():
+def test_connector_registry_and_validation() -> None:
     connector = GenericSocialConnector("tiktok")
     registry = ConnectorRegistry()
     registry.register(connector)
@@ -55,7 +55,7 @@ def test_connector_registry_and_validation():
     assert connector.validate_publish(intent) == []
 
 
-def test_workflows_are_versioned_and_side_effects_are_explicit():
+def test_workflows_are_versioned_and_side_effects_are_explicit() -> None:
     assert RESEARCH_WORKFLOW.version == 1
     assert CONTENT_PUBLISH_WORKFLOW.version == 1
     approve = CONTENT_PUBLISH_WORKFLOW.steps[-4]

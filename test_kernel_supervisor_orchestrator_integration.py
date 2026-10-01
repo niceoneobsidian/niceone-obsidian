@@ -14,7 +14,7 @@ from ois.kernel import (
 
 class DelegatedCapability:
     @property
-    def contract(self):
+    def contract(self):  # type: ignore
         from ois.kernel import CapabilityContract, RiskLevel, SideEffectLevel
 
         return CapabilityContract(
@@ -25,7 +25,7 @@ class DelegatedCapability:
             side_effects=SideEffectLevel.NONE,
         )
 
-    def invoke(self, request):
+    def invoke(self, request):  # type: ignore
         from ois.kernel import InvocationResult, InvocationStatus
 
         return InvocationResult(
@@ -36,7 +36,7 @@ class DelegatedCapability:
         )
 
 
-def test_supervisor_delegates_plan_to_orchestrator():
+def test_supervisor_delegates_plan_to_orchestrator():  # type: ignore
     registry = CapabilityRegistry()
     registry.register(DelegatedCapability())
 

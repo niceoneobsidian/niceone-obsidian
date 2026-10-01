@@ -4,7 +4,7 @@ from ois.domains.football_intelligence.ensemble import FootballEnsemble
 from ois.domains.football_intelligence.schemas import MatchState, TeamSnapshot
 
 
-def test_ensemble_produces_auditable_prediction():
+def test_ensemble_produces_auditable_prediction() -> None:
     match = MatchState(
         competition="EPL",
         kickoff_at=datetime(2026, 8, 30, 15, tzinfo=UTC),
