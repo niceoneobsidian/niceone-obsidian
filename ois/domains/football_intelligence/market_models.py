@@ -8,9 +8,6 @@ reference distributions without changing the market contract.
 
 from __future__ import annotations
 
-# fmt: off
-# ruff: noqa: E501
-
 import math
 from dataclasses import dataclass
 
@@ -192,10 +189,7 @@ class LiveStateModel:
         remaining_needed = [line - current_total_goals for line in lines]
         probabilities: list[MarketProbability] = []
         for line, needed in zip(lines, remaining_needed, strict=True):
-            if needed <= 0:
-                over = 1.0
-            else:
-                over = _probability_event(remaining_rate, needed - 0.5, True)
+            over = 1.0 if needed <= 0 else _probability_event(remaining_rate, needed - 0.5, True)
             probabilities += [self._result("live_total", f"over_{line}", over), self._result("live_total", f"under_{line}", 1.0 - over)]
         return MarketPrediction(model_id=self.model_id, market_family="live", probabilities=probabilities, feature_snapshot={"minute": float(minute), "remaining_goal_rate": remaining_rate, "current_total_goals": float(current_total_goals)})
 
