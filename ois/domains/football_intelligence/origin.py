@@ -250,7 +250,7 @@ def calibration_report(predictions: list[PredictionRecord], outcomes: list[str])
         probs = pred.probabilities()
         brier += sum((probs[k] - float(k == outcome)) ** 2 for k in OUTCOMES)
         logloss -= math.log(max(probs[outcome], 1e-15))
-        correct += float(predicted := max(probs, key=probs.get)) == float(outcome == predicted)
+        correct += float(max(probs, key=probs.get) == outcome)
         p = probs[outcome]
         bins[min(9, int(p * 10))].append(float(p == 1.0))
     ece = 0.0
