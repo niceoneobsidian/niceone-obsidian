@@ -217,6 +217,7 @@ class HttpSourceAdapter:
                 schema_version="http.response.v1",
                 provenance=provenance,
                 observed_at=observed_at,
+                rate_limit_lease=lease,
             )
         )
         return SourceAdapterRegistry.response(self.source_id, [response])
