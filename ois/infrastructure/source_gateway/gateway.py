@@ -78,6 +78,12 @@ class SourceGateway:
             raise RuntimeError("credential resolver is not configured")
         return self._credentials.resolve(credential, scope)
 
+    def rate_limit_configured(self, *, source_type: str = "", source_id: str = "") -> bool:
+        return (
+            self._rate_limiters.get(source_type) is not None
+            or self._rate_limiters.get(source_id) is not None
+        )
+
     def acquire_rate_limit(self, *, source_type: str = "", source_id: str = "") -> str | None:
         bucket = self._rate_limiters.get(source_type) or self._rate_limiters.get(source_id)
         if bucket is None:
