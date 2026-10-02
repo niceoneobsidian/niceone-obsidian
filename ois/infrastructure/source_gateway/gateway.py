@@ -27,6 +27,7 @@ class SourceRequest:
     source_id: str = ""
     provenance: SourceProvenance | None = None
     observed_at: datetime | None = None
+    rate_limit_lease: str | None = None
 
     def __post_init__(self) -> None:
         if self.payload is None:
@@ -57,7 +58,7 @@ class SourceGateway:
         self._credentials = credentials
         self._evidence = evidence
         self._outbox = outbox
-        self._rate_limiters: dict[str, TokenBucket] = {}
+        self._rate_limiters: dict[str, TokenBucket] = {}\n        self._leases: dict[str, tuple[str, str]] = {}
         if rate_limits:
             for key, policy in rate_limits.items():
                 self._rate_limiters[key] = (
@@ -88,11 +89,18 @@ class SourceGateway:
                 raise PermissionError("credential belongs to another tenant")
             self._credentials.resolve(request.credential, scope)
 
-        bucket = self._rate_limiters.get(request.source_type) or self._rate_limiters.get(
-            request.source_id
-        )
-        if bucket is not None and not bucket.acquire():
-            return SourceResponse(False, "", "", "", "rate_limited")
+        if request.rate_limit_lease is not None:
+            lease_scope = self._leases.pop(request.rate_limit_lease, None)
+            if lease_scope is None or lease_scope != (request.source_type, request.source_id):
+                return SourceResponse(False, "", "", "", "invalid_rate_limit_lease")
+        else:
+            lease = self.acquire_rate_limit(
+                source_type=request.source_type,
+                source_id=request.source_id,
+            )
+            if self._rate_limiters.get(request.source_type) or self._rate_limiters.get(request.source_id):
+                if lease is None:
+                    return SourceResponse(False, "", "", "", "rate_limited")
 
         payload_hash = canonical_hash(request.payload)
         evidence_id = str(
