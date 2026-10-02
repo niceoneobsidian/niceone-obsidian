@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from .contracts import FreshnessPolicy, SourceProvenance, SourceSpec
 from .credentials import CredentialRef, CredentialResolver, InMemoryCredentialResolver, TenantScope
 from .cursors import SourceCursor, SQLiteCursorStore
 from .evidence import RawEvidence, RawEvidenceWriter, SQLiteRawEvidenceWriter, canonical_hash
@@ -14,6 +15,7 @@ from .postgres import PostgresSourceLedger
 __all__ = [
     "CredentialRef",
     "CredentialResolver",
+    "FreshnessPolicy",
     "InMemoryCredentialResolver",
     "OutboxEvent",
     "OutboxStore",
@@ -28,8 +30,10 @@ __all__ = [
     "SQLiteSourceLedger",
     "SourceCursor",
     "SourceGateway",
+    "SourceProvenance",
     "SourceRequest",
     "SourceResponse",
+    "SourceSpec",
     "TenantScope",
     "TokenBucket",
     "canonical_hash",
