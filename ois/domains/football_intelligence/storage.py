@@ -73,7 +73,9 @@ class FootballStore:
         self.conn.commit()
 
     def recent_completed(self, limit: int = 1000) -> list[FixtureRecord]:
-        rows = self.conn.execute("SELECT * FROM fixtures WHERE home_goals IS NOT NULL ORDER BY kickoff_at LIMIT ?", (limit,)).fetchall()
+        if limit <= 0:
+            return []
+        rows = self.conn.execute("SELECT * FROM fixtures WHERE home_goals IS NOT NULL AND away_goals IS NOT NULL ORDER BY kickoff_at LIMIT ?", (limit,)).fetchall()
         return [FixtureRecord(
             fixture_id=r["fixture_id"], competition=r["competition"], kickoff_at=datetime.fromisoformat(r["kickoff_at"]),
             home_team_id=r["home_team_id"], home_team=r["home_team"], away_team_id=r["away_team_id"], away_team=r["away_team"],
