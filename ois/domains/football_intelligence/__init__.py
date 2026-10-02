@@ -1,11 +1,13 @@
 """OIS Football Intelligence domain.
 
-Kernel-agnostic football state, deterministic baselines, market-specific
-intelligence, evaluation, evidence and governed agent contracts.
+Kernel-agnostic football state, deterministic baselines, ensemble prediction,
+calibration, abstention and governed replay primitives.
 """
 
 from .agent import FootballAgent, build_dashboard_payload
+from .benchmark import FootballBenchmarkResult, FootballReplayBenchmark
 from .ensemble import FootballEnsemble
+from .feeds import SportmonksProvider
 from .lifecycle import FootballIntelligenceOrigin, FootballRunResult, evolution_candidate
 from .market_models import (
     CardMarketModel,
@@ -29,10 +31,11 @@ from .origin import (
     market_edge,
     no_vig_probabilities,
 )
-from .providers import SportmonksProvider
+from .providers import StatsBombOpenDataProvider, StatsBombReplayInput
+from .replay import FootballReplay, FootballReplayResult
 from .safe import EvaluationReport, ValidatedBacktestEngine, WalkForwardEngine, evaluate
 from .schemas import FootballPrediction, MatchState, TeamSnapshot
-from .statsbomb import StatsBombObservation, StatsBombOpenDataProvider
+from .statsbomb import StatsBombObservation
 from .storage import FootballStore
 
 __all__ = [
@@ -49,9 +52,13 @@ __all__ = [
     "EvaluationReport",
     "FixtureRecord",
     "FootballAgent",
+    "FootballBenchmarkResult",
     "FootballEnsemble",
     "FootballIntelligenceOrigin",
     "FootballPrediction",
+    "FootballReplay",
+    "FootballReplayBenchmark",
+    "FootballReplayResult",
     "FootballRunResult",
     "FootballStore",
     "FootballSupervisor",
@@ -62,6 +69,7 @@ __all__ = [
     "SportmonksProvider",
     "StatsBombObservation",
     "StatsBombOpenDataProvider",
+    "StatsBombReplayInput",
     "TeamSnapshot",
     "TeamStrengthModel",
     "ValidatedBacktestEngine",
