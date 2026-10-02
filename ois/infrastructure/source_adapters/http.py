@@ -7,7 +7,7 @@ import json
 from time import monotonic
 from typing import cast
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode, urljoin
+from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 from ois.infrastructure.source_gateway import (
@@ -42,7 +42,7 @@ class HttpSourceAdapter:
         auth_scheme: str = "none",
         auth_header: str = "Authorization",
         freshness: FreshnessPolicy | None = None,
-        opener: object | None = None,
+        opener: Callable[..., Any] | None = None,
     ) -> None:
         if not url.startswith(("http://", "https://")):
             raise ValueError("HTTP source URL must use http:// or https://")
@@ -174,6 +174,21 @@ class HttpSourceAdapter:
                 tenant_id=tenant_id,
                 workspace_id=workspace_id,
             )
+        lease = None
+        if gateway.rate_limit_configured(
+            source_type=self.source_id.split(":", 1)[0],
+            source_id=self.source_id,
+        ):
+            lease = gateway.acquire_rate_limit(
+                source_type=self.source_id.split(":", 1)[0],
+                source_id=self.source_id,
+            )
+            if lease is None:
+                return SourceAdapterRegistry.response(
+                    self.source_id,
+                    [],
+                )
+
         payload, status, _latency = self._fetch(credential)
         from datetime import UTC, datetime
 
