@@ -55,3 +55,13 @@ def test_evaluation_alignment_and_metrics() -> None:
 
 def test_empty_evaluation_is_explicit() -> None:
     assert evaluate([], []).status == "INSUFFICIENT_DATA"
+
+
+def test_market_invalid_odds_abstain() -> None:
+    assert no_vig_probabilities((2.0, None, 4.0)) is None
+
+
+def test_walk_forward_rejects_invalid_training_window() -> None:
+    import pytest
+    with pytest.raises(ValueError):
+        WalkForwardEngine().run([], min_train=0)
