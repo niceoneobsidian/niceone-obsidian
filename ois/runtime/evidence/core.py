@@ -19,9 +19,9 @@ def utc_now() -> datetime:
 def _canonical(value: Any) -> bytes:
     if hasattr(value, "model_dump"):
         value = value.model_dump(mode="json")
-    return json.dumps(
-        value, sort_keys=True, separators=(",", ":"), ensure_ascii=False
-    ).encode("utf-8")
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode(
+        "utf-8"
+    )
 
 
 def canonical_digest(value: Any) -> str:

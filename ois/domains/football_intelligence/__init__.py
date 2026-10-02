@@ -4,13 +4,10 @@ Kernel-agnostic football state, deterministic baselines, ensemble prediction,
 calibration, abstention and governed replay primitives.
 """
 
-from .benchmark import FootballBenchmarkResult, FootballReplayBenchmark
-Kernel-agnostic football state, deterministic baselines, market-specific
-intelligence, evaluation, evidence and governed agent contracts.
-"""
-
 from .agent import FootballAgent, build_dashboard_payload
+from .benchmark import FootballBenchmarkResult, FootballReplayBenchmark
 from .ensemble import FootballEnsemble
+from .feeds import SportmonksProvider
 from .lifecycle import FootballIntelligenceOrigin, FootballRunResult, evolution_candidate
 from .market_models import (
     CardMarketModel,
@@ -23,8 +20,6 @@ from .market_models import (
     ShotMarketModel,
 )
 from .models import DixonColesModel, EloModel, PoissonModel
-from .providers import StatsBombOpenDataProvider, StatsBombReplayInput
-from .replay import FootballReplay, FootballReplayResult
 from .origin import (
     FixtureRecord,
     FootballSupervisor,
@@ -36,10 +31,11 @@ from .origin import (
     market_edge,
     no_vig_probabilities,
 )
-from .providers import SportmonksProvider
+from .providers import StatsBombOpenDataProvider, StatsBombReplayInput
+from .replay import FootballReplay, FootballReplayResult
 from .safe import EvaluationReport, ValidatedBacktestEngine, WalkForwardEngine, evaluate
 from .schemas import FootballPrediction, MatchState, TeamSnapshot
-from .statsbomb import StatsBombObservation, StatsBombOpenDataProvider
+from .statsbomb import StatsBombObservation
 from .storage import FootballStore
 
 __all__ = [
@@ -53,10 +49,10 @@ __all__ = [
     "ShotMarketModel",
     "DixonColesModel",
     "EloModel",
-    "FootballBenchmarkResult",
     "EvaluationReport",
     "FixtureRecord",
     "FootballAgent",
+    "FootballBenchmarkResult",
     "FootballEnsemble",
     "FootballIntelligenceOrigin",
     "FootballPrediction",
@@ -69,12 +65,11 @@ __all__ = [
     "MatchState",
     "OddsSnapshot",
     "PoissonModel",
-    "StatsBombOpenDataProvider",
-    "StatsBombReplayInput",
     "ProbabilityCalibrator",
     "SportmonksProvider",
     "StatsBombObservation",
     "StatsBombOpenDataProvider",
+    "StatsBombReplayInput",
     "TeamSnapshot",
     "TeamStrengthModel",
     "ValidatedBacktestEngine",
