@@ -34,8 +34,6 @@ class SourceRequest:
             object.__setattr__(self, "payload", {})
         if not self.source_id and self.source_type:
             object.__setattr__(self, "source_id", f"{self.source_type}:{self.source_record_id}")
-        if self.provenance and self.provenance.provider == "":
-            raise ValueError("provenance provider is required")
 
 
 @dataclass(frozen=True)
@@ -58,20 +56,37 @@ class SourceGateway:
         self._credentials = credentials
         self._evidence = evidence
         self._outbox = outbox
-        self._rate_limiters: dict[str, TokenBucket] = {}\n        self._leases: dict[str, tuple[str, str]] = {}
+        self._rate_limiters: dict[str, TokenBucket] = {}
+        self._leases: dict[str, tuple[str, str]] = {}
         if rate_limits:
             for key, policy in rate_limits.items():
                 self._rate_limiters[key] = (
                     policy if isinstance(policy, TokenBucket) else TokenBucket(policy)
                 )
 
-    def resolve_credential(self, credential: CredentialRef, *, tenant_id: str, workspace_id: str) -> str:
+    def resolve_credential(
+        self,
+        credential: CredentialRef,
+        *,
+        tenant_id: str,
+        workspace_id: str,
+    ) -> str:
         scope = TenantScope(tenant_id=tenant_id, workspace_id=workspace_id)
         if credential.tenant_id != tenant_id:
             raise PermissionError("credential belongs to another tenant")
         if self._credentials is None:
             raise RuntimeError("credential resolver is not configured")
         return self._credentials.resolve(credential, scope)
+
+    def acquire_rate_limit(self, *, source_type: str = "", source_id: str = "") -> str | None:
+        bucket = self._rate_limiters.get(source_type) or self._rate_limiters.get(source_id)
+        if bucket is None:
+            return None
+        if not bucket.acquire():
+            return None
+        lease = str(uuid4())
+        self._leases[lease] = (source_type, source_id)
+        return lease
 
     def _id(self) -> str:
         return str(uuid4())
@@ -91,14 +106,18 @@ class SourceGateway:
 
         if request.rate_limit_lease is not None:
             lease_scope = self._leases.pop(request.rate_limit_lease, None)
-            if lease_scope is None or lease_scope != (request.source_type, request.source_id):
+            if lease_scope != (request.source_type, request.source_id):
                 return SourceResponse(False, "", "", "", "invalid_rate_limit_lease")
         else:
-            lease = self.acquire_rate_limit(
-                source_type=request.source_type,
-                source_id=request.source_id,
+            configured = (
+                self._rate_limiters.get(request.source_type)
+                or self._rate_limiters.get(request.source_id)
             )
-            if self._rate_limiters.get(request.source_type) or self._rate_limiters.get(request.source_id):
+            if configured is not None:
+                lease = self.acquire_rate_limit(
+                    source_type=request.source_type,
+                    source_id=request.source_id,
+                )
                 if lease is None:
                     return SourceResponse(False, "", "", "", "rate_limited")
 
