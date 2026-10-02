@@ -8,7 +8,7 @@ from time import monotonic
 from typing import cast
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
-from urllib.request import Request, urlopen
+from urllib.request import Request, urlopen\nfrom uuid import uuid4
 
 from ois.infrastructure.source_gateway import (
     CredentialRef,
@@ -130,6 +130,7 @@ class HttpSourceAdapter:
                     workspace_id=workspace_id,
                 )
             self._fetch(credential)
+            self._last_observed_at = __import__("datetime").datetime.now(__import__("datetime").UTC)
         except (HTTPError, URLError, TimeoutError, OSError, ValueError, PermissionError) as exc:
             return AdapterHealth(
                 self.source_id,
@@ -200,7 +201,7 @@ class HttpSourceAdapter:
             provider=self.source_id.split(":", 1)[0],
             endpoint=self._request_url(),
             operation=self._method,
-            request_id=f"{self.source_id}:{observed_at.timestamp()}",
+            request_id=str(uuid4()),
             resource_id=self._url,
             observed_at=observed_at,
             metadata={"http_status": status},
