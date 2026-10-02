@@ -30,15 +30,16 @@ class OutcomeStore:
         parent_ids: tuple[str, ...] = (),
         verified: bool = False,
     ) -> OutcomeEvent:
+        outcome_id = str(uuid4())
         event = OutcomeEvent(
-            uuid4().__str__(),
+            outcome_id,
             identity,
             outcome_type,
             value,
-            Lineage(uuid4().__str__(), parent_ids),
+            Lineage(outcome_id, parent_ids),
             verified,
         )
-        self._items[event.outcome_id] = event
+        self._items[outcome_id] = event
         return event
 
     def get(self, outcome_id: str) -> OutcomeEvent:
