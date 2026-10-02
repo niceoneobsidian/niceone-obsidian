@@ -22,29 +22,6 @@ class FootballAgentSpec:
     role: str
     capabilities: tuple[str, ...]
 
-FOOTBALL_CAPABILITIES = (
-    DomainCapability("football.contract", "Validate F0 canonical football contract", "FootballRequest", "FootballContractReport"),
-    DomainCapability("football.ingest", "Ingest live fixtures and results", "FixtureQuery", "FootballDataBatch"),
-    DomainCapability("football.history", "Persist and retrieve historical football data", "FootballDataBatch", "HistoricalDataset"),
-    DomainCapability("football.team_state", "Build chronological team strength state", "MatchHistory", "TeamSnapshot"),
-    DomainCapability("football.xg", "Estimate expected goals and score distribution", "MatchState", "XGForecast"),
-    DomainCapability("football.calibrate", "Fit and evaluate probability calibration", "PredictionSet", "CalibrationReport"),
-    DomainCapability("football.market", "Normalize odds and calculate market edge", "OddsSnapshot", "MarketIntelligence"),
-    DomainCapability("football.backtest", "Run chronological backtests", "DatasetSpec", "BacktestReport"),
-    DomainCapability("football.walk_forward", "Run leakage-safe walk-forward evaluation", "DatasetSpec", "WalkForwardReport"),
-    DomainCapability("football.evidence", "Emit football evidence events to OIS", "FootballEvidence", "EvidenceEvent"),
-    DomainCapability("football.predict_1x2", "Produce governed football probabilities", "MatchState", "FootballPrediction"),
-    DomainCapability("football.live_update", "Update live football intelligence", "LiveMatchState", "LiveFootballState"),
-    DomainCapability("football.dashboard", "Expose read-only football intelligence state", "DashboardQuery", "DashboardSnapshot"),
-    DomainCapability("football.evolve", "Propose reversible model evolution", "EvaluationDelta", "EvolutionProposal", requires_approval=True),
-)
-
-FOOTBALL_AGENTS = (
-    FootballAgentSpec("football.data_agent", "Football data ingestion and validation", ("football.ingest", "football.history")),
-    FootballAgentSpec("football.team_agent", "Team strength and xG intelligence", ("football.team_state", "football.xg")),
-    FootballAgentSpec("football.market_agent", "Odds and market intelligence", ("football.market",)),
-    FootballAgentSpec("football.evaluation_agent", "Calibration, backtest and walk-forward evaluation", ("football.calibrate", "football.backtest", "football.walk_forward")),
-
 FOOTBALL_CAPABILITIES: tuple[DomainCapability, ...] = (
     DomainCapability("football.ingest", "Ingest canonical football data", "FootballDataBatch", "FootballDataBatch"),
     DomainCapability("football.live_feed", "Collect live multi-provider match state", "FeedQuery", "ReconciledMatchSet"),
