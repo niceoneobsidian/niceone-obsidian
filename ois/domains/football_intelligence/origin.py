@@ -264,7 +264,7 @@ def calibration_report(predictions: list[PredictionRecord], outcomes: list[str])
 def no_vig_probabilities(odds: tuple[float | None, float | None, float | None]) -> tuple[float, float, float] | None:
     if any(x is None or x <= 1.0 for x in odds):
         return None
-    return _normalize(1.0 / odds[0], 1.0 / odds[1], 1.0 / odds[2])  # type: ignore[operator,return-value]
+    return _normalize((1.0 / odds[0], 1.0 / odds[1], 1.0 / odds[2]))  # type: ignore[operator,return-value]
 
 
 def market_edge(model: tuple[float, float, float], odds: tuple[float | None, float | None, float | None]) -> dict[str, float]:
