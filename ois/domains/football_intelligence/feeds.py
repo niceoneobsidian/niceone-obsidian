@@ -1,3 +1,5 @@
+# fmt: off
+# ruff: noqa: E501
 """Provider-neutral football data-feed contracts and HTTP transport.
 
 The domain owns normalization and evidence contracts; credentials, network policy,
@@ -299,7 +301,8 @@ class SportmonksProvider(FootballFeedProvider):
     def live_matches(self) -> tuple[MatchFeed, ...]:
         observation = self._get("/livescores/latest", {"include": "participants;scores"})
         return tuple(
-            self._match(item, observation.evidence) for item in observation.payload.get("data", [])
+            self._match(item, observation.evidence)
+            for item in observation.payload.get("data", [])
         )
 
     def match_statistics(self, match_id: str) -> tuple[TeamStatFeed, ...]:
