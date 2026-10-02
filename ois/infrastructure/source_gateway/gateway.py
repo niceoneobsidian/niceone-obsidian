@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from typing import Any, cast
 from uuid import NAMESPACE_URL, uuid4, uuid5
 
+from .contracts import SourceProvenance
 from .credentials import CredentialRef, CredentialResolver, TenantScope
 from .evidence import RawEvidence, RawEvidenceWriter, canonical_hash
 from .limits import RateLimitPolicy, TokenBucket
@@ -24,12 +25,16 @@ class SourceRequest:
     connector_version: str = "v1"
     schema_version: str = "v1"
     source_id: str = ""
+    provenance: SourceProvenance | None = None
+    observed_at: datetime | None = None
 
     def __post_init__(self) -> None:
         if self.payload is None:
             object.__setattr__(self, "payload", {})
         if not self.source_id and self.source_type:
             object.__setattr__(self, "source_id", f"{self.source_type}:{self.source_record_id}")
+        if self.provenance and self.provenance.provider == "":
+            raise ValueError("provenance provider is required")
 
 
 @dataclass(frozen=True)
@@ -59,6 +64,14 @@ class SourceGateway:
                     policy if isinstance(policy, TokenBucket) else TokenBucket(policy)
                 )
 
+    def resolve_credential(self, credential: CredentialRef, *, tenant_id: str, workspace_id: str) -> str:
+        scope = TenantScope(tenant_id=tenant_id, workspace_id=workspace_id)
+        if credential.tenant_id != tenant_id:
+            raise PermissionError("credential belongs to another tenant")
+        if self._credentials is None:
+            raise RuntimeError("credential resolver is not configured")
+        return self._credentials.resolve(credential, scope)
+
     def _id(self) -> str:
         return str(uuid4())
 
@@ -68,7 +81,9 @@ class SourceGateway:
             workspace_id=request.workspace_id,
         )
 
-        if request.credential and self._credentials:
+        if request.credential:
+            if self._credentials is None:
+                raise RuntimeError("credential supplied but credential resolver is not configured")
             if request.credential.tenant_id != request.tenant_id:
                 raise PermissionError("credential belongs to another tenant")
             self._credentials.resolve(request.credential, scope)
@@ -79,9 +94,6 @@ class SourceGateway:
         if bucket is not None and not bucket.acquire():
             return SourceResponse(False, "", "", "", "rate_limited")
 
-        evidence_id = self._id()
-        event_id = self._id()
-        payload_hash = canonical_hash(request.payload)
         payload_hash = canonical_hash(request.payload)
         evidence_id = str(
             uuid5(
@@ -91,6 +103,7 @@ class SourceGateway:
             )
         )
         event_id = str(uuid5(NAMESPACE_URL, f"source-outbox:{evidence_id}"))
+        collected_at = request.observed_at or datetime.now(UTC)
 
         evidence = RawEvidence(
             evidence_id=evidence_id,
@@ -100,11 +113,19 @@ class SourceGateway:
             source_record_id=request.source_record_id,
             payload=request.payload or {},
             payload_hash=payload_hash,
-            collected_at=datetime.now(UTC),
+            collected_at=collected_at,
             connector_version=request.connector_version,
             schema_version=request.schema_version,
             ingestion_run_id=self._id(),
         )
+
+        event_payload: dict[str, Any] = {
+            "evidence_id": evidence_id,
+            "source_id": request.source_id,
+            "payload_hash": payload_hash,
+        }
+        if request.provenance:
+            event_payload["provenance"] = request.provenance.as_dict()
 
         event = OutboxEvent(
             event_id=event_id,
@@ -112,11 +133,7 @@ class SourceGateway:
             workspace_id=request.workspace_id,
             aggregate_id=evidence_id,
             event_type="source.raw_evidence.created",
-            payload={
-                "evidence_id": evidence_id,
-                "source_id": request.source_id,
-                "payload_hash": payload_hash,
-            },
+            payload=event_payload,
             created_at=datetime.now(UTC),
         )
 
