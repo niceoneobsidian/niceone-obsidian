@@ -1,4 +1,5 @@
 """Validated public evaluation API for Football Intelligence."""
+
 from __future__ import annotations
 
 import math
@@ -8,6 +9,7 @@ from datetime import UTC, datetime
 from .origin import FixtureRecord, PredictionRecord, TeamStrengthModel, XGModel
 
 OUTCOMES = ("home", "draw", "away")
+
 
 @dataclass(frozen=True)
 class EvaluationReport:
@@ -44,13 +46,14 @@ def evaluate(predictions: list[PredictionRecord], outcomes: list[str]) -> Evalua
         probs = prediction.probabilities()
         brier += sum((probs[name] - float(name == outcome)) ** 2 for name in OUTCOMES)
         logloss -= math.log(max(probs[outcome], 1e-15))
-        correct += float(max(probs, key=probs.get) == outcome)
+        correct += float(max(probs, key=lambda name: probs[name]) == outcome)
     n = len(predictions)
     return EvaluationReport(n, brier / n, logloss / n, correct / n, "EVALUATED")
 
 
 class ValidatedBacktestEngine:
     """Chronological backtest with strict pre-outcome state updates."""
+
     version = "football.backtest.v1"
 
     def run(self, fixtures: list[FixtureRecord]) -> EvaluationReport:
@@ -63,7 +66,11 @@ class ValidatedBacktestEngine:
             away = model.snapshot(fixture.away_team_id)
             hxg, axg = xg.predict(home, away)
             h, d, a = _probs(hxg, axg)
-            predictions.append(PredictionRecord(fixture.fixture_id, datetime.now(UTC), self.version, h, d, a, hxg, axg, False))
+            predictions.append(
+                PredictionRecord(
+                    fixture.fixture_id, datetime.now(UTC), self.version, h, d, a, hxg, axg, False
+                )
+            )
             outcomes.append(fixture.outcome or "")
             model.update(fixture)
         return evaluate(predictions, outcomes)
@@ -90,7 +97,11 @@ class WalkForwardEngine:
             away = model.snapshot(fixture.away_team_id)
             hxg, axg = xg.predict(home, away)
             h, d, a = _probs(hxg, axg)
-            predictions.append(PredictionRecord(fixture.fixture_id, datetime.now(UTC), self.version, h, d, a, hxg, axg, False))
+            predictions.append(
+                PredictionRecord(
+                    fixture.fixture_id, datetime.now(UTC), self.version, h, d, a, hxg, axg, False
+                )
+            )
             outcomes.append(fixture.outcome or "")
             model.update(fixture)
         return evaluate(predictions, outcomes)

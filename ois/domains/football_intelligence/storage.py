@@ -3,11 +3,11 @@
 This is a local/dev persistence adapter. Production OIS persistence should map the
 same records to the platform's governed PostgreSQL/evidence services.
 """
+
 from __future__ import annotations
 
 import json
 import sqlite3
-from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 
@@ -53,11 +53,25 @@ class FootballStore:
                home_goals=excluded.home_goals,away_goals=excluded.away_goals,
                home_xg=excluded.home_xg,away_xg=excluded.away_xg,status=excluded.status,
                source_id=excluded.source_id,observed_at=excluded.observed_at""",
-            [(
-                f.fixture_id, f.competition, f.kickoff_at.isoformat(), f.home_team_id, f.home_team,
-                f.away_team_id, f.away_team, f.home_goals, f.away_goals, f.home_xg, f.away_xg,
-                f.status, f.source_id, f.observed_at.isoformat()
-            ) for f in fixtures],
+            [
+                (
+                    f.fixture_id,
+                    f.competition,
+                    f.kickoff_at.isoformat(),
+                    f.home_team_id,
+                    f.home_team,
+                    f.away_team_id,
+                    f.away_team,
+                    f.home_goals,
+                    f.away_goals,
+                    f.home_xg,
+                    f.away_xg,
+                    f.status,
+                    f.source_id,
+                    f.observed_at.isoformat(),
+                )
+                for f in fixtures
+            ],
         )
         self.conn.commit()
 
@@ -65,9 +79,16 @@ class FootballStore:
         self.conn.execute(
             """INSERT OR REPLACE INTO predictions VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
             (
-                prediction.fixture_id, prediction.created_at.isoformat(), prediction.model_version,
-                prediction.home, prediction.draw, prediction.away, prediction.expected_home_goals,
-                prediction.expected_away_goals, int(prediction.abstain), json.dumps(prediction.evidence_ids),
+                prediction.fixture_id,
+                prediction.created_at.isoformat(),
+                prediction.model_version,
+                prediction.home,
+                prediction.draw,
+                prediction.away,
+                prediction.expected_home_goals,
+                prediction.expected_away_goals,
+                int(prediction.abstain),
+                json.dumps(prediction.evidence_ids),
             ),
         )
         self.conn.commit()
@@ -75,13 +96,33 @@ class FootballStore:
     def recent_completed(self, limit: int = 1000) -> list[FixtureRecord]:
         if limit <= 0:
             return []
-        rows = self.conn.execute("SELECT * FROM fixtures WHERE home_goals IS NOT NULL AND away_goals IS NOT NULL ORDER BY kickoff_at LIMIT ?", (limit,)).fetchall()
-        return [FixtureRecord(
-            fixture_id=r["fixture_id"], competition=r["competition"], kickoff_at=datetime.fromisoformat(r["kickoff_at"]),
-            home_team_id=r["home_team_id"], home_team=r["home_team"], away_team_id=r["away_team_id"], away_team=r["away_team"],
-            home_goals=r["home_goals"], away_goals=r["away_goals"], home_xg=r["home_xg"], away_xg=r["away_xg"],
-            status=r["status"], source_id=r["source_id"], observed_at=datetime.fromisoformat(r["observed_at"])
-        ) for r in rows]
+        rows = self.conn.execute(
+            (
+                "SELECT * FROM fixtures "
+                "WHERE home_goals IS NOT NULL AND away_goals IS NOT NULL "
+                "ORDER BY kickoff_at LIMIT ?"
+            ),
+            (limit,),
+        ).fetchall()
+        return [
+            FixtureRecord(
+                fixture_id=r["fixture_id"],
+                competition=r["competition"],
+                kickoff_at=datetime.fromisoformat(r["kickoff_at"]),
+                home_team_id=r["home_team_id"],
+                home_team=r["home_team"],
+                away_team_id=r["away_team_id"],
+                away_team=r["away_team"],
+                home_goals=r["home_goals"],
+                away_goals=r["away_goals"],
+                home_xg=r["home_xg"],
+                away_xg=r["away_xg"],
+                status=r["status"],
+                source_id=r["source_id"],
+                observed_at=datetime.fromisoformat(r["observed_at"]),
+            )
+            for r in rows
+        ]
 
     def close(self) -> None:
         self.conn.close()

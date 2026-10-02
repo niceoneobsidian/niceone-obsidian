@@ -1,11 +1,12 @@
 """Canonical F0-F12 Football Intelligence lifecycle for OIS integration."""
+
 from __future__ import annotations
 
 import hashlib
 import math
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Iterable
 
 from .origin import (
     FixtureRecord,
@@ -52,8 +53,13 @@ class FootballIntelligenceOrigin:
                 hxg, axg = xg.predict(home, away)
                 probs = _poisson_1x2(hxg, axg)
                 prediction = PredictionRecord(
-                    fixture.fixture_id, datetime.now(UTC), self.version,
-                    *probs, hxg, axg, False,
+                    fixture.fixture_id,
+                    datetime.now(UTC),
+                    self.version,
+                    *probs,
+                    hxg,
+                    axg,
+                    False,
                 )
                 predictions.append(prediction)
                 state.update(fixture)
@@ -62,17 +68,31 @@ class FootballIntelligenceOrigin:
                 away = state.snapshot(fixture.away_team_id)
                 hxg, axg = xg.predict(home, away)
                 probs = _poisson_1x2(hxg, axg)
-                predictions.append(PredictionRecord(
-                    fixture.fixture_id, datetime.now(UTC), self.version,
-                    *probs, hxg, axg, False,
-                ))
-            event = evidence_event("football.prediction", "ois.football", {
-                "fixture_id": fixture.fixture_id, "model_version": self.version,
-            })
+                predictions.append(
+                    PredictionRecord(
+                        fixture.fixture_id,
+                        datetime.now(UTC),
+                        self.version,
+                        *probs,
+                        hxg,
+                        axg,
+                        False,
+                    )
+                )
+            event = evidence_event(
+                "football.prediction",
+                "ois.football",
+                {
+                    "fixture_id": fixture.fixture_id,
+                    "model_version": self.version,
+                },
+            )
             evidence.append(event.event_id)
         return FootballRunResult("COMPUTED", "F3-F5", tuple(predictions), tuple(evidence))
 
-    def evaluate(self, predictions: list[PredictionRecord], outcomes: list[str]) -> FootballRunResult:
+    def evaluate(
+        self, predictions: list[PredictionRecord], outcomes: list[str]
+    ) -> FootballRunResult:
         if len(predictions) != len(outcomes):
             raise ValueError("predictions and outcomes must be aligned")
         if not predictions:
@@ -82,22 +102,42 @@ class FootballIntelligenceOrigin:
             probs = p.probabilities()
             brier += sum((probs[k] - float(k == outcome)) ** 2 for k in probs)
             logloss -= math.log(max(probs[outcome], 1e-15))
-            correct += float(max(probs, key=probs.get) == outcome)
+            correct += float(max(probs, key=lambda name: probs[name]) == outcome)
         n = len(predictions)
-        metrics = {"count": float(n), "brier": brier / n, "log_loss": logloss / n, "accuracy": correct / n}
-        event = evidence_event("football.evaluation", "ois.football", metrics)
+        metrics: dict[str, float] = {
+            "count": float(n),
+            "brier": brier / n,
+            "log_loss": logloss / n,
+            "accuracy": correct / n,
+        }
+        event = evidence_event(
+            "football.evaluation",
+            "ois.football",
+            dict(metrics),
+        )
         return FootballRunResult("EVALUATED", "F7-F9", (), (event.event_id,), metrics)
 
-    def calibrate(self, predictions: list[PredictionRecord], outcomes: list[str]) -> tuple[ProbabilityCalibrator, FootballRunResult]:
+    def calibrate(
+        self, predictions: list[PredictionRecord], outcomes: list[str]
+    ) -> tuple[ProbabilityCalibrator, FootballRunResult]:
         if len(predictions) != len(outcomes) or not predictions:
             return ProbabilityCalibrator(), FootballRunResult("INSUFFICIENT_DATA", "F5")
         calibrator = ProbabilityCalibrator()
         calibrator.fit([(p.home, p.draw, p.away) for p in predictions], outcomes)
-        event = evidence_event("football.calibration", "ois.football", {"temperature": calibrator.temperature, "count": len(predictions)})
-        return calibrator, FootballRunResult("CALIBRATED", "F5-F9", (), (event.event_id,), {"temperature": calibrator.temperature})
+        event = evidence_event(
+            "football.calibration",
+            "ois.football",
+            {"temperature": calibrator.temperature, "count": len(predictions)},
+        )
+        return calibrator, FootballRunResult(
+            "CALIBRATED", "F5-F9", (), (event.event_id,), {"temperature": calibrator.temperature}
+        )
 
     @staticmethod
-    def market(probabilities: tuple[float, float, float], odds: tuple[float | None, float | None, float | None]) -> dict[str, object]:
+    def market(
+        probabilities: tuple[float, float, float],
+        odds: tuple[float | None, float | None, float | None],
+    ) -> dict[str, object]:
         return {"no_vig": no_vig_probabilities(odds), "edge": market_edge(probabilities, odds)}
 
 
@@ -115,7 +155,9 @@ def _poisson_1x2(home_xg: float, away_xg: float, max_goals: int = 10) -> tuple[f
     return tuple(v / total for v in values)  # type: ignore[return-value]
 
 
-def evolution_candidate(current: str, candidate: str, baseline: dict[str, float], challenger: dict[str, float]) -> dict[str, object]:
+def evolution_candidate(
+    current: str, candidate: str, baseline: dict[str, float], challenger: dict[str, float]
+) -> dict[str, object]:
     proposal = f"{current}|{candidate}|{baseline}|{challenger}"
     return {
         "proposal_id": hashlib.sha256(proposal.encode()).hexdigest()[:32],

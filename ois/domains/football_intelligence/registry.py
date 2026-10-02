@@ -1,11 +1,14 @@
 """Football domain manifest for the authoritative OIS registries."""
-# fmt: off
-# ruff: noqa: E501
-"""Football domain manifest for integration with the existing OIS registries."""
 
 from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import Any
+
+# fmt: off
+
+# ruff: noqa: E501
+
 
 @dataclass(frozen=True)
 class DomainCapability:

@@ -4,16 +4,17 @@ This module is intentionally dependency-light. It provides deterministic contrac
 reference implementations; external data, OIS persistence, execution policy, and model
 promotion remain explicit integration boundaries.
 """
+
 from __future__ import annotations
 
 import hashlib
 import json
 import math
 import statistics
-from dataclasses import dataclass, asdict
+from collections.abc import Iterable
+from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Iterable, Protocol
-
+from typing import Protocol
 
 OUTCOMES = ("home", "draw", "away")
 
@@ -41,7 +42,7 @@ class FixtureRecord:
 
     @property
     def outcome(self) -> str | None:
-        if not self.completed:
+        if self.home_goals is None or self.away_goals is None:
             return None
         if self.home_goals > self.away_goals:
             return "home"
@@ -181,8 +182,16 @@ class TeamStrengthModel:
         if fixture.home_goals is None or fixture.away_goals is None:
             return
         home, away = fixture.home_team_id, fixture.away_team_id
-        expected = 1.0 / (1.0 + 10.0 ** (-(self.rating(home) - self.rating(away) + self.home_advantage) / 400.0))
-        actual = 1.0 if fixture.home_goals > fixture.away_goals else 0.0 if fixture.home_goals < fixture.away_goals else 0.5
+        expected = 1.0 / (
+            1.0 + 10.0 ** (-(self.rating(home) - self.rating(away) + self.home_advantage) / 400.0)
+        )
+        actual = (
+            1.0
+            if fixture.home_goals > fixture.away_goals
+            else 0.0
+            if fixture.home_goals < fixture.away_goals
+            else 0.5
+        )
         delta = self.k * (actual - expected)
         self._ratings[home] = self.rating(home) + delta
         self._ratings[away] = self.rating(away) - delta
@@ -190,10 +199,18 @@ class TeamStrengthModel:
         self._goals_for.setdefault(away, []).append(float(fixture.away_goals))
         self._goals_against.setdefault(home, []).append(float(fixture.away_goals))
         self._goals_against.setdefault(away, []).append(float(fixture.home_goals))
-        self._xg_for.setdefault(home, []).append(float(fixture.home_xg if fixture.home_xg is not None else fixture.home_goals))
-        self._xg_for.setdefault(away, []).append(float(fixture.away_xg if fixture.away_xg is not None else fixture.away_goals))
-        self._xg_against.setdefault(home, []).append(float(fixture.away_xg if fixture.away_xg is not None else fixture.away_goals))
-        self._xg_against.setdefault(away, []).append(float(fixture.home_xg if fixture.home_xg is not None else fixture.home_goals))
+        self._xg_for.setdefault(home, []).append(
+            float(fixture.home_xg if fixture.home_xg is not None else fixture.home_goals)
+        )
+        self._xg_for.setdefault(away, []).append(
+            float(fixture.away_xg if fixture.away_xg is not None else fixture.away_goals)
+        )
+        self._xg_against.setdefault(home, []).append(
+            float(fixture.away_xg if fixture.away_xg is not None else fixture.away_goals)
+        )
+        self._xg_against.setdefault(away, []).append(
+            float(fixture.home_xg if fixture.home_xg is not None else fixture.home_goals)
+        )
         self._matches[home] = self._matches.get(home, 0) + 1
         self._matches[away] = self._matches.get(away, 0) + 1
 
@@ -202,7 +219,15 @@ class TeamStrengthModel:
         ga = self._goals_against.get(team_id, [1.4])
         xf = self._xg_for.get(team_id, gf)
         xa = self._xg_against.get(team_id, ga)
-        return TeamRating(team_id, self.rating(team_id), statistics.fmean(gf), statistics.fmean(ga), statistics.fmean(xf), statistics.fmean(xa), self._matches.get(team_id, 0))
+        return TeamRating(
+            team_id,
+            self.rating(team_id),
+            statistics.fmean(gf),
+            statistics.fmean(ga),
+            statistics.fmean(xf),
+            statistics.fmean(xa),
+            self._matches.get(team_id, 0),
+        )
 
 
 class XGModel:
@@ -241,7 +266,9 @@ class ProbabilityCalibrator:
         return _normalize(math.exp(math.log(max(x, 1e-12)) / self.temperature) for x in p)  # type: ignore[return-value]
 
 
-def calibration_report(predictions: list[PredictionRecord], outcomes: list[str]) -> CalibrationReport:
+def calibration_report(
+    predictions: list[PredictionRecord], outcomes: list[str]
+) -> CalibrationReport:
     if len(predictions) != len(outcomes):
         raise ValueError("predictions and outcomes must be aligned")
     if not predictions:
@@ -252,7 +279,7 @@ def calibration_report(predictions: list[PredictionRecord], outcomes: list[str])
         probs = pred.probabilities()
         brier += sum((probs[k] - float(k == outcome)) ** 2 for k in OUTCOMES)
         logloss -= math.log(max(probs[outcome], 1e-15))
-        correct += float(max(probs, key=probs.get) == outcome)
+        correct += float(max(probs, key=lambda name: probs[name]) == outcome)
         p = probs[outcome]
         bins[min(9, int(p * 10))].append(float(p == 1.0))
     ece = 0.0
@@ -263,13 +290,17 @@ def calibration_report(predictions: list[PredictionRecord], outcomes: list[str])
     return CalibrationReport(n, brier / n, logloss / n, correct / n, ece, "EVALUATED")
 
 
-def no_vig_probabilities(odds: tuple[float | None, float | None, float | None]) -> tuple[float, float, float] | None:
+def no_vig_probabilities(
+    odds: tuple[float | None, float | None, float | None],
+) -> tuple[float, float, float] | None:
     if any(x is None or x <= 1.0 for x in odds):
         return None
     return _normalize((1.0 / odds[0], 1.0 / odds[1], 1.0 / odds[2]))  # type: ignore[operator,return-value]
 
 
-def market_edge(model: tuple[float, float, float], odds: tuple[float | None, float | None, float | None]) -> dict[str, float]:
+def market_edge(
+    model: tuple[float, float, float], odds: tuple[float | None, float | None, float | None]
+) -> dict[str, float]:
     fair = no_vig_probabilities(odds)
     if fair is None:
         return {}
@@ -288,7 +319,9 @@ class BacktestEngine:
         away = self.model.snapshot(fixture.away_team_id)
         hxg, axg = self.xg.predict(home, away)
         h, d, a = _poisson_1x2(hxg, axg)
-        return PredictionRecord(fixture.fixture_id, datetime.now(UTC), self.xg.version, h, d, a, hxg, axg, False)
+        return PredictionRecord(
+            fixture.fixture_id, datetime.now(UTC), self.xg.version, h, d, a, hxg, axg, False
+        )
 
     def run(self, fixtures: Iterable[FixtureRecord]) -> BacktestReport:
         ordered = sorted((f for f in fixtures if f.completed), key=lambda f: f.kickoff_at)
@@ -300,7 +333,9 @@ class BacktestEngine:
             outcomes.append(fixture.outcome or "")
             self.model.update(fixture)
         report = calibration_report(predictions, outcomes)
-        return BacktestReport(report.count, report.brier, report.log_loss, report.accuracy, None, None, report.status)
+        return BacktestReport(
+            report.count, report.brier, report.log_loss, report.accuracy, None, None, report.status
+        )
 
 
 class WalkForwardEvaluator:
@@ -320,11 +355,31 @@ class WalkForwardEvaluator:
             home, away = model.snapshot(fixture.home_team_id), model.snapshot(fixture.away_team_id)
             hxg, axg = XGModel().predict(home, away)
             h, d, a = _poisson_1x2(hxg, axg)
-            preds.append(PredictionRecord(fixture.fixture_id, datetime.now(UTC), "football.xg.baseline.v1", h, d, a, hxg, axg, False))
+            preds.append(
+                PredictionRecord(
+                    fixture.fixture_id,
+                    datetime.now(UTC),
+                    "football.xg.baseline.v1",
+                    h,
+                    d,
+                    a,
+                    hxg,
+                    axg,
+                    False,
+                )
+            )
             outcomes.append(fixture.outcome or "")
             model.update(fixture)
         report = calibration_report(preds, outcomes)
-        return BacktestReport(report.count, report.brier, report.log_loss, report.accuracy, None, None, "WALK_FORWARD_EVALUATED")
+        return BacktestReport(
+            report.count,
+            report.brier,
+            report.log_loss,
+            report.accuracy,
+            None,
+            None,
+            "WALK_FORWARD_EVALUATED",
+        )
 
 
 def evidence_event(event_type: str, source_id: str, payload: dict[str, object]) -> EvidenceEvent:
@@ -348,14 +403,18 @@ class FootballSupervisor:
     def route(self, intent: str, validated: bool = False) -> SupervisorDecision:
         text = intent.lower()
         if "live" in text:
-            return SupervisorDecision("route", "live intelligence requested", "football.live_update")
+            return SupervisorDecision(
+                "route", "live intelligence requested", "football.live_update"
+            )
         if "backtest" in text or "walk-forward" in text:
             return SupervisorDecision("route", "evaluation requested", "football.backtest")
         if "odds" in text or "market" in text:
             return SupervisorDecision("route", "market intelligence requested", "football.market")
         if "predict" in text or "forecast" in text:
             if not validated:
-                return SupervisorDecision("abstain", "prediction path requires validation gate", "football.predict_1x2")
+                return SupervisorDecision(
+                    "abstain", "prediction path requires validation gate", "football.predict_1x2"
+                )
             return SupervisorDecision("route", "prediction requested", "football.predict_1x2")
         return SupervisorDecision("research", "unclassified football intent", "football.research")
 
@@ -381,20 +440,69 @@ class EvolutionProposal:
     reversible: bool = True
 
 
-def dashboard_snapshot(fixtures: Iterable[FixtureRecord], predictions: Iterable[PredictionRecord], evaluated: int, model_version: str, validation_status: str) -> DashboardSnapshot:
+def dashboard_snapshot(
+    fixtures: Iterable[FixtureRecord],
+    predictions: Iterable[PredictionRecord],
+    evaluated: int,
+    model_version: str,
+    validation_status: str,
+) -> DashboardSnapshot:
     rows = list(fixtures)
-    return DashboardSnapshot(datetime.now(UTC), len(rows), sum(f.status in {"live", "inplay"} for f in rows), len(list(predictions)), evaluated, model_version, validation_status)
+    return DashboardSnapshot(
+        datetime.now(UTC),
+        len(rows),
+        sum(f.status in {"live", "inplay"} for f in rows),
+        len(list(predictions)),
+        evaluated,
+        model_version,
+        validation_status,
+    )
 
 
-def propose_evolution(current_version: str, candidate_version: str, baseline: BacktestReport, candidate: BacktestReport) -> EvolutionProposal:
-    evidence = {"baseline_brier": baseline.brier, "candidate_brier": candidate.brier, "brier_delta": baseline.brier - candidate.brier, "baseline_accuracy": baseline.accuracy, "candidate_accuracy": candidate.accuracy}
-    return EvolutionProposal(hashlib.sha256(f"{current_version}|{candidate_version}|{evidence}".encode()).hexdigest()[:32], current_version, candidate_version, evidence)
+def propose_evolution(
+    current_version: str,
+    candidate_version: str,
+    baseline: BacktestReport,
+    candidate: BacktestReport,
+) -> EvolutionProposal:
+    evidence = {
+        "baseline_brier": baseline.brier,
+        "candidate_brier": candidate.brier,
+        "brier_delta": baseline.brier - candidate.brier,
+        "baseline_accuracy": baseline.accuracy,
+        "candidate_accuracy": candidate.accuracy,
+    }
+    return EvolutionProposal(
+        hashlib.sha256(f"{current_version}|{candidate_version}|{evidence}".encode()).hexdigest()[
+            :32
+        ],
+        current_version,
+        candidate_version,
+        evidence,
+    )
 
 
 __all__ = [
-    "BacktestEngine", "BacktestReport", "CalibrationReport", "DashboardSnapshot", "EvidenceEvent",
-    "EvolutionProposal", "FixtureRecord", "FootballProvider", "FootballSupervisor", "OddsSnapshot",
-    "PredictionRecord", "ProbabilityCalibrator", "TeamRating", "TeamStrengthModel", "WalkForwardEvaluator",
-    "XGModel", "calibration_report", "dashboard_snapshot", "evidence_event", "market_edge", "no_vig_probabilities",
+    "BacktestEngine",
+    "BacktestReport",
+    "CalibrationReport",
+    "DashboardSnapshot",
+    "EvidenceEvent",
+    "EvolutionProposal",
+    "FixtureRecord",
+    "FootballProvider",
+    "FootballSupervisor",
+    "OddsSnapshot",
+    "PredictionRecord",
+    "ProbabilityCalibrator",
+    "TeamRating",
+    "TeamStrengthModel",
+    "WalkForwardEvaluator",
+    "XGModel",
+    "calibration_report",
+    "dashboard_snapshot",
+    "evidence_event",
+    "market_edge",
+    "no_vig_probabilities",
     "propose_evolution",
 ]

@@ -4,14 +4,15 @@ Network access is optional at import time. The adapter uses Sportmonks v3 when
 SPORTMONKS_TOKEN is configured. Source timestamps and raw payload hashes are kept
 at the boundary so downstream OIS evidence can prove provenance.
 """
+
 from __future__ import annotations
 
+import json
 import os
 from datetime import UTC, datetime
 from hashlib import sha256
 from typing import Any
 from urllib.request import Request, urlopen
-import json
 
 from .origin import FixtureRecord
 
@@ -30,10 +31,16 @@ class SportmonksProvider:
         query = dict(params or {})
         query["api_token"] = self.token or ""
         from urllib.parse import urlencode
+
         url = f"{self.base_url}/{path.lstrip('/')}?{urlencode(query)}"
-        request = Request(url, headers={"Accept": "application/json", "User-Agent": "OIS-Football/1.0"})
+        request = Request(
+            url, headers={"Accept": "application/json", "User-Agent": "OIS-Football/1.0"}
+        )
         with urlopen(request, timeout=self.timeout) as response:
-            return json.loads(response.read().decode("utf-8"))
+            payload = json.loads(response.read().decode("utf-8"))
+        if not isinstance(payload, dict):
+            raise ValueError("Sportmonks response must be a JSON object")
+        return payload
 
     @staticmethod
     def _dt(value: str) -> datetime:
@@ -41,14 +48,50 @@ class SportmonksProvider:
 
     def _normalize(self, row: dict[str, Any]) -> FixtureRecord:
         participants = row.get("participants") or []
-        home = next((p for p in participants if p.get("meta", {}).get("location") == "home"), participants[0] if participants else {})
-        away = next((p for p in participants if p.get("meta", {}).get("location") == "away"), participants[1] if len(participants) > 1 else {})
+        home = next(
+            (p for p in participants if p.get("meta", {}).get("location") == "home"),
+            participants[0] if participants else {},
+        )
+        away = next(
+            (p for p in participants if p.get("meta", {}).get("location") == "away"),
+            participants[1] if len(participants) > 1 else {},
+        )
         scores = row.get("scores") or []
-        home_score = next((s for s in scores if s.get("description") in {"CURRENT", "FT"} and s.get("score", {}).get("participant") == "home"), None)
-        away_score = next((s for s in scores if s.get("description") in {"CURRENT", "FT"} and s.get("score", {}).get("participant") == "away"), None)
+        home_score = next(
+            (
+                s
+                for s in scores
+                if s.get("description") in {"CURRENT", "FT"}
+                and s.get("score", {}).get("participant") == "home"
+            ),
+            None,
+        )
+        away_score = next(
+            (
+                s
+                for s in scores
+                if s.get("description") in {"CURRENT", "FT"}
+                and s.get("score", {}).get("participant") == "away"
+            ),
+            None,
+        )
         xg = row.get("xgfixture") or []
-        hxg = next((float(x.get("data", {}).get("value")) for x in xg if x.get("location") == "home" and x.get("type", {}).get("code") == "expected-goals"), None)
-        axg = next((float(x.get("data", {}).get("value")) for x in xg if x.get("location") == "away" and x.get("type", {}).get("code") == "expected-goals"), None)
+        hxg = next(
+            (
+                float(x.get("data", {}).get("value"))
+                for x in xg
+                if x.get("location") == "home" and x.get("type", {}).get("code") == "expected-goals"
+            ),
+            None,
+        )
+        axg = next(
+            (
+                float(x.get("data", {}).get("value"))
+                for x in xg
+                if x.get("location") == "away" and x.get("type", {}).get("code") == "expected-goals"
+            ),
+            None,
+        )
         raw = json.dumps(row, sort_keys=True, default=str).encode()
         source_id = f"{self.provider_id}:{sha256(raw).hexdigest()[:16]}"
         state = (row.get("state") or {}).get("state", "scheduled")
@@ -75,5 +118,7 @@ class SportmonksProvider:
         return [self._normalize(row) for row in payload.get("data", [])]
 
     def live(self) -> list[FixtureRecord]:
-        payload = self._get("livescores/inplay", {"include": "participants;scores;state;xGFixture;events"})
+        payload = self._get(
+            "livescores/inplay", {"include": "participants;scores;state;xGFixture;events"}
+        )
         return [self._normalize(row) for row in payload.get("data", [])]

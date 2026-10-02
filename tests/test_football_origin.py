@@ -1,18 +1,34 @@
 """Regression tests for the Football Intelligence F0-F12 origin layer."""
+
 from datetime import UTC, datetime, timedelta
 
 from ois.domains.football_intelligence import (
-    FixtureRecord, TeamStrengthModel, ValidatedBacktestEngine, WalkForwardEngine,
-    evaluate, no_vig_probabilities, market_edge,
+    FixtureRecord,
+    TeamStrengthModel,
+    ValidatedBacktestEngine,
+    WalkForwardEngine,
+    evaluate,
+    market_edge,
+    no_vig_probabilities,
 )
 
 
 def fixture(i: int, home: str, away: str, hg: int, ag: int) -> FixtureRecord:
     return FixtureRecord(
-        fixture_id=str(i), competition="TEST", kickoff_at=datetime(2026, 1, 1, tzinfo=UTC) + timedelta(days=i),
-        home_team_id=home, home_team=home, away_team_id=away, away_team=away,
-        home_goals=hg, away_goals=ag, home_xg=hg + 0.1, away_xg=ag + 0.1,
-        status="finished", source_id="test", observed_at=datetime.now(UTC),
+        fixture_id=str(i),
+        competition="TEST",
+        kickoff_at=datetime(2026, 1, 1, tzinfo=UTC) + timedelta(days=i),
+        home_team_id=home,
+        home_team=home,
+        away_team_id=away,
+        away_team=away,
+        home_goals=hg,
+        away_goals=ag,
+        home_xg=hg + 0.1,
+        away_xg=ag + 0.1,
+        status="finished",
+        source_id="test",
+        observed_at=datetime.now(UTC),
     )
 
 
@@ -63,5 +79,6 @@ def test_market_invalid_odds_abstain() -> None:
 
 def test_walk_forward_rejects_invalid_training_window() -> None:
     import pytest
+
     with pytest.raises(ValueError):
         WalkForwardEngine().run([], min_train=0)

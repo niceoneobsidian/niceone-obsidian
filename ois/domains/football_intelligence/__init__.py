@@ -7,6 +7,16 @@ intelligence, evaluation, evidence and governed agent contracts.
 from .agent import FootballAgent, build_dashboard_payload
 from .ensemble import FootballEnsemble
 from .lifecycle import FootballIntelligenceOrigin, FootballRunResult, evolution_candidate
+from .market_models import (
+    CardMarketModel,
+    CornerMarketModel,
+    FootballMarketModelSuite,
+    GoalMarketModel,
+    LiveStateModel,
+    PlayerGoalModel,
+    ResultMarketModel,
+    ShotMarketModel,
+)
 from .models import DixonColesModel, EloModel, PoissonModel
 from .origin import (
     FixtureRecord,
@@ -26,6 +36,14 @@ from .statsbomb import StatsBombObservation, StatsBombOpenDataProvider
 from .storage import FootballStore
 
 __all__ = [
+    "CardMarketModel",
+    "CornerMarketModel",
+    "FootballMarketModelSuite",
+    "GoalMarketModel",
+    "LiveStateModel",
+    "PlayerGoalModel",
+    "ResultMarketModel",
+    "ShotMarketModel",
     "DixonColesModel",
     "EloModel",
     "EvaluationReport",
