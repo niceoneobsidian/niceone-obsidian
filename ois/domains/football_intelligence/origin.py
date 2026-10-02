@@ -178,6 +178,8 @@ class TeamStrengthModel:
     def update(self, fixture: FixtureRecord) -> None:
         if not fixture.completed:
             return
+        if fixture.home_goals is None or fixture.away_goals is None:
+            return
         home, away = fixture.home_team_id, fixture.away_team_id
         expected = 1.0 / (1.0 + 10.0 ** (-(self.rating(home) - self.rating(away) + self.home_advantage) / 400.0))
         actual = 1.0 if fixture.home_goals > fixture.away_goals else 0.0 if fixture.home_goals < fixture.away_goals else 0.5
