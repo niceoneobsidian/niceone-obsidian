@@ -73,6 +73,8 @@ class WalkForwardEngine:
     version = "football.walk_forward.v1"
 
     def run(self, fixtures: list[FixtureRecord], min_train: int = 20) -> EvaluationReport:
+        if min_train < 1:
+            raise ValueError("min_train must be >= 1")
         ordered = sorted((f for f in fixtures if f.completed), key=lambda f: f.kickoff_at)
         if len(ordered) <= min_train:
             return EvaluationReport(0, 0.0, 0.0, 0.0, "INSUFFICIENT_DATA")
