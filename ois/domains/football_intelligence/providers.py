@@ -29,7 +29,8 @@ class SportmonksProvider:
     def _get(self, path: str, params: dict[str, str] | None = None) -> dict[str, Any]:
         query = dict(params or {})
         query["api_token"] = self.token or ""
-        url = f"{self.base_url}/{path.lstrip('/')}?" + "&".join(f"{k}={v}" for k, v in query.items())
+        from urllib.parse import urlencode
+        url = f"{self.base_url}/{path.lstrip('/')}?{urlencode(query)}"
         request = Request(url, headers={"Accept": "application/json", "User-Agent": "OIS-Football/1.0"})
         with urlopen(request, timeout=self.timeout) as response:
             return json.loads(response.read().decode("utf-8"))
