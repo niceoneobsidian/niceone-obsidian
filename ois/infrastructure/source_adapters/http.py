@@ -130,7 +130,7 @@ class HttpSourceAdapter:
                     workspace_id=workspace_id,
                 )
             self._fetch(credential)
-            self._last_observed_at = __import__("datetime").datetime.now(__import__("datetime").UTC)
+            self._last_observed_at = datetime.now(UTC)
         except (HTTPError, URLError, TimeoutError, OSError, ValueError, PermissionError) as exc:
             return AdapterHealth(
                 self.source_id,
