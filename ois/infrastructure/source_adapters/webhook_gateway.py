@@ -22,6 +22,12 @@ class WebhookRequest:
     timestamp: str
     idempotency_key: str
 
+    def __post_init__(self) -> None:
+        if not self.tenant_id or not self.workspace_id or not self.source_id:
+            raise ValueError("webhook tenant, workspace, and source are required")
+        if not self.record_id or not self.idempotency_key:
+            raise ValueError("webhook record and idempotency keys are required")
+
 
 class WebhookGateway:
     """Validate, parse, deduplicate, and route inbound webhooks."""
