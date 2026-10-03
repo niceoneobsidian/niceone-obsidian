@@ -9,11 +9,12 @@ from uuid import NAMESPACE_URL, uuid4, uuid5
 
 from ois.domains.social_intelligence.events import CanonicalSourceEvent
 
-from .auth import CredentialMaterial
+from .auth import AuthRequest, Authenticator, AuthScheme, CredentialMaterial
 from .contracts import SourceProvenance
 from .credentials import CredentialRef, CredentialResolver, TenantScope
 from .evidence import RawEvidence, RawEvidenceWriter, canonical_hash
 from .limits import RateLimitPolicy, TokenBucket
+from .manager import AuthPolicy, CredentialAuthManager
 from .outbox import OutboxEvent, OutboxStore
 
 
@@ -56,8 +57,12 @@ class SourceGateway:
         outbox: OutboxStore | None = None,
         rate_limits: dict[str, RateLimitPolicy] | None = None,
         intelligence_pipeline: object | None = None,
+        auth_manager: CredentialAuthManager | None = None,
     ) -> None:
         self._credentials = credentials
+        self._auth_manager = auth_manager or (
+            CredentialAuthManager(credentials) if credentials else None
+        )
         self._evidence = evidence
         self._intelligence_pipeline = intelligence_pipeline
         self._outbox = outbox
@@ -76,9 +81,34 @@ class SourceGateway:
         """Resolve tenant-scoped secret material for an authentication strategy."""
         if ref.tenant_id != scope.tenant_id:
             raise PermissionError("credential belongs to another tenant")
-        if self._credentials is None:
+        if self._auth_manager is None:
             raise RuntimeError("credential resolver is not configured")
-        return CredentialMaterial(self._credentials.resolve(ref, scope))
+        return self._auth_manager.resolve(ref, scope)
+
+    def authenticate_request(
+        self,
+        request: AuthRequest,
+        ref: CredentialRef,
+        scope: TenantScope,
+        scheme: AuthScheme,
+        *,
+        options: dict[str, object] | None = None,
+        client_id: str | None = None,
+        token_type: str = "Bearer",
+        authenticator: Authenticator | None = None,
+    ) -> AuthRequest:
+        """Authenticate a request through the central credential boundary."""
+        if self._auth_manager is None:
+            raise RuntimeError("credential auth manager is not configured")
+        return self._auth_manager.authenticate(
+            request,
+            ref,
+            scope,
+            AuthPolicy(scheme, options),
+            client_id=client_id,
+            token_type=token_type,
+            authenticator=authenticator,
+        )
 
     def rate_limit_configured(self, *, source_type: str = "", source_id: str = "") -> bool:
         return self._select_rate_limiter(source_type=source_type, source_id=source_id) is not None
