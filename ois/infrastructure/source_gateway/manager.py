@@ -10,7 +10,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .auth import Authenticator, AuthRequest, AuthScheme, CredentialMaterial, authenticator_for
+from .auth import (
+    Authenticator,
+    AuthRequest,
+    AuthScheme,
+    CredentialMaterial,
+    authenticator_for,
+)
 from .credentials import CredentialRef, CredentialResolver, TenantScope
 
 
@@ -58,8 +64,7 @@ class CredentialAuthManager:
         token_type: str = "Bearer",
         authenticator: Authenticator | None = None,
     ) -> AuthRequest:
-        effective_scheme = authenticator.scheme if authenticator is not None else policy.scheme
-        if effective_scheme is AuthScheme.NONE:
+        if authenticator is None and policy.scheme is AuthScheme.NONE:
             return request
         if ref.tenant_id != scope.tenant_id:
             raise PermissionError("credential belongs to another tenant")
@@ -71,5 +76,8 @@ class CredentialAuthManager:
             client_id=client_id,
             token_type=token_type,
         )
-        auth = authenticator or authenticator_for(policy.scheme, **(policy.options or {}))
+        auth = authenticator or authenticator_for(
+            policy.scheme,
+            **(policy.options or {}),
+        )
         return auth.apply(request, material)
