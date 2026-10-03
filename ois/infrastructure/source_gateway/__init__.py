@@ -6,6 +6,7 @@ from .credentials import CredentialRef, CredentialResolver, InMemoryCredentialRe
 from .cursors import SourceCursor, SQLiteCursorStore
 from .evidence import RawEvidence, RawEvidenceWriter, SQLiteRawEvidenceWriter, canonical_hash
 from .gateway import SourceGateway, SourceRequest, SourceResponse
+from .socket import ApiSourceSocket, SocketStatus
 from .ledger import SQLiteSourceLedger
 from .limits import RateLimitPolicy, RateLimitState, TokenBucket
 from .outbox import OutboxEvent, OutboxStore, SQLiteOutboxStore
@@ -27,6 +28,8 @@ __all__ = [
     "SQLiteRawEvidenceWriter",
     "SQLiteSourceLedger",
     "SourceCursor",
+    "ApiSourceSocket",
+    "SocketStatus",
     "SourceGateway",
     "SourceRequest",
     "SourceResponse",
