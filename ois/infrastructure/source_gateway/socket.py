@@ -8,6 +8,7 @@ discovery while delegating durable evidence/event handling to SourceGateway.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Any
 
 from ois.infrastructure.source_adapters.base import (
@@ -76,7 +77,22 @@ class ApiSourceSocket:
     def health(self, source_id: str | None = None) -> tuple[AdapterHealth, ...]:
         """Return deterministic health for one source or all registered sources."""
         ids = (source_id,) if source_id else self._registry.list()
-        return tuple(self._registry.get(item).health() for item in ids)
+        results: list[AdapterHealth] = []
+        for item in ids:
+            adapter = self._registry.get(item)
+            check = getattr(adapter, "health", None)
+            if callable(check):
+                results.append(check())
+            else:
+                results.append(
+                    AdapterHealth(
+                        source_id=item,
+                        healthy=True,
+                        checked_at=datetime.now(UTC).isoformat(),
+                        reason="health_check_not_supported",
+                    )
+                )
+        return tuple(results)
 
     def status(self, source_id: str) -> SocketStatus:
         try:
