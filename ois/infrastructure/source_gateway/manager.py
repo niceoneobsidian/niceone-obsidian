@@ -36,7 +36,8 @@ class CredentialAuthManager:
         client_id: str | None = None,
         token_type: str = "Bearer",
     ) -> CredentialMaterial:
-        scope.assert_matches(ref.tenant_id, scope.workspace_id)
+        if ref.tenant_id != scope.tenant_id:
+            raise PermissionError("credential belongs to another tenant")
         secret = self._resolver.resolve(ref, scope)
         if not secret:
             raise PermissionError("credential material is empty")
