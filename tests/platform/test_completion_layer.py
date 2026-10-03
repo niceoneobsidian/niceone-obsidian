@@ -2,7 +2,12 @@ from __future__ import annotations
 
 import pytest
 
-from ois.platform import EvidenceStore, OISControlPlane, ProductionReadinessCertificate, SourceRegistry
+from ois.platform import (
+    EvidenceStore,
+    OISControlPlane,
+    ProductionReadinessCertificate,
+    SourceRegistry,
+)
 from ois.platform.certification import certify
 from ois.platform.contracts import PlatformIdentity, QualityGate, VersionRef
 from ois.platform.evolution import EvolutionRegistry, EvolutionState

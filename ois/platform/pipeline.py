@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 from .contracts import PlatformIdentity
 from .evidence import EvidenceStore
@@ -55,13 +56,15 @@ class ProductionPipeline:
             }
             for event in source_events
         ]
-        source = self.evidence.append(
-            identity, "source", source_payload, live=True
+        source = self.evidence.append(identity, "source", source_payload, live=True)
+        intelligence_payloads = [event["payload"] for event in source.payload]
+        intelligence_input = (
+            intelligence_payloads[0] if len(intelligence_payloads) == 1 else intelligence_payloads
         )
         intel = self.evidence.append(
             identity,
             "intelligence",
-            intelligence(source.payload),
+            intelligence(intelligence_input),
             parent_ids=(source.evidence_id,),
             live=True,
         )

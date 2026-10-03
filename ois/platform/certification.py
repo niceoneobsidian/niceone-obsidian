@@ -18,8 +18,8 @@ class Certificate:
 
     @property
     def valid(self) -> bool:
-        return bool(self.evidence_ids) and bool(self.gates) and all(
-            gate.passed for gate in self.gates
+        return (
+            bool(self.evidence_ids) and bool(self.gates) and all(gate.passed for gate in self.gates)
         )
 
 

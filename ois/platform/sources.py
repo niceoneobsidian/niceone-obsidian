@@ -22,9 +22,7 @@ class SourceAdapter(Protocol):
 
     def health(self) -> bool: ...
 
-    def collect(
-        self, identity: PlatformIdentity, **kwargs: Any
-    ) -> list[SourceEvent]: ...
+    def collect(self, identity: PlatformIdentity, **kwargs: Any) -> list[SourceEvent]: ...
 
 
 class SourceRegistry:
