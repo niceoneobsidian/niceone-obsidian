@@ -141,16 +141,14 @@ class BasicClientAuth:
 
 def authenticator_for(scheme: AuthScheme, **kwargs: object) -> Authenticator:
     """Build a governed authenticator from declarative connector configuration."""
-    authenticators: dict[AuthScheme, type[Authenticator]] = {
-        AuthScheme.API_KEY: ApiKeyAuth,
-        AuthScheme.BEARER: BearerAuth,
-        AuthScheme.OAUTH2: OAuth2Auth,
-        AuthScheme.HMAC: HmacAuth,
-    }
     if scheme is AuthScheme.NONE:
         raise ValueError("none authentication does not require an authenticator")
-    try:
-        factory = authenticators[scheme]
-    except KeyError as exc:
-        raise ValueError(f"unsupported authentication scheme: {scheme}") from exc
-    return factory(**kwargs)
+    if scheme is AuthScheme.API_KEY:
+        return ApiKeyAuth(**kwargs)
+    if scheme is AuthScheme.BEARER:
+        return BearerAuth(**kwargs)
+    if scheme is AuthScheme.OAUTH2:
+        return OAuth2Auth(**kwargs)
+    if scheme is AuthScheme.HMAC:
+        return HmacAuth(**kwargs)
+    raise ValueError(f"unsupported authentication scheme: {scheme}")
