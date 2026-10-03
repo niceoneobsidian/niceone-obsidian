@@ -8,6 +8,7 @@ from urllib.request import Request, urlopen
 
 from ois.infrastructure.source_gateway import CredentialRef, SourceGateway, SourceRequest, TenantScope
 from ois.infrastructure.source_gateway.auth import (
+    Authenticator,
     AuthRequest,
     AuthScheme,
     CredentialMaterial,
@@ -30,6 +31,7 @@ class HttpSourceAdapter:
         connector_version: str = "http-v1",
         auth_scheme: AuthScheme = AuthScheme.NONE,
         auth_options: dict[str, object] | None = None,
+        authenticator: Authenticator | None = None,
     ) -> None:
         self.source_id = source_id
         self._url = url
@@ -40,6 +42,9 @@ class HttpSourceAdapter:
         self._connector_version = connector_version
         self._auth_scheme = auth_scheme
         self._auth_options = dict(auth_options or {})
+        self._authenticator = authenticator
+        if self._authenticator is not None and self._auth_scheme is not AuthScheme.NONE:
+            raise ValueError("choose auth_scheme or authenticator, not both")
 
     def _fetch(self, credential: CredentialMaterial | None = None) -> object:
         payload = None
@@ -47,10 +52,10 @@ class HttpSourceAdapter:
         if self._body is not None:
             payload = json.dumps(self._body).encode()
             headers.setdefault("Content-Type", "application/json")
-        if self._auth_scheme is not AuthScheme.NONE:
+        if self._auth_scheme is not AuthScheme.NONE or self._authenticator is not None:
             if credential is None:
                 raise PermissionError("authentication credential required")
-            auth = authenticator_for(self._auth_scheme, **self._auth_options)
+            auth = self._authenticator or authenticator_for(self._auth_scheme, **self._auth_options)
             authenticated = auth.apply(
                 AuthRequest(self._method, self._url, headers, payload or b""),
                 credential,
@@ -106,7 +111,7 @@ class HttpSourceAdapter:
                 source_id=self.source_id,
                 source_record_id=self._url,
                 payload={"url": self._url, "response": payload},
-                credential=credential,
+                credential=credential_ref,
                 connector_version=self._connector_version,
                 schema_version="http.response.v1",
             )
