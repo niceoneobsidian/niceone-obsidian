@@ -5,7 +5,9 @@ from __future__ import annotations
 import sqlite3
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Protocol
+from typing import Any, Protocol
+
+import psycopg
 
 
 @dataclass(frozen=True)
@@ -96,3 +98,52 @@ class SQLiteIdempotencyStore:
         if row is None:
             return None
         return IdempotencyRecord(row[0], row[1], row[2], row[3], datetime.fromisoformat(row[4]))
+
+
+class PostgresIdempotencyStore:
+    """Production idempotency store backed by the OIS PostgreSQL boundary."""
+
+    def __init__(self, connection: psycopg.Connection[Any]) -> None:
+        self._connection = connection
+
+    def claim(
+        self,
+        *,
+        tenant_id: str,
+        workspace_id: str,
+        key: str,
+        event_id: str,
+    ) -> bool:
+        with self._connection.transaction(), self._connection.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO source_idempotency
+                    (tenant_id, workspace_id, idempotency_key, event_id)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (tenant_id, workspace_id, idempotency_key) DO NOTHING
+                RETURNING event_id
+                """,
+                (tenant_id, workspace_id, key, event_id),
+            )
+            return cur.fetchone() is not None
+
+    def get(
+        self,
+        *,
+        tenant_id: str,
+        workspace_id: str,
+        key: str,
+    ) -> IdempotencyRecord | None:
+        with self._connection.cursor() as cur:
+            cur.execute(
+                """
+                SELECT tenant_id, workspace_id, idempotency_key, event_id, created_at
+                FROM source_idempotency
+                WHERE tenant_id=%s AND workspace_id=%s AND idempotency_key=%s
+                """,
+                (tenant_id, workspace_id, key),
+            )
+            row = cur.fetchone()
+        if row is None:
+            return None
+        return IdempotencyRecord(row[0], row[1], row[2], row[3], row[4])
