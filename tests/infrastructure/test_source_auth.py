@@ -3,15 +3,20 @@ from __future__ import annotations
 import base64
 import re
 
-from ois.infrastructure.source_gateway import InMemoryCredentialResolver, SourceGateway, TenantScope, CredentialRef
+from ois.infrastructure.source_gateway import (
+    CredentialRef,
+    InMemoryCredentialResolver,
+    SourceGateway,
+    TenantScope,
+)
 from ois.infrastructure.source_gateway.auth import (
     ApiKeyAuth,
     AuthRequest,
+    AuthScheme,
     BearerAuth,
     CredentialMaterial,
     HmacAuth,
     OAuth2Auth,
-    AuthScheme,
 )
 
 
@@ -20,7 +25,9 @@ def request() -> AuthRequest:
 
 
 def test_api_key_auth_is_declarative() -> None:
-    result = ApiKeyAuth(header="X-Client-Key").apply(request(), CredentialMaterial("key-123"))
+    result = ApiKeyAuth(header="X-Client-Key").apply(
+        request(), CredentialMaterial("key-123")
+    )
     assert result.headers["X-Client-Key"] == "key-123"
 
 
