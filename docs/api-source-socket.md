@@ -91,3 +91,33 @@ Provider-specific authentication schemes should be represented explicitly
 (API key, bearer/OAuth2, HMAC, or provider-specific signing) rather than
 embedding secrets in generic adapter headers. This is the next step before
 adding additional production providers.
+
+## Authentication boundary
+
+Authentication is a first-class source concern, but it is not implemented inside generic adapters.
+Connectors declare an authentication scheme and options; the shared authentication boundary applies them to transport requests.
+
+Supported schemes:
+
+- **API key** — adds a configured key to a named header such as `X-API-Key`.
+- **Bearer** — sends the current access token as `Authorization: Bearer ...`.
+- **OAuth2** — uses the same bearer transport, while token exchange/refresh remains in a provider OAuth client or token service. Generic adapters never handle authorization codes or refresh tokens.
+- **HMAC/provider signing** — signs a canonical request with a tenant-scoped secret. Provider-specific header names/prefixes are configuration on the signer, not code in the HTTP adapter.
+
+The credential path is:
+
+`CredentialRef -> SourceGateway -> CredentialResolver -> CredentialMaterial -> Authenticator -> HTTP request`
+
+Secrets remain outside source records. The adapter receives resolved material only for the outbound request and the durable gateway still records the source payload/evidence, never the credential itself.
+
+Example declarative connector configuration:
+
+```python
+HttpSourceAdapter(
+    source_id="example:api",
+    url="https://api.example.com/v1/items",
+    auth_scheme=AuthScheme.BEARER,
+)
+```
+
+For OAuth2, the connector supplies the current access-token credential; refresh and provider-specific token exchange stay in the provider integration layer. This keeps Facebook, TikTok, Google, GitHub, and custom providers from adding authentication branches to generic adapters.
