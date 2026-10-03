@@ -2,8 +2,16 @@ from __future__ import annotations
 
 import pytest
 
-from ois.infrastructure.source_gateway.auth import AuthRequest, AuthScheme
-from ois.infrastructure.source_gateway.credentials import CredentialRef, InMemoryCredentialResolver, TenantScope
+from ois.infrastructure.source_gateway.auth import (
+    AuthRequest,
+    AuthScheme,
+    CredentialMaterial,
+)
+from ois.infrastructure.source_gateway.credentials import (
+    CredentialRef,
+    InMemoryCredentialResolver,
+    TenantScope,
+)
 from ois.infrastructure.source_gateway.manager import AuthPolicy, CredentialAuthManager
 
 
@@ -49,6 +57,27 @@ def test_manager_supports_oauth_client_material() -> None:
         authenticator=None,
     )
     assert result.headers["Authorization"].startswith("Bearer ")
+
+
+def test_manager_applies_explicit_provider_authenticator() -> None:
+    class CustomAuthenticator:
+        scheme = AuthScheme.NONE
+
+        def apply(self, request: AuthRequest, credential: CredentialMaterial) -> AuthRequest:
+            headers = dict(request.headers)
+            headers["X-Custom-Signature"] = f"sig:{credential.secret}"
+            return AuthRequest(request.method, request.url, headers, request.body)
+
+    manager = CredentialAuthManager(InMemoryCredentialResolver({"c1": "provider-secret"}))
+    result = manager.authenticate(
+        AuthRequest("GET", "https://example.test", {}),
+        CredentialRef("c1", "tenant-a", "provider"),
+        TenantScope("tenant-a", "workspace-a"),
+        AuthPolicy(AuthScheme.NONE),
+        authenticator=CustomAuthenticator(),
+    )
+
+    assert result.headers["X-Custom-Signature"] == "sig:provider-secret"
 
 
 def test_manager_returns_unauthenticated_request_for_none_policy() -> None:
