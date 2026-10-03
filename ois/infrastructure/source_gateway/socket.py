@@ -18,6 +18,7 @@ from ois.infrastructure.source_adapters.base import (
     SourceAdapterRegistry,
 )
 from ois.infrastructure.source_gateway.gateway import SourceGateway
+from ois.infrastructure.source_registry import SourceControlAPI, SourceDefinition
 
 
 @dataclass(frozen=True)
@@ -36,13 +37,29 @@ class ApiSourceSocket:
         *,
         gateway: SourceGateway,
         registry: SourceAdapterRegistry | None = None,
+        source_control: SourceControlAPI | None = None,
     ) -> None:
         self._gateway = gateway
         self._registry = registry or SourceAdapterRegistry()
+        self._source_control = source_control
 
     @property
     def gateway(self) -> SourceGateway:
         return self._gateway
+
+    @property
+    def source_control(self) -> SourceControlAPI | None:
+        return self._source_control
+
+    def register_definition(self, source: SourceDefinition) -> SourceDefinition:
+        if self._source_control is None:
+            raise RuntimeError("source control registry is not configured")
+        return self._source_control.register(source)
+
+    def list_definitions(self, *, tenant_id: str, workspace_id: str) -> tuple[SourceDefinition, ...]:
+        if self._source_control is None:
+            raise RuntimeError("source control registry is not configured")
+        return self._source_control.list(tenant_id=tenant_id, workspace_id=workspace_id)
 
     def register(self, adapter: SourceAdapter) -> None:
         """Register one connector; duplicate source IDs are rejected."""
