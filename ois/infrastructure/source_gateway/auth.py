@@ -132,9 +132,9 @@ class BasicClientAuth:
     def apply(self, request: AuthRequest, credential: CredentialMaterial) -> AuthRequest:
         if not credential.client_id:
             raise ValueError("OAuth client authentication requires client_id")
-        encoded = base64.b64encode(
-            f"{credential.client_id}:{credential.secret}".encode()
-        ).decode("ascii")
+        encoded = base64.b64encode(f"{credential.client_id}:{credential.secret}".encode()).decode(
+            "ascii"
+        )
         headers = dict(request.headers)
         headers["Authorization"] = f"Basic {encoded}"
         return AuthRequest(request.method, request.url, headers, request.body)

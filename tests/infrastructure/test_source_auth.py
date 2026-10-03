@@ -18,9 +18,7 @@ def request() -> AuthRequest:
 
 
 def test_api_key_auth_is_declarative() -> None:
-    result = ApiKeyAuth(header="X-Client-Key").apply(
-        request(), CredentialMaterial("key-123")
-    )
+    result = ApiKeyAuth(header="X-Client-Key").apply(request(), CredentialMaterial("key-123"))
     assert result.headers["X-Client-Key"] == "key-123"
 
 

@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from .auth import (
     ApiKeyAuth,
+    Authenticator,
     AuthRequest,
     AuthScheme,
-    Authenticator,
-    BearerAuth,
     BasicClientAuth,
+    BearerAuth,
     CredentialMaterial,
     HmacAuth,
     OAuth2Auth,
@@ -20,9 +20,9 @@ from .evidence import RawEvidence, RawEvidenceWriter, SQLiteRawEvidenceWriter, c
 from .gateway import SourceGateway, SourceRequest, SourceResponse
 from .ledger import SQLiteSourceLedger
 from .limits import RateLimitPolicy, RateLimitState, TokenBucket
-from .socket import ApiSourceSocket, SocketStatus
 from .outbox import OutboxEvent, OutboxStore, SQLiteOutboxStore
 from .postgres import PostgresSourceLedger
+from .socket import ApiSourceSocket, SocketStatus
 
 __all__ = [
     "ApiKeyAuth",
