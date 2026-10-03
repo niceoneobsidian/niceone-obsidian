@@ -105,6 +105,18 @@ class SourceGateway:
         evidence_id = event.event_id
         event_id = event.event_id
 
+        rate_key = f"{request.tenant_id}:{request.workspace_id}:{request.source_id}"
+        if self._rate_limit_manager is not None:
+            decision = self._rate_limit_manager.allow(rate_key)
+            if not decision.allowed:
+                return SourceResponse(False, "", "", "", "rate_limited")
+        else:
+            bucket = self._rate_limiters.get(request.source_id) or self._rate_limiters.get(
+                request.source_type
+            ) or self._rate_limiters.get(rate_key)
+            if bucket is not None and not bucket.acquire():
+                return SourceResponse(False, "", "", "", "rate_limited")
+
         if request.idempotency_key and self._idempotency is not None:
             if not self._idempotency.claim(
                 tenant_id=request.tenant_id,
@@ -124,18 +136,6 @@ class SourceGateway:
                     payload_hash,
                     "duplicate_idempotency",
                 )
-
-        rate_key = f"{request.tenant_id}:{request.workspace_id}:{request.source_id}"
-        if self._rate_limit_manager is not None:
-            decision = self._rate_limit_manager.allow(rate_key)
-            if not decision.allowed:
-                return SourceResponse(False, "", "", "", "rate_limited")
-        else:
-            bucket = self._rate_limiters.get(request.source_id) or self._rate_limiters.get(
-                request.source_type
-            ) or self._rate_limiters.get(rate_key)
-            if bucket is not None and not bucket.acquire():
-                return SourceResponse(False, "", "", "", "rate_limited")
 
         evidence = RawEvidence(
             evidence_id=evidence_id,
