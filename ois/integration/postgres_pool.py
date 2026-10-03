@@ -12,6 +12,7 @@ async def reset_connection(connection: Any) -> None:
     await connection.rollback()
     await connection.execute("RESET ALL")
     await connection.execute("DISCARD TEMP")
+    await connection.rollback()
 
 
 def create_tenant_pool(dsn: str, **kwargs: Any) -> AsyncConnectionPool:
