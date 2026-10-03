@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from typing import Any, cast
 from uuid import NAMESPACE_URL, uuid4, uuid5
 
+from .auth import CredentialMaterial
 from .credentials import CredentialRef, CredentialResolver, TenantScope
 from .evidence import RawEvidence, RawEvidenceWriter, canonical_hash
 from .limits import RateLimitPolicy, TokenBucket
@@ -62,6 +63,14 @@ class SourceGateway:
     def _id(self) -> str:
         return str(uuid4())
 
+    def resolve_credential(self, ref: CredentialRef, scope: TenantScope) -> CredentialMaterial:
+        """Resolve tenant-scoped secret material for an authentication strategy."""
+        if ref.tenant_id != scope.tenant_id:
+            raise PermissionError("credential belongs to another tenant")
+        if self._credentials is None:
+            raise RuntimeError("credential resolver is not configured")
+        return CredentialMaterial(self._credentials.resolve(ref, scope))
+
     def ingest(self, request: SourceRequest) -> SourceResponse:
         scope = TenantScope(
             tenant_id=request.tenant_id,
@@ -69,9 +78,7 @@ class SourceGateway:
         )
 
         if request.credential and self._credentials:
-            if request.credential.tenant_id != request.tenant_id:
-                raise PermissionError("credential belongs to another tenant")
-            self._credentials.resolve(request.credential, scope)
+            self.resolve_credential(request.credential, scope)
 
         bucket = self._rate_limiters.get(request.source_type) or self._rate_limiters.get(
             request.source_id
@@ -79,9 +86,6 @@ class SourceGateway:
         if bucket is not None and not bucket.acquire():
             return SourceResponse(False, "", "", "", "rate_limited")
 
-        evidence_id = self._id()
-        event_id = self._id()
-        payload_hash = canonical_hash(request.payload)
         payload_hash = canonical_hash(request.payload)
         evidence_id = str(
             uuid5(
