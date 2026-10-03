@@ -40,22 +40,14 @@ def test_socket_rejects_duplicate_source_ids(tmp_path) -> None:
 def test_socket_status_reports_unknown_source() -> None:
     api_socket = socket()
 
-    assert api_socket.status("missing") .reason == "source_not_registered"
+    assert api_socket.status("missing").reason == "source_not_registered"
 
 
-def test_registry_unregisters_explicitly() -> None:
+def test_registry_unregisters_explicitly(tmp_path) -> None:
     registry = SourceAdapterRegistry()
-
-    class Adapter:
-        source_id = "test:source"
-
-        def health(self):
-            raise AssertionError("health should not be called")
-
-        def ingest(self, *, tenant_id, workspace_id, gateway, credential_id=None):
-            raise AssertionError("ingest should not be called")
-
-    registry.register(Adapter())
+    path = tmp_path / "source.json"
+    path.write_text('{"id":"1"}', encoding="utf-8")
+    registry.register(FileSourceAdapter(source_id="file:test", path=str(path)))
     registry.unregister("test:source")
 
     assert registry.list() == ()
