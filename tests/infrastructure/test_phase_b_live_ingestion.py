@@ -26,9 +26,18 @@ from ois.infrastructure.source_registry import (
 )
 
 
-def gateway(**kwargs: object) -> SourceGateway:
+def gateway(
+    *,
+    idempotency: SQLiteIdempotencyStore | None = None,
+    rate_limit_manager: RateLimitManager | None = None,
+) -> SourceGateway:
     ledger = SQLiteSourceLedger()
-    return SourceGateway(evidence=ledger, outbox=ledger, **kwargs)
+    return SourceGateway(
+        evidence=ledger,
+        outbox=ledger,
+        idempotency=idempotency,
+        rate_limit_manager=rate_limit_manager,
+    )
 
 
 def test_canonical_source_event_is_stable() -> None:
