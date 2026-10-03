@@ -53,3 +53,15 @@ def test_registry_unregisters_explicitly(tmp_path) -> None:
     assert registry.list() == ()
     with pytest.raises(KeyError, match="not registered"):
         registry.unregister("test:source")
+
+
+def test_socket_health_supports_adapters_without_health_method(tmp_path) -> None:
+    path = tmp_path / "source.json"
+    path.write_text('{"id":"1"}', encoding="utf-8")
+    api_socket = socket()
+    api_socket.register(FileSourceAdapter(source_id="file:test", path=str(path)))
+
+    result = api_socket.health("file:test")
+
+    assert result[0].healthy is True
+    assert result[0].reason == "health_check_not_supported"
