@@ -40,7 +40,8 @@ class CredentialMaterial:
 
 
 class Authenticator(Protocol):
-    scheme: AuthScheme
+    @property
+    def scheme(self) -> AuthScheme: ...
 
     def apply(self, request: AuthRequest, credential: CredentialMaterial) -> AuthRequest: ...
 
@@ -132,7 +133,7 @@ class BasicClientAuth:
         if not credential.client_id:
             raise ValueError("OAuth client authentication requires client_id")
         encoded = base64.b64encode(
-            f"{credential.client_id}:{credential.secret}".encode("utf-8")
+            f"{credential.client_id}:{credential.secret}".encode()
         ).decode("ascii")
         headers = dict(request.headers)
         headers["Authorization"] = f"Basic {encoded}"
