@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, cast
 
 from ois.infrastructure.source_adapters.base import (
     AdapterHealth,
@@ -80,7 +80,7 @@ class ApiSourceSocket:
         results: list[AdapterHealth] = []
         for item in ids:
             adapter = self._registry.get(item)
-            check = getattr(adapter, "health", None)
+            check = getattr(cast(Any, adapter), "health", None)
             if callable(check):
                 results.append(check())
             else:
@@ -96,9 +96,13 @@ class ApiSourceSocket:
 
     def status(self, source_id: str) -> SocketStatus:
         try:
-            health = self._registry.get(source_id).health()
+            adapter = self._registry.get(source_id)
         except KeyError:
             return SocketStatus(source_id, False, None, "source_not_registered")
+        health_check = getattr(cast(Any, adapter), "health", None)
+        if not callable(health_check):
+            return SocketStatus(source_id, True, True, "health_check_not_supported")
+        health = health_check()
         return SocketStatus(source_id, True, health.healthy, health.reason)
 
     def ingest_payload(
