@@ -16,8 +16,6 @@ from ois.infrastructure.source_gateway.auth import (
     Authenticator,
     AuthRequest,
     AuthScheme,
-    CredentialMaterial,
-    authenticator_for,
 )
 
 from .base import AdapterHealth, AdapterResult, SourceAdapterRegistry, utc_now
@@ -51,26 +49,17 @@ class HttpSourceAdapter:
         if self._authenticator is not None and self._auth_scheme is not AuthScheme.NONE:
             raise ValueError("choose auth_scheme or authenticator, not both")
 
-    def _fetch(self, credential: CredentialMaterial | None = None) -> object:
+    def _fetch(self, headers: dict[str, str] | None = None) -> object:
         payload = None
-        headers = dict(self._headers)
+        request_headers = dict(headers or self._headers)
         if self._body is not None:
             payload = json.dumps(self._body).encode()
-            headers.setdefault("Content-Type", "application/json")
-        if self._auth_scheme is not AuthScheme.NONE or self._authenticator is not None:
-            if credential is None:
-                raise PermissionError("authentication credential required")
-            auth = self._authenticator or authenticator_for(self._auth_scheme, **self._auth_options)
-            authenticated = auth.apply(
-                AuthRequest(self._method, self._url, headers, payload or b""),
-                credential,
-            )
-            headers = authenticated.headers
+            request_headers.setdefault("Content-Type", "application/json")
 
         request = Request(
             self._url,
             data=payload,
-            headers=headers,
+            headers=request_headers,
             method=self._method,
         )
         with urlopen(request, timeout=self._timeout) as response:
@@ -96,19 +85,32 @@ class HttpSourceAdapter:
         credential_id: str | None = None,
     ) -> AdapterResult:
         credential_ref: CredentialRef | None = None
-        credential_material = None
-        if credential_id:
+        headers = dict(self._headers)
+        payload_bytes = None
+        if self._body is not None:
+            payload_bytes = json.dumps(self._body).encode()
+            headers.setdefault("Content-Type", "application/json")
+
+        if self._auth_scheme is not AuthScheme.NONE or self._authenticator is not None:
+            if credential_id is None:
+                raise PermissionError("authentication credential required")
             credential_ref = CredentialRef(
                 credential_id=credential_id,
                 tenant_id=tenant_id,
                 provider=self.source_id.split(":", 1)[0],
                 scopes=(),
             )
-            credential_material = gateway.resolve_credential(
+            authenticated = gateway.authenticate_request(
+                AuthRequest(self._method, self._url, headers, payload_bytes or b""),
                 credential_ref,
                 TenantScope(tenant_id=tenant_id, workspace_id=workspace_id),
+                self._auth_scheme,
+                options=self._auth_options,
+                authenticator=self._authenticator,
             )
-        payload = self._fetch(credential_material)
+            headers = authenticated.headers
+
+        payload = self._fetch(headers)
         response = gateway.ingest(
             SourceRequest(
                 tenant_id=tenant_id,
