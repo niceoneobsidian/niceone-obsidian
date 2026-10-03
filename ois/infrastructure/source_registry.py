@@ -21,8 +21,8 @@ class SourceDefinition:
     updated_at: datetime | None = None
 
     def __post_init__(self) -> None:
-        if not self.source_id or not self.provider:
-            raise ValueError("source_id and provider are required")
+        if not self.tenant_id or not self.workspace_id or not self.source_id or not self.provider:
+            raise ValueError("tenant_id, workspace_id, source_id, and provider are required")
         if self.mode not in {"poll", "webhook", "push"}:
             raise ValueError("unsupported source mode")
 
