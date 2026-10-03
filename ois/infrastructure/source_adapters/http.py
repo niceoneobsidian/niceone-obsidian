@@ -6,7 +6,12 @@ import json
 from typing import cast
 from urllib.request import Request, urlopen
 
-from ois.infrastructure.source_gateway import CredentialRef, SourceGateway, SourceRequest, TenantScope
+from ois.infrastructure.source_gateway import (
+    CredentialRef,
+    SourceGateway,
+    SourceRequest,
+    TenantScope,
+)
 from ois.infrastructure.source_gateway.auth import (
     Authenticator,
     AuthRequest,
