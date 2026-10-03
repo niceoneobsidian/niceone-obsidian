@@ -48,7 +48,7 @@ def test_registry_unregisters_explicitly(tmp_path) -> None:
     path = tmp_path / "source.json"
     path.write_text('{"id":"1"}', encoding="utf-8")
     registry.register(FileSourceAdapter(source_id="file:test", path=str(path)))
-    registry.unregister("test:source")
+    registry.unregister("file:test")
 
     assert registry.list() == ()
     with pytest.raises(KeyError, match="not registered"):
