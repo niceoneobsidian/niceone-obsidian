@@ -19,7 +19,12 @@ from .cursors import SourceCursor, SQLiteCursorStore
 from .evidence import RawEvidence, RawEvidenceWriter, SQLiteRawEvidenceWriter, canonical_hash
 from .events import SourceEvent, canonical_event_id
 from .gateway import SourceGateway, SourceRequest, SourceResponse
-from .idempotency import IdempotencyRecord, IdempotencyStore, SQLiteIdempotencyStore
+from .idempotency import (
+    IdempotencyRecord,
+    IdempotencyStore,
+    PostgresIdempotencyStore,
+    SQLiteIdempotencyStore,
+)
 from .ledger import SQLiteSourceLedger
 from .limits import RateLimitPolicy, RateLimitState, TokenBucket
 from .outbox import OutboxEvent, OutboxStore, SQLiteOutboxStore
@@ -52,6 +57,7 @@ __all__ = [
     "RawEvidence",
     "RawEvidenceWriter",
     "SQLiteCursorStore",
+    "PostgresIdempotencyStore",
     "SQLiteIdempotencyStore",
     "SQLiteOutboxStore",
     "SQLiteRawEvidenceWriter",
