@@ -6,7 +6,6 @@ permissions:
 on:
   push:
     branches: [main, "feat/**"]
-    branches: [feat/p0-recovery-conformance-final]
   pull_request:
     branches: [main]
 
@@ -17,13 +16,13 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_USER: ois
-          POSTGRES_PASSWORD: ois
+          POSTGRES_USER: ois_admin
+          POSTGRES_PASSWORD: ois_local_only
           POSTGRES_DB: ois_test
         ports:
           - 5432:5432
         options: >-
-          --health-cmd="pg_isready -U ois -d ois_test"
+          --health-cmd="pg_isready -U ois_admin -d ois_test"
           --health-interval=10s --health-timeout=5s --health-retries=5
       redis:
         image: redis:7
@@ -40,11 +39,23 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
           python-version: "3.12"
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+      - name: Provision non-superuser test role
+        env:
+          PGPASSWORD: ois_local_only
+        run: |
+          psql -h localhost -U ois_admin -d ois_test -v ON_ERROR_STOP=1 \
+            -c "CREATE ROLE ois LOGIN PASSWORD 'ois' NOSUPERUSER NOBYPASSRLS;" \
+            -c "GRANT CONNECT ON DATABASE ois_test TO ois;" \
+            -c "GRANT USAGE, CREATE ON SCHEMA public TO ois;"
       - name: Install project and verification tools
         run: |
           python -m pip install --upgrade pip
           pip install -e .
-          pip install ruff mypy bandit gitleaks pip-licenses pytest pytest-asyncio
+          pip install ruff mypy bandit pip-licenses pytest pytest-asyncio
           python -m pip install -e ".[test]"
           python -m pip install "ruff==0.9.10" mypy bandit pip-licenses
       - name: Ruff lint

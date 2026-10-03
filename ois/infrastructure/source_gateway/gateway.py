@@ -8,6 +8,7 @@ from typing import Any, cast
 from uuid import NAMESPACE_URL, uuid4, uuid5
 
 from .contracts import SourceProvenance
+from .auth import CredentialMaterial
 from .credentials import CredentialRef, CredentialResolver, TenantScope
 from .evidence import RawEvidence, RawEvidenceWriter, canonical_hash
 from .limits import RateLimitPolicy, TokenBucket
@@ -97,6 +98,14 @@ class SourceGateway:
     def _id(self) -> str:
         return str(uuid4())
 
+    def resolve_credential(self, ref: CredentialRef, scope: TenantScope) -> CredentialMaterial:
+        """Resolve tenant-scoped secret material for an authentication strategy."""
+        if ref.tenant_id != scope.tenant_id:
+            raise PermissionError("credential belongs to another tenant")
+        if self._credentials is None:
+            raise RuntimeError("credential resolver is not configured")
+        return CredentialMaterial(self._credentials.resolve(ref, scope))
+
     def ingest(self, request: SourceRequest) -> SourceResponse:
         scope = TenantScope(
             tenant_id=request.tenant_id,
@@ -109,6 +118,8 @@ class SourceGateway:
             if request.credential.tenant_id != request.tenant_id:
                 raise PermissionError("credential belongs to another tenant")
             self._credentials.resolve(request.credential, scope)
+        if request.credential and self._credentials:
+            self.resolve_credential(request.credential, scope)
 
         if request.rate_limit_lease is not None:
             lease_scope = self._leases.pop(request.rate_limit_lease, None)

@@ -16,6 +16,16 @@ from ois.infrastructure.source_gateway import (
     SourceGateway,
     SourceProvenance,
     SourceRequest,
+    SourceGateway,
+    SourceRequest,
+    TenantScope,
+)
+from ois.infrastructure.source_gateway.auth import (
+    Authenticator,
+    AuthRequest,
+    AuthScheme,
+    CredentialMaterial,
+    authenticator_for,
 )
 
 from .base import AdapterHealth, AdapterResult, SourceAdapterRegistry, utc_now
@@ -43,6 +53,10 @@ class HttpSourceAdapter:
         auth_header: str = "Authorization",
         freshness: FreshnessPolicy | None = None,
         opener: Callable[..., Any] | None = None,
+        connector_version: str = "http-v1",
+        auth_scheme: AuthScheme = AuthScheme.NONE,
+        auth_options: dict[str, object] | None = None,
+        authenticator: Authenticator | None = None,
     ) -> None:
         if not url.startswith(("http://", "https://")):
             raise ValueError("HTTP source URL must use http:// or https://")
@@ -72,6 +86,13 @@ class HttpSourceAdapter:
         return f"{self._url}{'&' if '?' in self._url else '?'}{urlencode(self._query)}"
 
     def _headers_for(self, credential: str | None) -> dict[str, str]:
+        self._auth_options = dict(auth_options or {})
+        self._authenticator = authenticator
+        if self._authenticator is not None and self._auth_scheme is not AuthScheme.NONE:
+            raise ValueError("choose auth_scheme or authenticator, not both")
+
+    def _fetch(self, credential: CredentialMaterial | None = None) -> object:
+        payload = None
         headers = dict(self._headers)
         if self._auth_scheme == "none":
             if credential is not None:
@@ -98,6 +119,23 @@ class HttpSourceAdapter:
         request = Request(request_url, data=payload, headers=headers, method=self._method)
         started = monotonic()
         with self._opener(request, timeout=self._timeout) as response:
+        if self._auth_scheme is not AuthScheme.NONE or self._authenticator is not None:
+            if credential is None:
+                raise PermissionError("authentication credential required")
+            auth = self._authenticator or authenticator_for(self._auth_scheme, **self._auth_options)
+            authenticated = auth.apply(
+                AuthRequest(self._method, self._url, headers, payload or b""),
+                credential,
+            )
+            headers = authenticated.headers
+
+        request = Request(
+            self._url,
+            data=payload,
+            headers=headers,
+            method=self._method,
+        )
+        with urlopen(request, timeout=self._timeout) as response:
             raw = response.read()
             content_type = response.headers.get("Content-Type", "")
             status = str(getattr(response, "status", 200))
@@ -163,6 +201,7 @@ class HttpSourceAdapter:
     ) -> AdapterResult:
         credential_ref: CredentialRef | None = None
         credential: str | None = None
+        credential_material = None
         if credential_id:
             credential_ref = CredentialRef(
                 credential_id=credential_id,
@@ -206,6 +245,11 @@ class HttpSourceAdapter:
             observed_at=observed_at,
             metadata={"http_status": status},
         )
+            credential_material = gateway.resolve_credential(
+                credential_ref,
+                TenantScope(tenant_id=tenant_id, workspace_id=workspace_id),
+            )
+        payload = self._fetch(credential_material)
         response = gateway.ingest(
             SourceRequest(
                 tenant_id=tenant_id,

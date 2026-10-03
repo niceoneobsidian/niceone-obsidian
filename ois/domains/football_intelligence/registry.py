@@ -1,11 +1,13 @@
-# fmt: off
-# ruff: noqa: E501
-"""Football domain manifest for integration with the existing OIS registries."""
+"""Football domain manifest for the authoritative OIS registries."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any
+
+# fmt: off
+
+# ruff: noqa: E501
 
 
 @dataclass(frozen=True)
@@ -17,13 +19,11 @@ class DomainCapability:
     side_effect: bool = False
     requires_approval: bool = False
 
-
 @dataclass(frozen=True)
 class FootballAgentSpec:
     agent_id: str
     role: str
     capabilities: tuple[str, ...]
-
 
 FOOTBALL_CAPABILITIES: tuple[DomainCapability, ...] = (
     DomainCapability("football.ingest", "Ingest canonical football data", "FootballDataBatch", "FootballDataBatch"),
@@ -61,14 +61,18 @@ FOOTBALL_AGENTS: tuple[FootballAgentSpec, ...] = (
     FootballAgentSpec("football.supervisor", "Supervise football domain workflows", tuple(c.capability_id for c in FOOTBALL_CAPABILITIES)),
 )
 
-
 def manifest() -> dict[str, Any]:
     return {
         "domain": "football_intelligence",
+        "version": "f0-f12-v1",
         "capabilities": [c.__dict__.copy() for c in FOOTBALL_CAPABILITIES],
         "agents": [a.__dict__.copy() for a in FOOTBALL_AGENTS],
         "workflows": [
+            {"workflow_id": "football.ingest", "version": 1},
             {"workflow_id": "football.predict", "version": 1},
+            {"workflow_id": "football.evaluate", "version": 1},
+            {"workflow_id": "football.live", "version": 1},
+            {"workflow_id": "football.evolve", "version": 1, "requires_approval": True},
             {"workflow_id": "football.market_pricing", "version": 1},
             {"workflow_id": "football.backtest", "version": 1},
             {"workflow_id": "football.live_prediction", "version": 1},
@@ -76,4 +80,5 @@ def manifest() -> dict[str, Any]:
         ],
         "model_registry_namespace": "football",
         "connector_contract": "FootballDataConnector",
+        "evidence_contract": "OIS Evidence Ledger",
     }

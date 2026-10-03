@@ -5,13 +5,15 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
 from ois.infrastructure.source_gateway import (
     SourceGateway,
     SourceResponse,
     SourceSpec,
 )
+if TYPE_CHECKING:
+    from ois.infrastructure.source_gateway.gateway import SourceGateway, SourceResponse
 
 
 @dataclass(frozen=True)
@@ -35,8 +37,6 @@ class AdapterResult:
 
 class SourceAdapter(Protocol):
     source_id: str
-
-    def health(self) -> AdapterHealth: ...
 
     def ingest(
         self,
@@ -78,6 +78,11 @@ class SourceAdapterRegistry:
             return self._specs[source_id]
         except KeyError as exc:
             raise KeyError(f"source specification not registered: {source_id}") from exc
+    def unregister(self, source_id: str) -> None:
+        """Remove a connector explicitly; unknown sources are rejected."""
+        if source_id not in self._adapters:
+            raise KeyError(f"source adapter not registered: {source_id}")
+        del self._adapters[source_id]
 
     def list(self) -> tuple[str, ...]:
         return tuple(sorted(self._adapters))
