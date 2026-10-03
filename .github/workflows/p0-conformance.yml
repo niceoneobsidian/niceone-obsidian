@@ -43,7 +43,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e .
-          pip install ruff mypy bandit gitleaks pip-licenses pytest pytest-asyncio
+          pip install ruff mypy bandit pip-licenses pytest pytest-asyncio
           python -m pip install -e ".[test]"
           python -m pip install "ruff==0.9.10" mypy bandit pip-licenses
       - name: Ruff lint
