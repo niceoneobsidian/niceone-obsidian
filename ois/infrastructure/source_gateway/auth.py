@@ -144,11 +144,16 @@ def authenticator_for(scheme: AuthScheme, **kwargs: object) -> Authenticator:
     if scheme is AuthScheme.NONE:
         raise ValueError("none authentication does not require an authenticator")
     if scheme is AuthScheme.API_KEY:
-        return ApiKeyAuth(**kwargs)
+        return ApiKeyAuth(header=str(kwargs.get("header", "X-API-Key")))
     if scheme is AuthScheme.BEARER:
-        return BearerAuth(**kwargs)
+        return BearerAuth()
     if scheme is AuthScheme.OAUTH2:
-        return OAuth2Auth(**kwargs)
+        return OAuth2Auth()
     if scheme is AuthScheme.HMAC:
-        return HmacAuth(**kwargs)
+        return HmacAuth(
+            signature_header=str(kwargs.get("signature_header", "X-Signature")),
+            timestamp_header=str(kwargs.get("timestamp_header", "X-Timestamp")),
+            algorithm=str(kwargs.get("algorithm", "sha256")),
+            prefix=str(kwargs.get("prefix", "")),
+        )
     raise ValueError(f"unsupported authentication scheme: {scheme}")
