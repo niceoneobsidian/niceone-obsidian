@@ -76,3 +76,33 @@ def test_dead_letter_replay_removes_successfully_replayed_event() -> None:
     recovery.run(event(), lambda _: (_ for _ in ()).throw(RuntimeError("boom")))
     assert recovery.replay("evt-1", lambda _: None) is True
     assert store.size() == 0
+
+
+def test_gateway_can_deliver_accepted_event_to_pipeline() -> None:
+    class Pipeline:
+        def __init__(self) -> None:
+            self.events: list[str] = []
+
+        def process(self, item: CanonicalSourceEvent) -> object:
+            self.events.append(item.event_id)
+
+            class Result:
+                accepted = True
+                reason = None
+
+            return Result()
+
+    from ois.infrastructure.source_gateway.gateway import SourceGateway, SourceRequest
+
+    pipeline = Pipeline()
+    response = SourceGateway(intelligence_pipeline=pipeline).ingest(
+        SourceRequest(
+            tenant_id="tenant-a",
+            workspace_id="workspace-a",
+            source_id="google:source",
+            source_record_id="record-1",
+            payload={"text": "hello"},
+        )
+    )
+    assert response.accepted is True
+    assert pipeline.events == [response.event_id]
