@@ -24,6 +24,15 @@ def set_local_tenant(connection: Any, tenant_id: str | UUID) -> None:
         cursor.execute("SELECT set_config('app.current_tenant_id', %s, true)", (normalized,))
 
 
+async def async_set_local_tenant(connection: Any, tenant_id: str | UUID) -> None:
+    """Set PostgreSQL tenant context on an async connection."""
+    normalized = normalize_tenant_id(tenant_id)
+    await connection.execute(
+        "SELECT set_config('app.current_tenant_id', %s, true)",
+        (normalized,),
+    )
+
+
 @contextmanager
 def tenant_transaction(connection: Any, tenant_id: str | UUID) -> Iterator[Any]:
     """Bind tenant identity for exactly one PostgreSQL transaction."""

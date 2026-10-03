@@ -33,7 +33,6 @@ jobs:
   trivy:
     name: Trivy filesystem and IaC scan
     runs-on: ubuntu-latest
-    if: ${{ hashFiles('**/Dockerfile', '**/Containerfile', '**/docker-compose.yml', '**/docker-compose.yaml', '**/compose.yml', '**/compose.yaml') != '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
