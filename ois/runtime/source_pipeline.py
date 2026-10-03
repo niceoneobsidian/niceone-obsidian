@@ -27,15 +27,17 @@ class SourceIntelligencePipeline:
         policies: SourcePolicyStore,
         recovery: SourceRecovery,
         dead_letters: DeadLetterStore,
+        handler: Callable[[CanonicalSourceEvent], object] | None = None,
     ) -> None:
         self._policies = policies
         self._recovery = recovery
         self._dead_letters = dead_letters
+        self._handler = handler
 
     def process(
         self,
         event: CanonicalSourceEvent,
-        handler: Callable[[CanonicalSourceEvent], object],
+        handler: Callable[[CanonicalSourceEvent], object] | None = None,
     ) -> PipelineResult:
         try:
             self._policies.authorize(
@@ -48,7 +50,10 @@ class SourceIntelligencePipeline:
         except PermissionError as exc:
             return PipelineResult(event.event_id, False, False, str(exc))
 
-        accepted = self._recovery.run(event, handler)
+        processor = handler or self._handler
+        if processor is None:
+            return PipelineResult(event.event_id, False, False, "intelligence_handler_not_configured")
+        accepted = self._recovery.run(event, processor)
         dead_lettered = any(
             item.event.event_id == event.event_id
             for item in self._dead_letters.list(event.tenant_id, event.workspace_id)
