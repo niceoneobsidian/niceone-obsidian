@@ -10,7 +10,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from ois.infrastructure.source_adapters.base import AdapterHealth, AdapterResult, SourceAdapter, SourceAdapterRegistry
+from ois.infrastructure.source_adapters.base import (
+    AdapterHealth,
+    AdapterResult,
+    SourceAdapter,
+    SourceAdapterRegistry,
+)
 from ois.infrastructure.source_gateway.gateway import SourceGateway
 
 
