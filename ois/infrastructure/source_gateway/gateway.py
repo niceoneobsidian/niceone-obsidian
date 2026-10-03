@@ -5,13 +5,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any, cast
-from uuid import NAMESPACE_URL, uuid4, uuid5
 
 from .auth import CredentialMaterial
 from .credentials import CredentialRef, CredentialResolver, TenantScope
 from .evidence import RawEvidence, RawEvidenceWriter, canonical_hash
+from .events import SourceEvent
+from .idempotency import IdempotencyStore
 from .limits import RateLimitPolicy, TokenBucket
 from .outbox import OutboxEvent, OutboxStore
+from .rate_limits import RateLimitManager
 
 
 @dataclass(frozen=True)
@@ -25,6 +27,8 @@ class SourceRequest:
     connector_version: str = "v1"
     schema_version: str = "v1"
     source_id: str = ""
+    event_type: str = "source.observation"
+    idempotency_key: str | None = None
 
     def __post_init__(self) -> None:
         if self.payload is None:
@@ -49,10 +53,15 @@ class SourceGateway:
         evidence: RawEvidenceWriter | None = None,
         outbox: OutboxStore | None = None,
         rate_limits: dict[str, RateLimitPolicy] | None = None,
+        *,
+        idempotency: IdempotencyStore | None = None,
+        rate_limit_manager: RateLimitManager | None = None,
     ) -> None:
         self._credentials = credentials
         self._evidence = evidence
         self._outbox = outbox
+        self._idempotency = idempotency
+        self._rate_limit_manager = rate_limit_manager
         self._rate_limiters: dict[str, TokenBucket] = {}
         if rate_limits:
             for key, policy in rate_limits.items():
@@ -61,6 +70,8 @@ class SourceGateway:
                 )
 
     def _id(self) -> str:
+        from uuid import uuid4
+
         return str(uuid4())
 
     def resolve_credential(self, ref: CredentialRef, scope: TenantScope) -> CredentialMaterial:
@@ -80,21 +91,51 @@ class SourceGateway:
         if request.credential and self._credentials:
             self.resolve_credential(request.credential, scope)
 
-        bucket = self._rate_limiters.get(request.source_type) or self._rate_limiters.get(
-            request.source_id
+        payload = request.payload or {}
+        event = SourceEvent.from_payload(
+            tenant_id=request.tenant_id,
+            workspace_id=request.workspace_id,
+            source_id=request.source_id,
+            source_record_id=request.source_record_id,
+            payload=payload,
+            event_type=request.event_type,
+            connector_version=request.connector_version,
         )
-        if bucket is not None and not bucket.acquire():
-            return SourceResponse(False, "", "", "", "rate_limited")
+        payload_hash = event.payload_hash
+        evidence_id = event.event_id
+        event_id = event.event_id
 
-        payload_hash = canonical_hash(request.payload)
-        evidence_id = str(
-            uuid5(
-                NAMESPACE_URL,
-                f"{request.tenant_id}:{request.workspace_id}:{request.source_id}:"
-                f"{request.source_record_id}:{payload_hash}",
-            )
-        )
-        event_id = str(uuid5(NAMESPACE_URL, f"source-outbox:{evidence_id}"))
+        if request.idempotency_key and self._idempotency is not None:
+            if not self._idempotency.claim(
+                tenant_id=request.tenant_id,
+                workspace_id=request.workspace_id,
+                key=request.idempotency_key,
+                event_id=event_id,
+            ):
+                existing = self._idempotency.get(
+                    tenant_id=request.tenant_id,
+                    workspace_id=request.workspace_id,
+                    key=request.idempotency_key,
+                )
+                return SourceResponse(
+                    False,
+                    existing.event_id if existing else evidence_id,
+                    existing.event_id if existing else event_id,
+                    payload_hash,
+                    "duplicate_idempotency",
+                )
+
+        rate_key = f"{request.tenant_id}:{request.workspace_id}:{request.source_id}"
+        if self._rate_limit_manager is not None:
+            decision = self._rate_limit_manager.allow(rate_key)
+            if not decision.allowed:
+                return SourceResponse(False, "", "", "", "rate_limited")
+        else:
+            bucket = self._rate_limiters.get(request.source_id) or self._rate_limiters.get(
+                request.source_type
+            ) or self._rate_limiters.get(rate_key)
+            if bucket is not None and not bucket.acquire():
+                return SourceResponse(False, "", "", "", "rate_limited")
 
         evidence = RawEvidence(
             evidence_id=evidence_id,
@@ -102,35 +143,32 @@ class SourceGateway:
             workspace_id=request.workspace_id,
             source_id=request.source_id,
             source_record_id=request.source_record_id,
-            payload=request.payload or {},
+            payload=payload,
             payload_hash=payload_hash,
-            collected_at=datetime.now(UTC),
+            collected_at=event.received_at,
             connector_version=request.connector_version,
             schema_version=request.schema_version,
             ingestion_run_id=self._id(),
         )
 
-        event = OutboxEvent(
+        outbox_payload = event.as_payload()
+        outbox_payload["evidence_id"] = evidence_id
+        outbox_event = OutboxEvent(
             event_id=event_id,
             tenant_id=request.tenant_id,
             workspace_id=request.workspace_id,
             aggregate_id=evidence_id,
-            event_type="source.raw_evidence.created",
-            payload={
-                "evidence_id": evidence_id,
-                "source_id": request.source_id,
-                "payload_hash": payload_hash,
-            },
-            created_at=datetime.now(UTC),
+            event_type=request.event_type,
+            payload=outbox_payload,
+            created_at=event.received_at,
         )
 
         commit_ingest = getattr(self._evidence, "commit_ingest", None)
-
         if callable(commit_ingest) and cast(object, self._outbox) is cast(object, self._evidence):
-            accepted = commit_ingest(evidence, event)
+            accepted = commit_ingest(evidence, outbox_event)
         else:
             accepted = self._evidence.append(evidence) if self._evidence else True
-            outbox_ok = self._outbox.append(event) if self._outbox else True
+            outbox_ok = self._outbox.append(outbox_event) if self._outbox else True
             if accepted and not outbox_ok:
                 raise RuntimeError(
                     "evidence committed but outbox append failed; "
