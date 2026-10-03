@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from .idempotency import IdempotencyStore
@@ -36,7 +37,7 @@ class WebhookSecurity:
         policy: WebhookSecurityPolicy,
         *,
         replay_store: IdempotencyStore | None = None,
-        clock: callable = time.time,
+        clock: Callable[[], float] = time.time,
     ) -> None:
         self._policy = policy
         self._replay_store = replay_store
