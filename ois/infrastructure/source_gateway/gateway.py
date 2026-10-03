@@ -133,7 +133,7 @@ class SourceGateway:
         )
 
         credential_verified = False
-        if request.credential and self._credentials:
+        if request.credential and self._auth_manager:
             self.resolve_credential(request.credential, scope)
             credential_verified = True
 
