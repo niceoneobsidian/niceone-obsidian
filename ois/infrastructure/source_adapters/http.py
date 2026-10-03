@@ -7,7 +7,12 @@ from typing import cast
 from urllib.request import Request, urlopen
 
 from ois.infrastructure.source_gateway import CredentialRef, SourceGateway, SourceRequest, TenantScope
-from ois.infrastructure.source_gateway.auth import AuthRequest, AuthScheme, authenticator_for
+from ois.infrastructure.source_gateway.auth import (
+    AuthRequest,
+    AuthScheme,
+    CredentialMaterial,
+    authenticator_for,
+)
 
 from .base import AdapterHealth, AdapterResult, SourceAdapterRegistry, utc_now
 
@@ -36,7 +41,7 @@ class HttpSourceAdapter:
         self._auth_scheme = auth_scheme
         self._auth_options = dict(auth_options or {})
 
-    def _fetch(self, credential: object | None = None) -> object:
+    def _fetch(self, credential: CredentialMaterial | None = None) -> object:
         payload = None
         headers = dict(self._headers)
         if self._body is not None:
