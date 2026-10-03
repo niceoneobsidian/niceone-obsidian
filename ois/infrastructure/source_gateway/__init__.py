@@ -19,8 +19,8 @@ from .cursors import SourceCursor, SQLiteCursorStore
 from .evidence import RawEvidence, RawEvidenceWriter, SQLiteRawEvidenceWriter, canonical_hash
 from .gateway import SourceGateway, SourceRequest, SourceResponse
 from .ledger import SQLiteSourceLedger
-from .socket import ApiSourceSocket, SocketStatus
 from .limits import RateLimitPolicy, RateLimitState, TokenBucket
+from .socket import ApiSourceSocket, SocketStatus
 from .outbox import OutboxEvent, OutboxStore, SQLiteOutboxStore
 from .postgres import PostgresSourceLedger
 
