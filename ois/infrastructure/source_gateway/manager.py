@@ -58,7 +58,8 @@ class CredentialAuthManager:
         token_type: str = "Bearer",
         authenticator: Authenticator | None = None,
     ) -> AuthRequest:
-        if policy.scheme is AuthScheme.NONE:
+        effective_scheme = authenticator.scheme if authenticator is not None else policy.scheme
+        if effective_scheme is AuthScheme.NONE:
             return request
         if ref.tenant_id != scope.tenant_id:
             raise PermissionError("credential belongs to another tenant")
