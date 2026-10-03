@@ -8,7 +8,7 @@ from psycopg import errors
 from psycopg_pool import AsyncConnectionPool
 
 from ois.integration.postgres_pool import create_tenant_pool
-from ois.kernel.tenant import set_local_tenant
+from ois.kernel.tenant import async_set_local_tenant
 
 DB_DSN = os.getenv("OIS_TEST_DATABASE_URL")
 pytestmark = [pytest.mark.asyncio]
@@ -39,7 +39,7 @@ async def pool() -> AsyncConnectionPool:
             await conn.commit()
 
         async with pool.connection() as conn:
-            set_local_tenant(conn, "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+            await async_set_local_tenant(conn, "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
             await conn.execute("DELETE FROM ois_rls_adversarial_fixture")
             await conn.execute(
                 (
@@ -51,7 +51,7 @@ async def pool() -> AsyncConnectionPool:
             await conn.commit()
 
         async with pool.connection() as conn:
-            set_local_tenant(conn, "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
+            await async_set_local_tenant(conn, "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
             await conn.execute(
                 (
                     "INSERT INTO ois_rls_adversarial_fixture "
@@ -70,7 +70,7 @@ async def pool() -> AsyncConnectionPool:
 
 async def test_cross_tenant_read_isolation(pool: AsyncConnectionPool) -> None:
     async with pool.connection() as conn:
-        set_local_tenant(conn, "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+        await async_set_local_tenant(conn, "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
         row = await conn.execute(
             "SELECT secret FROM ois_rls_adversarial_fixture WHERE id = %s",
             ("tenant-b-record",),
@@ -82,7 +82,7 @@ async def test_cross_tenant_read_isolation(pool: AsyncConnectionPool) -> None:
 async def test_parameterized_identifier_cannot_escape_query(pool: AsyncConnectionPool) -> None:
     payload = "tenant-a-record' OR tenant_id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
     async with pool.connection() as conn:
-        set_local_tenant(conn, "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+        await async_set_local_tenant(conn, "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
         row = await conn.execute(
             "SELECT id FROM ois_rls_adversarial_fixture WHERE id = %s",
             (payload,),
@@ -108,7 +108,7 @@ async def test_pool_reset_removes_sticky_tenant_context(pool: AsyncConnectionPoo
 
 async def test_cross_tenant_write_is_rejected(pool: AsyncConnectionPool) -> None:
     async with pool.connection() as conn:
-        set_local_tenant(conn, "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+        await async_set_local_tenant(conn, "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
         with pytest.raises(errors.InsufficientPrivilege):
             await conn.execute(
                 (
@@ -123,7 +123,7 @@ async def test_cross_tenant_write_is_rejected(pool: AsyncConnectionPool) -> None
 async def test_cross_tenant_isolation_survives_pool_reuse(pool: AsyncConnectionPool) -> None:
     """Reuse one pooled connection across tenants without sticky tenant state."""
     async with pool.connection() as conn:
-        set_local_tenant(conn, "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+        await async_set_local_tenant(conn, "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
         row = await conn.execute(
             "SELECT secret FROM ois_rls_adversarial_fixture WHERE id = %s",
             ("tenant-a-record",),
@@ -131,7 +131,7 @@ async def test_cross_tenant_isolation_survives_pool_reuse(pool: AsyncConnectionP
         assert (await row.fetchone())[0] == "A-secret"
 
     async with pool.connection() as conn:
-        set_local_tenant(conn, "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
+        await async_set_local_tenant(conn, "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
         row = await conn.execute(
             "SELECT secret FROM ois_rls_adversarial_fixture WHERE id = %s",
             ("tenant-a-record",),

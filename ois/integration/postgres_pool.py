@@ -4,7 +4,7 @@ from typing import Any
 
 from psycopg_pool import AsyncConnectionPool
 
-from ois.kernel.tenant import normalize_tenant_id, set_local_tenant
+from ois.kernel.tenant import async_set_local_tenant, normalize_tenant_id
 
 
 async def reset_connection(connection: Any) -> None:
@@ -22,5 +22,5 @@ def create_tenant_pool(dsn: str, **kwargs: Any) -> AsyncConnectionPool:
 async def bind_tenant(connection: Any, tenant_id: str) -> str:
     """Bind a validated tenant to the current transaction; caller owns commit/rollback."""
     normalized = normalize_tenant_id(tenant_id)
-    set_local_tenant(connection, normalized)
+    await async_set_local_tenant(connection, normalized)
     return normalized
