@@ -56,7 +56,9 @@ class ApiSourceSocket:
             raise RuntimeError("source control registry is not configured")
         return self._source_control.register(source)
 
-    def list_definitions(self, *, tenant_id: str, workspace_id: str) -> tuple[SourceDefinition, ...]:
+    def list_definitions(
+        self, *, tenant_id: str, workspace_id: str
+    ) -> tuple[SourceDefinition, ...]:
         if self._source_control is None:
             raise RuntimeError("source control registry is not configured")
         return self._source_control.list(tenant_id=tenant_id, workspace_id=workspace_id)
@@ -165,7 +167,9 @@ class ApiSourceSocket:
         )
         from ois.infrastructure.source_gateway import CredentialRef, SourceRequest
 
-        effective_credential_id = credential_id or (definition.credential_id if definition else None)
+        effective_credential_id = credential_id or (
+            definition.credential_id if definition else None
+        )
         credential = None
         if effective_credential_id:
             credential = CredentialRef(

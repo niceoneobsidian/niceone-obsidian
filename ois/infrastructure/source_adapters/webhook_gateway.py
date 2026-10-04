@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from typing import Any
 
 from ois.infrastructure.source_adapters.base import AdapterResult
 from ois.infrastructure.source_gateway import SourceGateway, WebhookSecurity

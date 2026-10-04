@@ -200,4 +200,3 @@ class PostgresIdempotencyStore:
                 (tenant_id, workspace_id, key, event_id),
             )
             return cur.rowcount == 1
-        

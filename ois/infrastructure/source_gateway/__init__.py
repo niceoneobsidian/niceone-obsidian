@@ -16,8 +16,8 @@ from .auth import (
 )
 from .credentials import CredentialRef, CredentialResolver, InMemoryCredentialResolver, TenantScope
 from .cursors import SourceCursor, SQLiteCursorStore
-from .evidence import RawEvidence, RawEvidenceWriter, SQLiteRawEvidenceWriter, canonical_hash
 from .events import SourceEvent, canonical_event_id
+from .evidence import RawEvidence, RawEvidenceWriter, SQLiteRawEvidenceWriter, canonical_hash
 from .gateway import SourceGateway, SourceRequest, SourceResponse
 from .idempotency import (
     IdempotencyRecord,

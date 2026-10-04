@@ -62,7 +62,7 @@ class SourceEvent:
         received_at: datetime | None = None,
         connector_version: str = "source-v1",
         metadata: dict[str, Any] | None = None,
-    ) -> "SourceEvent":
+    ) -> SourceEvent:
         from .evidence import canonical_hash
 
         received = received_at or datetime.now(UTC)

@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC
 from typing import Any, cast
 
 from .auth import CredentialMaterial
 from .credentials import CredentialRef, CredentialResolver, TenantScope
-from .evidence import RawEvidence, RawEvidenceWriter
 from .events import SourceEvent
+from .evidence import RawEvidence, RawEvidenceWriter
 from .idempotency import IdempotencyStore
 from .limits import RateLimitPolicy, TokenBucket
 from .outbox import OutboxEvent, OutboxStore
@@ -111,9 +110,11 @@ class SourceGateway:
             if not decision.allowed:
                 return SourceResponse(False, "", "", "", "rate_limited")
         else:
-            bucket = self._rate_limiters.get(request.source_id) or self._rate_limiters.get(
-                request.source_type
-            ) or self._rate_limiters.get(rate_key)
+            bucket = (
+                self._rate_limiters.get(request.source_id)
+                or self._rate_limiters.get(request.source_type)
+                or self._rate_limiters.get(rate_key)
+            )
             if bucket is not None and not bucket.acquire():
                 return SourceResponse(False, "", "", "", "rate_limited")
 
@@ -172,7 +173,9 @@ class SourceGateway:
 
         try:
             commit_ingest = getattr(self._evidence, "commit_ingest", None)
-            if callable(commit_ingest) and cast(object, self._outbox) is cast(object, self._evidence):
+            if callable(commit_ingest) and cast(object, self._outbox) is cast(
+                object, self._evidence
+            ):
                 accepted = commit_ingest(evidence, outbox_event)
             else:
                 accepted = self._evidence.append(evidence) if self._evidence else True

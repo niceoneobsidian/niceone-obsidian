@@ -60,20 +60,18 @@ class WebhookSecurity:
         if abs(self._clock() - observed) > self._policy.max_age_seconds:
             return False
 
-        signed = f"{timestamp}.".encode("utf-8") + payload
+        signed = f"{timestamp}.".encode() + payload
         digest = hmac.new(self._policy.secret, signed, hashlib.sha256).hexdigest()
         supplied = signature.removeprefix(self._policy.prefix)
         if not hmac.compare_digest(supplied, digest):
             return False
 
-        if self._replay_store is not None and not self._replay_store.claim(
+        return self._replay_store is None or self._replay_store.claim(
             tenant_id=tenant_id,
             workspace_id=workspace_id,
             key=replay_key,
             event_id=replay_key,
-        ):
-            return False
-        return True
+        )
 
     def release(
         self,

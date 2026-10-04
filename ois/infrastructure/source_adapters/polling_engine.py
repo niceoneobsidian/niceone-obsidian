@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass
 from time import monotonic, sleep
-from typing import Callable
 
 from ois.infrastructure.source_adapters.base import AdapterResult, SourceAdapter
 from ois.infrastructure.source_gateway import SourceGateway
@@ -82,7 +82,9 @@ class PollingEngine:
             )
             return PollingRun(source_id, started, self._clock(), result=result)
         except Exception as exc:  # noqa: BLE001 - scheduler records connector failures
-            return PollingRun(source_id, started, self._clock(), error=f"{type(exc).__name__}: {exc}")
+            return PollingRun(
+                source_id, started, self._clock(), error=f"{type(exc).__name__}: {exc}"
+            )
 
     def due_sources(self) -> tuple[str, ...]:
         now = self._clock()
