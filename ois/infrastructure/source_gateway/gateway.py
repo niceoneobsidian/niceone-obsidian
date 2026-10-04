@@ -80,8 +80,10 @@ class SourceGateway:
             workspace_id=request.workspace_id,
         )
 
+        credential_verified = False
         if request.credential and self._credentials:
             self.resolve_credential(request.credential, scope)
+            credential_verified = True
 
         bucket = self._rate_limiters.get(request.source_type) or self._rate_limiters.get(
             request.source_id
@@ -157,7 +159,7 @@ class SourceGateway:
                     connector_version=request.connector_version,
                     schema_version=request.schema_version,
                 )
-                result = process(event)
+                result = process(event, credential_verified=credential_verified)
                 if not getattr(result, "accepted", False):
                     return SourceResponse(
                         True,
