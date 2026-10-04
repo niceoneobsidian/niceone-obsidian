@@ -7,12 +7,12 @@ import pytest
 from ois.autonomy import (
     ApprovalDecision,
     ApprovalGate,
+    AutomationPolicy,
     AutonomousLoop,
     AutonomousOperations,
     EventEnvelope,
     FailureRecovery,
     InMemoryApprovalStore,
-    AutomationPolicy,
     PolicyRule,
     SourceWorkflow,
     WorkflowTrigger,
@@ -20,7 +20,9 @@ from ois.autonomy import (
 from ois.kernel.types import RiskLevel
 
 
-def event(*, event_type: str = "source.updated", payload: dict[str, object] | None = None) -> EventEnvelope:
+def event(
+    *, event_type: str = "source.updated", payload: dict[str, object] | None = None
+) -> EventEnvelope:
     return EventEnvelope(
         event_id="evt-1",
         tenant_id="tenant-1",
@@ -44,7 +46,9 @@ def workflow(action, *, event_type: str = "source.updated") -> SourceWorkflow:
 
 
 def allow_policy() -> AutomationPolicy:
-    return AutomationPolicy((PolicyRule(rule_id="allow", event_type="source.updated", maximum_risk=RiskLevel.HIGH),))
+    return AutomationPolicy(
+        (PolicyRule(rule_id="allow", event_type="source.updated", maximum_risk=RiskLevel.HIGH),)
+    )
 
 
 def test_source_event_triggers_workflow_once() -> None:

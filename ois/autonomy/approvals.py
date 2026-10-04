@@ -8,6 +8,8 @@ from enum import StrEnum
 from threading import RLock
 from uuid import uuid4
 
+from .events import EventEnvelope
+
 
 class ApprovalDecision(StrEnum):
     PENDING = "pending"
@@ -26,6 +28,7 @@ class ApprovalRequest:
     reason: str
     created_at: datetime
     expires_at: datetime
+    event: EventEnvelope | None = field(default=None, kw_only=True)
     decision: ApprovalDecision = ApprovalDecision.PENDING
     decided_by: str | None = None
     decided_at: datetime | None = None
@@ -57,7 +60,9 @@ class InMemoryApprovalStore:
             if current.decision != ApprovalDecision.PENDING:
                 raise ValueError("approval is already decided")
             if datetime.now(UTC) >= current.expires_at:
-                expired = ApprovalRequest(**{**current.__dict__, "decision": ApprovalDecision.EXPIRED})
+                expired = ApprovalRequest(
+                    **{**current.__dict__, "decision": ApprovalDecision.EXPIRED}
+                )
                 self._items[approval_id] = expired
                 raise ValueError("approval has expired")
             updated = ApprovalRequest(
@@ -74,8 +79,10 @@ class InMemoryApprovalStore:
     def list_pending(self, tenant_id: str, workspace_id: str) -> tuple[ApprovalRequest, ...]:
         with self._lock:
             return tuple(
-                item for item in self._items.values()
-                if item.tenant_id == tenant_id and item.workspace_id == workspace_id
+                item
+                for item in self._items.values()
+                if item.tenant_id == tenant_id
+                and item.workspace_id == workspace_id
                 and item.decision == ApprovalDecision.PENDING
             )
 
@@ -87,7 +94,16 @@ class ApprovalGate:
         self._store = store
         self._ttl_seconds = ttl_seconds
 
-    def request(self, *, tenant_id: str, workspace_id: str, workflow_id: str, event_id: str, reason: str) -> ApprovalRequest:
+    def request(
+        self,
+        *,
+        tenant_id: str,
+        workspace_id: str,
+        workflow_id: str,
+        event_id: str,
+        event: EventEnvelope | None = None,
+        reason: str = "",
+    ) -> ApprovalRequest:
         now = datetime.now(UTC)
         return self._store.create(
             ApprovalRequest(
@@ -96,6 +112,7 @@ class ApprovalGate:
                 workspace_id=workspace_id,
                 workflow_id=workflow_id,
                 event_id=event_id,
+                event=event,
                 reason=reason,
                 created_at=now,
                 expires_at=now.replace(microsecond=0) + timedelta(seconds=self._ttl_seconds),

@@ -55,8 +55,10 @@ class SourceDefinition:
             raise ValueError("unsupported source mode")
         if self.poll_interval_seconds is not None and self.poll_interval_seconds <= 0:
             raise ValueError("poll_interval_seconds must be positive")
-        status = SourceStatus(self.status) if self.status is not None else (
-            SourceStatus.ENABLED if self.enabled else SourceStatus.DISABLED
+        status = (
+            SourceStatus(self.status)
+            if self.status is not None
+            else (SourceStatus.ENABLED if self.enabled else SourceStatus.DISABLED)
         )
         object.__setattr__(self, "status", status)
         object.__setattr__(self, "enabled", status == SourceStatus.ENABLED)
@@ -293,7 +295,10 @@ class PostgresSourceRegistry:
     def delete(self, tenant_id: str, workspace_id: str, source_id: str) -> None:
         with self._connection.transaction(), self._connection.cursor() as cur:
             cur.execute(
-                "DELETE FROM source_registry WHERE tenant_id=%s AND workspace_id=%s AND source_id=%s",
+                """
+                DELETE FROM source_registry
+                WHERE tenant_id=%s AND workspace_id=%s AND source_id=%s
+                """,
                 (tenant_id, workspace_id, source_id),
             )
 
@@ -314,10 +319,10 @@ class SourceControlAPI:
             workspace_id=source.workspace_id,
             provider=source.provider,
             mode=source.mode,
-            enabled=source.enabled,
+            enabled=False,
             config=source.config,
             credential_id=source.credential_id,
-            status=source.status,
+            status=SourceStatus.REGISTERED,
             poll_interval_seconds=source.poll_interval_seconds,
             capabilities=source.capabilities,
         )
@@ -365,14 +370,18 @@ class SourceControlAPI:
     def set_enabled(
         self, *, tenant_id: str, workspace_id: str, source_id: str, enabled: bool
     ) -> SourceDefinition:
-        return self.enable(
-            tenant_id=tenant_id,
-            workspace_id=workspace_id,
-            source_id=source_id,
-        ) if enabled else self.disable(
-            tenant_id=tenant_id,
-            workspace_id=workspace_id,
-            source_id=source_id,
+        return (
+            self.enable(
+                tenant_id=tenant_id,
+                workspace_id=workspace_id,
+                source_id=source_id,
+            )
+            if enabled
+            else self.disable(
+                tenant_id=tenant_id,
+                workspace_id=workspace_id,
+                source_id=source_id,
+            )
         )
 
     def delete(self, *, tenant_id: str, workspace_id: str, source_id: str) -> None:

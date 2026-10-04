@@ -3,16 +3,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable
 
-from ois.infrastructure.source_gateway.outbox import OutboxEvent, OutboxStore
+from ois.infrastructure.source_gateway.outbox import OutboxStore
 
 from .approvals import ApprovalDecision, ApprovalGate, InMemoryApprovalStore
 from .events import EventEnvelope, EventRoute, InMemoryEventRouter
 from .loops import AutonomousLoop, LoopDecision, LoopState
 from .policy import AutomationPolicy
 from .recovery import FailureRecovery
-from .workflows import SourceWorkflow, WorkflowRun
+from .workflows import SourceWorkflow
 
 
 @dataclass(frozen=True)
@@ -59,14 +58,15 @@ class AutonomousOperations:
             raise ValueError(f"workflow already registered: {workflow.workflow_id}")
         self._workflows[workflow.workflow_id] = workflow
 
+        def handler(event: EventEnvelope, workflow_id: str = workflow.workflow_id) -> object:
+            return self._run_workflow(workflow_id, event)
+
         self._router.register(
             EventRoute(
                 route_id=workflow.workflow_id,
                 event_type=workflow.trigger.event_type,
                 source_id=workflow.trigger.source_id,
-                handler=lambda event, workflow_id=workflow.workflow_id: self._run_workflow(
-                    workflow_id, event
-                ),
+                handler=handler,
             )
         )
 
@@ -98,19 +98,31 @@ class AutonomousOperations:
         workflow = self._workflows.get(approval.workflow_id)
         if workflow is None:
             raise KeyError(f"workflow not registered: {approval.workflow_id}")
-        event = EventEnvelope(
-            event_id=approval.event_id,
-            tenant_id=approval.tenant_id,
-            workspace_id=approval.workspace_id,
-            event_type=workflow.trigger.event_type,
-            aggregate_id=approval.event_id,
+        event = approval.event
+        if event is None:
+            event = EventEnvelope(
+                event_id=approval.event_id,
+                tenant_id=approval.tenant_id,
+                workspace_id=approval.workspace_id,
+                event_type=workflow.trigger.event_type,
+                aggregate_id=approval.event_id,
+            )
+        return self._run_workflow(
+            workflow.workflow_id,
+            event,
+            approval_granted=True,
         )
-        return self._run_workflow(workflow.workflow_id, event)
 
     def reject(self, approval_id: str, actor: str) -> None:
         self._approvals.decide(approval_id, ApprovalDecision.REJECTED, actor)
 
-    def _run_workflow(self, workflow_id: str, event: EventEnvelope) -> LoopDecision:
+    def _run_workflow(
+        self,
+        workflow_id: str,
+        event: EventEnvelope,
+        *,
+        approval_granted: bool = False,
+    ) -> LoopDecision:
         key = (workflow_id, event.event_id)
         if key in self._processed:
             return LoopDecision(
@@ -118,7 +130,11 @@ class AutonomousOperations:
                 reason="workflow event already processed",
             )
         workflow = self._workflows[workflow_id]
-        decision = self._loop.run(workflow=workflow, event=event)
+        decision = self._loop.run(
+            workflow=workflow,
+            event=event,
+            approval_granted=approval_granted,
+        )
         if decision.state.value == "idle":
             self._processed.add(key)
         return decision

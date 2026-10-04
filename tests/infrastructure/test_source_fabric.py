@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+
 import pytest
 
 from ois.infrastructure.source_adapters.base import AdapterResult
-from ois.infrastructure.source_adapters.webhook_gateway import WebhookGateway, WebhookRequest
+from ois.infrastructure.source_adapters.webhook_gateway import WebhookGateway
 from ois.infrastructure.source_fabric import SourceFabric
 from ois.infrastructure.source_gateway import (
     SourceGateway,
@@ -91,7 +92,6 @@ def test_source_lifecycle_rejects_invalid_transition() -> None:
     assert paused.status == SourceStatus.PAUSED
 
 
-
 def test_source_fabric_register_enable_and_poll() -> None:
     fabric = build_fabric()
     adapter = Adapter()
@@ -106,9 +106,7 @@ def test_source_fabric_register_enable_and_poll() -> None:
     assert run.result is not None
     assert run.result.records == 1
     assert adapter.calls == 1
-    assert fabric.health.get(
-        tenant_id="t1", workspace_id="w1", source_id="test:source"
-    ) is not None
+    assert fabric.health.get(tenant_id="t1", workspace_id="w1", source_id="test:source") is not None
 
 
 def test_source_fabric_failure_degrades_and_success_recovers() -> None:
@@ -126,17 +124,19 @@ def test_source_fabric_failure_degrades_and_success_recovers() -> None:
 
     first = fabric.poll_once(tenant_id="t1", workspace_id="w1", source_id="test:source")
     assert first.error is not None
-    assert fabric.source_control.get(
-        tenant_id="t1", workspace_id="w1", source_id="test:source"
-    ).status == SourceStatus.DEGRADED
-
-    second = fabric.poll_with_retry(
-        tenant_id="t1", workspace_id="w1", source_id="test:source"
+    assert (
+        fabric.source_control.get(tenant_id="t1", workspace_id="w1", source_id="test:source").status
+        == SourceStatus.DEGRADED
     )
+
+    second = fabric.poll_with_retry(tenant_id="t1", workspace_id="w1", source_id="test:source")
     assert second.error is None
-    assert fabric._source_control.get(
-        tenant_id="t1", workspace_id="w1", source_id="test:source"
-    ).status == SourceStatus.ENABLED
+    assert (
+        fabric._source_control.get(
+            tenant_id="t1", workspace_id="w1", source_id="test:source"
+        ).status
+        == SourceStatus.ENABLED
+    )
 
 
 def test_cursor_store_requires_expected_version() -> None:

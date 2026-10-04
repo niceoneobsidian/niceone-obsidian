@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from threading import RLock
 from uuid import uuid4
+
+from ois.infrastructure.source_gateway.outbox import OutboxEvent
 
 Handler = Callable[["EventEnvelope"], object]
 
@@ -24,13 +27,13 @@ class EventEnvelope:
     correlation_id: str | None = None
 
     @classmethod
-    def from_outbox(cls, event: object) -> "EventEnvelope":
+    def from_outbox(cls, event: OutboxEvent) -> EventEnvelope:
         return cls(
-            event_id=str(getattr(event, "event_id")),
-            tenant_id=str(getattr(event, "tenant_id")),
-            workspace_id=str(getattr(event, "workspace_id")),
-            event_type=str(getattr(event, "event_type")),
-            aggregate_id=str(getattr(event, "aggregate_id")),
+            event_id=str(event.event_id),
+            tenant_id=str(event.tenant_id),
+            workspace_id=str(event.workspace_id),
+            event_type=str(event.event_type),
+            aggregate_id=str(event.aggregate_id),
             payload=dict(getattr(event, "payload", {}) or {}),
             created_at=getattr(event, "created_at", datetime.now(UTC)),
             source_id=(getattr(event, "payload", {}) or {}).get("source_id"),
@@ -45,9 +48,14 @@ class EventRoute:
     source_id: str | None = None
 
 
-class EventRouter:
-    def register(self, route: EventRoute) -> None: ...
-    def route(self, event: EventEnvelope) -> tuple[object, ...]: ...
+class EventRouter(ABC):
+    @abstractmethod
+    def register(self, route: EventRoute) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
+    def route(self, event: EventEnvelope) -> tuple[object, ...]:
+        raise NotImplementedError
 
 
 class InMemoryEventRouter(EventRouter):
@@ -67,9 +75,7 @@ class InMemoryEventRouter(EventRouter):
 
     def route(self, event: EventEnvelope) -> tuple[object, ...]:
         with self._lock:
-            routes = tuple(
-                self._routes.values()
-            )
+            routes = tuple(self._routes.values())
         results: list[object] = []
         for route in routes:
             if route.event_type != event.event_type:

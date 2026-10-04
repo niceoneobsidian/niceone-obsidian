@@ -65,11 +65,20 @@ class WorkflowRun:
     error: Mapping[str, object] | None = None
 
     @classmethod
-    def success(cls, workflow: SourceWorkflow, event: EventEnvelope, result: object) -> "WorkflowRun":
-        return cls(str(uuid4()), workflow.workflow_id, workflow.version, event.event_id, "completed", result=result)
+    def success(cls, workflow: SourceWorkflow, event: EventEnvelope, result: object) -> WorkflowRun:
+        return cls(
+            str(uuid4()),
+            workflow.workflow_id,
+            workflow.version,
+            event.event_id,
+            "completed",
+            result=result,
+        )
 
     @classmethod
-    def failure(cls, workflow: SourceWorkflow, event: EventEnvelope, error: Exception) -> "WorkflowRun":
+    def failure(
+        cls, workflow: SourceWorkflow, event: EventEnvelope, error: Exception
+    ) -> WorkflowRun:
         return cls(
             str(uuid4()),
             workflow.workflow_id,
