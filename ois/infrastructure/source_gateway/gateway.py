@@ -173,7 +173,7 @@ class SourceGateway:
             accepted = commit_ingest(evidence, event)
         else:
             accepted = self._evidence.append(evidence) if self._evidence else True
-            outbox_ok = self._outbox.append(outbox_event) if self._outbox else True
+            outbox_ok = self._outbox.append(event) if self._outbox else True
             if accepted and not outbox_ok:
                 raise RuntimeError(
                     "evidence committed but outbox append failed; "
@@ -185,7 +185,7 @@ class SourceGateway:
         if self._intelligence_pipeline is not None:
             process = getattr(self._intelligence_pipeline, "process", None)
             if callable(process):
-                event = CanonicalSourceEvent(
+                canonical_event = CanonicalSourceEvent(
                     event_id=event_id,
                     tenant_id=request.tenant_id,
                     workspace_id=request.workspace_id,
@@ -197,7 +197,7 @@ class SourceGateway:
                     connector_version=request.connector_version,
                     schema_version=request.schema_version,
                 )
-                result = process(event, credential_verified=credential_verified)
+                result = process(canonical_event, credential_verified=credential_verified)
                 if not getattr(result, "accepted", False):
                     return SourceResponse(
                         True,
