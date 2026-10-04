@@ -3,12 +3,21 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import subprocess
+import sys
 
 import pytest
 
-from ois.infrastructure.source_adapters import PollPage, PollingEngine, PollingJob, PollingSourceAdapter
+from ois.infrastructure.source_adapters import (
+    FileSourceAdapter,
+    PollPage,
+    PollingEngine,
+    PollingJob,
+    PollingSourceAdapter,
+)
 from ois.infrastructure.source_adapters.webhook_gateway import WebhookGateway, WebhookRequest
 from ois.infrastructure.source_gateway import (
+    ApiSourceSocket,
     RateLimitManager,
     RateLimitPolicy,
     SQLiteIdempotencyStore,
@@ -40,6 +49,21 @@ def gateway(
     )
 
 
+def test_source_gateway_package_imports_cleanly() -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "from ois.infrastructure.source_gateway import SourceGateway; "
+            "assert SourceGateway.__name__ == 'SourceGateway'",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+
+
 def test_canonical_source_event_is_stable() -> None:
     first = SourceEvent.from_payload(
         tenant_id="t1",
@@ -57,6 +81,27 @@ def test_canonical_source_event_is_stable() -> None:
     )
     assert first.event_id == second.event_id
     assert first.payload_hash == second.payload_hash
+
+
+def test_gateway_preserves_durable_raw_evidence_event_type() -> None:
+    ledger = SQLiteSourceLedger()
+    g = SourceGateway(evidence=ledger, outbox=ledger)
+
+    result = g.ingest(
+        SourceRequest(
+            tenant_id="t1",
+            workspace_id="w1",
+            source_id="github:repo",
+            source_record_id="42",
+            payload={"id": 42},
+        )
+    )
+
+    assert result.accepted
+    pending = ledger.pending()
+    assert len(pending) == 1
+    assert pending[0].event_type == "source.raw_evidence.created"
+    assert pending[0].payload["event_type"] == "source.observation"
 
 
 def test_gateway_deduplicates_explicit_idempotency_key() -> None:
@@ -89,6 +134,28 @@ def test_gateway_deduplicates_explicit_idempotency_key() -> None:
     assert second.reason == "duplicate_idempotency"
 
 
+def test_failed_durable_acceptance_releases_idempotency_claim() -> None:
+    class FailingLedger:
+        def commit_ingest(self, evidence: object, event: object) -> bool:
+            raise RuntimeError("simulated persistence failure")
+
+    store = SQLiteIdempotencyStore()
+    g = SourceGateway(evidence=FailingLedger(), outbox=FailingLedger(), idempotency=store)
+    request = SourceRequest(
+        tenant_id="t1",
+        workspace_id="w1",
+        source_id="github:repo",
+        source_record_id="42",
+        payload={"id": 42},
+        idempotency_key="delivery-42",
+    )
+
+    with pytest.raises(RuntimeError, match="simulated persistence failure"):
+        g.ingest(request)
+
+    assert store.get(tenant_id="t1", workspace_id="w1", key="delivery-42") is None
+
+
 def test_rate_limit_manager_is_enforced_by_gateway() -> None:
     limits = RateLimitManager({"t1:w1:source": RateLimitPolicy(1, 0.01)})
     ledger = SQLiteSourceLedger()
@@ -96,14 +163,20 @@ def test_rate_limit_manager_is_enforced_by_gateway() -> None:
 
     first = g.ingest(
         SourceRequest(
-            tenant_id="t1", workspace_id="w1", source_id="source",
-            source_record_id="1", payload={"id": 1},
+            tenant_id="t1",
+            workspace_id="w1",
+            source_id="source",
+            source_record_id="1",
+            payload={"id": 1},
         )
     )
     second = g.ingest(
         SourceRequest(
-            tenant_id="t1", workspace_id="w1", source_id="source",
-            source_record_id="2", payload={"id": 2},
+            tenant_id="t1",
+            workspace_id="w1",
+            source_id="source",
+            source_record_id="2",
+            payload={"id": 2},
         )
     )
     assert first.accepted
@@ -123,12 +196,20 @@ def test_webhook_security_is_timestamp_bound_and_replay_resistant() -> None:
         clock=lambda: now,
     )
     assert security.verify(
-        payload=body, signature=f"sha256={digest}", timestamp=timestamp,
-        replay_key="delivery-1", tenant_id="t1", workspace_id="w1",
+        payload=body,
+        signature=f"sha256={digest}",
+        timestamp=timestamp,
+        replay_key="delivery-1",
+        tenant_id="t1",
+        workspace_id="w1",
     )
     assert not security.verify(
-        payload=body, signature=f"sha256={digest}", timestamp=timestamp,
-        replay_key="delivery-1", tenant_id="t1", workspace_id="w1",
+        payload=body,
+        signature=f"sha256={digest}",
+        timestamp=timestamp,
+        replay_key="delivery-1",
+        tenant_id="t1",
+        workspace_id="w1",
     )
 
 
@@ -148,9 +229,14 @@ def test_webhook_gateway_routes_verified_json() -> None:
         security=security,
     ).receive(
         WebhookRequest(
-            tenant_id="t1", workspace_id="w1", source_id="github:webhook",
-            record_id="evt-1", body=body, signature=f"sha256={digest}",
-            timestamp=timestamp, idempotency_key="delivery-1",
+            tenant_id="t1",
+            workspace_id="w1",
+            source_id="github:webhook",
+            record_id="evt-1",
+            body=body,
+            signature=f"sha256={digest}",
+            timestamp=timestamp,
+            idempotency_key="delivery-1",
         )
     )
     assert result.records == 1
@@ -171,6 +257,36 @@ def test_source_control_is_tenant_scoped() -> None:
     assert api.list(tenant_id="t1", workspace_id="w1") == (source,)
     with pytest.raises(KeyError):
         api.get(tenant_id="t2", workspace_id="w1", source_id="github:repo")
+
+
+def test_socket_blocks_disabled_registered_source(tmp_path) -> None:
+    path = tmp_path / "source.json"
+    path.write_text('{"id":"1","value":"live"}', encoding="utf-8")
+
+    registry = SourceControlAPI(SQLiteSourceRegistry())
+    api_socket = ApiSourceSocket(
+        gateway=gateway(),
+        source_control=registry,
+    )
+    api_socket.register(FileSourceAdapter(source_id="file:test", path=str(path)))
+    api_socket.register_definition(
+        SourceDefinition(
+            source_id="file:test",
+            tenant_id="t1",
+            workspace_id="w1",
+            provider="file",
+            mode="poll",
+        )
+    )
+    registry.set_enabled(
+        tenant_id="t1",
+        workspace_id="w1",
+        source_id="file:test",
+        enabled=False,
+    )
+
+    with pytest.raises(PermissionError, match="source is disabled"):
+        api_socket.ingest("file:test", tenant_id="t1", workspace_id="w1")
 
 
 def test_polling_engine_schedules_existing_polling_adapter() -> None:
@@ -209,4 +325,45 @@ def test_polling_engine_schedules_existing_polling_adapter() -> None:
     assert run.error is None
     assert run.result is not None
     assert run.result.records == 1
+    assert cursor == "done"
+
+
+def test_polling_engine_run_due_supports_sqlite_gateway_from_worker_thread() -> None:
+    cursor: str | None = None
+
+    def fetch(value: str | None) -> PollPage:
+        return PollPage(({"id": "1", "value": "a"},) if value is None else (), "done")
+
+    def get_cursor() -> str | None:
+        return cursor
+
+    def set_cursor(value: str | None) -> None:
+        nonlocal cursor
+        cursor = value
+
+    adapter = PollingSourceAdapter(
+        source_id="poll:threaded",
+        fetch_page=fetch,
+        get_cursor=get_cursor,
+        set_cursor=set_cursor,
+    )
+    engine = PollingEngine(
+        gateway=gateway(),
+        jobs=(
+            PollingJob(
+                source_id="poll:threaded",
+                interval_seconds=60,
+                adapter=adapter,
+                tenant_id="t1",
+                workspace_id="w1",
+            ),
+        ),
+    )
+
+    runs = engine.run_due()
+
+    assert len(runs) == 1
+    assert runs[0].error is None
+    assert runs[0].result is not None
+    assert runs[0].result.records == 1
     assert cursor == "done"
