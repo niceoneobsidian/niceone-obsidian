@@ -1,7 +1,6 @@
 """Google Drive source routed through the governed SourceGateway."""
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
 from urllib.parse import quote
 
 from ois.infrastructure.source_adapters.base import AdapterResult, SourceAdapterRegistry
@@ -14,8 +13,7 @@ from ois.infrastructure.source_gateway import (
     TenantScope,
 )
 
-if TYPE_CHECKING:
-    from ois.infrastructure.source_gateway.gateway import SourceResponse
+from ois.infrastructure.source_gateway.gateway import SourceResponse
 
 
 class GoogleDriveSource(HttpSourceAdapter):
