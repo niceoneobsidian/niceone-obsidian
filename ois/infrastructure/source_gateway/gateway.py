@@ -3,19 +3,21 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Any, cast
+from uuid import NAMESPACE_URL, uuid4, uuid5
 
 from ois.domains.social_intelligence.events import CanonicalSourceEvent
 
-from .auth import CredentialMaterial
+from .auth import Authenticator, AuthRequest, AuthScheme, CredentialMaterial
 from .contracts import SourceProvenance
 from .credentials import CredentialRef, CredentialResolver, TenantScope
-from .events import SourceEvent
-from .evidence import RawEvidence, RawEvidenceWriter
-from .idempotency import IdempotencyStore
+from .evidence import RawEvidence, RawEvidenceWriter, canonical_hash
 from .limits import RateLimitPolicy, TokenBucket
-from .outbox import OutboxEvent, OutboxStore
+from .idempotency import IdempotencyStore
 from .rate_limits import RateLimitManager
+from .manager import AuthPolicy, CredentialAuthManager
+from .outbox import OutboxEvent, OutboxStore
 
 
 @dataclass(frozen=True)
@@ -29,9 +31,9 @@ class SourceRequest:
     connector_version: str = "v1"
     schema_version: str = "v1"
     source_id: str = ""
+    provenance: SourceProvenance | None = None
     event_type: str = "source.observation"
     idempotency_key: str | None = None
-    provenance: SourceProvenance | None = None
     observed_at: datetime | None = None
     rate_limit_lease: str | None = None
 
@@ -58,12 +60,15 @@ class SourceGateway:
         evidence: RawEvidenceWriter | None = None,
         outbox: OutboxStore | None = None,
         rate_limits: dict[str, RateLimitPolicy] | None = None,
-        *,
+        intelligence_pipeline: object | None = None,
+        auth_manager: CredentialAuthManager | None = None,
         idempotency: IdempotencyStore | None = None,
         rate_limit_manager: RateLimitManager | None = None,
-        intelligence_pipeline: object | None = None,
     ) -> None:
         self._credentials = credentials
+        self._auth_manager = auth_manager or (
+            CredentialAuthManager(credentials) if credentials else None
+        )
         self._evidence = evidence
         self._intelligence_pipeline = intelligence_pipeline
         self._outbox = outbox
@@ -78,17 +83,40 @@ class SourceGateway:
                 )
 
     def _id(self) -> str:
-        from uuid import uuid4
-
         return str(uuid4())
 
     def resolve_credential(self, ref: CredentialRef, scope: TenantScope) -> CredentialMaterial:
         """Resolve tenant-scoped secret material for an authentication strategy."""
         if ref.tenant_id != scope.tenant_id:
             raise PermissionError("credential belongs to another tenant")
-        if self._credentials is None:
+        if self._auth_manager is None:
             raise RuntimeError("credential resolver is not configured")
-        return CredentialMaterial(self._credentials.resolve(ref, scope))
+        return self._auth_manager.resolve(ref, scope)
+
+    def authenticate_request(
+        self,
+        request: AuthRequest,
+        ref: CredentialRef,
+        scope: TenantScope,
+        scheme: AuthScheme,
+        *,
+        options: dict[str, object] | None = None,
+        client_id: str | None = None,
+        token_type: str = "Bearer",
+        authenticator: Authenticator | None = None,
+    ) -> AuthRequest:
+        """Authenticate a request through the central credential boundary."""
+        if self._auth_manager is None:
+            raise RuntimeError("credential auth manager is not configured")
+        return self._auth_manager.authenticate(
+            request,
+            ref,
+            scope,
+            AuthPolicy(scheme, options),
+            client_id=client_id,
+            token_type=token_type,
+            authenticator=authenticator,
+        )
 
     def rate_limit_configured(self, *, source_type: str = "", source_id: str = "") -> bool:
         return self._select_rate_limiter(source_type=source_type, source_id=source_id) is not None
@@ -113,37 +141,76 @@ class SourceGateway:
         )
 
         credential_verified = False
-        if request.credential and self._credentials:
+        if request.credential and self._auth_manager:
             self.resolve_credential(request.credential, scope)
             credential_verified = True
-
-        payload = request.payload or {}
-        event = SourceEvent.from_payload(
-            tenant_id=request.tenant_id,
-            workspace_id=request.workspace_id,
-            source_id=request.source_id,
-            source_record_id=request.source_record_id,
-            payload=payload,
-            event_type=request.event_type,
-            connector_version=request.connector_version,
-        )
-        payload_hash = event.payload_hash
-        evidence_id = event.event_id
-        event_id = event.event_id
 
         rate_key = f"{request.tenant_id}:{request.workspace_id}:{request.source_id}"
         if self._rate_limit_manager is not None:
             decision = self._rate_limit_manager.allow(rate_key)
             if not decision.allowed:
                 return SourceResponse(False, "", "", "", "rate_limited")
+
+        if request.rate_limit_lease is not None:
+            lease_scope = self._leases.pop(request.rate_limit_lease, None)
+            if lease_scope != (request.source_type, request.source_id):
+                return SourceResponse(False, "", "", "", "invalid_rate_limit_lease")
         else:
-            bucket = (
-                self._rate_limiters.get(request.source_id)
-                or self._rate_limiters.get(request.source_type)
-                or self._rate_limiters.get(rate_key)
+            configured = self._select_rate_limiter(
+                source_type=request.source_type,
+                source_id=request.source_id,
             )
-            if bucket is not None and not bucket.acquire():
-                return SourceResponse(False, "", "", "", "rate_limited")
+            if configured is not None:
+                lease = self.acquire_rate_limit(
+                    source_type=request.source_type,
+                    source_id=request.source_id,
+                )
+                if lease is None:
+                    return SourceResponse(False, "", "", "", "rate_limited")
+
+        payload = request.payload or {}
+        payload_hash = canonical_hash(payload)
+        evidence_id = str(
+            uuid5(
+                NAMESPACE_URL,
+                f"{request.tenant_id}:{request.workspace_id}:{request.source_id}:"
+                f"{request.source_record_id}:{payload_hash}",
+            )
+        )
+        event_id = str(uuid5(NAMESPACE_URL, f"source-outbox:{evidence_id}"))
+        collected_at = request.observed_at or datetime.now(UTC)
+
+        evidence = RawEvidence(
+            evidence_id=evidence_id,
+            tenant_id=request.tenant_id,
+            workspace_id=request.workspace_id,
+            source_id=request.source_id,
+            source_record_id=request.source_record_id,
+            payload=payload,
+            payload_hash=payload_hash,
+            collected_at=collected_at,
+            connector_version=request.connector_version,
+            schema_version=request.schema_version,
+            ingestion_run_id=self._id(),
+        )
+
+        event_payload: dict[str, Any] = {
+            "evidence_id": evidence_id,
+            "source_id": request.source_id,
+            "payload_hash": payload_hash,
+        }
+        if request.provenance:
+            event_payload["provenance"] = request.provenance.as_dict()
+
+        event = OutboxEvent(
+            event_id=event_id,
+            tenant_id=request.tenant_id,
+            workspace_id=request.workspace_id,
+            aggregate_id=evidence_id,
+            event_type="source.raw_evidence.created",
+            payload=event_payload,
+            created_at=datetime.now(UTC),
+        )
 
         idempotency_claimed = False
         if request.idempotency_key and self._idempotency is not None:
@@ -165,87 +232,16 @@ class SourceGateway:
                     payload_hash,
                     "duplicate_idempotency",
                 )
-            # The claim is a reservation. It is retained only if durable
-            # evidence/outbox acceptance succeeds and released on failure.
             idempotency_claimed = True
-        if request.rate_limit_lease is not None:
-            lease_scope = self._leases.pop(request.rate_limit_lease, None)
-            if lease_scope != (request.source_type, request.source_id):
-                return SourceResponse(False, "", "", "", "invalid_rate_limit_lease")
-        else:
-            configured = self._select_rate_limiter(
-                source_type=request.source_type,
-                source_id=request.source_id,
-            )
-            if configured is not None:
-                lease = self.acquire_rate_limit(
-                    source_type=request.source_type,
-                    source_id=request.source_id,
-                )
-                if lease is None:
-                    return SourceResponse(False, "", "", "", "rate_limited")
 
-        payload_hash = canonical_hash(request.payload)
-        evidence_id = str(
-            uuid5(
-                NAMESPACE_URL,
-                f"{request.tenant_id}:{request.workspace_id}:{request.source_id}:"
-                f"{request.source_record_id}:{payload_hash}",
-            )
-        )
-        event_id = str(uuid5(NAMESPACE_URL, f"source-outbox:{evidence_id}"))
-        collected_at = request.observed_at or datetime.now(UTC)
-
-        evidence = RawEvidence(
-            evidence_id=evidence_id,
-            tenant_id=request.tenant_id,
-            workspace_id=request.workspace_id,
-            source_id=request.source_id,
-            source_record_id=request.source_record_id,
-            payload=payload,
-            payload_hash=payload_hash,
-            collected_at=event.received_at,
-            collected_at=collected_at,
-            connector_version=request.connector_version,
-            schema_version=request.schema_version,
-            ingestion_run_id=self._id(),
-        )
-
-        outbox_payload = event.as_payload()
-        outbox_payload["evidence_id"] = evidence_id
-        outbox_event = OutboxEvent(
-        event_payload: dict[str, Any] = {
-            "evidence_id": evidence_id,
-            "source_id": request.source_id,
-            "payload_hash": payload_hash,
-        }
-        if request.provenance:
-            event_payload["provenance"] = request.provenance.as_dict()
-
-        event = OutboxEvent(
-            event_id=event_id,
-            tenant_id=request.tenant_id,
-            workspace_id=request.workspace_id,
-            aggregate_id=evidence_id,
-            # This is the durable acceptance event consumed by existing
-            # evidence-graph projectors. The canonical source event type is
-            # preserved inside outbox_payload["event_type"].
-            event_type="source.raw_evidence.created",
-            payload=outbox_payload,
-            created_at=event.received_at,
-            payload=event_payload,
-            created_at=datetime.now(UTC),
-        )
+        commit_ingest = getattr(self._evidence, "commit_ingest", None)
 
         try:
-            commit_ingest = getattr(self._evidence, "commit_ingest", None)
-            if callable(commit_ingest) and cast(object, self._outbox) is cast(
-                object, self._evidence
-            ):
-                accepted = commit_ingest(evidence, outbox_event)
+            if callable(commit_ingest) and cast(object, self._outbox) is cast(object, self._evidence):
+                accepted = commit_ingest(evidence, event)
             else:
                 accepted = self._evidence.append(evidence) if self._evidence else True
-                outbox_ok = self._outbox.append(outbox_event) if self._outbox else True
+                outbox_ok = self._outbox.append(event) if self._outbox else True
                 if accepted and not outbox_ok:
                     raise RuntimeError(
                         "evidence committed but outbox append failed; "
