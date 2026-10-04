@@ -119,12 +119,8 @@ def test_http_adapter_does_not_call_provider_when_rate_limited() -> None:
         opener=opener,
     )
 
-    first = adapter.ingest(
-        tenant_id="tenant-a", workspace_id="workspace-a", gateway=gateway
-    )
-    second = adapter.ingest(
-        tenant_id="tenant-a", workspace_id="workspace-a", gateway=gateway
-    )
+    first = adapter.ingest(tenant_id="tenant-a", workspace_id="workspace-a", gateway=gateway)
+    second = adapter.ingest(tenant_id="tenant-a", workspace_id="workspace-a", gateway=gateway)
 
     assert first.records == 1
     assert second.records == 0

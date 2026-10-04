@@ -96,9 +96,7 @@ class HttpSourceAdapter:
         if self._auth_scheme is not AuthScheme.NONE or self._authenticator is not None:
             if credential is None:
                 raise PermissionError("authentication credential required")
-            auth = self._authenticator or authenticator_for(
-                self._auth_scheme, **self._auth_options
-            )
+            auth = self._authenticator or authenticator_for(self._auth_scheme, **self._auth_options)
             authenticated = auth.apply(
                 AuthRequest(self._method, request_url, headers, payload or b""),
                 credential,

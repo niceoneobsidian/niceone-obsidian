@@ -81,9 +81,7 @@ def test_sportmonks_adapter_rejects_missing_or_cross_scope_credentials() -> None
         evidence=SQLiteSourceLedger(),
         outbox=SQLiteSourceLedger(),
     )
-    adapter = SportmonksFootballAdapter(
-        opener=lambda request, timeout: FakeResponse({"data": []})
-    )
+    adapter = SportmonksFootballAdapter(opener=lambda request, timeout: FakeResponse({"data": []}))
 
     with pytest.raises(KeyError):
         adapter.ingest(

@@ -100,9 +100,7 @@ class SportmonksFootballAdapter:
         )
 
     @staticmethod
-    def register(
-        registry: SourceAdapterRegistry, **kwargs: Any
-    ) -> SportmonksFootballAdapter:
+    def register(registry: SourceAdapterRegistry, **kwargs: Any) -> SportmonksFootballAdapter:
         adapter = SportmonksFootballAdapter(**kwargs)
         registry.register(adapter, adapter.spec())
         return adapter
