@@ -84,17 +84,20 @@ class OAuth2Token:
         payload: dict[str, object],
         *,
         refresh_token: str | None = None,
-    ) -> "OAuth2Token":
+    ) -> OAuth2Token:
         scope_value = payload.get("scope", "")
         scopes = tuple(str(scope_value).split()) if scope_value else ()
         returned_refresh = payload.get("refresh_token")
-        preserved_refresh = (
-            str(returned_refresh) if returned_refresh else refresh_token
+        preserved_refresh = str(returned_refresh) if returned_refresh else refresh_token
+        expires_in = (
+            int(str(payload["expires_in"]))
+            if payload.get("expires_in") is not None
+            else None
         )
         return cls(
             access_token=str(payload["access_token"]),
             token_type=str(payload.get("token_type", "Bearer")),
-            expires_in=int(str(payload["expires_in"])) if payload.get("expires_in") is not None else None,
+            expires_in=expires_in,
             refresh_token=preserved_refresh,
             scope=scopes,
             obtained_at=datetime.now(UTC),
@@ -104,7 +107,9 @@ class OAuth2Token:
 
 class OAuth2StateStore(Protocol):
     def put(self, state: str, *, provider: str, tenant_id: str, workspace_id: str) -> None: ...
-    def consume(self, state: str, *, provider: str, tenant_id: str, workspace_id: str) -> bool: ...
+    def consume(
+        self, state: str, *, provider: str, tenant_id: str, workspace_id: str
+    ) -> bool: ...
 
 
 class InMemoryOAuth2StateStore:
@@ -114,7 +119,9 @@ class InMemoryOAuth2StateStore:
     def put(self, state: str, *, provider: str, tenant_id: str, workspace_id: str) -> None:
         self._states[state] = (provider, tenant_id, workspace_id)
 
-    def consume(self, state: str, *, provider: str, tenant_id: str, workspace_id: str) -> bool:
+    def consume(
+        self, state: str, *, provider: str, tenant_id: str, workspace_id: str
+    ) -> bool:
         value = self._states.pop(state, None)
         return value == (provider, tenant_id, workspace_id)
 
@@ -194,12 +201,17 @@ class OAuth2Provider:
         request = Request(
             self.config.token_url,
             data=urlencode(fields).encode("utf-8"),
-            headers={"Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json"},
+            headers={
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Accept": "application/json",
+            },
             method="POST",
         )
         if self.config.token_auth_method == "client_secret_basic":
             raw = f"{self.config.client_id}:{self.config.client_secret}".encode()
-            request.add_header("Authorization", f"Basic {base64.b64encode(raw).decode()}")
+            request.add_header(
+                "Authorization", f"Basic {base64.b64encode(raw).decode()}"
+            )
 
         try:
             with urlopen(request, timeout=self._timeout) as response:
@@ -208,10 +220,15 @@ class OAuth2Provider:
             payload = self._error_payload(exc)
             error_code = self._error_code(payload)
             description = self._error_description(payload) or str(exc.reason)
+            category = (
+                "provider_rejected"
+                if exc.code < 500 and exc.code != 429
+                else "provider_unavailable"
+            )
             raise OAuth2Error(
                 provider=self.config.provider,
                 operation=operation,
-                category="provider_rejected" if exc.code < 500 and exc.code != 429 else "provider_unavailable",
+                category=category,
                 message=description,
                 error_code=error_code,
                 status_code=exc.code,
