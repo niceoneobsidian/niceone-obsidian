@@ -15,8 +15,8 @@ from uuid import uuid4
 
 from ois.infrastructure.source_gateway import (
     AuthScheme,
-    CredentialRef,
     CredentialMaterial,
+    CredentialRef,
     FreshnessPolicy,
     SourceGateway,
     SourceProvenance,
