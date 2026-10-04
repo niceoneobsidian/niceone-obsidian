@@ -54,13 +54,14 @@ def build_fabric() -> SourceFabric:
     return SourceFabric(gateway=gateway, source_control=control)
 
 
-def source(*, mode: str = "poll") -> SourceDefinition:
+def source(*, mode: str = "poll", enabled: bool = True) -> SourceDefinition:
     return SourceDefinition(
         source_id="test:source",
         tenant_id="t1",
         workspace_id="w1",
         provider="test",
         mode=mode,
+        enabled=enabled,
         poll_interval_seconds=30,
         capabilities=("health_check", "incremental_sync"),
     )
@@ -68,7 +69,7 @@ def source(*, mode: str = "poll") -> SourceDefinition:
 
 def test_source_registration_requires_explicit_enablement() -> None:
     control = SourceControlAPI(SQLiteSourceRegistry())
-    registered = control.register(source())
+    registered = control.register(source(enabled=False))
 
     assert registered.status == SourceStatus.REGISTERED
     assert not registered.enabled
