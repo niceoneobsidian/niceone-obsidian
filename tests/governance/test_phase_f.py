@@ -25,11 +25,15 @@ def test_governance_authorizes_and_records_provenance() -> None:
         action="write",
         capability_id="cap.write",
         inputs={"x": 1},
+        policy_id="default",
+        policy_version="1",
     )
     assert result.allowed
     assert len(store.decisions) == 1
     assert store.decisions[0].inputs_digest
     assert store.audit[0].outcome == "allowed"
+    assert store.decisions[0].policy_id == "default"
+    assert store.decisions[0].policy_version == "1"
 
 
 def test_tenant_isolation_denies_cross_tenant_agent() -> None:
@@ -76,3 +80,19 @@ def test_budget_blocks_overspend() -> None:
     )
     assert not result.allowed
     assert "budget" in result.reason
+
+
+def test_inactive_policy_version_fails_closed() -> None:
+    store = InMemoryGovernanceStore()
+    store.put_agent(AgentIdentity("agent-1", "tenant-a", "operator"))
+    store.grant(CapabilityGrant("cap.write", "tenant-a", "agent-1", ("write",)))
+    store.put_policy(
+        PolicyVersion("default", "2", "tenant-a", {"write": "allow"}, "hash-2", active=False)
+    )
+    result = GovernanceEngine(store).authorize(
+        tenant_id="tenant-a", workspace_id="ws-a", execution_id="e",
+        agent_id="agent-1", action="write", capability_id="cap.write", inputs={},
+        policy_id="default", policy_version="2",
+    )
+    assert not result.allowed
+    assert "policy" in result.reason
