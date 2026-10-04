@@ -17,12 +17,22 @@ from .auth import (
 from .contracts import FreshnessPolicy, SourceProvenance, SourceSpec
 from .credentials import CredentialRef, CredentialResolver, InMemoryCredentialResolver, TenantScope
 from .cursors import SourceCursor, SQLiteCursorStore
+from .events import SourceEvent, canonical_event_id
 from .evidence import RawEvidence, RawEvidenceWriter, SQLiteRawEvidenceWriter, canonical_hash
 from .gateway import SourceGateway, SourceRequest, SourceResponse
+from .idempotency import (
+    IdempotencyRecord,
+    IdempotencyStore,
+    PostgresIdempotencyStore,
+    SQLiteIdempotencyStore,
+)
 from .ledger import SQLiteSourceLedger
 from .limits import RateLimitPolicy, RateLimitState, TokenBucket
 from .outbox import OutboxEvent, OutboxStore, SQLiteOutboxStore
 from .postgres import PostgresSourceLedger
+from .rate_limits import RateLimitDecision, RateLimitManager
+from .socket import ApiSourceSocket, SocketStatus
+from .webhook_security import WebhookSecurity, WebhookSecurityPolicy
 
 __all__ = [
     "ApiKeyAuth",
@@ -42,15 +52,22 @@ __all__ = [
     "OutboxEvent",
     "OutboxStore",
     "PostgresSourceLedger",
+    "RateLimitDecision",
+    "RateLimitManager",
     "RateLimitPolicy",
     "RateLimitState",
     "RawEvidence",
     "RawEvidenceWriter",
     "SQLiteCursorStore",
+    "PostgresIdempotencyStore",
+    "SQLiteIdempotencyStore",
     "SQLiteOutboxStore",
     "SQLiteRawEvidenceWriter",
     "SQLiteSourceLedger",
     "SourceCursor",
+    "SourceEvent",
+    "ApiSourceSocket",
+    "SocketStatus",
     "SourceGateway",
     "SourceProvenance",
     "SourceRequest",
@@ -58,5 +75,10 @@ __all__ = [
     "SourceSpec",
     "TenantScope",
     "TokenBucket",
+    "IdempotencyRecord",
+    "IdempotencyStore",
+    "WebhookSecurity",
+    "WebhookSecurityPolicy",
+    "canonical_event_id",
     "canonical_hash",
 ]
