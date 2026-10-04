@@ -1,7 +1,7 @@
 """Phase C autonomous operations primitives."""
 
 from .approvals import ApprovalDecision, ApprovalGate, ApprovalRequest, InMemoryApprovalStore
-from .durable import DurableRunStatus, DurableWorkflowRun, FencedPostgresWorkflowRunRepository, PostgresWorkflowRunRepository
+from .durable import (\n    DurableRunStatus,\n    DurableWorkflowRun,\n    FencedPostgresWorkflowRunRepository,\n    PostgresWorkflowRunRepository,\n)
 from .durable import DurableRunStatus, DurableWorkflowRun, PostgresWorkflowRunRepository
 from .events import EventEnvelope, EventRoute, EventRouter, InMemoryEventRouter
 from .loops import AutonomousLoop, LoopDecision, LoopState
