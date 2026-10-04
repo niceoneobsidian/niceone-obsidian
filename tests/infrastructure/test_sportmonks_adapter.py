@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from email.message import Message
+from urllib.request import Request
 
 import pytest
 
@@ -45,7 +46,7 @@ def test_sportmonks_adapter_registers_explicit_contract() -> None:
 def test_sportmonks_adapter_uses_authorization_and_gateway_evidence() -> None:
     calls: list[object] = []
 
-    def opener(request: object, *, timeout: float) -> FakeResponse:
+    def opener(request: Request, *, timeout: float) -> FakeResponse:
         calls.append(request)
         headers = request.headers
         assert headers["Authorization"] == "secret-token"
