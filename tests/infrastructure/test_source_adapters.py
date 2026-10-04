@@ -8,9 +8,9 @@ import sqlite3
 import pytest
 
 from ois.infrastructure.source_adapters import (
-    HttpSourceAdapter,
     DatabaseSourceAdapter,
     FileSourceAdapter,
+    HttpSourceAdapter,
     PollingSourceAdapter,
     PollPage,
     SourceAdapterRegistry,
@@ -108,7 +108,7 @@ class _FakeHttpResponse:
     def read(self) -> bytes:
         return b'{"ok": true}'
 
-    def __enter__(self) -> "_FakeHttpResponse":
+    def __enter__(self) -> _FakeHttpResponse:
         return self
 
     def __exit__(self, *args: object) -> None:
@@ -145,7 +145,7 @@ def test_http_adapter_authenticates_through_gateway() -> None:
     assert result.records == 1
     assert len(requests) == 1
     request = requests[0]
-    assert getattr(request, "headers")["Authorization"] == "Bearer token-123"
+    assert request.headers["Authorization"] == "Bearer token-123"
 
 
 def test_http_adapter_requires_credential_for_authenticated_source() -> None:
