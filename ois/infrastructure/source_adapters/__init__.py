@@ -1,5 +1,7 @@
 """Governed live-source adapters built on the OIS Source Gateway."""
 
+from __future__ import annotations
+
 from .base import (
     AdapterHealth,
     AdapterResult,
@@ -11,6 +13,7 @@ from .file import FileSourceAdapter
 from .github import GitHubSourceAdapter
 from .http import HttpSourceAdapter
 from .polling import PollingSourceAdapter, PollPage
+from .polling_engine import PollingEngine, PollingJob, PollingRun
 from .rss import RSSSourceAdapter
 from .sportmonks import SportmonksFootballAdapter, SportmonksQuery
 from .webhook import WebhookVerifier
@@ -25,6 +28,9 @@ __all__ = [
     "SportmonksFootballAdapter",
     "SportmonksQuery",
     "PollPage",
+    "PollingEngine",
+    "PollingJob",
+    "PollingRun",
     "PollingSourceAdapter",
     "RSSSourceAdapter",
     "SourceAdapter",
