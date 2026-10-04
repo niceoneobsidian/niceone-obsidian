@@ -65,19 +65,27 @@ class WebhookGateway:
         if not isinstance(payload, dict):
             raise ValueError("webhook payload must be a JSON object")
 
-        response = self._gateway.ingest(
-            SourceRequest(
+        try:
+            response = self._gateway.ingest(
+                SourceRequest(
+                    tenant_id=request.tenant_id,
+                    workspace_id=request.workspace_id,
+                    source_id=request.source_id,
+                    source_record_id=request.record_id,
+                    payload=payload,
+                    connector_version="webhook-v2",
+                    schema_version="source.event.v1",
+                    idempotency_key=request.idempotency_key,
+                    event_type=str(payload.get("type", "source.webhook")),
+                )
+            )
+        except Exception:
+            self._security.release(
+                replay_key=request.idempotency_key,
                 tenant_id=request.tenant_id,
                 workspace_id=request.workspace_id,
-                source_id=request.source_id,
-                source_record_id=request.record_id,
-                payload=payload,
-                connector_version="webhook-v2",
-                schema_version="source.event.v1",
-                idempotency_key=request.idempotency_key,
-                event_type=str(payload.get("type", "source.webhook")),
             )
-        )
+            raise
         return AdapterResult(
             source_id=request.source_id,
             records=1 if response.accepted else 0,
