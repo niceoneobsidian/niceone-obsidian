@@ -59,7 +59,7 @@ class HttpSourceAdapter:
             raise ValueError("timeout must be positive")
         self._basic_auth = str(auth_scheme) == "basic"
         normalized_scheme = AuthScheme.NONE if self._basic_auth else AuthScheme(auth_scheme)
-        if authenticator is not None and normalized_scheme is not AuthScheme.NONE:
+        if authenticator is not None and (self._basic_auth or normalized_scheme is not AuthScheme.NONE):
             raise ValueError("choose auth_scheme or authenticator, not both")
         self.source_id = source_id
         self._url = url
@@ -93,7 +93,7 @@ class HttpSourceAdapter:
             payload = json.dumps(self._body).encode("utf-8")
             headers.setdefault("Content-Type", "application/json")
 
-        if self._auth_scheme is AuthScheme.NONE and self._authenticator is None:
+        if self._auth_scheme is AuthScheme.NONE and not self._basic_auth and self._authenticator is None:
             if credential is not None:
                 raise ValueError("credential supplied to unauthenticated adapter")
             return headers, payload
