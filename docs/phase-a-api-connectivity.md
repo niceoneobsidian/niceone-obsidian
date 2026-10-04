@@ -62,4 +62,5 @@ The remaining environment-level step is to wire the same service to a real GitHu
 application and a production credential store, then run the flow with real authorization
 and the GitHub `/user` endpoint. GitHub's web flow returns a temporary callback code plus
 the supplied state, which the application must validate before exchanging the code for a
-user access token. citeturn0search2turn0search1
+user access token. See the GitHub OAuth web application flow documentation for the current
+provider behavior.
