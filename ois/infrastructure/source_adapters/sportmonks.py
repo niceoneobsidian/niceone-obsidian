@@ -88,7 +88,7 @@ class SportmonksFootballAdapter:
         tenant_id: str,
         workspace_id: str,
         gateway: SourceGateway,
-        credential_id: str,
+        credential_id: str | None = None,
     ) -> AdapterResult:
         if not credential_id:
             raise ValueError("Sportmonks requires a credential reference")
