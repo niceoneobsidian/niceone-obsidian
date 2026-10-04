@@ -265,6 +265,48 @@ def test_webhook_gateway_routes_verified_json() -> None:
     assert result.records == 1
 
 
+def test_webhook_replay_reservation_is_released_on_ingest_failure() -> None:
+    secret = b"test-secret"
+    now = 1_700_000_000.0
+    timestamp = str(int(now))
+    body = json.dumps({"id": "evt-1", "type": "push"}).encode()
+    digest = hmac.new(secret, f"{timestamp}.".encode() + body, hashlib.sha256).hexdigest()
+    replay_store = SQLiteIdempotencyStore()
+    security = WebhookSecurity(
+        WebhookSecurityPolicy(secret=secret),
+        replay_store=replay_store,
+        clock=lambda: now,
+    )
+
+    class FailingGateway:
+        def ingest(self, request: object) -> object:
+            raise RuntimeError("simulated persistence failure")
+
+    webhook = WebhookGateway(gateway=FailingGateway(), security=security)
+
+    request = WebhookRequest(
+        tenant_id="t1",
+        workspace_id="w1",
+        source_id="github:webhook",
+        record_id="evt-1",
+        body=body,
+        signature=f"sha256={digest}",
+        timestamp=timestamp,
+        idempotency_key="delivery-failure",
+    )
+    with pytest.raises(RuntimeError, match="simulated persistence failure"):
+        webhook.receive(request)
+
+    assert security.verify(
+        payload=body,
+        signature=f"sha256={digest}",
+        timestamp=timestamp,
+        replay_key="delivery-failure",
+        tenant_id="t1",
+        workspace_id="w1",
+    )
+
+
 def test_source_control_is_tenant_scoped() -> None:
     api = SourceControlAPI(SQLiteSourceRegistry())
     source = api.register(
