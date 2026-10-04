@@ -7,12 +7,12 @@ from datetime import UTC, datetime
 from typing import Any, cast
 from uuid import NAMESPACE_URL, uuid4, uuid5
 
-from .contracts import SourceProvenance
 from .auth import CredentialMaterial
 from .credentials import CredentialRef, CredentialResolver, TenantScope
 from .evidence import RawEvidence, RawEvidenceWriter, canonical_hash
 from .limits import RateLimitPolicy, TokenBucket
 from .outbox import OutboxEvent, OutboxStore
+from .contracts import SourceProvenance
 
 
 @dataclass(frozen=True)
@@ -65,36 +65,6 @@ class SourceGateway:
                     policy if isinstance(policy, TokenBucket) else TokenBucket(policy)
                 )
 
-    def resolve_credential(
-        self,
-        credential: CredentialRef,
-        *,
-        tenant_id: str,
-        workspace_id: str,
-    ) -> str:
-        scope = TenantScope(tenant_id=tenant_id, workspace_id=workspace_id)
-        if credential.tenant_id != tenant_id:
-            raise PermissionError("credential belongs to another tenant")
-        if self._credentials is None:
-            raise RuntimeError("credential resolver is not configured")
-        return self._credentials.resolve(credential, scope)
-
-    def rate_limit_configured(self, *, source_type: str = "", source_id: str = "") -> bool:
-        return (
-            self._rate_limiters.get(source_type) is not None
-            or self._rate_limiters.get(source_id) is not None
-        )
-
-    def acquire_rate_limit(self, *, source_type: str = "", source_id: str = "") -> str | None:
-        bucket = self._rate_limiters.get(source_type) or self._rate_limiters.get(source_id)
-        if bucket is None:
-            return None
-        if not bucket.acquire():
-            return None
-        lease = str(uuid4())
-        self._leases[lease] = (source_type, source_id)
-        return lease
-
     def _id(self) -> str:
         return str(uuid4())
 
@@ -106,18 +76,28 @@ class SourceGateway:
             raise RuntimeError("credential resolver is not configured")
         return CredentialMaterial(self._credentials.resolve(ref, scope))
 
+    def rate_limit_configured(self, *, source_type: str = "", source_id: str = "") -> bool:
+        return self._select_rate_limiter(source_type=source_type, source_id=source_id) is not None
+
+    def acquire_rate_limit(self, *, source_type: str = "", source_id: str = "") -> str | None:
+        bucket = self._select_rate_limiter(source_type=source_type, source_id=source_id)
+        if bucket is None:
+            return None
+        if not bucket.acquire():
+            return None
+        lease = str(uuid4())
+        self._leases[lease] = (source_type, source_id)
+        return lease
+
+    def _select_rate_limiter(self, *, source_type: str, source_id: str) -> TokenBucket | None:
+        return self._rate_limiters.get(source_type) or self._rate_limiters.get(source_id)
+
     def ingest(self, request: SourceRequest) -> SourceResponse:
         scope = TenantScope(
             tenant_id=request.tenant_id,
             workspace_id=request.workspace_id,
         )
 
-        if request.credential:
-            if self._credentials is None:
-                raise RuntimeError("credential supplied but credential resolver is not configured")
-            if request.credential.tenant_id != request.tenant_id:
-                raise PermissionError("credential belongs to another tenant")
-            self._credentials.resolve(request.credential, scope)
         if request.credential and self._credentials:
             self.resolve_credential(request.credential, scope)
 
@@ -126,9 +106,9 @@ class SourceGateway:
             if lease_scope != (request.source_type, request.source_id):
                 return SourceResponse(False, "", "", "", "invalid_rate_limit_lease")
         else:
-            configured = (
-                self._rate_limiters.get(request.source_type)
-                or self._rate_limiters.get(request.source_id)
+            configured = self._select_rate_limiter(
+                source_type=request.source_type,
+                source_id=request.source_id,
             )
             if configured is not None:
                 lease = self.acquire_rate_limit(
