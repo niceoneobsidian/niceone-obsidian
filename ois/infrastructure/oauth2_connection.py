@@ -95,7 +95,9 @@ class InMemoryOAuthCredentialStore:
                 or provider.startswith(f"{record.provider}.")
             )
         ):
-            raise PermissionError("OAuth credential is outside its tenant/workspace/provider scope")
+            raise PermissionError(
+                "OAuth credential is outside its tenant/workspace/provider scope"
+            )
         return record
 
     def resolve(
