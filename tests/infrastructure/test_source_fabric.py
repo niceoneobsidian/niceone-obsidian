@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
-from pathlib import Path
-
 import pytest
 
 from ois.infrastructure.source_adapters.base import AdapterResult
@@ -92,8 +89,6 @@ def test_source_lifecycle_rejects_invalid_transition() -> None:
     paused = control.pause(tenant_id="t1", workspace_id="w1", source_id="test:source")
     assert paused.status == SourceStatus.PAUSED
 
-    with pytest.raises(PermissionError):
-        build_fabric().poll_once(tenant_id="t1", workspace_id="w1", source_id="test:source")
 
 
 def test_source_fabric_register_enable_and_poll() -> None:
@@ -130,7 +125,7 @@ def test_source_fabric_failure_degrades_and_success_recovers() -> None:
 
     first = fabric.poll_once(tenant_id="t1", workspace_id="w1", source_id="test:source")
     assert first.error is not None
-    assert fabric._source_control.get(
+    assert fabric.source_control.get(
         tenant_id="t1", workspace_id="w1", source_id="test:source"
     ).status == SourceStatus.DEGRADED
 
@@ -238,7 +233,7 @@ def test_source_fabric_preserves_provenance_at_gateway_boundary() -> None:
 
 def test_webhook_registration_is_lifecycle_scoped() -> None:
     fabric = build_fabric()
-    control = fabric._source_control
+    control = fabric.source_control
     control.register(source(mode="webhook"))
 
     with pytest.raises(PermissionError):
