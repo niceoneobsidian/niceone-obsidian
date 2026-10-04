@@ -92,9 +92,10 @@ class HttpSourceAdapter:
         self,
         credential: CredentialMaterial | None = None,
         *,
+        url: str | None = None,
         request_headers: dict[str, str] | None = None,
     ) -> tuple[object, str, float]:
-        request_url = self._request_url()
+        request_url = url or self._request_url()
 
         if request_headers is None:
             headers = dict(self._headers)
@@ -168,6 +169,7 @@ class HttpSourceAdapter:
 
     def health(
         self,
+        credential: CredentialMaterial | None = None,
         *,
         gateway: SourceGateway | None = None,
         tenant_id: str | None = None,
@@ -176,7 +178,6 @@ class HttpSourceAdapter:
     ) -> AdapterHealth:
         started = monotonic()
         try:
-            credential = None
             if credential_id:
                 if gateway is None or tenant_id is None or workspace_id is None:
                     raise ValueError(
@@ -192,7 +193,7 @@ class HttpSourceAdapter:
                 )
             self._fetch(credential)
             self._last_observed_at = datetime.now(UTC)
-        except (HTTPError, URLError, TimeoutError, OSError, ValueError, PermissionError) as exc:
+        except Exception as exc:
             return AdapterHealth(
                 self.source_id,
                 False,
