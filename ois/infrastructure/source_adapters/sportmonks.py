@@ -12,6 +12,7 @@ from ois.infrastructure.source_gateway import (
     SourceGateway,
     SourceSpec,
 )
+from ois.infrastructure.source_gateway import FreshnessPolicy, SourceGateway, SourceSpec
 
 from .base import AdapterHealth, AdapterResult, SourceAdapterRegistry
 from .http import HttpSourceAdapter
@@ -41,6 +42,7 @@ class SportmonksFootballAdapter:
         freshness: FreshnessPolicy | None = None,
         timeout: float = 20.0,
         opener: Callable[..., object] | None = None,
+        opener: Callable[..., Any] | None = None,
     ) -> None:
         self.query = query or SportmonksQuery()
         self.freshness = freshness or FreshnessPolicy(30)
@@ -53,6 +55,8 @@ class SportmonksFootballAdapter:
             connector_version="sportmonks-v3",
             auth_scheme=AuthScheme.API_KEY,
             auth_options={"header": "Authorization"},
+            auth_scheme="api_key",
+            auth_header="Authorization",
             freshness=self.freshness,
             opener=opener,
         )
@@ -101,6 +105,10 @@ class SportmonksFootballAdapter:
 
     @staticmethod
     def register(registry: SourceAdapterRegistry, **kwargs: Any) -> SportmonksFootballAdapter:
+    def register(
+        registry: SourceAdapterRegistry,
+        **kwargs: Any,
+    ) -> SportmonksFootballAdapter:
         adapter = SportmonksFootballAdapter(**kwargs)
         registry.register(adapter, adapter.spec())
         return adapter

@@ -47,6 +47,7 @@ class SourceAdapter(Protocol):
 
 class SourceAdapterRegistry:
     """Deterministic source registry with explicit provider metadata."""
+    """Deterministic registry for live source adapters and their contracts."""
 
     def __init__(self) -> None:
         self._adapters: dict[str, SourceAdapter] = {}
@@ -70,7 +71,14 @@ class SourceAdapterRegistry:
         except KeyError as exc:
             raise KeyError(f"source adapter not registered: {source_id}") from exc
 
+    def spec(self, source_id: str) -> SourceSpec:
+        try:
+            return self._specs[source_id]
+        except KeyError as exc:
+            raise KeyError(f"source specification not registered: {source_id}") from exc
+
     def unregister(self, source_id: str) -> None:
+        """Remove a connector and its registry contract."""
         if source_id not in self._adapters:
             raise KeyError(f"source adapter not registered: {source_id}")
         del self._adapters[source_id]
@@ -84,6 +92,17 @@ class SourceAdapterRegistry:
 
     def list(self) -> tuple[str, ...]:
         return tuple(sorted(self._adapters))
+
+    def healthy(self) -> tuple[str, ...]:
+        """Return registered sources whose adapters expose a healthy check."""
+        healthy: list[str] = []
+        for source_id in self.list():
+            check = getattr(self.get(source_id), "health", None)
+            if callable(check):
+                result = check()
+                if result.healthy:
+                    healthy.append(source_id)
+        return tuple(healthy)
 
     @staticmethod
     def response(

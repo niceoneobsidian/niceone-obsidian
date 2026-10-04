@@ -88,6 +88,10 @@ class SourceGateway:
 
     def acquire_rate_limit(self, *, source_type: str = "", source_id: str = "") -> str | None:
         bucket = self._rate_limiters.get(source_type) or self._rate_limiters.get(source_id)
+        return self._select_rate_limiter(source_type=source_type, source_id=source_id) is not None
+
+    def acquire_rate_limit(self, *, source_type: str = "", source_id: str = "") -> str | None:
+        bucket = self._select_rate_limiter(source_type=source_type, source_id=source_id)
         if bucket is None:
             return None
         if not bucket.acquire():
@@ -95,6 +99,9 @@ class SourceGateway:
         lease = str(uuid4())
         self._leases[lease] = (source_type, source_id)
         return lease
+
+    def _select_rate_limiter(self, *, source_type: str, source_id: str) -> TokenBucket | None:
+        return self._rate_limiters.get(source_type) or self._rate_limiters.get(source_id)
 
     def ingest(self, request: SourceRequest) -> SourceResponse:
         scope = TenantScope(
@@ -114,6 +121,11 @@ class SourceGateway:
                 request.source_id
             )
             if bucket is not None:
+            configured = self._select_rate_limiter(
+                source_type=request.source_type,
+                source_id=request.source_id,
+            )
+            if configured is not None:
                 lease = self.acquire_rate_limit(
                     source_type=request.source_type,
                     source_id=request.source_id,

@@ -42,6 +42,7 @@ def main() -> int:
     print(
         "LIVE_SOURCE_VERIFIED: "
         f"source={adapter.source_id} records={result.records} "
+        f"LIVE_SOURCE_VERIFIED: source={adapter.source_id} records={result.records} "
         f"evidence_id={result.evidence_ids[0]} payload_hash={result.payload_hashes[0]}"
     )
     return 0

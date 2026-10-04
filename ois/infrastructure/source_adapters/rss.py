@@ -44,6 +44,7 @@ class RSSSourceAdapter:
             self._entries()
         except Exception as exc:
             return AdapterHealth(self.source_id, False, utc_now(), None, None, type(exc).__name__)
+            return AdapterHealth(self.source_id, False, utc_now(), reason=type(exc).__name__)
         return AdapterHealth(self.source_id, True, utc_now())
 
     def ingest(

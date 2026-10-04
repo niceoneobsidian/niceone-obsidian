@@ -62,6 +62,7 @@ def test_http_adapter_applies_bearer_credential_and_persists_provenance() -> Non
     calls: list[dict[str, str]] = []
 
     def opener(request: Request, *, timeout: float) -> FakeResponse:
+    def opener(request: object, *, timeout: float) -> FakeResponse:
         headers = request.headers
         calls.append({"authorization": headers["Authorization"], "timeout": str(timeout)})
         return FakeResponse({"id": "42", "value": "live"})
@@ -76,6 +77,7 @@ def test_http_adapter_applies_bearer_credential_and_persists_provenance() -> Non
         source_id="example:api",
         url="https://example.test/data",
         auth_scheme=AuthScheme.BEARER,
+        auth_scheme="bearer",
         freshness=FreshnessPolicy(60),
         opener=opener,
     )

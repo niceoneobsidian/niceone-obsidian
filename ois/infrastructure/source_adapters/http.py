@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import json
 from collections.abc import Callable
 from datetime import UTC, datetime
@@ -25,6 +26,8 @@ from ois.infrastructure.source_gateway import (
     TenantScope,
     authenticator_for,
 )
+)
+from ois.infrastructure.source_gateway.auth import Authenticator, AuthRequest, authenticator_for
 
 from .base import AdapterHealth, AdapterResult, SourceAdapterRegistry, utc_now
 
@@ -33,6 +36,7 @@ class HttpSourceAdapter:
     """Governed generic REST adapter.
 
     Provider I/O happens here; authentication, tenant scope, rate limiting,
+    Provider I/O happens here; credential resolution, tenant scope, rate limiting,
     evidence and outbox persistence remain governed by the Source Gateway.
     """
 
@@ -50,6 +54,10 @@ class HttpSourceAdapter:
         auth_scheme: AuthScheme = AuthScheme.NONE,
         auth_options: dict[str, object] | None = None,
         authenticator: Authenticator | None = None,
+        auth_scheme: AuthScheme | str = AuthScheme.NONE,
+        auth_options: dict[str, object] | None = None,
+        authenticator: Authenticator | None = None,
+        auth_header: str | None = None,
         freshness: FreshnessPolicy | None = None,
         opener: Callable[..., Any] | None = None,
     ) -> None:
@@ -60,17 +68,26 @@ class HttpSourceAdapter:
         if method.upper() not in {"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"}:
             raise ValueError("unsupported HTTP method")
         if authenticator is not None and auth_scheme is not AuthScheme.NONE:
+        self._basic_auth = str(auth_scheme) == "basic"
+        normalized_scheme = AuthScheme.NONE if self._basic_auth else AuthScheme(auth_scheme)
+        if authenticator is not None and (
+            self._basic_auth or normalized_scheme is not AuthScheme.NONE
+        ):
             raise ValueError("choose auth_scheme or authenticator, not both")
         self.source_id = source_id
         self._url = url
         self._method = method.upper()
+        if self._method not in {"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"}:
+            raise ValueError("unsupported HTTP method")
         self._headers = dict(headers or {})
         self._query = dict(query or {})
         self._body = body
         self._timeout = timeout
         self._connector_version = connector_version
-        self._auth_scheme = auth_scheme
+        self._auth_scheme = normalized_scheme
         self._auth_options = dict(auth_options or {})
+        if auth_header is not None:
+            self._auth_options["header"] = auth_header
         self._authenticator = authenticator
         self._freshness = freshness
         self._opener = opener or urlopen
@@ -87,6 +104,16 @@ class HttpSourceAdapter:
         credential: CredentialMaterial | None = None,
     ) -> tuple[object, str, float]:
         request_url = self._request_url()
+
+    def _request_url(self) -> str:
+        if not self._query:
+            return self._url
+        separator = "&" if "?" in self._url else "?"
+        return f"{self._url}{separator}{urlencode(self._query)}"
+
+    def _headers_for(
+        self, credential: CredentialMaterial | None
+    ) -> tuple[dict[str, str], bytes | None]:
         payload = None
         headers = dict(self._headers)
         if self._body is not None:
@@ -99,9 +126,24 @@ class HttpSourceAdapter:
             auth = self._authenticator or authenticator_for(self._auth_scheme, **self._auth_options)
             authenticated = auth.apply(
                 AuthRequest(self._method, request_url, headers, payload or b""),
+        if (
+            self._auth_scheme is AuthScheme.NONE
+            and not self._basic_auth
+            and self._authenticator is None
+        ):
+            if credential is not None:
+                raise ValueError("credential supplied to unauthenticated adapter")
+            return headers, payload
+
+        if credential is None:
+            raise PermissionError(f"{self.source_id} requires a credential")
+
+        if self._authenticator is not None:
+            authenticated = self._authenticator.apply(
+                AuthRequest(self._method, self._request_url(), headers, payload or b""),
                 credential,
             )
-            headers = authenticated.headers
+            return authenticated.headers, payload
 
         request = Request(
             request_url,
@@ -114,6 +156,35 @@ class HttpSourceAdapter:
             raw = response.read()
             content_type = response.headers.get("Content-Type", "")
             status = str(getattr(response, "status", 200))
+        if self._auth_scheme is AuthScheme.BEARER or self._auth_scheme is AuthScheme.OAUTH2:
+            headers["Authorization"] = f"{credential.token_type} {credential.secret}"
+        elif self._auth_scheme is AuthScheme.API_KEY:
+            header = str(self._auth_options.get("header", "X-API-Key"))
+            headers[header] = credential.secret
+        elif self._basic_auth:
+            encoded = base64.b64encode(credential.secret.encode("utf-8")).decode("ascii")
+            headers[str(self._auth_options.get("header", "Authorization"))] = f"Basic {encoded}"
+        else:
+            authenticator = authenticator_for(self._auth_scheme, **self._auth_options)
+            authenticated = authenticator.apply(
+                AuthRequest(self._method, self._request_url(), headers, payload or b""),
+                credential,
+            )
+            return authenticated.headers, payload
+        return headers, payload
+
+    def _fetch(self, credential: CredentialMaterial | None = None) -> tuple[object, str, float]:
+        request_url = self._request_url()
+        headers, payload = self._headers_for(credential)
+        request = Request(request_url, data=payload, headers=headers, method=self._method)
+        started = monotonic()
+        try:
+            with self._opener(request, timeout=self._timeout) as response:
+                raw = response.read()
+                content_type = response.headers.get("Content-Type", "")
+                status = str(getattr(response, "status", 200))
+        except (HTTPError, URLError, TimeoutError, OSError):
+            raise
         elapsed_ms = (monotonic() - started) * 1000
         if "json" in content_type.lower():
             return cast(object, json.loads(raw.decode("utf-8"))), status, elapsed_ms
@@ -199,6 +270,10 @@ class HttpSourceAdapter:
                 source_type=source_type,
                 source_id=self.source_id,
             )
+        lease = None
+        source_type = self.source_id.split(":", 1)[0]
+        if gateway.rate_limit_configured(source_type=source_type, source_id=self.source_id):
+            lease = gateway.acquire_rate_limit(source_type=source_type, source_id=self.source_id)
             if lease is None:
                 return SourceAdapterRegistry.response(self.source_id, [])
 

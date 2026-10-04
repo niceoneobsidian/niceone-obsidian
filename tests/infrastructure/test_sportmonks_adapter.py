@@ -10,6 +10,10 @@ from ois.infrastructure.source_adapters import (
     SourceAdapterRegistry,
     SportmonksFootballAdapter,
 )
+
+import pytest
+
+from ois.infrastructure.source_adapters import SourceAdapterRegistry, SportmonksFootballAdapter
 from ois.infrastructure.source_gateway import (
     InMemoryCredentialResolver,
     SourceGateway,
@@ -50,6 +54,11 @@ def test_sportmonks_adapter_uses_authorization_and_gateway_evidence() -> None:
         calls.append(request)
         headers = request.headers
         assert headers["Authorization"] == "secret-token"
+    calls = []
+
+    def opener(request, *, timeout):
+        calls.append(request)
+        assert request.headers["Authorization"] == "secret-token"
         assert "include=participants%3Bscores%3Bstate" in request.full_url
         return FakeResponse({"data": [{"id": 123, "name": "Example FC vs Example United"}]})
 
