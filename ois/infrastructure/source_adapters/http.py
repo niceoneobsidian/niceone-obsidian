@@ -57,7 +57,11 @@ class HttpSourceAdapter:
             raise ValueError("HTTP source URL must use http:// or https://")
         if timeout <= 0:
             raise ValueError("timeout must be positive")
-        normalized_scheme: AuthScheme | str = "basic" if str(auth_scheme) == "basic" else AuthScheme(auth_scheme)
+        normalized_scheme: AuthScheme | str
+        if str(auth_scheme) == "basic":
+            normalized_scheme = "basic"
+        else:
+            normalized_scheme = AuthScheme(auth_scheme)
         if authenticator is not None and normalized_scheme is not AuthScheme.NONE:
             raise ValueError("choose auth_scheme or authenticator, not both")
         self.source_id = source_id
