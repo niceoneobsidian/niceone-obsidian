@@ -62,4 +62,8 @@ class RetryController:
         jitter = exponential * self._policy.jitter_ratio * self._random.random()
         return RetryDecision(
             True, attempt, min(self._policy.max_delay_seconds, exponential + jitter), reason
+            True,
+            attempt,
+            min(self._policy.max_delay_seconds, exponential + jitter),
+            reason,
         )
