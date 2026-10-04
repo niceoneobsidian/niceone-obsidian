@@ -209,6 +209,7 @@ class HttpSourceAdapter:
             SourceRequest(
                 tenant_id=tenant_id,
                 workspace_id=workspace_id,
+                source_type=self.source_id.split(":", 1)[0],
                 source_id=self.source_id,
                 source_record_id=self._url,
                 payload={"url": self._url, "response": payload},
