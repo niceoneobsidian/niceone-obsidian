@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable
+from collections.abc import Callable
 from datetime import UTC, datetime
 from time import monotonic
-from typing import Any, Callable, cast
+from typing import Any, cast
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
