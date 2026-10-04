@@ -195,9 +195,13 @@ class SourceGateway:
         )
 
         event_payload: dict[str, Any] = {
+            "event_type": request.event_type,
             "evidence_id": evidence_id,
             "source_id": request.source_id,
+            "source_record_id": request.source_record_id,
             "payload_hash": payload_hash,
+            "connector_version": request.connector_version,
+            "schema_version": request.schema_version,
         }
         if request.provenance:
             event_payload["provenance"] = request.provenance.as_dict()
