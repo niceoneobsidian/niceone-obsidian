@@ -23,7 +23,6 @@ from .ledger import SQLiteSourceLedger
 from .limits import RateLimitPolicy, RateLimitState, TokenBucket
 from .outbox import OutboxEvent, OutboxStore, SQLiteOutboxStore
 from .postgres import PostgresSourceLedger
-from .socket import ApiSourceSocket, SocketStatus
 
 __all__ = [
     "ApiKeyAuth",
@@ -52,8 +51,6 @@ __all__ = [
     "SQLiteRawEvidenceWriter",
     "SQLiteSourceLedger",
     "SourceCursor",
-    "ApiSourceSocket",
-    "SocketStatus",
     "SourceGateway",
     "SourceProvenance",
     "SourceRequest",
