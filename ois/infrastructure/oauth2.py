@@ -211,11 +211,11 @@ class OAuth2Provider:
             raise OAuth2Error(
                 provider=self.config.provider,
                 operation=operation,
-                category="provider_rejected" if exc.code < 500 else "provider_unavailable",
+                category="provider_rejected" if exc.code < 500 and exc.code != 429 else "provider_unavailable",
                 message=description,
                 error_code=error_code,
                 status_code=exc.code,
-                retryable=exc.code >= 500,
+                retryable=exc.code >= 500 or exc.code == 429,
             ) from exc
         except (URLError, TimeoutError, OSError) as exc:
             raise OAuth2Error(
