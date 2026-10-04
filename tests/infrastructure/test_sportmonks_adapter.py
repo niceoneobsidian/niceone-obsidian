@@ -5,8 +5,15 @@ from email.message import Message
 
 import pytest
 
-from ois.infrastructure.source_adapters import SourceAdapterRegistry, SportmonksFootballAdapter
-from ois.infrastructure.source_gateway import InMemoryCredentialResolver, SQLiteSourceLedger, SourceGateway
+from ois.infrastructure.source_adapters import (
+    SourceAdapterRegistry,
+    SportmonksFootballAdapter,
+)
+from ois.infrastructure.source_gateway import (
+    InMemoryCredentialResolver,
+    SQLiteSourceLedger,
+    SourceGateway,
+)
 
 
 class FakeResponse:
@@ -36,11 +43,12 @@ def test_sportmonks_adapter_registers_explicit_contract() -> None:
 
 
 def test_sportmonks_adapter_uses_authorization_and_gateway_evidence() -> None:
-    calls = []
+    calls: list[object] = []
 
-    def opener(request, *, timeout):
+    def opener(request: object, *, timeout: float) -> FakeResponse:
         calls.append(request)
-        assert request.headers["Authorization"] == "secret-token"
+        headers = request.headers
+        assert headers["Authorization"] == "secret-token"
         assert "include=participants%3Bscores%3Bstate" in request.full_url
         return FakeResponse({"data": [{"id": 123, "name": "Example FC vs Example United"}]})
 
@@ -72,7 +80,9 @@ def test_sportmonks_adapter_rejects_missing_or_cross_scope_credentials() -> None
         evidence=SQLiteSourceLedger(),
         outbox=SQLiteSourceLedger(),
     )
-    adapter = SportmonksFootballAdapter(opener=lambda request, timeout: FakeResponse({"data": []}))
+    adapter = SportmonksFootballAdapter(
+        opener=lambda request, timeout: FakeResponse({"data": []})
+    )
 
     with pytest.raises(KeyError):
         adapter.ingest(
