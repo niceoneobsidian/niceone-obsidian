@@ -74,3 +74,20 @@ class WebhookSecurity:
         ):
             return False
         return True
+
+    def release(
+        self,
+        *,
+        replay_key: str,
+        tenant_id: str,
+        workspace_id: str,
+    ) -> bool:
+        """Release a replay reservation when downstream durable ingestion fails."""
+        if self._replay_store is None:
+            return False
+        return self._replay_store.release(
+            tenant_id=tenant_id,
+            workspace_id=workspace_id,
+            key=replay_key,
+            event_id=replay_key,
+        )
