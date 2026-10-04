@@ -1,6 +1,6 @@
-"""Autonomy primitives and durable execution components."""
+"""Autonomy primitives for durable and governed execution."""
 
-from .approvals import ApprovalDecision, ApprovalGate, ApprovalRequest, InMemoryApprovalStore
+from .approvals import ApprovalDecision, ApprovalRequest, ApprovalStatus
 from .durable import (
     DurableRunStatus,
     DurableWorkflowRun,
@@ -9,26 +9,14 @@ from .durable import (
 )
 from .durable_approvals import FencedApprovalResume, PostgresApprovalStore
 from .events import EventEnvelope, EventRoute, EventRouter, InMemoryEventRouter
-<<<<<<< HEAD
-=======
-from .durable_approvals import FencedApprovalResume, PostgresApprovalStore
-from .durable import DurableRunStatus, DurableWorkflowRun, FencedPostgresWorkflowRunRepository, PostgresWorkflowRunRepository
-from .durable import DurableRunStatus, DurableWorkflowRun, PostgresWorkflowRunRepository
->>>>>>> 4cfbacd8 (feat(phase-d5): export durable approval primitives)
 from .loops import AutonomousLoop, LoopDecision, LoopState
+from .operations import Operation, OperationResult
 from .recovery_store import RecoveryCandidate, WorkflowRecoverySweeper
-from .side_effects import PostgresSideEffectLedger, SideEffectLedgerEntry
-from .operations import AutonomousOperations, OperationReceipt
-from .policy import AutomationPolicy, PolicyEvaluation, PolicyRule
-from .recovery import FailureRecovery, RecoveryAction, RecoveryRecord
-from .recovery_store import RecoveryCandidate, WorkflowRecoverySweeper
-from .workflows import SourceWorkflow, WorkflowRun, WorkflowStatus, WorkflowTrigger
 
 __all__ = [
     "ApprovalDecision",
-    "ApprovalGate",
     "ApprovalRequest",
-    "InMemoryApprovalStore",
+    "ApprovalStatus",
     "DurableRunStatus",
     "DurableWorkflowRun",
     "FencedPostgresWorkflowRunRepository",
@@ -36,32 +24,14 @@ __all__ = [
     "FencedApprovalResume",
     "PostgresApprovalStore",
     "EventEnvelope",
-<<<<<<< HEAD
-=======
-    "FencedApprovalResume",
-    "PostgresApprovalStore",
-    "EventRouter",
->>>>>>> 4cfbacd8 (feat(phase-d5): export durable approval primitives)
     "EventRoute",
     "EventRouter",
     "InMemoryEventRouter",
     "AutonomousLoop",
     "LoopDecision",
     "LoopState",
-    "AutonomousOperations",
-    "OperationReceipt",
-    "AutomationPolicy",
-    "PolicyEvaluation",
-    "PolicyRule",
-    "FailureRecovery",
+    "Operation",
+    "OperationResult",
     "RecoveryCandidate",
     "WorkflowRecoverySweeper",
-    "RecoveryAction",
-    "RecoveryRecord",
-    "PostgresSideEffectLedger",
-    "SideEffectLedgerEntry",
-    "SourceWorkflow",
-    "WorkflowRun",
-    "WorkflowStatus",
-    "WorkflowTrigger",
 ]
