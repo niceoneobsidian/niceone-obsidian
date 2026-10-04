@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from typing import Any, cast
 from uuid import NAMESPACE_URL, uuid4, uuid5
 
+from .auth import CredentialMaterial
 from .contracts import SourceProvenance
 from .credentials import CredentialRef, CredentialResolver, TenantScope
 from .evidence import RawEvidence, RawEvidenceWriter, canonical_hash
@@ -64,19 +65,20 @@ class SourceGateway:
                     policy if isinstance(policy, TokenBucket) else TokenBucket(policy)
                 )
 
+    def _id(self) -> str:
+        return str(uuid4())
+
     def resolve_credential(
         self,
-        credential: CredentialRef,
-        *,
-        tenant_id: str,
-        workspace_id: str,
-    ) -> str:
-        scope = TenantScope(tenant_id=tenant_id, workspace_id=workspace_id)
-        if credential.tenant_id != tenant_id:
+        ref: CredentialRef,
+        scope: TenantScope,
+    ) -> CredentialMaterial:
+        """Resolve tenant-scoped secret material for an authentication strategy."""
+        if ref.tenant_id != scope.tenant_id:
             raise PermissionError("credential belongs to another tenant")
         if self._credentials is None:
             raise RuntimeError("credential resolver is not configured")
-        return self._credentials.resolve(credential, scope)
+        return CredentialMaterial(self._credentials.resolve(ref, scope))
 
     def rate_limit_configured(self, *, source_type: str = "", source_id: str = "") -> bool:
         return (
@@ -94,32 +96,24 @@ class SourceGateway:
         self._leases[lease] = (source_type, source_id)
         return lease
 
-    def _id(self) -> str:
-        return str(uuid4())
-
     def ingest(self, request: SourceRequest) -> SourceResponse:
         scope = TenantScope(
             tenant_id=request.tenant_id,
             workspace_id=request.workspace_id,
         )
 
-        if request.credential:
-            if self._credentials is None:
-                raise RuntimeError("credential supplied but credential resolver is not configured")
-            if request.credential.tenant_id != request.tenant_id:
-                raise PermissionError("credential belongs to another tenant")
-            self._credentials.resolve(request.credential, scope)
+        if request.credential and self._credentials:
+            self.resolve_credential(request.credential, scope)
 
         if request.rate_limit_lease is not None:
             lease_scope = self._leases.pop(request.rate_limit_lease, None)
             if lease_scope != (request.source_type, request.source_id):
                 return SourceResponse(False, "", "", "", "invalid_rate_limit_lease")
         else:
-            configured = (
-                self._rate_limiters.get(request.source_type)
-                or self._rate_limiters.get(request.source_id)
+            bucket = self._rate_limiters.get(request.source_type) or self._rate_limiters.get(
+                request.source_id
             )
-            if configured is not None:
+            if bucket is not None:
                 lease = self.acquire_rate_limit(
                     source_type=request.source_type,
                     source_id=request.source_id,
