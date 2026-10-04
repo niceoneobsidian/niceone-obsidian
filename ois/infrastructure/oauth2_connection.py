@@ -90,10 +90,7 @@ class InMemoryOAuthCredentialStore:
         if (
             record.tenant_id != tenant_id
             or record.workspace_id != workspace_id
-            or not (
-                provider == record.provider
-                or provider.startswith(f"{record.provider}.")
-            )
+            or not (provider == record.provider or provider.startswith(f"{record.provider}."))
         ):
             raise PermissionError("OAuth credential is outside its tenant/workspace/provider scope")
         return record
