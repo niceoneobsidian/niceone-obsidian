@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from threading import RLock
-from typing import Any, Callable
+from typing import Any
 
 from ois.domains.social_intelligence.events import CanonicalSourceEvent
 
@@ -43,7 +44,8 @@ class DeadLetterStore:
     def list(self, tenant_id: str, workspace_id: str) -> tuple[DeadLetter, ...]:
         with self._lock:
             return tuple(
-                item for item in self._items.values()
+                item
+                for item in self._items.values()
                 if (item.event.tenant_id, item.event.workspace_id) == (tenant_id, workspace_id)
             )
 
@@ -65,9 +67,13 @@ class SourceRecovery:
         self._dead_letters = dead_letters
         self._max_attempts = max_attempts
 
-    def run(self, event: CanonicalSourceEvent, handler: Callable[[CanonicalSourceEvent], object]) -> bool:
+    def run(
+        self,
+        event: CanonicalSourceEvent,
+        handler: Callable[[CanonicalSourceEvent], object],
+    ) -> bool:
         last_error = "unknown failure"
-        for attempt in range(1, self._max_attempts + 1):
+        for _attempt in range(1, self._max_attempts + 1):
             try:
                 handler(event)
                 return True
