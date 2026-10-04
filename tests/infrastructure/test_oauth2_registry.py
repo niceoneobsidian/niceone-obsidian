@@ -43,12 +43,15 @@ def test_secret_manager_store_round_trips_and_enforces_scope() -> None:
         expires_at=datetime.now(UTC) + timedelta(hours=1),
     )
     store.save(record)
-    assert store.get(
-        "cred-1",
-        tenant_id="tenant-1",
-        workspace_id="workspace-1",
-        provider="github.rest.user",
-    ) == record
+    assert (
+        store.get(
+            "cred-1",
+            tenant_id="tenant-1",
+            workspace_id="workspace-1",
+            provider="github.rest.user",
+        )
+        == record
+    )
     with pytest.raises(PermissionError):
         store.get(
             "cred-1",
@@ -114,12 +117,15 @@ def test_connection_refreshes_expiring_credential_before_ingest() -> None:
     class Socket:
         def ingest(self, source_id, *, tenant_id, workspace_id, credential_id):
             assert credential_id == "cred"
-            assert store.get(
-                "cred",
-                tenant_id=tenant_id,
-                workspace_id=workspace_id,
-                provider="github",
-            ).access_token == "new-access"
+            assert (
+                store.get(
+                    "cred",
+                    tenant_id=tenant_id,
+                    workspace_id=workspace_id,
+                    provider="github",
+                ).access_token
+                == "new-access"
+            )
             return "result"
 
     connection = OAuth2SourceConnection(
@@ -137,13 +143,16 @@ def test_connection_refreshes_expiring_credential_before_ingest() -> None:
             expires_in=3600,
         ),
     ):
-        assert connection.ingest(
-            provider="github",
-            source_id="github.rest.user",
-            tenant_id="tenant",
-            workspace_id="workspace",
-            credential_id="cred",
-        ) == "result"
+        assert (
+            connection.ingest(
+                provider="github",
+                source_id="github.rest.user",
+                tenant_id="tenant",
+                workspace_id="workspace",
+                credential_id="cred",
+            )
+            == "result"
+        )
 
 
 def test_connection_rejects_expired_credential_without_refresh_token() -> None:

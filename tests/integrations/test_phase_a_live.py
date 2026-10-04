@@ -18,7 +18,6 @@ from ois.integrations.google import GoogleDriveSource
 from ois.integrations.meta import MetaFacebookSource
 from ois.integrations.tiktok import TikTokDisplayClient, TikTokSource
 
-
 pytestmark = pytest.mark.skipif(
     os.getenv("OIS_LIVE_PHASE_A") != "1",
     reason="set OIS_LIVE_PHASE_A=1 to run external Phase A smoke tests",
@@ -34,9 +33,7 @@ def _token(name: str) -> str:
 
 def _socket(provider: str, token: str, source) -> ApiSourceSocket:
     socket = ApiSourceSocket(
-        gateway=SourceGateway(
-            credentials=InMemoryCredentialResolver({f"{provider}-live": token})
-        )
+        gateway=SourceGateway(credentials=InMemoryCredentialResolver({f"{provider}-live": token}))
     )
     socket.register(source)
     return socket

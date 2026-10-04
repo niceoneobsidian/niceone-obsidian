@@ -12,7 +12,6 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urlparse
 from urllib.request import Request, urlopen
 
-
 _ALLOWED_TOKEN_AUTH = {"client_secret_post", "client_secret_basic"}
 
 
@@ -49,9 +48,10 @@ class OAuth2Config:
         redirect = urlparse(self.redirect_uri)
         if redirect.fragment:
             raise ValueError("OAuth2 redirect URI must not contain a fragment")
-        if redirect.scheme != "https":
-            if redirect.scheme != "http" or redirect.hostname not in {"localhost", "127.0.0.1", "::1"}:
-                raise ValueError("OAuth2 redirect URI must use HTTPS outside localhost")
+        if redirect.scheme != "https" and (
+            redirect.scheme != "http" or redirect.hostname not in {"localhost", "127.0.0.1", "::1"}
+        ):
+            raise ValueError("OAuth2 redirect URI must use HTTPS outside localhost")
         if self.token_auth_method not in _ALLOWED_TOKEN_AUTH:
             raise ValueError(
                 f"unsupported OAuth2 token authentication method: {self.token_auth_method}"
@@ -128,11 +128,7 @@ class OAuth2Token:
             raise ValueError("OAuth2 token response is missing access_token")
 
         scope_value = payload.get("scope", "")
-        scopes = (
-            tuple(str(scope_value).split(scope_separator))
-            if scope_value
-            else ()
-        )
+        scopes = tuple(str(scope_value).split(scope_separator)) if scope_value else ()
         returned_refresh = payload.get("refresh_token")
         preserved_refresh = str(returned_refresh) if returned_refresh else refresh_token
 
