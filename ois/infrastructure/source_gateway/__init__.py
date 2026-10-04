@@ -31,7 +31,6 @@ from .limits import RateLimitPolicy, RateLimitState, TokenBucket
 from .outbox import OutboxEvent, OutboxStore, SQLiteOutboxStore
 from .postgres import PostgresSourceLedger
 from .rate_limits import RateLimitDecision, RateLimitManager
-from .socket import ApiSourceSocket, SocketStatus
 from .webhook_security import WebhookSecurity, WebhookSecurityPolicy
 
 __all__ = [
@@ -66,8 +65,6 @@ __all__ = [
     "SQLiteSourceLedger",
     "SourceCursor",
     "SourceEvent",
-    "ApiSourceSocket",
-    "SocketStatus",
     "SourceGateway",
     "SourceProvenance",
     "SourceRequest",
