@@ -263,7 +263,8 @@ class FencedPostgresWorkflowRunRepository:
             "UPDATE autonomous_workflow_runs SET "
             + ", ".join(updates)
             + " WHERE run_id = %s RETURNING run_id, tenant_id, workspace_id, workflow_id, "
-            + "workflow_version, event_id, status, attempt, checkpoint, result, error, idempotency_key"
+            + "workflow_version, event_id, status, attempt, checkpoint, result, error, "
+            + "idempotency_key"
         )
         with self._repository._connect() as connection, connection.cursor() as cursor:
             self._lease_store._assert_current_cursor(cursor, self.lease)
