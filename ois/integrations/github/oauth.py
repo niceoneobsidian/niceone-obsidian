@@ -1,8 +1,16 @@
 """GitHub OAuth App provider configuration."""
 from __future__ import annotations
+
 from ois.infrastructure.oauth2 import OAuth2Config, OAuth2Provider
 
-def build_github_oauth(*, client_id: str, client_secret: str, redirect_uri: str, state_store=None) -> OAuth2Provider:
+
+def build_github_oauth(
+    *,
+    client_id: str,
+    client_secret: str,
+    redirect_uri: str,
+    state_store=None,
+) -> OAuth2Provider:
     return OAuth2Provider(
         OAuth2Config(
             provider="github",
