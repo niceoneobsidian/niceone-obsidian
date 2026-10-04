@@ -32,6 +32,7 @@ from ois.infrastructure.source_gateway.socket import ApiSourceSocket
 from ois.infrastructure.source_registry import (
     SourceControlAPI,
     SourceDefinition,
+    SourceStatus,
     SQLiteSourceRegistry,
 )
 
@@ -318,7 +319,8 @@ def test_source_control_is_tenant_scoped() -> None:
             mode="poll",
         )
     )
-    assert source.enabled
+    assert source.status == SourceStatus.REGISTERED
+    assert not source.enabled
     assert api.list(tenant_id="t1", workspace_id="w1") == (source,)
     with pytest.raises(KeyError):
         api.get(tenant_id="t2", workspace_id="w1", source_id="github:repo")
