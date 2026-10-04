@@ -10,9 +10,9 @@ from .database import DatabaseSourceAdapter
 from .file import FileSourceAdapter
 from .github import GitHubSourceAdapter
 from .http import HttpSourceAdapter
-from .sportmonks import SportmonksFootballAdapter, SportmonksQuery
 from .polling import PollingSourceAdapter, PollPage
 from .rss import RSSSourceAdapter
+from .sportmonks import SportmonksFootballAdapter, SportmonksQuery
 from .webhook import WebhookVerifier
 
 __all__ = [
