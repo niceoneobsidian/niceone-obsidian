@@ -69,7 +69,7 @@ class PostgresApprovalStore:
                           reason, decision, created_at, expires_at, decided_by, decided_at,
                           event_payload, source_id, event_type
                    FROM autonomous_approvals
-                   WHERE event_id = %s
+                   WHERE event_id = %s AND decision = 'pending'
                    ORDER BY created_at DESC LIMIT 1""",
                 (event_id,),
             )
