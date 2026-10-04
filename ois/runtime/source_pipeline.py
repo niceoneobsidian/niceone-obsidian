@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 from ois.control_plane.source_policies import SourcePolicyStore
 from ois.domains.social_intelligence.events import CanonicalSourceEvent
@@ -50,11 +50,17 @@ class SourceIntelligencePipeline:
                 credential_present=credential_verified,
             )
         except (KeyError, PermissionError) as exc:
-            return PipelineResult(event.event_id, False, False, str(exc))
+            reason = exc.args[0] if exc.args and isinstance(exc.args[0], str) else str(exc)
+            return PipelineResult(event.event_id, False, False, reason)
 
         processor = handler or self._handler
         if processor is None:
-            return PipelineResult(event.event_id, False, False, "intelligence_handler_not_configured")
+            return PipelineResult(
+                event.event_id,
+                False,
+                False,
+                "intelligence_handler_not_configured",
+            )
         accepted = self._recovery.run(event, processor)
         dead_lettered = any(
             item.event.event_id == event.event_id
