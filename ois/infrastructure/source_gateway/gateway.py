@@ -149,7 +149,6 @@ class SourceGateway:
             ingestion_run_id=self._id(),
         )
 
-        outbox_event = OutboxEvent(
         event_payload: dict[str, Any] = {
             "evidence_id": evidence_id,
             "source_id": request.source_id,
@@ -171,7 +170,7 @@ class SourceGateway:
         commit_ingest = getattr(self._evidence, "commit_ingest", None)
 
         if callable(commit_ingest) and cast(object, self._outbox) is cast(object, self._evidence):
-            accepted = commit_ingest(evidence, outbox_event)
+            accepted = commit_ingest(evidence, event)
         else:
             accepted = self._evidence.append(evidence) if self._evidence else True
             outbox_ok = self._outbox.append(outbox_event) if self._outbox else True
