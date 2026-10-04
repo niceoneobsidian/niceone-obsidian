@@ -9,7 +9,7 @@ from uuid import NAMESPACE_URL, uuid4, uuid5
 
 from ois.domains.social_intelligence.events import CanonicalSourceEvent
 
-from .auth import AuthRequest, Authenticator, AuthScheme, CredentialMaterial
+from .auth import Authenticator, AuthRequest, AuthScheme, CredentialMaterial
 from .contracts import SourceProvenance
 from .credentials import CredentialRef, CredentialResolver, TenantScope
 from .evidence import RawEvidence, RawEvidenceWriter, canonical_hash
