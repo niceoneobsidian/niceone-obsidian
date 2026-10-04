@@ -117,6 +117,7 @@ class SourceGateway:
             if bucket is not None and not bucket.acquire():
                 return SourceResponse(False, "", "", "", "rate_limited")
 
+        idempotency_claimed = False
         if request.idempotency_key and self._idempotency is not None:
             if not self._idempotency.claim(
                 tenant_id=request.tenant_id,
@@ -136,6 +137,9 @@ class SourceGateway:
                     payload_hash,
                     "duplicate_idempotency",
                 )
+            # The claim is a reservation. It is retained only if durable
+            # evidence/outbox acceptance succeeds and released on failure.
+            idempotency_claimed = True
 
         evidence = RawEvidence(
             evidence_id=evidence_id,
@@ -158,22 +162,43 @@ class SourceGateway:
             tenant_id=request.tenant_id,
             workspace_id=request.workspace_id,
             aggregate_id=evidence_id,
-            event_type=request.event_type,
+            # This is the durable acceptance event consumed by existing
+            # evidence-graph projectors. The canonical source event type is
+            # preserved inside outbox_payload["event_type"].
+            event_type="source.raw_evidence.created",
             payload=outbox_payload,
             created_at=event.received_at,
         )
 
-        commit_ingest = getattr(self._evidence, "commit_ingest", None)
-        if callable(commit_ingest) and cast(object, self._outbox) is cast(object, self._evidence):
-            accepted = commit_ingest(evidence, outbox_event)
-        else:
-            accepted = self._evidence.append(evidence) if self._evidence else True
-            outbox_ok = self._outbox.append(outbox_event) if self._outbox else True
-            if accepted and not outbox_ok:
-                raise RuntimeError(
-                    "evidence committed but outbox append failed; "
-                    "use SQLiteSourceLedger for atomicity"
+        try:
+            commit_ingest = getattr(self._evidence, "commit_ingest", None)
+            if callable(commit_ingest) and cast(object, self._outbox) is cast(object, self._evidence):
+                accepted = commit_ingest(evidence, outbox_event)
+            else:
+                accepted = self._evidence.append(evidence) if self._evidence else True
+                outbox_ok = self._outbox.append(outbox_event) if self._outbox else True
+                if accepted and not outbox_ok:
+                    raise RuntimeError(
+                        "evidence committed but outbox append failed; "
+                        "use SQLiteSourceLedger for atomicity"
+                    )
+        except Exception:
+            if idempotency_claimed and self._idempotency is not None and request.idempotency_key:
+                self._idempotency.release(
+                    tenant_id=request.tenant_id,
+                    workspace_id=request.workspace_id,
+                    key=request.idempotency_key,
+                    event_id=event_id,
                 )
+            raise
+
         if not accepted:
+            if idempotency_claimed and self._idempotency is not None and request.idempotency_key:
+                self._idempotency.release(
+                    tenant_id=request.tenant_id,
+                    workspace_id=request.workspace_id,
+                    key=request.idempotency_key,
+                    event_id=event_id,
+                )
             return SourceResponse(False, evidence_id, event_id, payload_hash, "duplicate_evidence")
         return SourceResponse(True, evidence_id, event_id, payload_hash)
