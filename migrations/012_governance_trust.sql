@@ -94,14 +94,23 @@ CREATE TABLE IF NOT EXISTS governance_slos (
 );
 
 ALTER TABLE agent_identities ENABLE ROW LEVEL SECURITY;
+ALTER TABLE agent_identities FORCE ROW LEVEL SECURITY;
 ALTER TABLE capability_grants ENABLE ROW LEVEL SECURITY;
+ALTER TABLE capability_grants FORCE ROW LEVEL SECURITY;
 ALTER TABLE policy_versions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE policy_versions FORCE ROW LEVEL SECURITY;
 ALTER TABLE decision_provenance ENABLE ROW LEVEL SECURITY;
+ALTER TABLE decision_provenance FORCE ROW LEVEL SECURITY;
 ALTER TABLE governance_audit ENABLE ROW LEVEL SECURITY;
+ALTER TABLE governance_audit FORCE ROW LEVEL SECURITY;
 ALTER TABLE autonomous_budgets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE autonomous_budgets FORCE ROW LEVEL SECURITY;
 ALTER TABLE autonomous_action_limits ENABLE ROW LEVEL SECURITY;
+ALTER TABLE autonomous_action_limits FORCE ROW LEVEL SECURITY;
 ALTER TABLE compliance_evidence ENABLE ROW LEVEL SECURITY;
+ALTER TABLE compliance_evidence FORCE ROW LEVEL SECURITY;
 ALTER TABLE governance_slos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE governance_slos FORCE ROW LEVEL SECURITY;
 
 CREATE POLICY agent_identities_tenant_isolation ON agent_identities USING (tenant_id = current_setting('ois.tenant_id', true));
 CREATE POLICY capability_grants_tenant_isolation ON capability_grants USING (tenant_id = current_setting('ois.tenant_id', true));
