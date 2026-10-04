@@ -14,6 +14,7 @@ from .auth import (
     OAuth2Auth,
     authenticator_for,
 )
+from .contracts import FreshnessPolicy, SourceProvenance, SourceSpec
 from .credentials import CredentialRef, CredentialResolver, InMemoryCredentialResolver, TenantScope
 from .cursors import SourceCursor, SQLiteCursorStore
 from .events import SourceEvent, canonical_event_id
@@ -46,6 +47,7 @@ __all__ = [
     "authenticator_for",
     "CredentialRef",
     "CredentialResolver",
+    "FreshnessPolicy",
     "InMemoryCredentialResolver",
     "OutboxEvent",
     "OutboxStore",
@@ -67,8 +69,10 @@ __all__ = [
     "ApiSourceSocket",
     "SocketStatus",
     "SourceGateway",
+    "SourceProvenance",
     "SourceRequest",
     "SourceResponse",
+    "SourceSpec",
     "TenantScope",
     "TokenBucket",
     "IdempotencyRecord",

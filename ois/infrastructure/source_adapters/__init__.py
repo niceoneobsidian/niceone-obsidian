@@ -17,6 +17,7 @@ from .http import HttpSourceAdapter
 from .polling import PollingSourceAdapter, PollPage
 from .polling_engine import PollingEngine, PollingJob, PollingRun
 from .rss import RSSSourceAdapter
+from .sportmonks import SportmonksFootballAdapter, SportmonksQuery
 from .webhook import WebhookVerifier
 
 if TYPE_CHECKING:
@@ -29,6 +30,8 @@ __all__ = [
     "FileSourceAdapter",
     "GitHubSourceAdapter",
     "HttpSourceAdapter",
+    "SportmonksFootballAdapter",
+    "SportmonksQuery",
     "PollPage",
     "PollingEngine",
     "PollingJob",

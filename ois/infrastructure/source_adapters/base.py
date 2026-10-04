@@ -7,6 +7,8 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Protocol
 
+from ois.infrastructure.source_gateway.contracts import SourceSpec
+
 if TYPE_CHECKING:
     from ois.infrastructure.source_gateway.gateway import SourceGateway, SourceResponse
 
@@ -16,6 +18,8 @@ class AdapterHealth:
     source_id: str
     healthy: bool
     checked_at: str
+    latency_ms: float | None = None
+    fresh: bool | None = None
     reason: str | None = None
 
 
@@ -42,15 +46,23 @@ class SourceAdapter(Protocol):
 
 
 class SourceAdapterRegistry:
-    """Deterministic registry for live source adapters."""
+    """Deterministic registry for live source adapters and their contracts."""
 
     def __init__(self) -> None:
         self._adapters: dict[str, SourceAdapter] = {}
+        self._specs: dict[str, SourceSpec] = {}
 
-    def register(self, adapter: SourceAdapter) -> None:
+    def register(self, adapter: SourceAdapter, spec: SourceSpec | None = None) -> None:
         if adapter.source_id in self._adapters:
             raise ValueError(f"source adapter already registered: {adapter.source_id}")
+        if spec is not None and spec.source_id != adapter.source_id:
+            raise ValueError("source spec source_id must match adapter source_id")
         self._adapters[adapter.source_id] = adapter
+        self._specs[adapter.source_id] = spec or SourceSpec(
+            source_id=adapter.source_id,
+            provider=adapter.source_id.split(":", 1)[0],
+            protocol="unknown",
+        )
 
     def get(self, source_id: str) -> SourceAdapter:
         try:
@@ -58,14 +70,32 @@ class SourceAdapterRegistry:
         except KeyError as exc:
             raise KeyError(f"source adapter not registered: {source_id}") from exc
 
+    def spec(self, source_id: str) -> SourceSpec:
+        try:
+            return self._specs[source_id]
+        except KeyError as exc:
+            raise KeyError(f"source specification not registered: {source_id}") from exc
+
     def unregister(self, source_id: str) -> None:
-        """Remove a connector explicitly; unknown sources are rejected."""
+        """Remove a connector and its registry contract."""
         if source_id not in self._adapters:
             raise KeyError(f"source adapter not registered: {source_id}")
         del self._adapters[source_id]
+        self._specs.pop(source_id, None)
 
     def list(self) -> tuple[str, ...]:
         return tuple(sorted(self._adapters))
+
+    def healthy(self) -> tuple[str, ...]:
+        """Return registered sources whose adapters expose a healthy check."""
+        healthy: list[str] = []
+        for source_id in self.list():
+            check = getattr(self.get(source_id), "health", None)
+            if callable(check):
+                result = check()
+                if result.healthy:
+                    healthy.append(source_id)
+        return tuple(healthy)
 
     @staticmethod
     def response(
