@@ -116,7 +116,7 @@ class HttpSourceAdapter:
         elif self._auth_scheme is AuthScheme.API_KEY:
             header = str(self._auth_options.get("header", "X-API-Key"))
             headers[header] = credential.secret
-        elif self._auth_scheme.value == "basic":
+        elif self._auth_scheme == "basic":
             encoded = base64.b64encode(credential.secret.encode("utf-8")).decode("ascii")
             headers[str(self._auth_options.get("header", "Authorization"))] = f"Basic {encoded}"
         else:
