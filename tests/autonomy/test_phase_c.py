@@ -72,7 +72,7 @@ def test_event_router_preserves_tenant_workflow_scope() -> None:
         event_type="source.updated",
         aggregate_id="record-1",
         source_id="github",
-        payload={"risk_level": "low"},
+        payload={"risk_level": "low", "source_id": "github"},
     )
     receipt = operations.route(other_tenant)
 
