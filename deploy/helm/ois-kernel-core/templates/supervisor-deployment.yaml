@@ -55,7 +55,7 @@ spec:
             - name: OIS_ENVIRONMENT
               value: {{ .Values.global.environment | quote }}
             - name: OIS_SECRET_PROVIDER
-              value: {{ if .Values.vault.enabled }}vault{{ else }}env{{ end | quote }}
+              value: {{ ternary "vault" "env" .Values.vault.enabled | quote }}
             - name: OIS_EXTERNAL_APIS_ENABLED
               value: {{ if eq .Values.global.environment "production" }}"true"{{ else }}"false"{{ end }}
             - name: OIS_EXTERNAL_READS_ENABLED
