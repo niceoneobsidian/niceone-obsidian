@@ -8,7 +8,6 @@ import pytest
 
 from ois.infrastructure.source_adapters import HttpSourceAdapter, SourceAdapterRegistry
 from ois.infrastructure.source_gateway import (
-    CredentialRef,
     FreshnessPolicy,
     InMemoryCredentialResolver,
     RateLimitPolicy,
@@ -20,7 +19,13 @@ from ois.infrastructure.source_gateway import (
 
 
 class FakeResponse:
-    def __init__(self, payload: object, *, status: int = 200, content_type: str = "application/json") -> None:
+    def __init__(
+        self,
+        payload: object,
+        *,
+        status: int = 200,
+        content_type: str = "application/json",
+    ) -> None:
         self._raw = json.dumps(payload).encode("utf-8")
         self.status = status
         self.headers = Message()
@@ -29,7 +34,7 @@ class FakeResponse:
     def read(self) -> bytes:
         return self._raw
 
-    def __enter__(self) -> "FakeResponse":
+    def __enter__(self) -> FakeResponse:
         return self
 
     def __exit__(self, *args: object) -> None:
@@ -55,7 +60,7 @@ def test_http_adapter_applies_bearer_credential_and_persists_provenance() -> Non
     calls: list[dict[str, str]] = []
 
     def opener(request: object, *, timeout: float) -> FakeResponse:
-        headers = getattr(request, "headers")
+        headers = request.headers
         calls.append({"authorization": headers["Authorization"], "timeout": str(timeout)})
         return FakeResponse({"id": "42", "value": "live"})
 
