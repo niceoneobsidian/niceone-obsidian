@@ -74,7 +74,7 @@ def test_http_adapter_applies_bearer_credential_and_persists_provenance() -> Non
     adapter = HttpSourceAdapter(
         source_id="example:api",
         url="https://example.test/data",
-        auth_scheme="bearer",
+        auth_scheme=AuthScheme.BEARER,
         freshness=FreshnessPolicy(60),
         opener=opener,
     )
