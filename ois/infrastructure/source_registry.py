@@ -112,6 +112,17 @@ class SQLiteSourceRegistry:
             )
             """
         )
+        columns = {row[1] for row in self._db.execute("PRAGMA table_info(source_registry)")}
+        if "status" not in columns:
+            self._db.execute(
+                "ALTER TABLE source_registry ADD COLUMN status TEXT NOT NULL DEFAULT 'enabled'"
+            )
+        if "poll_interval_seconds" not in columns:
+            self._db.execute("ALTER TABLE source_registry ADD COLUMN poll_interval_seconds REAL")
+        if "capabilities" not in columns:
+            self._db.execute(
+                "ALTER TABLE source_registry ADD COLUMN capabilities TEXT NOT NULL DEFAULT '[]'"
+            )
         self._db.commit()
 
     @staticmethod
