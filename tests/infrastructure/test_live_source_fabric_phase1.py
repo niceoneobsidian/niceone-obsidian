@@ -8,8 +8,8 @@ from urllib.request import Request
 import pytest
 
 from ois.infrastructure.source_adapters import HttpSourceAdapter, SourceAdapterRegistry
-from ois.infrastructure.source_gateway import AuthScheme
 from ois.infrastructure.source_gateway import (
+    AuthScheme,
     FreshnessPolicy,
     InMemoryCredentialResolver,
     RateLimitPolicy,
