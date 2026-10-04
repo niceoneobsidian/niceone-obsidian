@@ -2,6 +2,18 @@
 
 from __future__ import annotations
 
+from .auth import (
+    ApiKeyAuth,
+    Authenticator,
+    AuthRequest,
+    AuthScheme,
+    BasicClientAuth,
+    BearerAuth,
+    CredentialMaterial,
+    HmacAuth,
+    OAuth2Auth,
+    authenticator_for,
+)
 from .contracts import FreshnessPolicy, SourceProvenance, SourceSpec
 from .credentials import CredentialRef, CredentialResolver, InMemoryCredentialResolver, TenantScope
 from .cursors import SourceCursor, SQLiteCursorStore
@@ -11,11 +23,22 @@ from .ledger import SQLiteSourceLedger
 from .limits import RateLimitPolicy, RateLimitState, TokenBucket
 from .outbox import OutboxEvent, OutboxStore, SQLiteOutboxStore
 from .postgres import PostgresSourceLedger
+from .socket import ApiSourceSocket, SocketStatus
 
 __all__ = [
+    "ApiKeyAuth",
+    "AuthRequest",
+    "AuthScheme",
+    "Authenticator",
+    "BearerAuth",
+    "BasicClientAuth",
+    "CredentialMaterial",
+    "HmacAuth",
+    "OAuth2Auth",
+    "authenticator_for",
     "CredentialRef",
-    "CredentialResolver",
     "FreshnessPolicy",
+    "CredentialResolver",
     "InMemoryCredentialResolver",
     "OutboxEvent",
     "OutboxStore",
@@ -29,11 +52,13 @@ __all__ = [
     "SQLiteRawEvidenceWriter",
     "SQLiteSourceLedger",
     "SourceCursor",
+    "ApiSourceSocket",
+    "SocketStatus",
     "SourceGateway",
     "SourceProvenance",
+    "SourceSpec",
     "SourceRequest",
     "SourceResponse",
-    "SourceSpec",
     "TenantScope",
     "TokenBucket",
     "canonical_hash",
