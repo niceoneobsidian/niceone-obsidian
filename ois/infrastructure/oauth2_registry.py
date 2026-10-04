@@ -1,9 +1,4 @@
-"""Reusable OAuth2 provider and secret-store boundaries.
-
-This module contains deployment-facing contracts. The framework never decides
-which cloud secret manager is used; the deployment supplies an encrypted
-backend implementing OAuthSecretBackend.
-"""
+"""Reusable OAuth2 provider and secret-store boundaries."""
 
 from __future__ import annotations
 
@@ -12,7 +7,11 @@ from datetime import datetime
 from typing import Protocol
 
 from ois.infrastructure.oauth2 import OAuth2Provider
-from ois.infrastructure.oauth2_connection import OAuthCredentialRecord, OAuthCredentialStore
+from ois.infrastructure.oauth2_connection import (
+    OAuthCredentialRecord,
+    OAuthCredentialStore,
+)
+from ois.infrastructure.source_gateway.credentials import CredentialRef, TenantScope
 
 
 class OAuthSecretBackend(Protocol):
@@ -60,7 +59,7 @@ class SecretManagerOAuthCredentialStore(OAuthCredentialStore):
             raise PermissionError("OAuth credential is outside its tenant/workspace/provider scope")
         return record
 
-    def resolve(self, ref, scope) -> str:
+    def resolve(self, ref: CredentialRef, scope: TenantScope) -> str:
         return self.get(
             ref.credential_id,
             tenant_id=scope.tenant_id,
@@ -119,6 +118,10 @@ def _deserialize(payload: dict[str, object]) -> OAuthCredentialRecord:
     if any(not payload.get(key) for key in required):
         raise ValueError("OAuth secret backend returned an incomplete credential record")
 
+    scopes = payload["scopes"]
+    if not isinstance(scopes, list) or not all(isinstance(scope, str) for scope in scopes):
+        raise ValueError("OAuth secret backend returned invalid scopes")
+
     obtained_at = payload.get("obtained_at")
     expires_at = payload.get("expires_at")
     return OAuthCredentialRecord(
@@ -129,7 +132,7 @@ def _deserialize(payload: dict[str, object]) -> OAuthCredentialRecord:
         access_token=str(payload["access_token"]),
         refresh_token=str(payload["refresh_token"]) if payload.get("refresh_token") else None,
         token_type=str(payload["token_type"]),
-        scopes=tuple(str(scope) for scope in payload["scopes"]),
+        scopes=tuple(scopes),
         obtained_at=datetime.fromisoformat(str(obtained_at)) if obtained_at else None,
         expires_at=datetime.fromisoformat(str(expires_at)) if expires_at else None,
     )
