@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from ois.infrastructure.source_gateway import (
+    AuthScheme,
     FreshnessPolicy,
     SourceGateway,
     SourceSpec,
@@ -50,8 +51,8 @@ class SportmonksFootballAdapter:
             query={"include": ";".join(self.query.includes)},
             timeout=timeout,
             connector_version="sportmonks-v3",
-            auth_scheme="api_key",
-            auth_header="Authorization",
+            auth_scheme=AuthScheme.API_KEY,
+            auth_options={"header": "Authorization"},
             freshness=self.freshness,
             opener=opener,
         )
