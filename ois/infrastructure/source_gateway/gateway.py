@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC
 from typing import Any, cast
 
 from .auth import CredentialMaterial
 from .credentials import CredentialRef, CredentialResolver, TenantScope
-from .evidence import RawEvidence, RawEvidenceWriter, canonical_hash
+from .evidence import RawEvidence, RawEvidenceWriter
 from .events import SourceEvent
 from .idempotency import IdempotencyStore
 from .limits import RateLimitPolicy, TokenBucket
