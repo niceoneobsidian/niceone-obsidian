@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import secrets
 from dataclasses import dataclass
@@ -31,6 +32,10 @@ class OAuth2Config:
     response_scope_separator: str = " "
     token_auth_method: str = "client_secret_post"
     state_ttl_seconds: int = 600
+    use_pkce: bool = True
+    pkce_method: str = "S256"
+    refresh_token_rotation: bool = True
+    refresh_token_reuse_detection: bool = True
 
     def validate(self) -> None:
         if not self.provider:
@@ -58,6 +63,8 @@ class OAuth2Config:
             )
         if self.state_ttl_seconds <= 0:
             raise ValueError("OAuth2 state TTL must be positive")
+        if self.pkce_method != "S256":
+            raise ValueError("OAuth2 PKCE method must be S256")
         if not self.scopes:
             raise ValueError(f"{self.provider} OAuth2 requires at least one scope")
         if not self.scope_separator:
@@ -240,6 +247,7 @@ class OAuth2Provider:
         self.config = config
         self._state_store = state_store or InMemoryOAuth2StateStore()
         self._timeout = timeout
+        self._pkce_verifiers: dict[str, str] = {}
 
     def authorization_url(
         self, *, tenant_id: str, workspace_id: str, state: str | None = None
@@ -259,6 +267,12 @@ class OAuth2Provider:
             "scope": self.config.scope_separator.join(self.config.scopes),
             "state": state_value,
         }
+        if self.config.use_pkce:
+            verifier = secrets.token_urlsafe(48)
+            self._pkce_verifiers[state_value] = verifier
+            challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode("ascii")).digest()).rstrip(b"=").decode("ascii")
+            params["code_challenge"] = challenge
+            params["code_challenge_method"] = self.config.pkce_method
         params.update(dict(self.config.authorization_params))
         return f"{self.config.authorization_url}?{urlencode(params)}", state_value
 
@@ -268,15 +282,20 @@ class OAuth2Provider:
         ):
             raise PermissionError("invalid or replayed OAuth2 state")
 
-    def exchange_code(self, code: str) -> OAuth2Token:
+    def exchange_code(self, code: str, *, state: str | None = None, code_verifier: str | None = None) -> OAuth2Token:
         if not code:
             raise ValueError("OAuth2 authorization code is required")
+        verifier = code_verifier or (self._pkce_verifiers.pop(state, None) if state else None)
+        if self.config.use_pkce and not verifier:
+            raise ValueError("PKCE code_verifier is required")
         fields = {
             self.config.client_id_param: self.config.client_id,
             "code": code,
             "grant_type": "authorization_code",
             "redirect_uri": self.config.redirect_uri,
         }
+        if verifier:
+            fields["code_verifier"] = verifier
         if self.config.token_auth_method == "client_secret_post":
             fields[self.config.client_secret_param] = self.config.client_secret
         return self._token_request(fields, operation="authorization_code")
