@@ -37,6 +37,19 @@ CREATE TABLE IF NOT EXISTS autonomous_approvals (
 CREATE INDEX IF NOT EXISTS autonomous_approvals_scope_idx
     ON autonomous_approvals (tenant_id, workspace_id, decision, expires_at);
 
-CREATE UNIQUE INDEX IF NOT EXISTS autonomous_workflow_event_once_idx
-    ON autonomous_workflows (tenant_id, workspace_id, workflow_id, version)
-    WHERE status <> 'disabled';
+CREATE TABLE IF NOT EXISTS autonomous_workflow_runs (
+    run_id UUID PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    workspace_id TEXT NOT NULL,
+    workflow_id TEXT NOT NULL,
+    workflow_version TEXT NOT NULL,
+    event_id TEXT NOT NULL,
+    status TEXT NOT NULL,
+    result JSONB,
+    error JSONB,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (tenant_id, workspace_id, workflow_id, workflow_version, event_id)
+);
+
+CREATE INDEX IF NOT EXISTS autonomous_workflow_runs_scope_idx
+    ON autonomous_workflow_runs (tenant_id, workspace_id, created_at);
