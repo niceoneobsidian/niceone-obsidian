@@ -7,8 +7,9 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Protocol
 
+from ois.infrastructure.source_gateway.contracts import SourceSpec
+
 if TYPE_CHECKING:
-    from ois.infrastructure.source_gateway.contracts import SourceSpec
     from ois.infrastructure.source_gateway.gateway import SourceGateway, SourceResponse
 
 
