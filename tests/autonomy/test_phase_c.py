@@ -17,6 +17,7 @@ from ois.autonomy import (
     SourceWorkflow,
     WorkflowTrigger,
 )
+from ois.kernel.types import RiskLevel
 
 
 def event(*, event_type: str = "source.updated", payload: dict[str, object] | None = None) -> EventEnvelope:
@@ -43,7 +44,7 @@ def workflow(action, *, event_type: str = "source.updated") -> SourceWorkflow:
 
 
 def allow_policy() -> AutomationPolicy:
-    return AutomationPolicy((PolicyRule(rule_id="allow", event_type="source.updated", maximum_risk="high"),))
+    return AutomationPolicy((PolicyRule(rule_id="allow", event_type="source.updated", maximum_risk=RiskLevel.HIGH),))
 
 
 def test_source_event_triggers_workflow_once() -> None:
