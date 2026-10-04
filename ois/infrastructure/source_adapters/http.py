@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import base64
 import json
+from datetime import UTC, datetime
 from time import monotonic
-from typing import cast
+from typing import Any, Callable, cast
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen\nfrom uuid import uuid4
@@ -191,8 +192,6 @@ class HttpSourceAdapter:
                 )
 
         payload, status, _latency = self._fetch(credential)
-        from datetime import UTC, datetime
-
         observed_at = datetime.now(UTC)
         self._last_observed_at = observed_at
         if self._freshness and not self._freshness.is_fresh(observed_at):
