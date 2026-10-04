@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
 from uuid import UUID, uuid4
@@ -192,7 +191,7 @@ class PostgresWorkflowRunRepository:
                    ON CONFLICT (idempotency_key) DO NOTHING""",
                 (run.idempotency_key, run.tenant_id, run.workspace_id, run.run_id),
             )
-            claimed = cursor.rowcount == 1
+            claimed = int(cursor.rowcount) == 1
             connection.commit()
         return claimed
 
@@ -210,7 +209,11 @@ class PostgresWorkflowRunRepository:
             event_id=str(row[5]),
             status=DurableRunStatus(str(row[6])),
             attempt=int(row[7]),
-            checkpoint=checkpoint if isinstance(checkpoint, dict) else json.loads(checkpoint or "{}"),
+            checkpoint=(
+                checkpoint
+                if isinstance(checkpoint, dict)
+                else json.loads(checkpoint or "{}")
+            ),
             result=result if not isinstance(result, str) else json.loads(result),
             error=error if not isinstance(error, str) else json.loads(error),
             idempotency_key=str(row[11]),
