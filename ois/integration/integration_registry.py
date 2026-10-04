@@ -37,3 +37,28 @@ class IntegrationRegistry:
         return tuple(item for item in self._items.values() if item.enabled)
     def all(self) -> tuple[IntegrationSpec, ...]:
         return tuple(self._items.values())
+
+
+def bind_to_tool_registry(spec: IntegrationSpec, tool_registry: object) -> None:
+    """Register the integration contract metadata alongside the canonical ToolRegistry.
+
+    The actual executable adapter remains responsible for implementing the ToolContract;
+    this binding prevents provider configuration from becoming a second tool registry.
+    """
+    register = getattr(tool_registry, "register", None)
+    if register is None:
+        raise IntegrationError("tool_registry must expose register()")
+    metadata = {
+        "integration_id": spec.integration_id,
+        "provider": spec.provider,
+        "base_url": spec.base_url,
+        "supports_read": spec.supports_read,
+        "supports_write": spec.supports_write,
+        "credential_ref": spec.credential_ref,
+    }
+    return register(
+        f"integration.{spec.integration_id}",
+        "1.0.0",
+        spec,
+        metadata=metadata,
+    )
