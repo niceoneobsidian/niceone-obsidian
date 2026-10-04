@@ -9,6 +9,8 @@ from enum import StrEnum
 from typing import Any
 from uuid import UUID, uuid4
 
+from ois.infrastructure.postgres_fencing import PostgresWorkerLeaseStore, WorkerLease
+
 
 class DurableRunStatus(StrEnum):
     RECEIVED = "received"
@@ -215,3 +217,66 @@ class PostgresWorkflowRunRepository:
             error=error if not isinstance(error, str) else json.loads(error),
             idempotency_key=str(row[11]),
         )
+\n\n
+class FencedPostgresWorkflowRunRepository:
+    """Worker-owned adapter for workflow-run mutations."""
+
+    def __init__(
+        self,
+        repository: PostgresWorkflowRunRepository,
+        lease_store: PostgresWorkerLeaseStore,
+        lease: WorkerLease,
+    ) -> None:
+        self._repository = repository
+        self._lease_store = lease_store
+        self.lease = lease
+
+    def transition(
+        self,
+        run_id: UUID,
+        *,
+        status: DurableRunStatus,
+        attempt: int | None = None,
+        checkpoint: dict[str, Any] | None = None,
+        result: Any = None,
+        error: dict[str, Any] | None = None,
+    ) -> DurableWorkflowRun:
+        updates = ["status = %s", "updated_at = now()"]
+        params: list[Any] = [status.value]
+        if attempt is not None:
+            updates.append("attempt = %s")
+            params.append(attempt)
+        if checkpoint is not None:
+            updates.append("checkpoint = %s::jsonb")
+            params.append(self._repository._payload(checkpoint))
+        if result is not None:
+            updates.append("result = %s::jsonb")
+            params.append(self._repository._payload(result))
+        if error is not None:
+            updates.append("error = %s::jsonb")
+            params.append(self._repository._payload(error))
+        params.append(run_id)
+        sql = (
+            "UPDATE autonomous_workflow_runs SET "
+            + ", ".join(updates)
+            + " WHERE run_id = %s RETURNING run_id, tenant_id, workspace_id, workflow_id, "
+            + "workflow_version, event_id, status, attempt, checkpoint, result, error, idempotency_key"
+        )
+        with self._repository._connect() as connection, connection.cursor() as cursor:
+            self._lease_store._assert_current_cursor(cursor, self.lease)
+            cursor.execute(sql, params)
+            row = cursor.fetchone()
+            if row is None:
+                raise KeyError(f"workflow run not found: {run_id}")
+            connection.commit()
+        return self._repository._row(row)
+
+    def claim(self, worker_id: str, run_id: UUID) -> WorkerLease | None:
+        return self._lease_store.claim(run_id, worker_id)
+
+    def renew(self) -> WorkerLease:
+        self.lease = self._lease_store.renew(self.lease)
+        return self.lease
+
+    def release(self) -> None:
+        self._lease_store.release(self.lease)
