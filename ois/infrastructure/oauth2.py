@@ -117,8 +117,11 @@ class InMemoryOAuth2StateStore:
         self._states[state] = (provider, tenant_id, workspace_id)
 
     def consume(self, state: str, *, provider: str, tenant_id: str, workspace_id: str) -> bool:
-        value = self._states.pop(state, None)
-        return value == (provider, tenant_id, workspace_id)
+        value = self._states.get(state)
+        if value != (provider, tenant_id, workspace_id):
+            return False
+        del self._states[state]
+        return True
 
 
 class OAuth2Provider:
