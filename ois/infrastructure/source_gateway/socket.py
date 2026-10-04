@@ -74,6 +74,24 @@ class ApiSourceSocket:
     def get(self, source_id: str) -> SourceAdapter:
         return self._registry.get(source_id)
 
+    def _definition_for_ingest(
+        self,
+        *,
+        source_id: str,
+        tenant_id: str,
+        workspace_id: str,
+    ) -> SourceDefinition | None:
+        if self._source_control is None:
+            return None
+        definition = self._source_control.get(
+            tenant_id=tenant_id,
+            workspace_id=workspace_id,
+            source_id=source_id,
+        )
+        if not definition.enabled:
+            raise PermissionError(f"source is disabled: {source_id}")
+        return definition
+
     def ingest(
         self,
         source_id: str,
@@ -83,12 +101,17 @@ class ApiSourceSocket:
         credential_id: str | None = None,
     ) -> AdapterResult:
         """Fetch live data through a registered connector and commit it via the gateway."""
+        definition = self._definition_for_ingest(
+            source_id=source_id,
+            tenant_id=tenant_id,
+            workspace_id=workspace_id,
+        )
         adapter = self._registry.get(source_id)
         return adapter.ingest(
             tenant_id=tenant_id,
             workspace_id=workspace_id,
             gateway=self._gateway,
-            credential_id=credential_id,
+            credential_id=credential_id or (definition.credential_id if definition else None),
         )
 
     def health(self, source_id: str | None = None) -> tuple[AdapterHealth, ...]:
@@ -135,12 +158,18 @@ class ApiSourceSocket:
         schema_version: str = "socket.payload.v1",
     ) -> AdapterResult:
         """Ingest an already-received webhook/stream payload through the same boundary."""
+        definition = self._definition_for_ingest(
+            source_id=source_id,
+            tenant_id=tenant_id,
+            workspace_id=workspace_id,
+        )
         from ois.infrastructure.source_gateway import CredentialRef, SourceRequest
 
+        effective_credential_id = credential_id or (definition.credential_id if definition else None)
         credential = None
-        if credential_id:
+        if effective_credential_id:
             credential = CredentialRef(
-                credential_id=credential_id,
+                credential_id=effective_credential_id,
                 tenant_id=tenant_id,
                 provider=source_id.split(":", 1)[0],
                 scopes=(),
