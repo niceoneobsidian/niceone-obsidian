@@ -1,44 +1,164 @@
-# Phase B — Live Source Ingestion
+# Phase B — Source Fabric
 
-Phase B extends the API Source Socket without creating a parallel source stack.
+Phase B turns authenticated provider adapters into one governed, lifecycle-aware
+source fabric. It composes the existing API Source Socket and Source Gateway;
+it does not create a parallel persistence or authentication stack.
+
+## Builds 7–14
+
+| Build | Capability | Boundary |
+|---|---|---|
+| 7 | Source Registry & Lifecycle | tenant/workspace-scoped registration, enable/pause/degrade/disable |
+| 8 | Polling & Scheduling | bounded concurrent polling with interval scheduling |
+| 9 | Webhook/Event Ingestion | verified webhook delivery through SourceGateway |
+| 10 | Cursor/Incremental Sync | versioned tenant-scoped checkpoints |
+| 11 | Rate Limits + Retry/Backoff | token admission plus bounded exponential retry |
+| 12 | Evidence + Provenance | immutable raw evidence with request/source provenance |
+| 13 | Health + Observability | latency, failure streaks, health state and lifecycle degradation |
+| 14 | Unified Source Fabric | one orchestration surface over all of the above |
 
 ## Runtime path
 
-External webhook / polling scheduler -> WebhookGateway / PollingEngine -> SourceGateway
--> canonical event + idempotency + rate limits -> raw evidence + outbox -> SQLite / PostgreSQL
+```text
+Control Plane
+     |
+     v
+Source Registry / Lifecycle
+     |
+     v
+Unified Source Fabric
+     |
+     +--------------------+
+     |                    |
+     v                    v
+Polling Scheduler      Webhook Gateway
+     |                    |
+     +---------+----------+
+               |
+               v
+        Source API Socket
+               |
+               v
+          Source Adapter
+               |
+               v
+         Source Gateway
+          /    |     \\
+         v     v      v
+   Rate Limit  Auth  Idempotency
+               |
+               v
+      Raw Evidence + Outbox
+               |
+               +--> Provenance
+               +--> Cursor checkpoint
+               +--> Health telemetry
+```
 
-## Builds 7–13
+## Build 7 — Source Registry & Lifecycle
 
-- Build 7 — Webhook Gateway: validates bounded JSON webhook requests and routes accepted events through the existing SourceGateway.
-- Build 8 — Production Polling Engine: schedules existing PollingSourceAdapter instances with bounded concurrency. Cursor ownership remains with the adapter and its durable cursor store.
-- Build 9 — Source Registry / Control API: stores tenant/workspace-scoped source definitions and enables/disables/removes source configurations.
-- Build 10 — Canonical Source Event Model: gives every source observation a stable event ID, payload hash, timestamps, schema version, and source identity.
-- Build 11 — Idempotency + Deduplication: explicit delivery-key claims complement the existing evidence uniqueness constraint.
-- Build 12 — Rate-Limit Manager: coordinates tenant/workspace/source token buckets while retaining the existing deterministic TokenBucket primitive.
-- Build 13 — Webhook Security: verifies HMAC-SHA256 signatures, timestamp freshness, constant-time comparison, and replay keys before ingestion.
+Every source is identified by `(tenant_id, workspace_id, source_id)`. The registry
+stores provider, acquisition mode, configuration, credential reference, polling
+interval, capabilities, and explicit lifecycle state.
 
-## Reliability invariants
+Lifecycle transitions are constrained:
 
-1. Authentication remains outside generic adapters.
-2. Tenant/workspace scope is preserved through every control and ingestion boundary.
-3. Poll cursors advance only after SourceGateway acceptance.
-4. Webhook requests are rejected before parsing/ingestion when signatures or replay checks fail.
-5. Idempotency admission happens after rate admission so a rate-limited delivery does not consume its retry key.
-6. Raw evidence and the outbox remain the durable acceptance boundary.
-7. PostgreSQL remains the production persistence target; SQLite implementations are deterministic reference implementations and test fixtures.
+```text
+REGISTERED -> ENABLED -> PAUSED
+                    \-> DEGRADED -> ENABLED
+                    \-> DISABLED
+PAUSED -------------> ENABLED
+PAUSED -------------> DISABLED
+DEGRADED -----------> PAUSED / DISABLED
+DISABLED -----------> REGISTERED
+```
 
-## Source registration
+Credential material never belongs in the registry record.
 
-Use SourceControlAPI for source configuration and ApiSourceSocket for live adapter execution. A source definition contains tenant/workspace scope, provider and source ID, acquisition mode (poll, webhook, or push), enabled state, credential reference, and provider configuration.
+Production uses the PostgreSQL registry boundary. SQLite remains the deterministic
+reference implementation used by tests.
 
-The control registry stores configuration; it does not persist credential secrets.
+## Build 8 — Polling & Scheduling
 
-## Webhook signing
+`PollingEngine` owns bounded concurrency and scheduling. A polling adapter owns
+its cursor semantics. The scheduler never mutates a cursor directly.
 
-The Phase B default canonical signing input is timestamp + "." + raw_body.
+A failed poll is observable and can be retried by `SourceFabric.poll_with_retry`
+using a bounded exponential backoff policy.
 
-The SHA-256 HMAC digest is sent with the configured signature prefix (default sha256=). Timestamp freshness and delivery-key replay protection are mandatory when the WebhookSecurity boundary is configured.
+## Build 9 — Webhook/Event Ingestion
 
-## Polling
+`WebhookGateway` enforces:
 
-PollingEngine owns scheduling and bounded concurrency. PollingSourceAdapter continues to own cursor semantics, so a successful page is checkpointed only after each accepted record has passed through the gateway. This keeps acquisition, durability, and scheduling separate.
+1. bounded request size,
+2. timestamp freshness,
+3. HMAC-SHA256 verification,
+4. replay/delivery-key protection,
+5. JSON parsing only after security admission,
+6. SourceGateway durable acceptance.
+
+A failed durable write releases the replay reservation so the provider can retry.
+
+## Build 10 — Cursor / Incremental Sync
+
+`SQLiteCursorStore` provides tenant/workspace/source scoped checkpoints with
+optimistic version checks. A stale expected version is rejected instead of
+silently overwriting another worker's checkpoint.
+
+Production deployments should bind the same contract to PostgreSQL.
+
+## Build 11 — Rate Limits + Retry / Backoff
+
+Rate admission remains before idempotency consumption. `RateLimitManager` provides
+tenant/workspace/source token buckets. `RetryController` provides bounded attempts,
+exponential delay, a maximum delay, and controlled jitter.
+
+The retry layer decides when to retry; the scheduler owns sleeping.
+
+## Build 12 — Evidence + Provenance
+
+Every accepted source observation crosses `SourceGateway`. The gateway creates:
+
+- deterministic evidence identity,
+- canonical SHA-256 payload hash,
+- immutable raw evidence,
+- durable outbox event,
+- optional `SourceProvenance` containing provider, endpoint, operation,
+  request ID, resource ID, cursor, and observation time.
+
+No downstream component should bypass this acceptance boundary.
+
+## Build 13 — Health + Observability
+
+`SourceHealthRegistry` records:
+
+- healthy/degraded state,
+- check time,
+- latency,
+- consecutive failure count,
+- latest error.
+
+`SourceFabric` automatically moves an enabled source to `DEGRADED` after a
+failed poll or health check, and restores it to `ENABLED` after a successful
+operation.
+
+## Build 14 — Unified Source Fabric
+
+`SourceFabric` is the single application orchestration boundary for Phase B.
+It coordinates registration, lifecycle, polling, webhook delivery, cursor
+access, provenance-bearing observations, retries, and health state while keeping
+credentials, evidence, and durable events inside their existing governed
+boundaries.
+
+## Security and reliability invariants
+
+1. Authentication remains outside generic source adapters.
+2. Tenant/workspace scope is preserved through every source-control and ingestion boundary.
+3. Disabled and paused sources cannot execute through the fabric.
+4. Polling checkpoints are advanced only by the cursor boundary.
+5. Webhooks are rejected before JSON parsing when security admission fails.
+6. Rate admission occurs before idempotency claims.
+7. Raw evidence and outbox publication remain the durable acceptance boundary.
+8. Provenance never contains access tokens or client secrets.
+9. Retry is bounded and cannot create an unbounded failure loop.
+10. PostgreSQL is the production persistence target; SQLite implementations are reference/test boundaries.
