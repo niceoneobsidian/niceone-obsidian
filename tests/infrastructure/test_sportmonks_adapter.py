@@ -7,13 +7,13 @@ from urllib.request import Request
 import pytest
 
 from ois.infrastructure.source_adapters import (
-    SourceAdapterRegistry,
     SportmonksFootballAdapter,
+    SourceAdapterRegistry,
 )
 from ois.infrastructure.source_gateway import (
     InMemoryCredentialResolver,
-    SQLiteSourceLedger,
     SourceGateway,
+    SQLiteSourceLedger,
 )
 
 
