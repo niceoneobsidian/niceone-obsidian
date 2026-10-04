@@ -35,8 +35,8 @@ class RetryDecision:
 class RetryController:
     """Pure, bounded retry decisions; sleeping remains owned by the scheduler."""
 
-    def __init__(self, policy: RetryPolicy = RetryPolicy(), *, seed: int = 0) -> None:
-        self._policy = policy
+    def __init__(self, policy: RetryPolicy | None = None, *, seed: int = 0) -> None:
+        self._policy = policy or RetryPolicy()
         self._random = Random(seed)
 
     @property
@@ -60,4 +60,9 @@ class RetryController:
             self._policy.base_delay_seconds * (2 ** (attempt - 1)),
         )
         jitter = exponential * self._policy.jitter_ratio * self._random.random()
-        return RetryDecision(True, attempt, min(self._policy.max_delay_seconds, exponential + jitter), reason)
+        return RetryDecision(
+            True,
+            attempt,
+            min(self._policy.max_delay_seconds, exponential + jitter),
+            reason,
+        )
