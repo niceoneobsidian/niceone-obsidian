@@ -126,6 +126,7 @@ class DurableAutonomousExecutionEngine:
         event: EventEnvelope,
         lease: WorkerLease,
         execute: Callable[[SourceWorkflow, EventEnvelope], Any],
+        approval_granted: bool = False,
     ) -> DurableExecutionReceipt:
         fenced = FencedPostgresWorkflowRunRepository(self.runs, self.leases, lease)
         evaluation = self.policy.evaluate({**event.payload, "event_type": event.event_type})
