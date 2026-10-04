@@ -43,7 +43,7 @@ def workflow(action, *, event_type: str = "source.updated") -> SourceWorkflow:
 
 
 def allow_policy() -> AutomationPolicy:
-    return AutomationPolicy((PolicyRule(rule_id="allow", event_type="source.updated"),))
+    return AutomationPolicy((PolicyRule(rule_id="allow", event_type="source.updated", maximum_risk="high"),))
 
 
 def test_source_event_triggers_workflow_once() -> None:
