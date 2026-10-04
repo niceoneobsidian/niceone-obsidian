@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from datetime import UTC, datetime, timedelta
 from email.message import Message
+from urllib.request import Request
 
 import pytest
 
@@ -59,7 +60,7 @@ def test_registry_stores_explicit_source_contract() -> None:
 def test_http_adapter_applies_bearer_credential_and_persists_provenance() -> None:
     calls: list[dict[str, str]] = []
 
-    def opener(request: object, *, timeout: float) -> FakeResponse:
+    def opener(request: Request, *, timeout: float) -> FakeResponse:
         headers = request.headers
         calls.append({"authorization": headers["Authorization"], "timeout": str(timeout)})
         return FakeResponse({"id": "42", "value": "live"})
