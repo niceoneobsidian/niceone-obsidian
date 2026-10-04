@@ -299,8 +299,6 @@ class PostgresSourceRegistry:
                 DELETE FROM source_registry
                 WHERE tenant_id=%s AND workspace_id=%s AND source_id=%s
                 """,
-                "DELETE FROM source_registry "
-                "WHERE tenant_id=%s AND workspace_id=%s AND source_id=%s",
                 (tenant_id, workspace_id, source_id),
             )
 
