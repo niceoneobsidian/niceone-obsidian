@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Any
 
 from ois.infrastructure.source_gateway import FreshnessPolicy, SourceGateway, SourceSpec
 
@@ -33,7 +35,7 @@ class SportmonksFootballAdapter:
         query: SportmonksQuery | None = None,
         freshness: FreshnessPolicy | None = None,
         timeout: float = 20.0,
-        opener: object | None = None,
+        opener: Callable[..., Any] | None = None,
     ) -> None:
         self.query = query or SportmonksQuery()
         self.freshness = freshness or FreshnessPolicy(30)
@@ -60,7 +62,14 @@ class SportmonksFootballAdapter:
             capabilities=("football.live", "football.fixtures", "evidence.raw"),
         )
 
-    def health(self, *, gateway=None, tenant_id=None, workspace_id=None, credential_id=None) -> AdapterHealth:
+    def health(
+        self,
+        *,
+        gateway: SourceGateway | None = None,
+        tenant_id: str | None = None,
+        workspace_id: str | None = None,
+        credential_id: str | None = None,
+    ) -> AdapterHealth:
         return self._http.health(
             gateway=gateway,
             tenant_id=tenant_id,
@@ -68,7 +77,14 @@ class SportmonksFootballAdapter:
             credential_id=credential_id,
         )
 
-    def ingest(self, *, tenant_id: str, workspace_id: str, gateway: SourceGateway, credential_id: str) -> AdapterResult:
+    def ingest(
+        self,
+        *,
+        tenant_id: str,
+        workspace_id: str,
+        gateway: SourceGateway,
+        credential_id: str,
+    ) -> AdapterResult:
         if not credential_id:
             raise ValueError("Sportmonks requires a credential reference")
         return self._http.ingest(
@@ -79,7 +95,10 @@ class SportmonksFootballAdapter:
         )
 
     @staticmethod
-    def register(registry: SourceAdapterRegistry, **kwargs) -> "SportmonksFootballAdapter":
+    def register(
+        registry: SourceAdapterRegistry,
+        **kwargs: Any,
+    ) -> "SportmonksFootballAdapter":
         adapter = SportmonksFootballAdapter(**kwargs)
         registry.register(adapter, adapter.spec())
         return adapter
