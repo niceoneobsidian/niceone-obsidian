@@ -241,7 +241,9 @@ class SourceGateway:
         commit_ingest = getattr(self._evidence, "commit_ingest", None)
 
         try:
-            if callable(commit_ingest) and cast(object, self._outbox) is cast(object, self._evidence):
+            if callable(commit_ingest) and (
+                cast(object, self._outbox) is cast(object, self._evidence)
+            ):
                 accepted = commit_ingest(evidence, event)
             else:
                 accepted = self._evidence.append(evidence) if self._evidence else True
