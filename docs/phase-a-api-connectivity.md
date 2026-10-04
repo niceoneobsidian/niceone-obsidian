@@ -1,66 +1,139 @@
 # Phase A — Authentication & Real API Connectivity
 
-Phase A establishes one provider-neutral OAuth 2.0 boundary and governed real API sources.
+Phase A establishes one reusable OAuth 2.0 boundary and governed real API sources.
 
 ## Builds
 
 1. Credential & Auth Manager — PR #184.
-2. OAuth2 Provider Framework — provider-neutral authorization-code flow with state validation and refresh.
+2. OAuth2 Provider Framework — provider-neutral authorization-code flow, state validation, expiry, refresh, and secret-store boundaries.
 3. GitHub Source — authenticated REST /user source.
-4. TikTok Source — existing Display API integration plus common OAuth2 provider configuration.
+4. TikTok Source — Login Kit OAuth + Display API source.
 5. Meta/Facebook Source — Graph API /me source.
 6. Google Source — Drive API files source.
 
 ## Runtime boundary
 
-OAuth provider -> credential/token store -> ApiSourceSocket -> SourceAdapter -> SourceGateway -> durable evidence/outbox.
+OAuth authorization
+      |
+      v
+OAuth2Provider
+      |
+      v
+OAuthCredentialStore
+      |
+      v
+ApiSourceSocket
+      |
+      v
+SourceAdapter
+      |
+      v
+SourceGateway
+      |
+      +--> durable evidence
+      |
+      +--> durable outbox
 
 Provider integrations own endpoint and scope configuration. Generic HTTP acquisition remains provider-agnostic. Tokens and client secrets are credential material and are never written into source evidence.
 
-## Activation
+## Build 2 — reusable OAuth2 framework
 
-Register the provider source with ApiSourceSocket and provide a tenant-scoped credential ID containing the current access token. OAuth authorization and refresh happen through the provider OAuth object; the resulting token is persisted by the deployment credential store.
+The provider-neutral framework in ois/infrastructure/oauth2.py now provides:
 
-Official API references:
-- GitHub REST authentication and authenticated-user endpoint.
-- TikTok Login Kit and Display API.
+- HTTPS-only provider endpoints, with localhost allowed for development redirects.
+- Required client/redirect/scope validation.
+- Cryptographically random authorization state.
+- Tenant/workspace/provider binding.
+- One-time state consumption.
+- State expiration (10 minutes by default).
+- Provider-specific request and response scope separators.
+- client_secret_post and client_secret_basic token authentication.
+- Structured provider/transport/response errors.
+- Refresh-token preservation when a provider omits a replacement token.
+- No retained raw token response payload.
+- Explicit expiration timestamps.
+
+The default InMemoryOAuth2StateStore is for tests/development. Production deployments must supply a shared durable state store so authorization callbacks can be handled by any application instance.
+
+## Credential storage
+
+InMemoryOAuthCredentialStore is development/test only.
+
+Production deployments should use SecretManagerOAuthCredentialStore with an encrypted secret-manager backend. The backend is responsible for:
+
+- encryption at rest;
+- access control;
+- audit logging;
+- durable storage;
+- secret rotation.
+
+OIS enforces tenant/workspace/provider scope before returning token material to the source boundary.
+
+## Automatic token refresh
+
+OAuth2SourceConnection.ingest() checks token expiry before source execution. Credentials expiring within the configured refresh skew are refreshed first.
+
+If a provider returns no replacement refresh token or scope, the existing values are preserved.
+
+If an access token is expired and no refresh token exists, ingestion fails rather than sending known-expired credentials.
+
+## Provider implementations
+
+### GitHub
+
+- Authorization: GitHub OAuth web application flow.
+- Token exchange: GitHub OAuth access-token endpoint.
+- Source: github.rest.user.
+- Authenticated request: GET https://api.github.com/user.
+- Scopes: read:user, user:email.
+
+### TikTok
+
+- Login Kit OAuth 2.0.
+- Source: tiktok.display.v2.
+- Scopes: user.info.basic, video.list.
+- TikTok uses comma-separated scopes in the authorization and token response.
+- Token exchange and refresh use the common OAuth2 framework.
+- The existing Display API client remains responsible for TikTok's API-specific pagination/request shape.
+
+### Meta/Facebook
+
+- Meta Graph OAuth.
+- Source: meta.graph.me.
+- Graph API /me?fields=id,name,email.
+- Scopes: public_profile, email.
+- Graph API version is explicitly configured by the integration.
+
+### Google
+
 - Google OAuth 2.0 web-server flow.
-- Meta Graph API OAuth configuration is versioned and supplied by the integration.
+- Source: google.drive.files.
+- Default scope: https://www.googleapis.com/auth/drive.metadata.readonly.
+- Requests offline access so refresh tokens can be retained.
+- Drive pagination is handled by the source adapter.
 
+## Real-provider validation
 
-## Phase A.1 — GitHub authenticated vertical slice
+Normal CI never calls external providers.
 
-The first production-shaped acceptance slice is implemented by
-`OAuth2SourceConnection` in `ois/infrastructure/oauth2_connection.py`.
+Opt-in smoke tests live in tests/integrations/test_phase_a_live.py. To run them against real providers, provide protected access tokens and set:
 
-The application flow is:
+OIS_LIVE_PHASE_A=1
+OIS_LIVE_GITHUB_ACCESS_TOKEN=...
+OIS_LIVE_TIKTOK_ACCESS_TOKEN=...
+OIS_LIVE_META_ACCESS_TOKEN=...
+OIS_LIVE_GOOGLE_ACCESS_TOKEN=...
 
-1. `begin()` creates a tenant/workspace-bound OAuth state and authorization URL.
-2. `complete()` consumes that state, exchanges the authorization code, and writes the resulting token to the credential store.
-3. `ingest()` resolves the tenant/workspace/provider-scoped credential and invokes `ApiSourceSocket`.
-4. `GitHubSource` applies the access token through the governed `SourceGateway`.
-5. `SourceGateway` writes raw evidence and the outbox event through the same `SQLiteSourceLedger` transaction in the reference implementation.
-6. The access token remains credential material and is not copied into evidence or outbox payloads.
+These tests exercise the actual external API through the governed source boundary. They do not store the supplied tokens in the repository.
 
-The acceptance tests in `tests/infrastructure/test_oauth2_connection.py` cover the complete
-GitHub-shaped flow plus state replay, cross-workspace credential isolation, token refresh,
-and credential non-leakage into evidence.
+The complete browser OAuth callback flow still requires registered provider applications and real redirect URIs. The application must call begin(), send the user to the returned authorization URL, receive the callback code + state, call complete(), and then use the returned credential through ingest().
 
-### Credential storage boundary
+## Security invariant
 
-`InMemoryOAuthCredentialStore` exists only for development and deterministic tests. It
-implements the credential resolver contract so the vertical slice can be exercised without
-a secret-management service.
+OAuth client secret  -> secret manager only
+OAuth refresh token  -> secret manager only
+OAuth access token   -> credential boundary only
+Source evidence      -> provider response only
+Outbox               -> evidence reference / event metadata only
 
-Production deployments must provide an `OAuthCredentialStore` backed by the deployment's
-encrypted secret manager. The interface deliberately keeps access/refresh tokens outside
-source definitions and durable source evidence.
-
-### Production acceptance
-
-The remaining environment-level step is to wire the same service to a real GitHub OAuth
-application and a production credential store, then run the flow with real authorization
-and the GitHub `/user` endpoint. GitHub's web flow returns a temporary callback code plus
-the supplied state, which the application must validate before exchanging the code for a
-user access token. See the GitHub OAuth web application flow documentation for the current
-provider behavior.
+No generic source adapter handles authorization codes, refresh tokens, or provider client secrets.

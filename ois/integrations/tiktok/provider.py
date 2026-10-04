@@ -22,9 +22,9 @@ def build_tiktok_oauth(
             redirect_uri=redirect_uri,
             scopes=("user.info.basic", "video.list"),
             scope_separator=",",
+            response_scope_separator=",",
             client_id_param="client_key",
             client_secret_param="client_secret",
-            authorization_params=(("client_key", client_key),),
         ),
         state_store=state_store,
     )
