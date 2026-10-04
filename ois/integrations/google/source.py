@@ -60,7 +60,8 @@ class GoogleDriveSource(HttpSourceAdapter):
         seen_tokens: set[str] = set()
         while True:
             url = self._url_for_page(page_token)
-            payload = self._fetch(credential_material, url=url)
+            fetch_result = self._fetch(credential_material, url=url)
+            payload = fetch_result[0] if isinstance(fetch_result, tuple) else fetch_result
             response = gateway.ingest(
                 SourceRequest(
                     tenant_id=tenant_id,

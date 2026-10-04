@@ -2,11 +2,11 @@ from urllib.parse import parse_qs, urlparse
 
 from ois.infrastructure.source_adapters.http import HttpSourceAdapter
 from ois.infrastructure.source_gateway import (
-    ApiSourceSocket,
     AuthScheme,
     InMemoryCredentialResolver,
     SourceGateway,
 )
+from ois.infrastructure.source_gateway.socket import ApiSourceSocket
 from ois.integrations.github import GitHubSource, build_github_oauth
 from ois.integrations.google import GoogleDriveSource, build_google_oauth
 from ois.integrations.meta import MetaFacebookSource, build_meta_oauth
