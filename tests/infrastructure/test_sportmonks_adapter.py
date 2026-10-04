@@ -8,8 +8,8 @@ import pytest
 from ois.infrastructure.source_adapters import SourceAdapterRegistry, SportmonksFootballAdapter
 from ois.infrastructure.source_gateway import (
     InMemoryCredentialResolver,
-    SQLiteSourceLedger,
     SourceGateway,
+    SQLiteSourceLedger,
 )
 
 

@@ -8,8 +8,8 @@ import sys
 from ois.infrastructure.source_adapters import SportmonksFootballAdapter
 from ois.infrastructure.source_gateway import (
     InMemoryCredentialResolver,
-    SQLiteSourceLedger,
     SourceGateway,
+    SQLiteSourceLedger,
 )
 
 
