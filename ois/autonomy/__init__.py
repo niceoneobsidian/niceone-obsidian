@@ -2,6 +2,7 @@
 
 from .approvals import ApprovalDecision, ApprovalGate, ApprovalRequest, InMemoryApprovalStore
 from .events import EventEnvelope, EventRoute, EventRouter, InMemoryEventRouter
+from .durable import DurableRunStatus, DurableWorkflowRun, PostgresWorkflowRunRepository
 from .loops import AutonomousLoop, LoopDecision, LoopState
 from .operations import AutonomousOperations, OperationReceipt
 from .policy import AutomationPolicy, PolicyEvaluation, PolicyRule
@@ -10,6 +11,9 @@ from .workflows import SourceWorkflow, WorkflowRun, WorkflowStatus, WorkflowTrig
 
 __all__ = [
     "ApprovalDecision",
+    "DurableRunStatus",
+    "DurableWorkflowRun",
+    "PostgresWorkflowRunRepository",
     "ApprovalGate",
     "ApprovalRequest",
     "InMemoryApprovalStore",
