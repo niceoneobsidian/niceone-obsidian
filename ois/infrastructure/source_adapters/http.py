@@ -2,21 +2,27 @@
 
 from __future__ import annotations
 
-import base64
 import json
 from datetime import UTC, datetime
 from time import monotonic
 from typing import Any, Callable, cast
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
-from urllib.request import Request, urlopen\nfrom uuid import uuid4
+from urllib.request import Request, urlopen
+from uuid import uuid4
 
 from ois.infrastructure.source_gateway import (
+    Authenticator,
+    AuthRequest,
+    AuthScheme,
+    CredentialMaterial,
     CredentialRef,
     FreshnessPolicy,
     SourceGateway,
     SourceProvenance,
     SourceRequest,
+    TenantScope,
+    authenticator_for,
 )
 
 from .base import AdapterHealth, AdapterResult, SourceAdapterRegistry, utc_now
@@ -25,8 +31,8 @@ from .base import AdapterHealth, AdapterResult, SourceAdapterRegistry, utc_now
 class HttpSourceAdapter:
     """Governed generic REST adapter.
 
-    The adapter performs provider I/O; the SourceGateway remains authoritative for
-    tenant scope, credential validation, rate limiting, evidence and outbox writes.
+    Provider I/O happens here; authentication, tenant scope, rate limiting,
+    evidence and outbox persistence remain governed by the Source Gateway.
     """
 
     def __init__(
@@ -40,8 +46,9 @@ class HttpSourceAdapter:
         body: dict[str, object] | None = None,
         timeout: float = 20.0,
         connector_version: str = "http-v2",
-        auth_scheme: str = "none",
-        auth_header: str = "Authorization",
+        auth_scheme: AuthScheme = AuthScheme.NONE,
+        auth_options: dict[str, object] | None = None,
+        authenticator: Authenticator | None = None,
         freshness: FreshnessPolicy | None = None,
         opener: Callable[..., Any] | None = None,
     ) -> None:
@@ -51,8 +58,8 @@ class HttpSourceAdapter:
             raise ValueError("timeout must be positive")
         if method.upper() not in {"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"}:
             raise ValueError("unsupported HTTP method")
-        if auth_scheme not in {"none", "bearer", "api_key", "basic"}:
-            raise ValueError("unsupported auth scheme")
+        if authenticator is not None and auth_scheme is not AuthScheme.NONE:
+            raise ValueError("choose auth_scheme or authenticator, not both")
         self.source_id = source_id
         self._url = url
         self._method = method.upper()
@@ -62,41 +69,47 @@ class HttpSourceAdapter:
         self._timeout = timeout
         self._connector_version = connector_version
         self._auth_scheme = auth_scheme
-        self._auth_header = auth_header
+        self._auth_options = dict(auth_options or {})
+        self._authenticator = authenticator
         self._freshness = freshness
         self._opener = opener or urlopen
-        self._last_observed_at = None
+        self._last_observed_at: datetime | None = None
 
     def _request_url(self) -> str:
         if not self._query:
             return self._url
-        return f"{self._url}{'&' if '?' in self._url else '?'}{urlencode(self._query)}"
+        separator = "&" if "?" in self._url else "?"
+        return f"{self._url}{separator}{urlencode(self._query)}"
 
-    def _headers_for(self, credential: str | None) -> dict[str, str]:
-        headers = dict(self._headers)
-        if self._auth_scheme == "none":
-            if credential is not None:
-                raise ValueError("credential supplied to unauthenticated adapter")
-            return headers
-        if not credential:
-            raise PermissionError(f"{self.source_id} requires a credential")
-        if self._auth_scheme == "bearer":
-            headers[self._auth_header] = f"Bearer {credential}"
-        elif self._auth_scheme == "api_key":
-            headers[self._auth_header] = credential
-        else:
-            encoded = base64.b64encode(credential.encode("utf-8")).decode("ascii")
-            headers[self._auth_header] = f"Basic {encoded}"
-        return headers
-
-    def _fetch(self, credential: str | None = None) -> tuple[object, str, float]:
+    def _fetch(
+        self,
+        credential: CredentialMaterial | None = None,
+    ) -> tuple[object, str, float]:
         request_url = self._request_url()
         payload = None
-        headers = self._headers_for(credential)
+        headers = dict(self._headers)
         if self._body is not None:
             payload = json.dumps(self._body).encode("utf-8")
             headers.setdefault("Content-Type", "application/json")
-        request = Request(request_url, data=payload, headers=headers, method=self._method)
+
+        if self._auth_scheme is not AuthScheme.NONE or self._authenticator is not None:
+            if credential is None:
+                raise PermissionError("authentication credential required")
+            auth = self._authenticator or authenticator_for(
+                self._auth_scheme, **self._auth_options
+            )
+            authenticated = auth.apply(
+                AuthRequest(self._method, request_url, headers, payload or b""),
+                credential,
+            )
+            headers = authenticated.headers
+
+        request = Request(
+            request_url,
+            data=payload,
+            headers=headers,
+            method=self._method,
+        )
         started = monotonic()
         with self._opener(request, timeout=self._timeout) as response:
             raw = response.read()
@@ -120,15 +133,16 @@ class HttpSourceAdapter:
             credential = None
             if credential_id:
                 if gateway is None or tenant_id is None or workspace_id is None:
-                    raise ValueError("gateway and tenant/workspace are required for credentialed health checks")
+                    raise ValueError(
+                        "gateway and tenant/workspace are required for credentialed health checks"
+                    )
                 credential = gateway.resolve_credential(
                     CredentialRef(
                         credential_id=credential_id,
                         tenant_id=tenant_id,
                         provider=self.source_id.split(":", 1)[0],
                     ),
-                    tenant_id=tenant_id,
-                    workspace_id=workspace_id,
+                    TenantScope(tenant_id=tenant_id, workspace_id=workspace_id),
                 )
             self._fetch(credential)
             self._last_observed_at = datetime.now(UTC)
@@ -163,7 +177,7 @@ class HttpSourceAdapter:
         credential_id: str | None = None,
     ) -> AdapterResult:
         credential_ref: CredentialRef | None = None
-        credential: str | None = None
+        credential_material: CredentialMaterial | None = None
         if credential_id:
             credential_ref = CredentialRef(
                 credential_id=credential_id,
@@ -171,33 +185,32 @@ class HttpSourceAdapter:
                 provider=self.source_id.split(":", 1)[0],
                 scopes=(),
             )
-            credential = gateway.resolve_credential(
+            credential_material = gateway.resolve_credential(
                 credential_ref,
-                tenant_id=tenant_id,
-                workspace_id=workspace_id,
+                TenantScope(tenant_id=tenant_id, workspace_id=workspace_id),
             )
+
+        source_type = self.source_id.split(":", 1)[0]
         lease = None
         if gateway.rate_limit_configured(
-            source_type=self.source_id.split(":", 1)[0],
+            source_type=source_type,
             source_id=self.source_id,
         ):
             lease = gateway.acquire_rate_limit(
-                source_type=self.source_id.split(":", 1)[0],
+                source_type=source_type,
                 source_id=self.source_id,
             )
             if lease is None:
-                return SourceAdapterRegistry.response(
-                    self.source_id,
-                    [],
-                )
+                return SourceAdapterRegistry.response(self.source_id, [])
 
-        payload, status, _latency = self._fetch(credential)
+        payload, status, _latency = self._fetch(credential_material)
         observed_at = datetime.now(UTC)
         self._last_observed_at = observed_at
         if self._freshness and not self._freshness.is_fresh(observed_at):
             raise RuntimeError(f"source response is stale: {self.source_id}")
+
         provenance = SourceProvenance(
-            provider=self.source_id.split(":", 1)[0],
+            provider=source_type,
             endpoint=self._request_url(),
             operation=self._method,
             request_id=str(uuid4()),
@@ -209,7 +222,7 @@ class HttpSourceAdapter:
             SourceRequest(
                 tenant_id=tenant_id,
                 workspace_id=workspace_id,
-                source_type=self.source_id.split(":", 1)[0],
+                source_type=source_type,
                 source_id=self.source_id,
                 source_record_id=self._url,
                 payload={"url": self._url, "response": payload},
