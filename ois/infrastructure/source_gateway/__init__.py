@@ -14,6 +14,7 @@ from .auth import (
     OAuth2Auth,
     authenticator_for,
 )
+from .contracts import FreshnessPolicy, SourceProvenance, SourceSpec
 from .credentials import CredentialRef, CredentialResolver, InMemoryCredentialResolver, TenantScope
 from .cursors import SourceCursor, SQLiteCursorStore
 from .evidence import RawEvidence, RawEvidenceWriter, SQLiteRawEvidenceWriter, canonical_hash
@@ -36,6 +37,7 @@ __all__ = [
     "OAuth2Auth",
     "authenticator_for",
     "CredentialRef",
+    "FreshnessPolicy",
     "CredentialResolver",
     "InMemoryCredentialResolver",
     "OutboxEvent",
@@ -53,6 +55,8 @@ __all__ = [
     "ApiSourceSocket",
     "SocketStatus",
     "SourceGateway",
+    "SourceProvenance",
+    "SourceSpec",
     "SourceRequest",
     "SourceResponse",
     "TenantScope",
