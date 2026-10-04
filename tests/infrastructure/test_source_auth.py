@@ -25,9 +25,7 @@ def request() -> AuthRequest:
 
 
 def test_api_key_auth_is_declarative() -> None:
-    result = ApiKeyAuth(header="X-Client-Key").apply(
-        request(), CredentialMaterial("key-123")
-    )
+    result = ApiKeyAuth(header="X-Client-Key").apply(request(), CredentialMaterial("key-123"))
     assert result.headers["X-Client-Key"] == "key-123"
 
 
@@ -58,9 +56,7 @@ def test_oauth_client_material_can_use_basic_auth() -> None:
 
 
 def test_gateway_authentication_uses_central_manager() -> None:
-    gateway = SourceGateway(
-        credentials=InMemoryCredentialResolver({"cred": "token-123"})
-    )
+    gateway = SourceGateway(credentials=InMemoryCredentialResolver({"cred": "token-123"}))
     result = gateway.authenticate_request(
         AuthRequest("GET", "https://example.test", {}),
         CredentialRef("cred", "tenant-a", "google"),

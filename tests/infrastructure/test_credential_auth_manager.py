@@ -83,9 +83,12 @@ def test_manager_applies_explicit_provider_authenticator() -> None:
 def test_manager_returns_unauthenticated_request_for_none_policy() -> None:
     manager = CredentialAuthManager(InMemoryCredentialResolver())
     request = AuthRequest("GET", "https://example.test", {"X-Test": "1"})
-    assert manager.authenticate(
-        request,
-        CredentialRef("unused", "tenant-a", "example"),
-        TenantScope("tenant-a", "workspace-a"),
-        AuthPolicy(AuthScheme.NONE),
-    ) == request
+    assert (
+        manager.authenticate(
+            request,
+            CredentialRef("unused", "tenant-a", "example"),
+            TenantScope("tenant-a", "workspace-a"),
+            AuthPolicy(AuthScheme.NONE),
+        )
+        == request
+    )

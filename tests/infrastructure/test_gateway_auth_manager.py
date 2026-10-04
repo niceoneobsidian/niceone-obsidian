@@ -10,9 +10,7 @@ from ois.infrastructure.source_gateway.auth import AuthRequest, AuthScheme
 
 
 def test_gateway_authentication_uses_central_manager() -> None:
-    gateway = SourceGateway(
-        credentials=InMemoryCredentialResolver({"cred": "token-123"})
-    )
+    gateway = SourceGateway(credentials=InMemoryCredentialResolver({"cred": "token-123"}))
     result = gateway.authenticate_request(
         AuthRequest("GET", "https://example.test", {}),
         CredentialRef("cred", "tenant-a", "google"),
