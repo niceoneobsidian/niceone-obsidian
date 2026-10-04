@@ -62,6 +62,20 @@ class PostgresApprovalStore:
             row = cursor.fetchone()
         return self._row(row) if row else None
 
+    def get_by_event(self, event_id: str) -> ApprovalRequest | None:
+        with self._connect() as connection, connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT approval_id, tenant_id, workspace_id, workflow_id, event_id,
+                          reason, decision, created_at, expires_at, decided_by, decided_at,
+                          event_payload, source_id, event_type
+                   FROM autonomous_approvals
+                   WHERE event_id = %s
+                   ORDER BY created_at DESC LIMIT 1""",
+                (event_id,),
+            )
+            row = cursor.fetchone()
+        return self._row(row) if row else None
+
     def decide(self, approval_id: str, decision: ApprovalDecision, actor: str) -> ApprovalRequest:
         now = datetime.now(UTC)
         with self._connect() as connection, connection.cursor() as cursor:
