@@ -194,7 +194,7 @@ def test_outbox_events_can_drive_autonomous_operations() -> None:
             workspace_id="workspace-1",
             event_type="source.updated",
             aggregate_id="record-1",
-            payload={"risk_level": "low"},
+            payload={"risk_level": "low", "source_id": "github"},
             created_at=datetime.now(UTC),
         )
     )
