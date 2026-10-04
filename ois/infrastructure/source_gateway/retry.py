@@ -39,6 +39,10 @@ class RetryController:
         self._policy = policy
         self._random = Random(seed)
 
+    @property
+    def max_attempts(self) -> int:
+        return self._policy.max_attempts
+
     def decide(
         self,
         *,
