@@ -1,0 +1,13 @@
+global:
+  environment: staging
+  namespace: ois-system
+
+vault:
+  enabled: true
+  role: ois-tenant-worker-role
+  secretPath: secret/data/ois/staging/runtime
+
+supervisor:
+  replicaCount: 2
+
+runtimeClassName: ""
