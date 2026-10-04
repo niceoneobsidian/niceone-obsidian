@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from threading import RLock
 from uuid import uuid4
@@ -98,6 +98,6 @@ class ApprovalGate:
                 event_id=event_id,
                 reason=reason,
                 created_at=now,
-                expires_at=now.replace(microsecond=0) + __import__("datetime").timedelta(seconds=self._ttl_seconds),
+                expires_at=now.replace(microsecond=0) + timedelta(seconds=self._ttl_seconds),
             )
         )
