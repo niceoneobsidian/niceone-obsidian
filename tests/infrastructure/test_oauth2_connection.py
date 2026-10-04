@@ -77,7 +77,12 @@ def test_github_vertical_slice_persists_evidence_and_outbox() -> None:
     )
 
     assert result.records == 1
-    assert seen_headers == [{"Accept": "application/vnd.github+json", "Authorization": "Bearer access-token"}]
+    assert seen_headers == [
+        {
+            "Accept": "application/vnd.github+json",
+            "Authorization": "Bearer access-token",
+        }
+    ]
 
     evidence = ledger.evidence(result.evidence_ids[0])
     assert evidence is not None
