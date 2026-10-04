@@ -1,3 +1,5 @@
+"""Phase C autonomous operations primitives."""
+
 from .approvals import ApprovalDecision, ApprovalGate, ApprovalRequest, InMemoryApprovalStore
 from .durable import DurableRunStatus, DurableWorkflowRun, FencedPostgresWorkflowRunRepository, PostgresWorkflowRunRepository
 from .durable import DurableRunStatus, DurableWorkflowRun, PostgresWorkflowRunRepository
@@ -7,7 +9,6 @@ from .operations import AutonomousOperations, OperationReceipt
 from .policy import AutomationPolicy, PolicyEvaluation, PolicyRule
 from .recovery import FailureRecovery, RecoveryAction, RecoveryRecord
 from .workflows import SourceWorkflow, WorkflowRun, WorkflowStatus, WorkflowTrigger
-"""Phase C autonomous operations primitives."""
 
 
 __all__ = [
