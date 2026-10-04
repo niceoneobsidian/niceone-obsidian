@@ -1,8 +1,17 @@
 """Google OAuth 2.0 provider configuration."""
 from __future__ import annotations
+
 from ois.infrastructure.oauth2 import OAuth2Config, OAuth2Provider
 
-def build_google_oauth(*, client_id: str, client_secret: str, redirect_uri: str, scopes: tuple[str, ...] = ("https://www.googleapis.com/auth/drive.metadata.readonly",), state_store=None) -> OAuth2Provider:
+
+def build_google_oauth(
+    *,
+    client_id: str,
+    client_secret: str,
+    redirect_uri: str,
+    scopes: tuple[str, ...] = ("https://www.googleapis.com/auth/drive.metadata.readonly",),
+    state_store=None,
+) -> OAuth2Provider:
     return OAuth2Provider(
         OAuth2Config(
             provider="google",
@@ -12,7 +21,10 @@ def build_google_oauth(*, client_id: str, client_secret: str, redirect_uri: str,
             client_secret=client_secret,
             redirect_uri=redirect_uri,
             scopes=scopes,
-            authorization_params=(("access_type", "offline"), ("include_granted_scopes", "true")),
+            authorization_params=(
+                ("access_type", "offline"),
+                ("include_granted_scopes", "true"),
+            ),
         ),
         state_store=state_store,
     )
