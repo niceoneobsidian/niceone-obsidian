@@ -13,11 +13,11 @@ from .auth import Authenticator, AuthRequest, AuthScheme, CredentialMaterial
 from .contracts import SourceProvenance
 from .credentials import CredentialRef, CredentialResolver, TenantScope
 from .evidence import RawEvidence, RawEvidenceWriter, canonical_hash
-from .limits import RateLimitPolicy, TokenBucket
 from .idempotency import IdempotencyStore
-from .rate_limits import RateLimitManager
+from .limits import RateLimitPolicy, TokenBucket
 from .manager import AuthPolicy, CredentialAuthManager
 from .outbox import OutboxEvent, OutboxStore
+from .rate_limits import RateLimitManager
 
 
 @dataclass(frozen=True)
@@ -281,7 +281,7 @@ class SourceGateway:
                     source_id=request.source_id,
                     source_record_id=request.source_record_id,
                     event_type="source.raw_evidence.created",
-                    payload=request.payload or {},
+                    payload=payload,
                     payload_hash=payload_hash,
                     connector_version=request.connector_version,
                     schema_version=request.schema_version,
