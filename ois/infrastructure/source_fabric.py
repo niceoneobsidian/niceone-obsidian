@@ -16,7 +16,6 @@ from ois.infrastructure.source_adapters import (
     AdapterResult,
     PollingEngine,
     PollingJob,
-    PollingRun,
     SourceAdapter,
 )
 from ois.infrastructure.source_adapters.webhook_gateway import (
@@ -66,7 +65,7 @@ class SourceFabric:
         )
         self._cursor_store = cursor_store or SQLiteCursorStore()
         self._health = health or SourceHealthRegistry()
-        self._retry = RetryController(retry_policy)
+        self._retry = RetryController(retry_policy or RetryPolicy())
         self._sleep = sleeper
         self._polling = PollingEngine(gateway=gateway)
         self._webhooks: dict[tuple[str, str, str], WebhookGateway] = {}
@@ -137,21 +136,14 @@ class SourceFabric:
         self._webhooks[(tenant_id, workspace_id, source_id)] = gateway
 
     def poll_once(self, *, tenant_id: str, workspace_id: str, source_id: str) -> SourceFabricRun:
-        definition = self._require_enabled(
+        definition = self._require_retryable(
             tenant_id=tenant_id,
             workspace_id=workspace_id,
             source_id=source_id,
         )
         if definition.mode != "poll":
             raise ValueError(f"source is not configured for polling: {source_id}")
-        run = self._run_poll(source_id, tenant_id, workspace_id)
-        return SourceFabricRun(
-            source_id,
-            run.result,
-            1,
-            (),
-            run.error,
-        )
+        return self._run_poll(source_id, tenant_id, workspace_id)
 
     def poll_with_retry(
         self,
@@ -160,7 +152,7 @@ class SourceFabric:
         workspace_id: str,
         source_id: str,
     ) -> SourceFabricRun:
-        definition = self._require_pollable(
+        definition = self._require_retryable(
             tenant_id=tenant_id,
             workspace_id=workspace_id,
             source_id=source_id,
@@ -192,7 +184,7 @@ class SourceFabric:
         raise AssertionError("retry controller exceeded its configured attempt bound")
 
     def receive_webhook(self, request: WebhookRequest) -> AdapterResult:
-        definition = self._require_enabled(
+        definition = self._require_retryable(
             tenant_id=request.tenant_id,
             workspace_id=request.workspace_id,
             source_id=request.source_id,
@@ -322,7 +314,7 @@ class SourceFabric:
         source_id: str,
         tenant_id: str,
         workspace_id: str,
-    ) -> PollingRun:
+    ) -> SourceFabricRun:
         started = datetime.now(UTC)
         run = self._polling.run_once(source_id)
         definition = self._require_source(
@@ -334,39 +326,22 @@ class SourceFabric:
             self._record_success(definition, started=started)
         else:
             self._record_failure(definition, error=run.error, started=started)
-        return run
+        return SourceFabricRun(
+            source_id=run.source_id,
+            result=run.result,
+            attempts=1,
+            retries=(),
+            error=run.error,
+        )
 
     def _require_source(
-        self,
-        *,
-        tenant_id: str,
-        workspace_id: str,
-        source_id: str,
+        self, *, tenant_id: str, workspace_id: str, source_id: str
     ) -> SourceDefinition:
         return self._source_control.get(
             tenant_id=tenant_id,
             workspace_id=workspace_id,
             source_id=source_id,
         )
-
-    def _require_pollable(
-        self,
-        *,
-        tenant_id: str,
-        workspace_id: str,
-        source_id: str,
-    ) -> SourceDefinition:
-        source = self._require_source(
-            tenant_id=tenant_id,
-            workspace_id=workspace_id,
-            source_id=source_id,
-        )
-        if SourceStatus(source.status or "") not in {
-            SourceStatus.ENABLED,
-            SourceStatus.DEGRADED,
-        }:
-            raise PermissionError(f"source is not pollable: {source_id} ({source.status})")
-        return source
 
     def _require_enabled(
         self,
@@ -382,6 +357,23 @@ class SourceFabric:
         )
         if SourceStatus(source.status or "") != SourceStatus.ENABLED:
             raise PermissionError(f"source is not enabled: {source_id} ({source.status})")
+        return source
+
+    def _require_retryable(
+        self,
+        *,
+        tenant_id: str,
+        workspace_id: str,
+        source_id: str,
+    ) -> SourceDefinition:
+        source = self._require_source(
+            tenant_id=tenant_id,
+            workspace_id=workspace_id,
+            source_id=source_id,
+        )
+        status = SourceStatus(source.status or "")
+        if status not in {SourceStatus.ENABLED, SourceStatus.DEGRADED}:
+            raise PermissionError(f"source is not retryable: {source_id} ({source.status})")
         return source
 
     def _record_success(

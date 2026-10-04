@@ -295,8 +295,10 @@ class PostgresSourceRegistry:
     def delete(self, tenant_id: str, workspace_id: str, source_id: str) -> None:
         with self._connection.transaction(), self._connection.cursor() as cur:
             cur.execute(
-                "DELETE FROM source_registry "
-                "WHERE tenant_id=%s AND workspace_id=%s AND source_id=%s",
+                """
+                DELETE FROM source_registry
+                WHERE tenant_id=%s AND workspace_id=%s AND source_id=%s
+                """,
                 (tenant_id, workspace_id, source_id),
             )
 
