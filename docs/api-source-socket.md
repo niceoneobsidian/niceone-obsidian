@@ -46,7 +46,7 @@ External API / Webhook / Poller
 Implement the existing `SourceAdapter` contract and register it:
 
 ```python
-from ois.infrastructure.source_gateway import ApiSourceSocket
+from ois.infrastructure.source_gateway.socket import ApiSourceSocket
 
 socket.register(my_adapter)
 result = socket.ingest(

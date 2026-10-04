@@ -3,7 +3,8 @@ from __future__ import annotations
 import pytest
 
 from ois.infrastructure.source_adapters import FileSourceAdapter, SourceAdapterRegistry
-from ois.infrastructure.source_gateway import ApiSourceSocket, SourceGateway, SQLiteSourceLedger
+from ois.infrastructure.source_gateway import SourceGateway, SQLiteSourceLedger
+from ois.infrastructure.source_gateway.socket import ApiSourceSocket
 
 
 def socket() -> ApiSourceSocket:
