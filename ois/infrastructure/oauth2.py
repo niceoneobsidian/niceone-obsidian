@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Protocol
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 from urllib.request import Request, urlopen
 
 
@@ -46,8 +46,12 @@ class OAuth2Config:
             raise ValueError(f"{self.provider} OAuth2 client secret is required")
         if not self.redirect_uri:
             raise ValueError(f"{self.provider} OAuth2 redirect URI is required")
-        if not self.redirect_uri.startswith(("https://", "http://localhost")):
-            raise ValueError("OAuth2 redirect URI must use HTTPS outside localhost")
+        redirect = urlparse(self.redirect_uri)
+        if redirect.scheme != "https":
+            if redirect.scheme != "http" or redirect.hostname not in {"localhost", "127.0.0.1", "::1"}:
+                raise ValueError("OAuth2 redirect URI must use HTTPS outside localhost")
+            if redirect.fragment:
+                raise ValueError("OAuth2 redirect URI must not contain a fragment")
         if self.token_auth_method not in _ALLOWED_TOKEN_AUTH:
             raise ValueError(
                 f"unsupported OAuth2 token authentication method: {self.token_auth_method}"
