@@ -23,9 +23,12 @@ def event() -> CanonicalSourceEvent:
 def test_source_policy_enforces_tenant_and_credential() -> None:
     store = SourcePolicyStore()
     store.put(SourcePolicy("tenant-a", "workspace-a", "google:source"))
-    assert store.authorize(
-        "tenant-a", "workspace-a", "google:source", credential_present=True
-    ).source_id == "google:source"
+    assert (
+        store.authorize(
+            "tenant-a", "workspace-a", "google:source", credential_present=True
+        ).source_id
+        == "google:source"
+    )
 
 
 def test_source_configuration_creates_policy_and_can_disable() -> None:

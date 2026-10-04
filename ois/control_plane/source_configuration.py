@@ -36,9 +36,7 @@ class SourceConfigurationService:
         with self._lock:
             self._configs[(config.tenant_id, config.workspace_id, config.source_id)] = config
         try:
-            existing = self._policies.get(
-                config.tenant_id, config.workspace_id, config.source_id
-            )
+            existing = self._policies.get(config.tenant_id, config.workspace_id, config.source_id)
         except KeyError:
             existing = None
         self._policies.put(
@@ -66,7 +64,8 @@ class SourceConfigurationService:
             return tuple(
                 sorted(
                     (
-                        config for (t, w, _), config in self._configs.items()
+                        config
+                        for (t, w, _), config in self._configs.items()
                         if (t, w) == (tenant_id, workspace_id)
                     ),
                     key=lambda item: item.source_id,
