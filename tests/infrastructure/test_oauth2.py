@@ -67,6 +67,10 @@ def test_oauth2_state_expires() -> None:
 def test_oauth2_config_rejects_insecure_provider_configuration() -> None:
     with pytest.raises(ValueError, match="HTTPS"):
         OAuth2Provider(_config(token_url="http://example.test/token"))
+    with pytest.raises(ValueError, match="HTTPS"):
+        OAuth2Provider(_config(redirect_uri="http://localhost.evil/callback"))
+    with pytest.raises(ValueError, match="fragment"):
+        OAuth2Provider(_config(redirect_uri="https://app.test/callback#fragment"))
     with pytest.raises(ValueError, match="client ID"):
         OAuth2Provider(_config(client_id=""))
     with pytest.raises(ValueError, match="scope"):
