@@ -19,7 +19,7 @@ from .durable import (
 from .durable_approvals import FencedApprovalResume, PostgresApprovalStore
 from .events import EventEnvelope
 from .policy import AutomationPolicy, PolicyOutcome
-from .side_effects import PostgresSideEffectLedger
+from .side_effects import PostgresSideEffectLedger, SideEffectLedgerEntry
 from .workflows import SourceWorkflow
 
 
@@ -198,7 +198,7 @@ class DurableAutonomousExecutionEngine:
         idempotency_key: str,
         capability_id: str,
         request: dict[str, Any],
-    ):
+    ) -> SideEffectLedgerEntry:
         self.leases.assert_current(lease)
         return self.side_effects.prepare(
             tenant_id=tenant_id,
