@@ -7,12 +7,13 @@ from datetime import UTC, datetime
 from typing import Any, cast
 from uuid import NAMESPACE_URL, uuid4, uuid5
 
+from ois.domains.social_intelligence.events import CanonicalSourceEvent
+
 from .auth import CredentialMaterial
 from .credentials import CredentialRef, CredentialResolver, TenantScope
 from .evidence import RawEvidence, RawEvidenceWriter, canonical_hash
 from .limits import RateLimitPolicy, TokenBucket
 from .outbox import OutboxEvent, OutboxStore
-from ois.domains.social_intelligence.events import CanonicalSourceEvent
 
 
 @dataclass(frozen=True)
@@ -115,7 +116,7 @@ class SourceGateway:
             ingestion_run_id=self._id(),
         )
 
-        event = OutboxEvent(
+        outbox_event = OutboxEvent(
             event_id=event_id,
             tenant_id=request.tenant_id,
             workspace_id=request.workspace_id,
@@ -132,10 +133,10 @@ class SourceGateway:
         commit_ingest = getattr(self._evidence, "commit_ingest", None)
 
         if callable(commit_ingest) and cast(object, self._outbox) is cast(object, self._evidence):
-            accepted = commit_ingest(evidence, event)
+            accepted = commit_ingest(evidence, outbox_event)
         else:
             accepted = self._evidence.append(evidence) if self._evidence else True
-            outbox_ok = self._outbox.append(event) if self._outbox else True
+            outbox_ok = self._outbox.append(outbox_event) if self._outbox else True
             if accepted and not outbox_ok:
                 raise RuntimeError(
                     "evidence committed but outbox append failed; "
