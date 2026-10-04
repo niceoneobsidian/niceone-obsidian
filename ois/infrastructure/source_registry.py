@@ -279,15 +279,12 @@ class PostgresSourceRegistry:
         with self._connection.cursor() as cur:
             cur.execute(
                 """
-                SELECT source_id, tenant_id, workspace_id, source_id, provider, mode, enabled,
-                       config, credential_id, updated_at, status, poll_interval_seconds, capabilities
+                SELECT source_id, tenant_id, workspace_id, provider, mode, enabled, config,
+                       credential_id, updated_at, status, poll_interval_seconds, capabilities
                 FROM source_registry
                 WHERE tenant_id=%s AND workspace_id=%s
                 ORDER BY source_id
-                """.replace(
-                    "SELECT source_id, tenant_id, workspace_id, source_id, provider",
-                    "SELECT source_id, tenant_id, workspace_id, provider",
-                ),
+                """,
                 (tenant_id, workspace_id),
             )
             rows = cur.fetchall()
