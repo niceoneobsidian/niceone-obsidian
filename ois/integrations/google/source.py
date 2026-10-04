@@ -1,4 +1,5 @@
 """Google Drive source routed through the governed SourceGateway."""
+
 from __future__ import annotations
 
 from urllib.parse import quote
@@ -12,7 +13,6 @@ from ois.infrastructure.source_gateway import (
     SourceRequest,
     TenantScope,
 )
-
 from ois.infrastructure.source_gateway.gateway import SourceResponse
 
 

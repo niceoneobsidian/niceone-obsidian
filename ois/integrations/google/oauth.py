@@ -1,7 +1,8 @@
 """Google OAuth 2.0 provider configuration."""
+
 from __future__ import annotations
 
-from ois.infrastructure.oauth2 import OAuth2Config, OAuth2Provider
+from ois.infrastructure.oauth2 import OAuth2Config, OAuth2Provider, OAuth2StateStore
 
 
 def build_google_oauth(
@@ -10,7 +11,7 @@ def build_google_oauth(
     client_secret: str,
     redirect_uri: str,
     scopes: tuple[str, ...] = ("https://www.googleapis.com/auth/drive.metadata.readonly",),
-    state_store=None,
+    state_store: OAuth2StateStore | None = None,
 ) -> OAuth2Provider:
     return OAuth2Provider(
         OAuth2Config(

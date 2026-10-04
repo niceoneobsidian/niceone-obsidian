@@ -1,7 +1,7 @@
 from io import BytesIO
+from unittest.mock import patch
 from urllib.error import HTTPError
 from urllib.parse import parse_qs, urlparse
-from unittest.mock import patch
 
 import pytest
 
@@ -97,9 +97,11 @@ def test_oauth2_token_errors_are_structured() -> None:
         {},
         BytesIO(b'{"error":"invalid_grant","error_description":"code expired"}'),
     )
-    with patch("ois.infrastructure.oauth2.urlopen", side_effect=error):
-        with pytest.raises(OAuth2Error) as raised:
-            provider.exchange_code("expired")
+    with (
+        patch("ois.infrastructure.oauth2.urlopen", side_effect=error),
+        pytest.raises(OAuth2Error) as raised,
+    ):
+        provider.exchange_code("expired")
     assert raised.value.provider == "google"
     assert raised.value.operation == "authorization_code"
     assert raised.value.error_code == "invalid_grant"

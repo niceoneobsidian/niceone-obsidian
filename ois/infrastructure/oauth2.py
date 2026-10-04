@@ -1,4 +1,5 @@
 """Provider-neutral OAuth 2.0 authorization-code framework."""
+
 from __future__ import annotations
 
 import base64
@@ -90,9 +91,7 @@ class OAuth2Token:
         returned_refresh = payload.get("refresh_token")
         preserved_refresh = str(returned_refresh) if returned_refresh else refresh_token
         expires_in = (
-            int(str(payload["expires_in"]))
-            if payload.get("expires_in") is not None
-            else None
+            int(str(payload["expires_in"])) if payload.get("expires_in") is not None else None
         )
         return cls(
             access_token=str(payload["access_token"]),
@@ -107,9 +106,7 @@ class OAuth2Token:
 
 class OAuth2StateStore(Protocol):
     def put(self, state: str, *, provider: str, tenant_id: str, workspace_id: str) -> None: ...
-    def consume(
-        self, state: str, *, provider: str, tenant_id: str, workspace_id: str
-    ) -> bool: ...
+    def consume(self, state: str, *, provider: str, tenant_id: str, workspace_id: str) -> bool: ...
 
 
 class InMemoryOAuth2StateStore:
@@ -119,9 +116,7 @@ class InMemoryOAuth2StateStore:
     def put(self, state: str, *, provider: str, tenant_id: str, workspace_id: str) -> None:
         self._states[state] = (provider, tenant_id, workspace_id)
 
-    def consume(
-        self, state: str, *, provider: str, tenant_id: str, workspace_id: str
-    ) -> bool:
+    def consume(self, state: str, *, provider: str, tenant_id: str, workspace_id: str) -> bool:
         value = self._states.pop(state, None)
         return value == (provider, tenant_id, workspace_id)
 
@@ -209,9 +204,7 @@ class OAuth2Provider:
         )
         if self.config.token_auth_method == "client_secret_basic":
             raw = f"{self.config.client_id}:{self.config.client_secret}".encode()
-            request.add_header(
-                "Authorization", f"Basic {base64.b64encode(raw).decode()}"
-            )
+            request.add_header("Authorization", f"Basic {base64.b64encode(raw).decode()}")
 
         try:
             with urlopen(request, timeout=self._timeout) as response:

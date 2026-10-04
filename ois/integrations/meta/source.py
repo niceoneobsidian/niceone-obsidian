@@ -1,4 +1,5 @@
 """Facebook/Meta Graph API source."""
+
 from __future__ import annotations
 
 from ois.infrastructure.source_adapters.http import HttpSourceAdapter

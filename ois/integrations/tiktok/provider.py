@@ -1,11 +1,16 @@
 """TikTok Login Kit provider configuration."""
+
 from __future__ import annotations
 
-from ois.infrastructure.oauth2 import OAuth2Config, OAuth2Provider
+from ois.infrastructure.oauth2 import OAuth2Config, OAuth2Provider, OAuth2StateStore
 
 
 def build_tiktok_oauth(
-    *, client_key: str, client_secret: str, redirect_uri: str, state_store=None
+    *,
+    client_key: str,
+    client_secret: str,
+    redirect_uri: str,
+    state_store: OAuth2StateStore | None = None,
 ) -> OAuth2Provider:
     return OAuth2Provider(
         OAuth2Config(

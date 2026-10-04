@@ -17,18 +17,30 @@ def test_phase_a_provider_sources_use_governed_auth() -> None:
     assert GitHubSource().source_id == "github.rest.user"
     assert MetaFacebookSource().source_id == "meta.graph.me"
     assert GoogleDriveSource().source_id == "google.drive.files"
-    assert build_tiktok_oauth(
-        client_key="key", client_secret="secret", redirect_uri="https://app.test/callback"
-    ).config.provider == "tiktok"
-    assert build_github_oauth(
-        client_id="id", client_secret="secret", redirect_uri="https://app.test/callback"
-    ).config.provider == "github"
-    assert build_meta_oauth(
-        app_id="id", app_secret="secret", redirect_uri="https://app.test/callback"
-    ).config.provider == "meta"
-    assert build_google_oauth(
-        client_id="id", client_secret="secret", redirect_uri="https://app.test/callback"
-    ).config.provider == "google"
+    assert (
+        build_tiktok_oauth(
+            client_key="key", client_secret="secret", redirect_uri="https://app.test/callback"
+        ).config.provider
+        == "tiktok"
+    )
+    assert (
+        build_github_oauth(
+            client_id="id", client_secret="secret", redirect_uri="https://app.test/callback"
+        ).config.provider
+        == "github"
+    )
+    assert (
+        build_meta_oauth(
+            app_id="id", app_secret="secret", redirect_uri="https://app.test/callback"
+        ).config.provider
+        == "meta"
+    )
+    assert (
+        build_google_oauth(
+            client_id="id", client_secret="secret", redirect_uri="https://app.test/callback"
+        ).config.provider
+        == "google"
+    )
 
 
 def test_tiktok_authorization_uses_comma_separated_scopes() -> None:
@@ -63,7 +75,9 @@ def test_google_drive_ingest_follows_next_page_token(monkeypatch) -> None:
         gateway=SourceGateway(),
     )
     assert result.records == 2
-    assert requested_urls[0].endswith("fields=nextPageToken,files(id,name,mimeType,modifiedTime,webViewLink)")
+    assert requested_urls[0].endswith(
+        "fields=nextPageToken,files(id,name,mimeType,modifiedTime,webViewLink)"
+    )
     assert "pageToken=next-page" in requested_urls[1]
 
 

@@ -1,4 +1,5 @@
 """GitHub REST source routed through the governed SourceGateway."""
+
 from __future__ import annotations
 
 from ois.infrastructure.source_adapters.http import HttpSourceAdapter

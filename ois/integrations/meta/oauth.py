@@ -1,7 +1,8 @@
 """Meta OAuth configuration."""
+
 from __future__ import annotations
 
-from ois.infrastructure.oauth2 import OAuth2Config, OAuth2Provider
+from ois.infrastructure.oauth2 import OAuth2Config, OAuth2Provider, OAuth2StateStore
 
 
 def build_meta_oauth(
@@ -10,7 +11,7 @@ def build_meta_oauth(
     app_secret: str,
     redirect_uri: str,
     graph_version: str = "v24.0",
-    state_store=None,
+    state_store: OAuth2StateStore | None = None,
 ) -> OAuth2Provider:
     base = f"https://graph.facebook.com/{graph_version}"
     return OAuth2Provider(
