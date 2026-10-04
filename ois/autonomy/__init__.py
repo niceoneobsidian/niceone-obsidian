@@ -9,6 +9,7 @@ from .durable import (
 )
 from .events import EventEnvelope, EventRoute, EventRouter, InMemoryEventRouter
 from .loops import AutonomousLoop, LoopDecision, LoopState
+from .recovery_store import RecoveryCandidate, WorkflowRecoverySweeper
 from .operations import AutonomousOperations, OperationReceipt
 from .policy import AutomationPolicy, PolicyEvaluation, PolicyRule
 from .recovery import FailureRecovery, RecoveryAction, RecoveryRecord
@@ -36,6 +37,8 @@ __all__ = [
     "PolicyEvaluation",
     "PolicyRule",
     "FailureRecovery",
+    "RecoveryCandidate",
+    "WorkflowRecoverySweeper",
     "RecoveryAction",
     "RecoveryRecord",
     "SourceWorkflow",
