@@ -9,7 +9,7 @@ from ois.infrastructure.source_gateway.outbox import OutboxEvent, OutboxStore
 
 from .approvals import ApprovalDecision, ApprovalGate, InMemoryApprovalStore
 from .events import EventEnvelope, EventRoute, InMemoryEventRouter
-from .loops import AutonomousLoop, LoopDecision
+from .loops import AutonomousLoop, LoopDecision, LoopState
 from .policy import AutomationPolicy
 from .recovery import FailureRecovery
 from .workflows import SourceWorkflow, WorkflowRun
@@ -114,7 +114,7 @@ class AutonomousOperations:
         key = (workflow_id, event.event_id)
         if key in self._processed:
             return LoopDecision(
-                state="idle",
+                state=LoopState.IDLE,
                 reason="workflow event already processed",
             )
         workflow = self._workflows[workflow_id]
