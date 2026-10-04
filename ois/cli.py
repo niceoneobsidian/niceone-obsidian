@@ -290,6 +290,7 @@ def build_parser() -> argparse.ArgumentParser:
         "workflows": cmd_workflows,
         "health": cmd_health,
         "summary": cmd_summary,
+        "config-validate": cmd_config_validate,
         "version": cmd_version,
     }
     for name, handler in handlers.items():
