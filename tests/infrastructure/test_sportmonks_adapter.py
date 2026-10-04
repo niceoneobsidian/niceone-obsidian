@@ -6,7 +6,11 @@ from email.message import Message
 import pytest
 
 from ois.infrastructure.source_adapters import SourceAdapterRegistry, SportmonksFootballAdapter
-from ois.infrastructure.source_gateway import InMemoryCredentialResolver, SQLiteSourceLedger, SourceGateway
+from ois.infrastructure.source_gateway import (
+    InMemoryCredentialResolver,
+    SQLiteSourceLedger,
+    SourceGateway,
+)
 
 
 class FakeResponse:
