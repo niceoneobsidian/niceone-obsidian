@@ -306,10 +306,10 @@ class SourceControlAPI:
             workspace_id=source.workspace_id,
             provider=source.provider,
             mode=source.mode,
-            enabled=False,
+            enabled=source.enabled,
             config=source.config,
             credential_id=source.credential_id,
-            status=SourceStatus.REGISTERED,
+            status=source.status,
             poll_interval_seconds=source.poll_interval_seconds,
             capabilities=source.capabilities,
         )
