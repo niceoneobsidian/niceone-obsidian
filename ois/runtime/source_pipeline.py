@@ -38,6 +38,8 @@ class SourceIntelligencePipeline:
         self,
         event: CanonicalSourceEvent,
         handler: Callable[[CanonicalSourceEvent], object] | None = None,
+        *,
+        credential_verified: bool = False,
     ) -> PipelineResult:
         try:
             self._policies.authorize(
@@ -45,9 +47,9 @@ class SourceIntelligencePipeline:
                 event.workspace_id,
                 event.source_id,
                 event_type=event.event_type,
-                credential_present=True,
+                credential_present=credential_verified,
             )
-        except PermissionError as exc:
+        except (KeyError, PermissionError) as exc:
             return PipelineResult(event.event_id, False, False, str(exc))
 
         processor = handler or self._handler
