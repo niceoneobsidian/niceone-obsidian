@@ -257,6 +257,11 @@ def cmd_summary(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_config_validate(_: argparse.Namespace) -> int:
+    from ois.config.startup import main as config_main
+    return config_main()
+
+
 def cmd_version(_: argparse.Namespace) -> int:
     print("OIS CLI v1.1")
     print(f"Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")
