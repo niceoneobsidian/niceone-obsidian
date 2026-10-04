@@ -53,7 +53,7 @@ class GoogleDriveSource(HttpSourceAdapter):
                 TenantScope(tenant_id=tenant_id, workspace_id=workspace_id),
             )
 
-        responses = []
+        responses: list[SourceResponse] = []
         page_token: str | None = None
         seen_tokens: set[str] = set()
         while True:
