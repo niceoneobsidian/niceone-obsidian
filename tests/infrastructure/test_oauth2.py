@@ -23,6 +23,7 @@ def _config(**overrides: object) -> OAuth2Config:
         "client_secret": "secret",
         "redirect_uri": "https://app.test/callback",
         "scopes": ("a", "b"),
+        "use_pkce": False,
     }
     values.update(overrides)
     return OAuth2Config(**values)  # type: ignore[arg-type]
@@ -155,3 +156,14 @@ def test_oauth2_token_does_not_retain_raw_secret_payload() -> None:
         {"access_token": "access", "refresh_token": "refresh", "expires_in": 60}
     )
     assert not hasattr(token, "raw")
+
+
+def test_oauth2_pkce_uses_s256_challenge() -> None:
+    provider = OAuth2Provider(_config(use_pkce=True))
+    url, state = provider.authorization_url(tenant_id="t1", workspace_id="w1")
+    query = parse_qs(urlparse(url).query)
+    assert query["code_challenge_method"] == ["S256"]
+    assert query["code_challenge"]
+    with pytest.raises(ValueError, match="PKCE"):
+        provider.exchange_code("code")
+    assert state
