@@ -11,8 +11,8 @@ from .file import FileSourceAdapter
 from .github import GitHubSourceAdapter
 from .http import HttpSourceAdapter
 from .polling import PollPage, PollingSourceAdapter
-from .sportmonks import SportmonksFootballAdapter, SportmonksQuery
 from .rss import RSSSourceAdapter
+from .sportmonks import SportmonksFootballAdapter, SportmonksQuery
 from .webhook import WebhookVerifier
 
 __all__ = [
