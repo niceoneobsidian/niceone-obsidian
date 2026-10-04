@@ -18,7 +18,6 @@ from ois.infrastructure.source_adapters import (
 )
 from ois.infrastructure.source_adapters.webhook_gateway import WebhookGateway, WebhookRequest
 from ois.infrastructure.source_gateway import (
-    ApiSourceSocket,
     RateLimitManager,
     RateLimitPolicy,
     SourceEvent,
@@ -29,6 +28,7 @@ from ois.infrastructure.source_gateway import (
     WebhookSecurity,
     WebhookSecurityPolicy,
 )
+from ois.infrastructure.source_gateway.socket import ApiSourceSocket
 from ois.infrastructure.source_registry import (
     SourceControlAPI,
     SourceDefinition,
