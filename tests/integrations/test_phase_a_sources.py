@@ -3,6 +3,7 @@ from urllib.parse import parse_qs, urlparse
 from ois.infrastructure.source_adapters.http import HttpSourceAdapter
 from ois.infrastructure.source_gateway import (
     ApiSourceSocket,
+    AuthScheme,
     InMemoryCredentialResolver,
     SourceGateway,
 )
