@@ -6,7 +6,11 @@ import os
 import sys
 
 from ois.infrastructure.source_adapters import SportmonksFootballAdapter
-from ois.infrastructure.source_gateway import InMemoryCredentialResolver, SQLiteSourceLedger, SourceGateway
+from ois.infrastructure.source_gateway import (
+    InMemoryCredentialResolver,
+    SQLiteSourceLedger,
+    SourceGateway,
+)
 
 
 def main() -> int:
@@ -35,9 +39,11 @@ def main() -> int:
     if evidence is None or not ledger.pending():
         print("LIVE_SOURCE_FAILED: evidence/outbox proof is incomplete")
         return 1
-    print("LIVE_SOURCE_VERIFIED: source=%s records=%d evidence_id=%s payload_hash=%s" % (
-        adapter.source_id, result.records, result.evidence_ids[0], result.payload_hashes[0]
-    ))
+    print(
+        "LIVE_SOURCE_VERIFIED: "
+        f"source={adapter.source_id} records={result.records} "
+        f"evidence_id={result.evidence_ids[0]} payload_hash={result.payload_hashes[0]}"
+    )
     return 0
 
 
