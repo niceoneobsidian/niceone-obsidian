@@ -141,7 +141,9 @@ def test_gateway_can_deliver_accepted_event_to_pipeline() -> None:
         def __init__(self) -> None:
             self.events: list[str] = []
 
-        def process(self, item: CanonicalSourceEvent) -> object:
+        def process(
+            self, item: CanonicalSourceEvent, *, credential_verified: bool = False
+        ) -> object:
             self.events.append(item.event_id)
 
             class Result:
