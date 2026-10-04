@@ -13,6 +13,9 @@ from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 
+_ALLOWED_TOKEN_AUTH = {"client_secret_post", "client_secret_basic"}
+
+
 @dataclass(frozen=True)
 class OAuth2Config:
     provider: str
@@ -26,7 +29,37 @@ class OAuth2Config:
     client_id_param: str = "client_id"
     client_secret_param: str = "client_secret"
     scope_separator: str = " "
+    response_scope_separator: str = " "
     token_auth_method: str = "client_secret_post"
+    state_ttl_seconds: int = 600
+
+    def validate(self) -> None:
+        if not self.provider:
+            raise ValueError("OAuth2 provider is required")
+        if not self.authorization_url.startswith("https://"):
+            raise ValueError("OAuth2 authorization URL must use HTTPS")
+        if not self.token_url.startswith("https://"):
+            raise ValueError("OAuth2 token URL must use HTTPS")
+        if not self.client_id:
+            raise ValueError(f"{self.provider} OAuth2 client ID is required")
+        if not self.client_secret:
+            raise ValueError(f"{self.provider} OAuth2 client secret is required")
+        if not self.redirect_uri:
+            raise ValueError(f"{self.provider} OAuth2 redirect URI is required")
+        if not self.redirect_uri.startswith(("https://", "http://localhost")):
+            raise ValueError("OAuth2 redirect URI must use HTTPS outside localhost")
+        if self.token_auth_method not in _ALLOWED_TOKEN_AUTH:
+            raise ValueError(
+                f"unsupported OAuth2 token authentication method: {self.token_auth_method}"
+            )
+        if self.state_ttl_seconds <= 0:
+            raise ValueError("OAuth2 state TTL must be positive")
+        if not self.scopes:
+            raise ValueError(f"{self.provider} OAuth2 requires at least one scope")
+        if not self.scope_separator:
+            raise ValueError("OAuth2 request scope separator is required")
+        if not self.response_scope_separator:
+            raise ValueError("OAuth2 response scope separator is required")
 
 
 class OAuth2Error(RuntimeError):
@@ -71,7 +104,6 @@ class OAuth2Token:
     refresh_token: str | None = None
     scope: tuple[str, ...] = ()
     obtained_at: datetime | None = None
-    raw: dict[str, object] | None = None
 
     @property
     def expires_at(self) -> datetime | None:
@@ -85,40 +117,110 @@ class OAuth2Token:
         payload: dict[str, object],
         *,
         refresh_token: str | None = None,
+        scope_separator: str = " ",
     ) -> OAuth2Token:
+        access_token = payload.get("access_token")
+        if not isinstance(access_token, str) or not access_token:
+            raise ValueError("OAuth2 token response is missing access_token")
+
         scope_value = payload.get("scope", "")
-        scopes = tuple(str(scope_value).split()) if scope_value else ()
+        scopes = (
+            tuple(str(scope_value).split(scope_separator))
+            if scope_value
+            else ()
+        )
         returned_refresh = payload.get("refresh_token")
         preserved_refresh = str(returned_refresh) if returned_refresh else refresh_token
-        expires_in = (
-            int(str(payload["expires_in"])) if payload.get("expires_in") is not None else None
-        )
+
+        expires_in: int | None = None
+        if payload.get("expires_in") is not None:
+            try:
+                expires_in = int(str(payload["expires_in"]))
+            except (TypeError, ValueError) as exc:
+                raise ValueError("OAuth2 expires_in must be an integer") from exc
+            if expires_in < 0:
+                raise ValueError("OAuth2 expires_in cannot be negative")
+
+        token_type = str(payload.get("token_type", "Bearer"))
+        if not token_type:
+            raise ValueError("OAuth2 token_type cannot be empty")
+
         return cls(
-            access_token=str(payload["access_token"]),
-            token_type=str(payload.get("token_type", "Bearer")),
+            access_token=access_token,
+            token_type=token_type,
             expires_in=expires_in,
             refresh_token=preserved_refresh,
-            scope=scopes,
+            scope=tuple(scope for scope in scopes if scope),
             obtained_at=datetime.now(UTC),
-            raw=dict(payload),
         )
 
 
 class OAuth2StateStore(Protocol):
-    def put(self, state: str, *, provider: str, tenant_id: str, workspace_id: str) -> None: ...
-    def consume(self, state: str, *, provider: str, tenant_id: str, workspace_id: str) -> bool: ...
+    def put(
+        self,
+        state: str,
+        *,
+        provider: str,
+        tenant_id: str,
+        workspace_id: str,
+        expires_at: datetime,
+    ) -> None: ...
+
+    def consume(
+        self,
+        state: str,
+        *,
+        provider: str,
+        tenant_id: str,
+        workspace_id: str,
+    ) -> bool: ...
+
+
+@dataclass(frozen=True)
+class _OAuth2State:
+    provider: str
+    tenant_id: str
+    workspace_id: str
+    expires_at: datetime
 
 
 class InMemoryOAuth2StateStore:
+    """Development/test state store; production should use a shared durable store."""
+
     def __init__(self) -> None:
-        self._states: dict[str, tuple[str, str, str]] = {}
+        self._states: dict[str, _OAuth2State] = {}
 
-    def put(self, state: str, *, provider: str, tenant_id: str, workspace_id: str) -> None:
-        self._states[state] = (provider, tenant_id, workspace_id)
+    def put(
+        self,
+        state: str,
+        *,
+        provider: str,
+        tenant_id: str,
+        workspace_id: str,
+        expires_at: datetime,
+    ) -> None:
+        self._states[state] = _OAuth2State(provider, tenant_id, workspace_id, expires_at)
 
-    def consume(self, state: str, *, provider: str, tenant_id: str, workspace_id: str) -> bool:
+    def consume(
+        self,
+        state: str,
+        *,
+        provider: str,
+        tenant_id: str,
+        workspace_id: str,
+    ) -> bool:
         value = self._states.get(state)
-        if value != (provider, tenant_id, workspace_id):
+        now = datetime.now(UTC)
+        if value is None:
+            return False
+        if value.expires_at <= now:
+            del self._states[state]
+            return False
+        if (
+            value.provider != provider
+            or value.tenant_id != tenant_id
+            or value.workspace_id != workspace_id
+        ):
             return False
         del self._states[state]
         return True
@@ -134,6 +236,7 @@ class OAuth2Provider:
         state_store: OAuth2StateStore | None = None,
         timeout: float = 20.0,
     ) -> None:
+        config.validate()
         self.config = config
         self._state_store = state_store or InMemoryOAuth2StateStore()
         self._timeout = timeout
@@ -147,6 +250,7 @@ class OAuth2Provider:
             provider=self.config.provider,
             tenant_id=tenant_id,
             workspace_id=workspace_id,
+            expires_at=datetime.now(UTC) + timedelta(seconds=self.config.state_ttl_seconds),
         )
         params = {
             self.config.client_id_param: self.config.client_id,
@@ -165,6 +269,8 @@ class OAuth2Provider:
             raise PermissionError("invalid or replayed OAuth2 state")
 
     def exchange_code(self, code: str) -> OAuth2Token:
+        if not code:
+            raise ValueError("OAuth2 authorization code is required")
         fields = {
             self.config.client_id_param: self.config.client_id,
             "code": code,
@@ -176,6 +282,8 @@ class OAuth2Provider:
         return self._token_request(fields, operation="authorization_code")
 
     def refresh(self, refresh_token: str) -> OAuth2Token:
+        if not refresh_token:
+            raise ValueError("OAuth2 refresh token is required")
         fields = {
             self.config.client_id_param: self.config.client_id,
             "grant_type": "refresh_token",
@@ -247,7 +355,7 @@ class OAuth2Provider:
                 retryable=True,
             ) from exc
 
-        if not isinstance(payload, dict) or "access_token" not in payload:
+        if not isinstance(payload, dict):
             raise OAuth2Error(
                 provider=self.config.provider,
                 operation=operation,
@@ -255,7 +363,20 @@ class OAuth2Provider:
                 message=f"{self.config.provider} OAuth2 token response is invalid",
                 retryable=True,
             )
-        return OAuth2Token.from_payload(payload, refresh_token=refresh_token)
+        try:
+            return OAuth2Token.from_payload(
+                payload,
+                refresh_token=refresh_token,
+                scope_separator=self.config.response_scope_separator,
+            )
+        except ValueError as exc:
+            raise OAuth2Error(
+                provider=self.config.provider,
+                operation=operation,
+                category="invalid_response",
+                message=str(exc),
+                retryable=False,
+            ) from exc
 
     @staticmethod
     def _error_payload(exc: HTTPError) -> dict[str, object]:
