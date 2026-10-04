@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from .contracts import FreshnessPolicy, SourceProvenance, SourceSpec
 from .auth import (
     ApiKeyAuth,
     Authenticator,
@@ -15,6 +14,7 @@ from .auth import (
     OAuth2Auth,
     authenticator_for,
 )
+from .contracts import FreshnessPolicy, SourceProvenance, SourceSpec
 from .credentials import CredentialRef, CredentialResolver, InMemoryCredentialResolver, TenantScope
 from .cursors import SourceCursor, SQLiteCursorStore
 from .evidence import RawEvidence, RawEvidenceWriter, SQLiteRawEvidenceWriter, canonical_hash
