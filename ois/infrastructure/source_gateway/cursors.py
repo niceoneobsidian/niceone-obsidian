@@ -44,7 +44,9 @@ class SQLiteCursorStore:
             ).fetchone()
         if row is None:
             return None
-        return SourceCursor(row[0], row[1], row[2], datetime.fromisoformat(row[4]), row[3], row[5])
+        return SourceCursor(
+            row[0], row[1], row[2], row[3], datetime.fromisoformat(row[4]), row[5]
+        )
 
     def advance(
         self,
