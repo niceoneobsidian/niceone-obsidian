@@ -140,7 +140,8 @@ def test_failed_durable_acceptance_releases_idempotency_claim() -> None:
             raise RuntimeError("simulated persistence failure")
 
     store = SQLiteIdempotencyStore()
-    g = SourceGateway(evidence=FailingLedger(), outbox=FailingLedger(), idempotency=store)
+    ledger = FailingLedger()
+    g = SourceGateway(evidence=ledger, outbox=ledger, idempotency=store)
     request = SourceRequest(
         tenant_id="t1",
         workspace_id="w1",
