@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Any
 
 from ois.infrastructure.source_gateway import (
     FreshnessPolicy,
@@ -99,8 +100,8 @@ class SportmonksFootballAdapter:
 
     @staticmethod
     def register(
-        registry: SourceAdapterRegistry, **kwargs: object
-    ) -> "SportmonksFootballAdapter":
+        registry: SourceAdapterRegistry, **kwargs: Any
+    ) -> SportmonksFootballAdapter:
         adapter = SportmonksFootballAdapter(**kwargs)
         registry.register(adapter, adapter.spec())
         return adapter
