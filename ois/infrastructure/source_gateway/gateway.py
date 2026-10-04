@@ -7,6 +7,8 @@ from datetime import UTC, datetime
 from typing import Any, cast
 from uuid import NAMESPACE_URL, uuid4, uuid5
 
+from ois.domains.social_intelligence.events import CanonicalSourceEvent
+
 from .auth import CredentialMaterial
 from .contracts import SourceProvenance
 from .credentials import CredentialRef, CredentialResolver, TenantScope
@@ -53,9 +55,11 @@ class SourceGateway:
         evidence: RawEvidenceWriter | None = None,
         outbox: OutboxStore | None = None,
         rate_limits: dict[str, RateLimitPolicy] | None = None,
+        intelligence_pipeline: object | None = None,
     ) -> None:
         self._credentials = credentials
         self._evidence = evidence
+        self._intelligence_pipeline = intelligence_pipeline
         self._outbox = outbox
         self._rate_limiters: dict[str, TokenBucket] = {}
         self._leases: dict[str, tuple[str, str]] = {}
@@ -98,8 +102,10 @@ class SourceGateway:
             workspace_id=request.workspace_id,
         )
 
+        credential_verified = False
         if request.credential and self._credentials:
             self.resolve_credential(request.credential, scope)
+            credential_verified = True
 
         if request.rate_limit_lease is not None:
             lease_scope = self._leases.pop(request.rate_limit_lease, None)
@@ -175,4 +181,29 @@ class SourceGateway:
                 )
         if not accepted:
             return SourceResponse(False, evidence_id, event_id, payload_hash, "duplicate_evidence")
+
+        if self._intelligence_pipeline is not None:
+            process = getattr(self._intelligence_pipeline, "process", None)
+            if callable(process):
+                canonical_event = CanonicalSourceEvent(
+                    event_id=event_id,
+                    tenant_id=request.tenant_id,
+                    workspace_id=request.workspace_id,
+                    source_id=request.source_id,
+                    source_record_id=request.source_record_id,
+                    event_type="source.raw_evidence.created",
+                    payload=request.payload or {},
+                    payload_hash=payload_hash,
+                    connector_version=request.connector_version,
+                    schema_version=request.schema_version,
+                )
+                result = process(canonical_event, credential_verified=credential_verified)
+                if not getattr(result, "accepted", False):
+                    return SourceResponse(
+                        True,
+                        evidence_id,
+                        event_id,
+                        payload_hash,
+                        getattr(result, "reason", "intelligence_pipeline_rejected"),
+                    )
         return SourceResponse(True, evidence_id, event_id, payload_hash)
