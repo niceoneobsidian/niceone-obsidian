@@ -75,6 +75,10 @@ class SourceFabric:
         return self._socket
 
     @property
+    def source_control(self) -> SourceControlAPI:
+        return self._source_control
+
+    @property
     def health(self) -> SourceHealthRegistry:
         return self._health
 
@@ -157,7 +161,7 @@ class SourceFabric:
             raise ValueError(f"source is not configured for polling: {source_id}")
 
         retries: list[RetryDecision] = []
-        for attempt in range(1, self._retry._policy.max_attempts + 1):
+        for attempt in range(1, self._retry.max_attempts + 1):
             run = self._run_poll(source_id, tenant_id, workspace_id)
             if run.error is None:
                 return SourceFabricRun(source_id, run.result, attempt, tuple(retries))
