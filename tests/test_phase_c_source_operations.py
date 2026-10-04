@@ -40,6 +40,58 @@ def test_source_configuration_creates_policy_and_can_disable() -> None:
     assert service.policies.get("tenant-a", "workspace-a", "google:source").enabled is False
 
 
+def test_source_configuration_preserves_event_restrictions_on_update() -> None:
+    service = SourceConfigurationService()
+    service.upsert(
+        SourceConfiguration(
+            "tenant-a", "workspace-a", "google:source", "google", credential_id="cred-1"
+        )
+    )
+    service.policies.put(
+        SourcePolicy(
+            "tenant-a",
+            "workspace-a",
+            "google:source",
+            allowed_event_types=("source.created",),
+            allowed_operations=("ingest",),
+        )
+    )
+    service.upsert(
+        SourceConfiguration(
+            "tenant-a", "workspace-a", "google:source", "google", credential_id="cred-2"
+        )
+    )
+    policy = service.policies.get("tenant-a", "workspace-a", "google:source")
+    assert policy.allowed_event_types == ("source.created",)
+    assert policy.allowed_operations == ("ingest",)
+
+
+def test_pipeline_rejects_unverified_credentials() -> None:
+    policies = SourcePolicyStore()
+    policies.put(SourcePolicy("tenant-a", "workspace-a", "google:source"))
+    dead_letters = DeadLetterStore()
+    pipeline = SourceIntelligencePipeline(
+        policies=policies,
+        recovery=SourceRecovery(dead_letters),
+        dead_letters=dead_letters,
+    )
+    result = pipeline.process(event(), lambda _: None)
+    assert result.accepted is False
+    assert result.reason == "source policy requires a credential"
+
+
+def test_pipeline_rejects_missing_policy() -> None:
+    dead_letters = DeadLetterStore()
+    pipeline = SourceIntelligencePipeline(
+        policies=SourcePolicyStore(),
+        recovery=SourceRecovery(dead_letters),
+        dead_letters=dead_letters,
+    )
+    result = pipeline.process(event(), lambda _: None, credential_verified=True)
+    assert result.accepted is False
+    assert result.reason == "source policy not configured: google:source"
+
+
 def test_pipeline_processes_authorized_event() -> None:
     policies = SourcePolicyStore()
     policies.put(SourcePolicy("tenant-a", "workspace-a", "google:source"))
@@ -50,7 +102,9 @@ def test_pipeline_processes_authorized_event() -> None:
         dead_letters=dead_letters,
     )
     seen: list[str] = []
-    result = pipeline.process(event(), lambda item: seen.append(item.event_id))
+    result = pipeline.process(
+        event(), lambda item: seen.append(item.event_id), credential_verified=True
+    )
     assert result.accepted is True
     assert seen == ["evt-1"]
 
@@ -64,7 +118,11 @@ def test_pipeline_dead_letters_after_bounded_failures() -> None:
         recovery=SourceRecovery(dead_letters, max_attempts=2),
         dead_letters=dead_letters,
     )
-    result = pipeline.process(event(), lambda _: (_ for _ in ()).throw(RuntimeError("boom")))
+    result = pipeline.process(
+        event(),
+        lambda _: (_ for _ in ()).throw(RuntimeError("boom")),
+        credential_verified=True,
+    )
     assert result.accepted is False
     assert result.dead_lettered is True
     assert dead_letters.get("evt-1").attempts == 2
