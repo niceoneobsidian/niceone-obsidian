@@ -59,6 +59,7 @@ class DurableAutonomousExecutionEngine:
         event: EventEnvelope,
         worker_id: str,
         execute: Callable[[SourceWorkflow, EventEnvelope], Any],
+        approval_granted: bool = False,
     ) -> DurableExecutionReceipt:
         if not workflow.matches(event):
             raise ValueError("workflow trigger did not match event")
@@ -116,7 +117,7 @@ class DurableAutonomousExecutionEngine:
         event = FencedApprovalResume(self.approvals, self.leases, lease).resume_event(
             approval_id
         )
-        return self._execute(run, workflow, event, lease, execute)
+        return self._execute(run, workflow, event, lease, execute, approval_granted=True)
 
     def _execute(
         self,
@@ -134,7 +135,7 @@ class DurableAutonomousExecutionEngine:
             self.leases.release(lease)
             return DurableExecutionReceipt(stopped)
 
-        if evaluation.outcome == PolicyOutcome.APPROVAL_REQUIRED:
+        if evaluation.outcome == PolicyOutcome.APPROVAL_REQUIRED and not approval_granted:
             approval = self.approvals.get_by_event(run.event_id)
             if approval is None:
                 now = datetime.now(UTC)
