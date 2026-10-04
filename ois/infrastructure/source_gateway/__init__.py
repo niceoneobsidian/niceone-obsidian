@@ -32,6 +32,7 @@ from .manager import AuthPolicy, CredentialAuthManager
 from .outbox import OutboxEvent, OutboxStore, SQLiteOutboxStore
 from .postgres import PostgresSourceLedger
 from .rate_limits import RateLimitDecision, RateLimitManager
+from .retry import RetryController, RetryDecision, RetryPolicy
 from .webhook_security import WebhookSecurity, WebhookSecurityPolicy
 
 __all__ = [
@@ -58,6 +59,9 @@ __all__ = [
     "RateLimitManager",
     "RateLimitPolicy",
     "RateLimitState",
+    "RetryController",
+    "RetryDecision",
+    "RetryPolicy",
     "RawEvidence",
     "RawEvidenceWriter",
     "SQLiteCursorStore",
