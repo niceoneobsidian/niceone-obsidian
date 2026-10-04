@@ -107,7 +107,7 @@ def test_http_source_adapter_health_accepts_bearer_credential(monkeypatch) -> No
     adapter = HttpSourceAdapter(
         source_id="test.api",
         url="https://example.test",
-        auth_scheme="bearer",
+        auth_scheme=AuthScheme.BEARER,
     )
 
     def fake_fetch(credential=None, *, url=None):
