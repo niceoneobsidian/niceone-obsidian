@@ -82,6 +82,13 @@ class HttpSourceAdapter:
         self._opener = opener or urlopen
         self._last_observed_at: datetime | None = None
 
+    def _fetch(
+        self,
+        credential: CredentialMaterial | None = None,
+        *,
+        url: str | None = None,
+    ) -> object:
+        target_url = url or self._url
     def _request_url(self) -> str:
         if not self._query:
             return self._url
@@ -96,6 +103,12 @@ class HttpSourceAdapter:
         if self._body is not None:
             payload = json.dumps(self._body).encode("utf-8")
             headers.setdefault("Content-Type", "application/json")
+        if self._auth_scheme is not AuthScheme.NONE or self._authenticator is not None:
+            if credential is None:
+                raise PermissionError("authentication credential required")
+            auth = self._authenticator or authenticator_for(self._auth_scheme, **self._auth_options)
+            authenticated = auth.apply(
+                AuthRequest(self._method, target_url, headers, payload or b""),
 
         if (
             self._auth_scheme is AuthScheme.NONE
@@ -116,6 +129,25 @@ class HttpSourceAdapter:
             )
             return authenticated.headers, payload
 
+        request = Request(
+            target_url,
+            data=payload,
+            headers=headers,
+            method=self._method,
+        )
+        with urlopen(request, timeout=self._timeout) as response:
+            raw = response.read()
+            content_type = response.headers.get("Content-Type", "")
+        if "json" in content_type:
+            return cast(object, json.loads(raw.decode("utf-8")))
+        return raw.decode("utf-8")
+
+    def health(self, credential: CredentialMaterial | None = None) -> AdapterHealth:
+        try:
+            self._fetch(credential)
+        except Exception as exc:
+            return AdapterHealth(self.source_id, False, utc_now(), type(exc).__name__)
+        return AdapterHealth(self.source_id, True, utc_now())
         if self._auth_scheme is AuthScheme.BEARER or self._auth_scheme is AuthScheme.OAUTH2:
             headers["Authorization"] = f"{credential.token_type} {credential.secret}"
         elif self._auth_scheme is AuthScheme.API_KEY:
