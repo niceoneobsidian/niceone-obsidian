@@ -33,6 +33,7 @@ class EventEnvelope:
             aggregate_id=str(getattr(event, "aggregate_id")),
             payload=dict(getattr(event, "payload", {}) or {}),
             created_at=getattr(event, "created_at", datetime.now(UTC)),
+            source_id=(getattr(event, "payload", {}) or {}).get("source_id"),
         )
 
 
