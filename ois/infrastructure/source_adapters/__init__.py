@@ -12,6 +12,7 @@ from .github import GitHubSourceAdapter
 from .http import HttpSourceAdapter
 from .polling import PollingSourceAdapter, PollPage
 from .rss import RSSSourceAdapter
+from .sportmonks import SportmonksFootballAdapter, SportmonksQuery
 from .webhook import WebhookVerifier
 
 __all__ = [
@@ -21,6 +22,8 @@ __all__ = [
     "FileSourceAdapter",
     "GitHubSourceAdapter",
     "HttpSourceAdapter",
+    "SportmonksFootballAdapter",
+    "SportmonksQuery",
     "PollPage",
     "PollingSourceAdapter",
     "RSSSourceAdapter",
