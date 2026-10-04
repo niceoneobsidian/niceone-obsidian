@@ -33,6 +33,8 @@ class GovernanceEngine:
         capability_id: str,
         inputs: dict,
         estimated_cost: float = 0.0,
+        policy_id: str | None = None,
+        policy_version: str | None = None,
     ) -> GovernanceDecision:
         decision_id = str(uuid4())
         identity = self.store.agents.get((tenant_id, agent_id))
@@ -41,6 +43,10 @@ class GovernanceEngine:
         if identity is None or not identity.enabled:
             allowed, reason = False, "agent identity is not active"
         else:
+            if policy_id is not None:
+                policy = self.store.policies.get((tenant_id, policy_id, policy_version or ""))
+                if policy is None or not policy.active:
+                    allowed, reason = False, "policy version is missing or inactive"
             grant = self.store.grants.get((tenant_id, agent_id, capability_id))
             if grant is None or not grant.active():
                 allowed, reason = False, "capability grant is missing or expired"
@@ -68,8 +74,8 @@ class GovernanceEngine:
             actor_id=agent_id,
             action=action,
             outcome="allow" if allowed else "deny",
-            policy_id=None,
-            policy_version=None,
+            policy_id=policy_id,
+            policy_version=policy_version,
             capability_id=capability_id,
             inputs_digest=digest,
             rationale=reason,
