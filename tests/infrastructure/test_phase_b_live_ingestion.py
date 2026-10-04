@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+from concurrent.futures import ThreadPoolExecutor
 import hmac
 import json
 import subprocess
@@ -132,6 +133,27 @@ def test_gateway_deduplicates_explicit_idempotency_key() -> None:
     assert first.accepted
     assert not second.accepted
     assert second.reason == "duplicate_idempotency"
+
+
+def test_concurrent_delivery_key_accepts_only_one_observation() -> None:
+    store = SQLiteIdempotencyStore()
+    ledger = SQLiteSourceLedger()
+    g = SourceGateway(evidence=ledger, outbox=ledger, idempotency=store)
+    request = SourceRequest(
+        tenant_id="t1",
+        workspace_id="w1",
+        source_id="github:repo",
+        source_record_id="42",
+        payload={"id": 42},
+        idempotency_key="delivery-concurrent",
+    )
+
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        responses = tuple(executor.map(g.ingest, (request,) * 8))
+
+    assert sum(response.accepted for response in responses) == 1
+    assert sum(response.reason == "duplicate_idempotency" for response in responses) == 7
+    assert len(ledger.pending()) == 1
 
 
 def test_failed_durable_acceptance_releases_idempotency_claim() -> None:
