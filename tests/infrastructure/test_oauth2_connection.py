@@ -64,7 +64,7 @@ def test_github_vertical_slice_persists_evidence_and_outbox() -> None:
 
     def fake_fetch(*, request_headers=None, **_kwargs):
         seen_headers.append(dict(request_headers or {}))
-        return {"login": "niceone", "id": 123}
+        return {"login": "niceone", "id": 123}, 200, 0.0
 
     source._fetch = fake_fetch  # type: ignore[method-assign]
 
