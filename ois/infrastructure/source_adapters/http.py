@@ -96,6 +96,9 @@ class HttpSourceAdapter:
         request_headers: dict[str, str] | None = None,
     ) -> tuple[object, str, float]:
         request_url = url or self._request_url()
+        request_headers: dict[str, str] | None = None,
+    ) -> tuple[object, str, float]:
+        request_url = self._request_url()
 
         if request_headers is None:
             headers = dict(self._headers)

@@ -21,11 +21,14 @@ from .evidence import RawEvidence, RawEvidenceWriter, SQLiteRawEvidenceWriter, c
 from .gateway import SourceGateway, SourceRequest, SourceResponse
 from .ledger import SQLiteSourceLedger
 from .limits import RateLimitPolicy, RateLimitState, TokenBucket
+from .manager import AuthPolicy, CredentialAuthManager
 from .outbox import OutboxEvent, OutboxStore, SQLiteOutboxStore
 from .postgres import PostgresSourceLedger
 
 __all__ = [
     "ApiKeyAuth",
+    "AuthPolicy",
+    "CredentialAuthManager",
     "AuthRequest",
     "AuthScheme",
     "Authenticator",
