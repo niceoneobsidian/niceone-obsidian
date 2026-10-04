@@ -28,6 +28,7 @@ from .idempotency import (
 )
 from .ledger import SQLiteSourceLedger
 from .limits import RateLimitPolicy, RateLimitState, TokenBucket
+from .manager import AuthPolicy, CredentialAuthManager
 from .outbox import OutboxEvent, OutboxStore, SQLiteOutboxStore
 from .postgres import PostgresSourceLedger
 from .rate_limits import RateLimitDecision, RateLimitManager
@@ -35,6 +36,8 @@ from .webhook_security import WebhookSecurity, WebhookSecurityPolicy
 
 __all__ = [
     "ApiKeyAuth",
+    "AuthPolicy",
+    "CredentialAuthManager",
     "AuthRequest",
     "AuthScheme",
     "Authenticator",

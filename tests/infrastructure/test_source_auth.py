@@ -3,9 +3,16 @@ from __future__ import annotations
 import base64
 import re
 
+from ois.infrastructure.source_gateway import (
+    CredentialRef,
+    InMemoryCredentialResolver,
+    SourceGateway,
+    TenantScope,
+)
 from ois.infrastructure.source_gateway.auth import (
     ApiKeyAuth,
     AuthRequest,
+    AuthScheme,
     BearerAuth,
     CredentialMaterial,
     HmacAuth,
@@ -46,3 +53,14 @@ def test_oauth_client_material_can_use_basic_auth() -> None:
     )
     expected = base64.b64encode(b"client-id:client-secret").decode("ascii")
     assert result.headers["Authorization"] == f"Basic {expected}"
+
+
+def test_gateway_authentication_uses_central_manager() -> None:
+    gateway = SourceGateway(credentials=InMemoryCredentialResolver({"cred": "token-123"}))
+    result = gateway.authenticate_request(
+        AuthRequest("GET", "https://example.test", {}),
+        CredentialRef("cred", "tenant-a", "google"),
+        TenantScope("tenant-a", "workspace-a"),
+        AuthScheme.BEARER,
+    )
+    assert result.headers["Authorization"] == "Bearer token-123"

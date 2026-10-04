@@ -1,14 +1,17 @@
-"""TikTok Display API production-source adapter for OIS Phase 2."""
+"""TikTok production API integrations."""
 
 from .client import TikTokAPIError, TikTokDisplayClient
-from .oauth import TikTokOAuthClient, TikTokTokenSet
+from .oauth import TikTokClientCredentials, TikTokOAuthClient, TikTokTokenSet
+from .provider import build_tiktok_oauth
 from .source import TikTokSource, TikTokSourceRun
 
 __all__ = [
-    "TikTokDisplayClient",
-    "TikTokTokenSet",
     "TikTokAPIError",
+    "TikTokClientCredentials",
+    "TikTokDisplayClient",
     "TikTokOAuthClient",
     "TikTokSource",
     "TikTokSourceRun",
+    "TikTokTokenSet",
+    "build_tiktok_oauth",
 ]
