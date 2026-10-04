@@ -57,11 +57,8 @@ class HttpSourceAdapter:
             raise ValueError("HTTP source URL must use http:// or https://")
         if timeout <= 0:
             raise ValueError("timeout must be positive")
-        normalized_scheme: AuthScheme | str
-        if str(auth_scheme) == "basic":
-            normalized_scheme = "basic"
-        else:
-            normalized_scheme = AuthScheme(auth_scheme)
+        self._basic_auth = str(auth_scheme) == "basic"
+        normalized_scheme = AuthScheme.NONE if self._basic_auth else AuthScheme(auth_scheme)
         if authenticator is not None and normalized_scheme is not AuthScheme.NONE:
             raise ValueError("choose auth_scheme or authenticator, not both")
         self.source_id = source_id
@@ -116,7 +113,7 @@ class HttpSourceAdapter:
         elif self._auth_scheme is AuthScheme.API_KEY:
             header = str(self._auth_options.get("header", "X-API-Key"))
             headers[header] = credential.secret
-        elif self._auth_scheme == "basic":
+        elif self._basic_auth:
             encoded = base64.b64encode(credential.secret.encode("utf-8")).decode("ascii")
             headers[str(self._auth_options.get("header", "Authorization"))] = f"Basic {encoded}"
         else:
