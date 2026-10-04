@@ -99,9 +99,15 @@ class SQLiteSourceRegistry:
         if row is None:
             return None
         return SourceDefinition(
-            source_id=row[0], tenant_id=row[1], workspace_id=row[2], provider=row[3],
-            mode=row[4], enabled=bool(row[5]), config=json.loads(row[6]),
-            credential_id=row[7], updated_at=datetime.fromisoformat(row[8]),
+            source_id=row[0],
+            tenant_id=row[1],
+            workspace_id=row[2],
+            provider=row[3],
+            mode=row[4],
+            enabled=bool(row[5]),
+            config=json.loads(row[6]),
+            credential_id=row[7],
+            updated_at=datetime.fromisoformat(row[8]),
         )
 
     def list(self, tenant_id: str, workspace_id: str) -> tuple[SourceDefinition, ...]:
@@ -119,9 +125,15 @@ class SQLiteSourceRegistry:
 
         return tuple(
             SourceDefinition(
-                source_id=r[0], tenant_id=r[1], workspace_id=r[2], provider=r[3],
-                mode=r[4], enabled=bool(r[5]), config=json.loads(r[6]),
-                credential_id=r[7], updated_at=datetime.fromisoformat(r[8]),
+                source_id=r[0],
+                tenant_id=r[1],
+                workspace_id=r[2],
+                provider=r[3],
+                mode=r[4],
+                enabled=bool(r[5]),
+                config=json.loads(r[6]),
+                credential_id=r[7],
+                updated_at=datetime.fromisoformat(r[8]),
             )
             for r in rows
         )
@@ -158,8 +170,13 @@ class SourceControlAPI:
     ) -> SourceDefinition:
         source = self.get(tenant_id=tenant_id, workspace_id=workspace_id, source_id=source_id)
         updated = SourceDefinition(
-            source_id=source.source_id, tenant_id=source.tenant_id, workspace_id=source.workspace_id,
-            provider=source.provider, mode=source.mode, enabled=enabled, config=source.config,
+            source_id=source.source_id,
+            tenant_id=source.tenant_id,
+            workspace_id=source.workspace_id,
+            provider=source.provider,
+            mode=source.mode,
+            enabled=enabled,
+            config=source.config,
             credential_id=source.credential_id,
         )
         self._store.put(updated)
