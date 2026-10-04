@@ -35,12 +35,20 @@ class SourceConfigurationService:
     def upsert(self, config: SourceConfiguration) -> SourceConfiguration:
         with self._lock:
             self._configs[(config.tenant_id, config.workspace_id, config.source_id)] = config
+        try:
+            existing = self._policies.get(
+                config.tenant_id, config.workspace_id, config.source_id
+            )
+        except KeyError:
+            existing = None
         self._policies.put(
             SourcePolicy(
                 tenant_id=config.tenant_id,
                 workspace_id=config.workspace_id,
                 source_id=config.source_id,
                 enabled=config.enabled,
+                allowed_event_types=existing.allowed_event_types if existing else (),
+                allowed_operations=existing.allowed_operations if existing else ("ingest",),
                 require_credential=config.credential_id is not None,
             )
         )
