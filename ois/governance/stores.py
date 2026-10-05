@@ -3,7 +3,7 @@ from __future__ import annotations
 import collections
 from dataclasses import replace
 
-from .models import (
+from ois.governance.models import (
     ActionBudget,
     ActionLimit,
     AgentIdentity,
