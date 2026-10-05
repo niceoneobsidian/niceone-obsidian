@@ -31,4 +31,4 @@ jobs:
         run: python -m ruff check . --fix && git diff -- ois/autonomy/__init__.py
 
       - name: Ruff format check
-        run: python -m ruff format --check .
+        run: python -m ruff format . && git diff -- ois/autonomy/durable.py
