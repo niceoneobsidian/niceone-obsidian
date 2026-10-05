@@ -111,9 +111,7 @@ class PostgresWorkflowRunRepository:
                 event_id=run.event_id,
             )
             if existing is None:
-                raise RuntimeError(
-                    "workflow run insert conflicted but existing run was not found"
-                )
+                raise RuntimeError("workflow run insert conflicted but existing run was not found")
             return existing
         return run
 
@@ -223,3 +221,4 @@ class PostgresWorkflowRunRepository:
             error=error if not isinstance(error, str) else json.loads(error),
             idempotency_key=str(row[11]),
         )
+
