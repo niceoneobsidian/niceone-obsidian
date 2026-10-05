@@ -53,9 +53,8 @@ class DurableWorkflowRun:
             workflow_version=workflow_version,
             event_id=event_id,
             status=DurableRunStatus.RECEIVED,
-            idempotency_key=idempotency_key or (
-                f"{tenant_id}:{workspace_id}:{workflow_id}:{workflow_version}:{event_id}"
-            ),
+            idempotency_key=idempotency_key
+            or f"{tenant_id}:{workspace_id}:{workflow_id}:{workflow_version}:{event_id}",
         )
 
 
@@ -63,7 +62,7 @@ class PostgresWorkflowRunRepository:
     """PostgreSQL system-of-record for autonomous workflow runs.
 
     Every mutating operation is scoped by tenant/workspace and keyed by the
-    immutable workflow/event identity.  Idempotency claims are durable and
+    immutable workflow/event identity. Idempotency claims are durable and
     survive process restarts.
     """
 
@@ -89,9 +88,15 @@ class PostgresWorkflowRunRepository:
                 RETURNING run_id
                 """,
                 (
-                    run.run_id, run.tenant_id, run.workspace_id, run.workflow_id,
-                    run.workflow_version, run.event_id, run.status.value,
-                    run.attempt, self._payload(run.checkpoint or {}),
+                    run.run_id,
+                    run.tenant_id,
+                    run.workspace_id,
+                    run.workflow_id,
+                    run.workflow_version,
+                    run.event_id,
+                    run.status.value,
+                    run.attempt,
+                    self._payload(run.checkpoint or {}),
                     run.idempotency_key,
                 ),
             )
@@ -106,7 +111,9 @@ class PostgresWorkflowRunRepository:
                 event_id=run.event_id,
             )
             if existing is None:
-                raise RuntimeError("workflow run insert conflicted but existing run was not found")
+                raise RuntimeError(
+                    "workflow run insert conflicted but existing run was not found"
+                )
             return existing
         return run
 
@@ -210,9 +217,7 @@ class PostgresWorkflowRunRepository:
             status=DurableRunStatus(str(row[6])),
             attempt=int(row[7]),
             checkpoint=(
-                checkpoint
-                if isinstance(checkpoint, dict)
-                else json.loads(checkpoint or "{}")
+                checkpoint if isinstance(checkpoint, dict) else json.loads(checkpoint or "{}")
             ),
             result=result if not isinstance(result, str) else json.loads(result),
             error=error if not isinstance(error, str) else json.loads(error),
