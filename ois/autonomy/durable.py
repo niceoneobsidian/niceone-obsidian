@@ -221,4 +221,3 @@ class PostgresWorkflowRunRepository:
             error=error if not isinstance(error, str) else json.loads(error),
             idempotency_key=str(row[11]),
         )
-
