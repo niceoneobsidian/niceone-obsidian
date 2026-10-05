@@ -1,6 +1,5 @@
 """Phase F governance, trust, and production-control primitives."""
 
-from .engine import GovernanceDecision, GovernanceEngine
 from .models import (
     ActionBudget,
     ActionLimit,
@@ -12,6 +11,7 @@ from .models import (
     PolicyVersion,
     SLO,
 )
+from .engine import GovernanceDecision, GovernanceEngine
 from .stores import InMemoryGovernanceStore
 
 __all__ = [
