@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections import defaultdict
+import collections
 from dataclasses import replace
 
 from .models import (
@@ -28,7 +28,7 @@ class InMemoryGovernanceStore:
         self.evidence: list[ComplianceEvidence] = []
         self.budgets: dict[tuple[str, str], ActionBudget] = {}
         self.limits: dict[tuple[str, str], ActionLimit] = {}
-        self.action_counts: defaultdict[tuple[str, str], int] = defaultdict(int)
+        self.action_counts: collections.defaultdict[tuple[str, str], int] = collections.defaultdict(int)
         self.slos: dict[tuple[str, str], SLO] = {}
 
     def put_agent(self, identity: AgentIdentity) -> None:
