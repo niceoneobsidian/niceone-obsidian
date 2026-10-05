@@ -10,9 +10,9 @@ from __future__ import annotations
 import json
 import os
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
@@ -35,7 +35,7 @@ class GitHubAppConfig:
     api_base_url: str = "https://api.github.com"
 
     @classmethod
-    def from_env(cls, environ: dict[str, str] | None = None) -> "GitHubAppConfig":
+    def from_env(cls, environ: dict[str, str] | None = None) -> GitHubAppConfig:
         values = os.environ if environ is None else environ
         app_id = values.get("GITHUB_APP_ID", "").strip()
         installation_id = values.get("GITHUB_APP_INSTALLATION_ID", "").strip()
@@ -86,9 +86,12 @@ class GitHubAppAuthenticator:
         self._cached_expires_at: float | None = None
 
     def access_token(self) -> str:
-        if self._cached_token and self._cached_expires_at:
-            if self._clock() < self._cached_expires_at - self._token_refresh_margin:
-                return self._cached_token
+        if (
+            self._cached_token
+            and self._cached_expires_at
+            and self._clock() < self._cached_expires_at - self._token_refresh_margin
+        ):
+            return self._cached_token
 
         private_key = self._read_private_key()
         now = int(self._clock())

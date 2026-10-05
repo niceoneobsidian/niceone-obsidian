@@ -3,8 +3,8 @@ from pathlib import Path
 import pytest
 
 from ois.integrations.github.app_auth import (
-    GitHubAppAuthenticator,
     GitHubAppAuthenticationError,
+    GitHubAppAuthenticator,
     GitHubAppConfig,
     GitHubAppConfigurationError,
 )

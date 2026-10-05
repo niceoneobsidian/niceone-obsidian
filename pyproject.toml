@@ -12,7 +12,8 @@ dependencies = [
   "opentelemetry-api>=1.45.0,<2",
   "opentelemetry-sdk>=1.45.0,<2",
   "opentelemetry-exporter-otlp-proto-grpc>=1.45.0,<2",
-  "redis>=8.1,<9",\n  "PyJWT[crypto]>=2.10,<3",
+  "redis>=8.1,<9",
+  "PyJWT[crypto]>=2.10,<3",
 ]
 
 [project.optional-dependencies]
