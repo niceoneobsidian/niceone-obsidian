@@ -13,7 +13,6 @@ from .operations import AutonomousOperations, OperationReceipt
 from .policy import AutomationPolicy, PolicyEvaluation, PolicyRule
 from .recovery import FailureRecovery, RecoveryAction, RecoveryRecord
 from .recovery_store import RecoveryCandidate, WorkflowRecoverySweeper
-from .side_effects import PostgresSideEffectLedger, SideEffectLedgerEntry
 from .workflows import SourceWorkflow, WorkflowRun, WorkflowStatus, WorkflowTrigger
 
 __all__ = [
