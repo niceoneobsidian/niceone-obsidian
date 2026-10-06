@@ -1,0 +1,24 @@
+name: Integration Conformance
+
+on:
+  push:
+    branches: [main, feature/integration-conformance]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  integration-conformance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install test dependencies
+        run: python -m pip install -e ".[test]"
+      - name: Run canonical conformance tests
+        run: python -m pytest tests/integration_conformance -q
