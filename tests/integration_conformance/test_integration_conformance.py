@@ -2,7 +2,7 @@ from dataclasses import dataclass
 import pytest
 from ois.infrastructure.source_adapters.base import SourceAdapterRegistry
 from ois.infrastructure.source_gateway.contracts import SourceSpec
-from ois.integration_conformance import CONFORMANCE_COLUMNS, IntegrationConformance, audit_registered_integrations
+from ois.integration.conformance import CONFORMANCE_COLUMNS, IntegrationConformance, audit_registered_integrations
 
 @dataclass
 class Adapter:
