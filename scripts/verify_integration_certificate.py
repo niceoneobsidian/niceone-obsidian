@@ -45,6 +45,21 @@ def main() -> int:
     env = parse_env(ENV_FILE.read_text(encoding="utf-8"))
     providers = manifest.get("providers", [])
     ids: set[str] = set()
+    source_capability_contracts = ROOT / "ois" / "integrations" / "provider_contracts.py"
+    social_registry = ROOT / "ois" / "domains" / "social_intelligence" / "registry.py"
+    source_registry = ROOT / "ois" / "infrastructure" / "source_adapters" / "base.py"
+    tool_registry = ROOT / "ois" / "registries" / "core.py"
+    policy = ROOT / "ois" / "kernel" / "policy.py"
+    auth = ROOT / "ois" / "infrastructure" / "source_gateway" / "auth.py"
+    rate_limit = ROOT / "ois" / "infrastructure" / "source_gateway" / "rate_limits.py"
+    idempotency = ROOT / "ois" / "infrastructure" / "source_gateway" / "idempotency.py"
+
+    for path in (
+        source_capability_contracts, social_registry, source_registry,
+        tool_registry, policy, auth, rate_limit, idempotency
+    ):
+        if not path.is_file():
+            errors.append(f"missing integration authority: {path.relative_to(ROOT)}")
 
     if not providers:
         errors.append("provider inventory is empty")
@@ -75,6 +90,38 @@ def main() -> int:
                 value = str(provider.get(column, "")).lower()
                 if "not-active" in value or "not implemented" in value:
                     errors.append(f"{provider_id}: VERIFIED provider has inactive/missing {column}")
+
+            adapter_ref = str(provider.get("adapter", ""))
+            adapter_path = adapter_ref.split(":", 1)[0]
+            if adapter_path and not (ROOT / adapter_path).is_file():
+                errors.append(f"{provider_id}: adapter file missing: {adapter_path}")
+
+            if provider_id in {"github", "google", "meta", "tiktok", "rss", "sportmonks"}:
+                capability_id = f"provider.{provider_id}."
+                source_text = source_capability_contracts.read_text(encoding="utf-8")
+                if capability_id not in source_text:
+                    errors.append(f"{provider_id}: capability contract not anchored in provider_contracts.py")
+
+            if provider_id in {"sociavault", "bundle.social"}:
+                registry_text = social_registry.read_text(encoding="utf-8")
+                if "build_social_tool_registry" not in registry_text:
+                    errors.append(f"{provider_id}: social ToolRegistry builder missing")
+                if "provider_capability_contracts" not in registry_text:
+                    errors.append(f"{provider_id}: social capability registry contract missing")
+            else:
+                if "SourceAdapterRegistry" not in source_registry.read_text(encoding="utf-8"):
+                    errors.append(f"{provider_id}: SourceAdapterRegistry authority missing")
+                if "ToolRegistry" not in tool_registry.read_text(encoding="utf-8"):
+                    errors.append(f"{provider_id}: ToolRegistry authority missing")
+
+            if "CredentialAuthManager" not in str(provider.get("auth", "")) and provider_id not in {"rss", "sociavault", "bundle.social"}:
+                errors.append(f"{provider_id}: auth path is not bound to CredentialAuthManager")
+            if "policy" not in str(provider.get("policy", "")).lower():
+                errors.append(f"{provider_id}: policy evidence missing")
+            if "ratelimit" not in str(provider.get("rate_limit", "")).lower().replace("-", ""):
+                errors.append(f"{provider_id}: rate-limit evidence missing")
+            if "idempot" not in str(provider.get("idempotency", "")).lower() and "dedupe" not in str(provider.get("idempotency", "")).lower():
+                errors.append(f"{provider_id}: idempotency evidence missing")
         elif status == "DISABLED_GATED":
             if env.get(env_flag) != "false":
                 errors.append(f"{provider_id}: disabled-gated provider must be false in canonical env")
