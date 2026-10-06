@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import collections
+from collections import defaultdict
 from dataclasses import replace
 
-from ois.governance.models import (
+from .models import (
     ActionBudget,
     ActionLimit,
     AgentIdentity,
@@ -28,7 +28,7 @@ class InMemoryGovernanceStore:
         self.evidence: list[ComplianceEvidence] = []
         self.budgets: dict[tuple[str, str], ActionBudget] = {}
         self.limits: dict[tuple[str, str], ActionLimit] = {}
-        self.action_counts: collections.defaultdict[tuple[str, str], int] = collections.defaultdict(int)
+        self.action_counts: defaultdict[tuple[str, str], int] = defaultdict(int)
         self.slos: dict[tuple[str, str], SLO] = {}
 
     def put_agent(self, identity: AgentIdentity) -> None:
