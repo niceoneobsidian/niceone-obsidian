@@ -56,8 +56,14 @@ class PostgresSideEffectLedger:
                    ON CONFLICT (idempotency_key) DO NOTHING
                    RETURNING effect_id, status""",
                 (
-                    effect_id, tenant_id, workspace_id, run_id, invocation_id,
-                    idempotency_key, capability_id, self._json(request),
+                    effect_id,
+                    tenant_id,
+                    workspace_id,
+                    run_id,
+                    invocation_id,
+                    idempotency_key,
+                    capability_id,
+                    self._json(request),
                 ),
             )
             row = cursor.fetchone()
