@@ -58,7 +58,7 @@ class IntegrationConformanceRecord:
 @dataclass(frozen=True)
 class ConformanceReport:
     records: tuple[IntegrationConformanceRecord, ...]
-    generated_by: str = "ois.integration_conformance.v1"
+    generated_by: str = "ois.integration.conformance.v1"
 
     @property
     def columns(self) -> tuple[str, ...]:
@@ -71,22 +71,44 @@ class ConformanceReport:
     @property
     def failed(self) -> tuple[IntegrationConformanceRecord, ...]:
         blocking = {ConformanceStatus.MISSING, ConformanceStatus.UNKNOWN}
-        return tuple(record for record in self.records if any(cell.status in blocking for cell in record.cells.values()))
+        return tuple(
+            record
+            for record in self.records
+            if any(cell.status in blocking for cell in record.cells.values())
+        )
 
     def to_dict(self) -> dict[str, Any]:
-        return {"schema_version": "1.0", "generated_by": self.generated_by,
-                "columns": list(self.columns), "matrix": list(self.matrix),
-                "evidence": {r.source_id: r.evidence_row() for r in self.records}}
+        return {
+            "schema_version": "1.0",
+            "generated_by": self.generated_by,
+            "columns": list(self.columns),
+            "matrix": list(self.matrix),
+            "evidence": {
+                record.source_id: record.evidence_row()
+                for record in self.records
+            },
+        }
 
     def to_json(self, *, indent: int = 2) -> str:
         return json.dumps(self.to_dict(), indent=indent, sort_keys=False)
 
-MetadataVerifier = Callable[[str, SourceAdapter, SourceSpec], Mapping[str, ConformanceCell | ConformanceStatus | str | Mapping[str, Any]]]
+MetadataVerifier = Callable[
+    [str, SourceAdapter, SourceSpec],
+    Mapping[
+        str,
+        ConformanceCell | ConformanceStatus | str | Mapping[str, Any],
+    ],
+]
 
 class IntegrationConformance:
     """Canonical registry-driven conformance auditor."""
 
-    def __init__(self, registry: SourceAdapterRegistry, *, verifier: MetadataVerifier | None = None) -> None:
+    def __init__(
+        self,
+        registry: SourceAdapterRegistry,
+        *,
+        verifier: MetadataVerifier | None = None,
+    ) -> None:
         self._registry = registry
         self._verifier = verifier
 
@@ -106,16 +128,32 @@ class IntegrationConformance:
                 if column not in CONFORMANCE_COLUMNS:
                     raise ValueError(f"unknown conformance column: {column}")
                 cells[column] = self._coerce_cell(value)
-        cells["PROVIDER"] = ConformanceCell(ConformanceStatus.IMPLEMENTED, (f"SourceSpec.provider={spec.provider}",))
+        cells["PROVIDER"] = ConformanceCell(
+            ConformanceStatus.IMPLEMENTED,
+            (f"SourceSpec.provider={spec.provider}",),
+        )
         return IntegrationConformanceRecord(spec.provider, source_id, cells)
 
     @staticmethod
-    def _base_cells(source_id: str, adapter: SourceAdapter, spec: SourceSpec) -> dict[str, ConformanceCell]:
+    def _base_cells(
+        source_id: str,
+        adapter: SourceAdapter,
+        spec: SourceSpec,
+    ) -> dict[str, ConformanceCell]:
         has_ingest = callable(getattr(adapter, "ingest", None))
-        cells = {column: ConformanceCell(ConformanceStatus.UNKNOWN) for column in CONFORMANCE_COLUMNS}
-        cells["ADAPTER"] = ConformanceCell(ConformanceStatus.IMPLEMENTED if has_ingest else ConformanceStatus.MISSING, ("SourceAdapter.ingest" if has_ingest else "adapter.ingest missing",))
+        cells = {
+            column: ConformanceCell(ConformanceStatus.UNKNOWN)
+            for column in CONFORMANCE_COLUMNS
+        }
+        cells["ADAPTER"] = ConformanceCell(
+            ConformanceStatus.IMPLEMENTED if has_ingest else ConformanceStatus.MISSING,
+            ("SourceAdapter.ingest" if has_ingest else "adapter.ingest missing",),
+        )
         cells["REGISTRATION"] = ConformanceCell(ConformanceStatus.IMPLEMENTED, ("SourceAdapterRegistry",))
-        cells["CAPABILITY"] = ConformanceCell(ConformanceStatus.IMPLEMENTED if spec.capabilities else ConformanceStatus.UNKNOWN, (f"SourceSpec.capabilities={spec.capabilities!r}",))
+        cells["CAPABILITY"] = ConformanceCell(
+            ConformanceStatus.IMPLEMENTED if spec.capabilities else ConformanceStatus.UNKNOWN,
+            (f"SourceSpec.capabilities={spec.capabilities!r}",),
+        )
         cells["PROVENANCE"] = ConformanceCell(ConformanceStatus.IMPLEMENTED, ("SourceProvenance gateway contract",))
         cells["EVIDENCE"] = ConformanceCell(ConformanceStatus.IMPLEMENTED, ("RawEvidence/source ledger gateway boundary",))
         for column, note in {
@@ -141,13 +179,29 @@ class IntegrationConformance:
         return cells
 
     @staticmethod
-    def _coerce_cell(value: ConformanceCell | ConformanceStatus | str | Mapping[str, Any]) -> ConformanceCell:
-        if isinstance(value, ConformanceCell): return value
-        if isinstance(value, ConformanceStatus): return ConformanceCell(value)
-        if isinstance(value, str): return ConformanceCell(ConformanceStatus(value))
-        return ConformanceCell(ConformanceStatus(str(value["status"])), tuple(map(str, value.get("evidence", ()))), value.get("note"))
+    def _coerce_cell(
+        value: ConformanceCell
+        | ConformanceStatus
+        | str
+        | Mapping[str, Any],
+    ) -> ConformanceCell:
+        if isinstance(value, ConformanceCell):
+            return value
+        if isinstance(value, ConformanceStatus):
+            return ConformanceCell(value)
+        if isinstance(value, str):
+            return ConformanceCell(ConformanceStatus(value))
+        return ConformanceCell(
+            ConformanceStatus(str(value["status"])),
+            tuple(map(str, value.get("evidence", ()))),
+            value.get("note"),
+        )
 
-def audit_registered_integrations(registry: SourceAdapterRegistry, *, verifier: MetadataVerifier | None = None) -> ConformanceReport:
+def audit_registered_integrations(
+    registry: SourceAdapterRegistry,
+    *,
+    verifier: MetadataVerifier | None = None,
+) -> ConformanceReport:
     return IntegrationConformance(registry, verifier=verifier).audit()
 
 def rows(report: ConformanceReport) -> Iterable[dict[str, str]]:
