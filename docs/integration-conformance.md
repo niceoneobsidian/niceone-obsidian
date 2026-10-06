@@ -20,7 +20,7 @@ The existing repository already has SourceAdapterRegistry, SourceGateway, centra
 
 ## Usage
 
-from ois.integration_conformance import IntegrationConformance
+from ois.integration.conformance import IntegrationConformance
 report = IntegrationConformance(source_adapter_registry).audit()
 print(report.to_json())
 
