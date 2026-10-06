@@ -46,6 +46,7 @@ def main() -> int:
     providers = manifest.get("providers", [])
     ids: set[str] = set()
     source_capability_contracts = ROOT / "ois" / "integrations" / "provider_contracts.py"
+    source_tool_registry = ROOT / "ois" / "integrations" / "provider_tools.py"
     social_registry = ROOT / "ois" / "domains" / "social_intelligence" / "registry.py"
     source_registry = ROOT / "ois" / "infrastructure" / "source_adapters" / "base.py"
     tool_registry = ROOT / "ois" / "registries" / "core.py"
@@ -55,7 +56,7 @@ def main() -> int:
     idempotency = ROOT / "ois" / "infrastructure" / "source_gateway" / "idempotency.py"
 
     for path in (
-        source_capability_contracts, social_registry, source_registry,
+        source_capability_contracts, source_tool_registry, social_registry, source_registry,
         tool_registry, policy, auth, rate_limit, idempotency
     ):
         if not path.is_file():
@@ -109,6 +110,11 @@ def main() -> int:
                 if "provider_capability_contracts" not in registry_text:
                     errors.append(f"{provider_id}: social capability registry contract missing")
             else:
+                source_tool_text = source_tool_registry.read_text(encoding="utf-8")
+                if "build_provider_tool_registry" not in source_tool_text:
+                    errors.append(f"{provider_id}: provider ToolRegistry builder missing")
+                if f"provider.{provider_id}." not in source_tool_text:
+                    errors.append(f"{provider_id}: ToolRegistry contract missing")
                 if "SourceAdapterRegistry" not in source_registry.read_text(encoding="utf-8"):
                     errors.append(f"{provider_id}: SourceAdapterRegistry authority missing")
                 if "ToolRegistry" not in tool_registry.read_text(encoding="utf-8"):
