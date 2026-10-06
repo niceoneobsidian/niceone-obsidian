@@ -132,15 +132,15 @@ def main() -> int:
                 errors.append(f"{provider_id}: internal-gated provider lacks fail-closed policy evidence")
 
     env_provider_flags = {
-        key for key in env
-        if key.endswith("_ENABLED") and key.startswith((
-            "GOOGLE_", "GITHUB_", "GMAIL_", "YOUTUBE_", "NOTION_", "SLACK_",
-            "TIKTOK_", "META_", "INSTAGRAM_", "X_", "LINKEDIN_", "LATER_", "OPENAI_"
-        ))
+        "GOOGLE_ENABLED", "GITHUB_ENABLED", "GMAIL_ENABLED", "YOUTUBE_ENABLED",
+        "NOTION_ENABLED", "SLACK_ENABLED", "TIKTOK_ENABLED", "META_ENABLED",
+        "INSTAGRAM_ENABLED", "X_ENABLED", "LINKEDIN_ENABLED", "LATER_ENABLED",
+        "OPENAI_ENABLED",
     }
     manifest_flags = {str(p.get("env_flag")) for p in providers}
     for key in sorted(env_provider_flags):
-        if key in {"GOOGLE_DRIVE_ENABLED", "GMAIL_ENABLED", "YOUTUBE_ENABLED"}:
+        if key in {"GMAIL_ENABLED", "YOUTUBE_ENABLED"}:
+            # Google service sub-surfaces are governed by the Google provider row.
             continue
         if key not in manifest_flags:
             errors.append(f"provider activation flag omitted from inventory: {key}")
