@@ -1,6 +1,7 @@
 """Phase C autonomous operations primitives."""
 
 from .approvals import ApprovalDecision, ApprovalGate, ApprovalRequest, InMemoryApprovalStore
+from .durable import DurableRunStatus, DurableWorkflowRun, PostgresWorkflowRunRepository
 from .events import EventEnvelope, EventRoute, EventRouter, InMemoryEventRouter
 from .loops import AutonomousLoop, LoopDecision, LoopState
 from .operations import AutonomousOperations, OperationReceipt
@@ -10,6 +11,9 @@ from .workflows import SourceWorkflow, WorkflowRun, WorkflowStatus, WorkflowTrig
 
 __all__ = [
     "ApprovalDecision",
+    "DurableRunStatus",
+    "DurableWorkflowRun",
+    "PostgresWorkflowRunRepository",
     "ApprovalGate",
     "ApprovalRequest",
     "InMemoryApprovalStore",
