@@ -2,6 +2,7 @@
 
 from .engine import GovernanceDecision, GovernanceEngine
 from .models import (
+    SLO,
     ActionBudget,
     ActionLimit,
     AgentIdentity,
@@ -10,7 +11,6 @@ from .models import (
     ComplianceEvidence,
     DecisionProvenance,
     PolicyVersion,
-    SLO,
 )
 from .stores import InMemoryGovernanceStore
 

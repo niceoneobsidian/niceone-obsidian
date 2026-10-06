@@ -63,9 +63,7 @@ class GovernanceEngine:
                     if not budgets or not any(b.can_spend(estimated_cost) for b in budgets):
                         allowed, reason = False, "action budget exceeded"
 
-        digest = sha256(
-            dumps(inputs, sort_keys=True, separators=(",", ":")).encode()
-        ).hexdigest()
+        digest = sha256(dumps(inputs, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
         provenance = DecisionProvenance(
             decision_id=decision_id,
             tenant_id=tenant_id,

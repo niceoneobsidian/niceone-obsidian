@@ -4,6 +4,7 @@ from collections import defaultdict
 from dataclasses import replace
 
 from .models import (
+    SLO,
     ActionBudget,
     ActionLimit,
     AgentIdentity,
@@ -12,7 +13,6 @@ from .models import (
     ComplianceEvidence,
     DecisionProvenance,
     PolicyVersion,
-    SLO,
 )
 
 
