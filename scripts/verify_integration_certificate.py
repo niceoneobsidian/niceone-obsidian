@@ -100,7 +100,7 @@ def main() -> int:
                 capability_id = f"provider.{provider_id}."
                 source_text = source_capability_contracts.read_text(encoding="utf-8")
                 if capability_id not in source_text:
-                    errors.append(f"{provider_id}: capability contract not anchored in provider_contracts.py")
+                    errors.append(\n                        f"{provider_id}: capability contract not anchored in provider_contracts.py"\n                    )
 
             if provider_id in {"sociavault", "bundle.social"}:
                 registry_text = social_registry.read_text(encoding="utf-8")
@@ -114,22 +114,22 @@ def main() -> int:
                 if "ToolRegistry" not in tool_registry.read_text(encoding="utf-8"):
                     errors.append(f"{provider_id}: ToolRegistry authority missing")
 
-            if "CredentialAuthManager" not in str(provider.get("auth", "")) and provider_id not in {"rss", "sociavault", "bundle.social"}:
+            auth_value = str(provider.get("auth", ""))\n            if "CredentialAuthManager" not in auth_value and provider_id not in {\n                "rss", "sociavault", "bundle.social"\n            }:
                 errors.append(f"{provider_id}: auth path is not bound to CredentialAuthManager")
             if "policy" not in str(provider.get("policy", "")).lower():
                 errors.append(f"{provider_id}: policy evidence missing")
             if "ratelimit" not in str(provider.get("rate_limit", "")).lower().replace("-", ""):
                 errors.append(f"{provider_id}: rate-limit evidence missing")
-            if "idempot" not in str(provider.get("idempotency", "")).lower() and "dedupe" not in str(provider.get("idempotency", "")).lower():
+            idempotency_value = str(provider.get("idempotency", "")).lower()\n            if "idempot" not in idempotency_value and "dedupe" not in idempotency_value:
                 errors.append(f"{provider_id}: idempotency evidence missing")
         elif status == "DISABLED_GATED":
             if env.get(env_flag) != "false":
-                errors.append(f"{provider_id}: disabled-gated provider must be false in canonical env")
+                errors.append(\n                    f"{provider_id}: disabled-gated provider must be false in canonical env"\n                )
             if "INTEGRATIONS_ALLOW_UNREGISTERED_PROVIDERS=false" not in str(provider.get("policy")):
-                errors.append(f"{provider_id}: disabled-gated provider lacks registry fail-closed evidence")
+                errors.append(\n                    f"{provider_id}: disabled-gated provider lacks registry fail-closed evidence"\n                )
         elif status == "INTERNAL_GATED":
             if "fail-closed" not in str(provider.get("policy")).lower():
-                errors.append(f"{provider_id}: internal-gated provider lacks fail-closed policy evidence")
+                errors.append(\n                    f"{provider_id}: internal-gated provider lacks fail-closed policy evidence"\n                )
 
     env_provider_flags = {
         "GOOGLE_ENABLED", "GITHUB_ENABLED", "GMAIL_ENABLED", "YOUTUBE_ENABLED",
