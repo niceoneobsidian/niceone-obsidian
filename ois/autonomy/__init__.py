@@ -8,6 +8,12 @@ from .durable import (
     PostgresWorkflowRunRepository,
 )
 from .events import EventEnvelope, EventRoute, EventRouter, InMemoryEventRouter
+<<<<<<< HEAD
+=======
+from .durable_approvals import FencedApprovalResume, PostgresApprovalStore
+from .durable import DurableRunStatus, DurableWorkflowRun, FencedPostgresWorkflowRunRepository, PostgresWorkflowRunRepository
+from .durable import DurableRunStatus, DurableWorkflowRun, PostgresWorkflowRunRepository
+>>>>>>> 4cfbacd8 (feat(phase-d5): export durable approval primitives)
 from .loops import AutonomousLoop, LoopDecision, LoopState
 from .recovery_store import RecoveryCandidate, WorkflowRecoverySweeper
 from .side_effects import PostgresSideEffectLedger, SideEffectLedgerEntry
@@ -28,6 +34,8 @@ __all__ = [
     "ApprovalRequest",
     "InMemoryApprovalStore",
     "EventEnvelope",
+    "FencedApprovalResume",
+    "PostgresApprovalStore",
     "EventRouter",
     "EventRoute",
     "InMemoryEventRouter",
