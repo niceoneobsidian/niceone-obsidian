@@ -11,10 +11,21 @@ MANIFEST = ROOT / "config" / "integration-provider-certificate.json"
 ENV_FILE = ROOT / ".env.example"
 
 REQUIRED_COLUMNS = (
-    "adapter", "source_id", "tool_registry", "capability_registry", "auth",
-    "scopes", "policy", "retry", "rate_limit", "idempotency", "tests", "ci"
+    "adapter",
+    "source_id",
+    "tool_registry",
+    "capability_registry",
+    "auth",
+    "scopes",
+    "policy",
+    "retry",
+    "rate_limit",
+    "idempotency",
+    "tests",
+    "ci",
 )
 FORBIDDEN = {"", "UNKNOWN", "MISSING", "TBD", "TODO"}
+
 
 def parse_env(text: str) -> dict[str, str]:
     values: dict[str, str] = {}
@@ -25,6 +36,7 @@ def parse_env(text: str) -> dict[str, str]:
         key, value = line.split("=", 1)
         values[key.strip()] = value.strip()
     return values
+
 
 def main() -> int:
     parser = argparse.ArgumentParser()
@@ -45,20 +57,25 @@ def main() -> int:
     env = parse_env(ENV_FILE.read_text(encoding="utf-8"))
     providers = manifest.get("providers", [])
     ids: set[str] = set()
-    source_capability_contracts = ROOT / "ois" / "integrations" / "provider_contracts.py"
-    source_tool_registry = ROOT / "ois" / "integrations" / "provider_tools.py"
-    social_registry = ROOT / "ois" / "domains" / "social_intelligence" / "registry.py"
-    source_registry = ROOT / "ois" / "infrastructure" / "source_adapters" / "base.py"
-    tool_registry = ROOT / "ois" / "registries" / "core.py"
-    policy = ROOT / "ois" / "kernel" / "policy.py"
-    auth = ROOT / "ois" / "infrastructure" / "source_gateway" / "auth.py"
-    rate_limit = ROOT / "ois" / "infrastructure" / "source_gateway" / "rate_limits.py"
-    idempotency = ROOT / "ois" / "infrastructure" / "source_gateway" / "idempotency.py"
 
-    for path in (
-        source_capability_contracts, source_tool_registry, social_registry, source_registry,
-        tool_registry, policy, auth, rate_limit, idempotency
-    ):
+    source_capability_contracts = ROOT / "ois/integrations/provider_contracts.py"
+    source_tool_registry = ROOT / "ois/integrations/provider_tools.py"
+    social_registry = ROOT / "ois/domains/social_intelligence/registry.py"
+    source_registry = ROOT / "ois/infrastructure/source_adapters/base.py"
+    tool_registry = ROOT / "ois/registries/core.py"
+
+    authority_files = (
+        source_capability_contracts,
+        source_tool_registry,
+        social_registry,
+        source_registry,
+        tool_registry,
+        ROOT / "ois/kernel/policy.py",
+        ROOT / "ois/infrastructure/source_gateway/auth.py",
+        ROOT / "ois/infrastructure/source_gateway/rate_limits.py",
+        ROOT / "ois/infrastructure/source_gateway/idempotency.py",
+    )
+    for path in authority_files:
         if not path.is_file():
             errors.append(f"missing integration authority: {path.relative_to(ROOT)}")
 
@@ -90,63 +107,104 @@ def main() -> int:
             for column in REQUIRED_COLUMNS:
                 value = str(provider.get(column, "")).lower()
                 if "not-active" in value or "not implemented" in value:
-                    errors.append(f"{provider_id}: VERIFIED provider has inactive/missing {column}")
+                    errors.append(
+                        f"{provider_id}: VERIFIED provider has inactive/missing {column}"
+                    )
 
             adapter_ref = str(provider.get("adapter", ""))
             adapter_path = adapter_ref.split(":", 1)[0]
             if adapter_path and not (ROOT / adapter_path).is_file():
                 errors.append(f"{provider_id}: adapter file missing: {adapter_path}")
 
-            if provider_id in {"github", "google", "meta", "tiktok", "rss", "sportmonks"}:
-                capability_id = f"provider.{provider_id}."
+            if provider_id in {
+                "github",
+                "google",
+                "meta",
+                "tiktok",
+                "rss",
+                "sportmonks",
+            }:
                 source_text = source_capability_contracts.read_text(encoding="utf-8")
-                if capability_id not in source_text:
-                    errors.append(\n                        f"{provider_id}: capability contract not anchored in provider_contracts.py"\n                    )
+                if f"provider.{provider_id}." not in source_text:
+                    errors.append(
+                        f"{provider_id}: capability contract not anchored in provider_contracts.py"
+                    )
 
             if provider_id in {"sociavault", "bundle.social"}:
                 registry_text = social_registry.read_text(encoding="utf-8")
                 if "build_social_tool_registry" not in registry_text:
                     errors.append(f"{provider_id}: social ToolRegistry builder missing")
                 if "provider_capability_contracts" not in registry_text:
-                    errors.append(f"{provider_id}: social capability registry contract missing")
+                    errors.append(
+                        f"{provider_id}: social capability registry contract missing"
+                    )
             else:
                 source_tool_text = source_tool_registry.read_text(encoding="utf-8")
                 if "build_provider_tool_registry" not in source_tool_text:
                     errors.append(f"{provider_id}: provider ToolRegistry builder missing")
                 if f"provider.{provider_id}." not in source_tool_text:
                     errors.append(f"{provider_id}: ToolRegistry contract missing")
-                if "SourceAdapterRegistry" not in source_registry.read_text(encoding="utf-8"):
+                if "SourceAdapterRegistry" not in source_registry.read_text(
+                    encoding="utf-8"
+                ):
                     errors.append(f"{provider_id}: SourceAdapterRegistry authority missing")
                 if "ToolRegistry" not in tool_registry.read_text(encoding="utf-8"):
                     errors.append(f"{provider_id}: ToolRegistry authority missing")
 
-            auth_value = str(provider.get("auth", ""))\n            if "CredentialAuthManager" not in auth_value and provider_id not in {\n                "rss", "sociavault", "bundle.social"\n            }:
-                errors.append(f"{provider_id}: auth path is not bound to CredentialAuthManager")
+            auth_value = str(provider.get("auth", ""))
+            if (
+                "CredentialAuthManager" not in auth_value
+                and provider_id not in {"rss", "sociavault", "bundle.social"}
+            ):
+                errors.append(
+                    f"{provider_id}: auth path is not bound to CredentialAuthManager"
+                )
             if "policy" not in str(provider.get("policy", "")).lower():
                 errors.append(f"{provider_id}: policy evidence missing")
-            if "ratelimit" not in str(provider.get("rate_limit", "")).lower().replace("-", ""):
+            rate_value = str(provider.get("rate_limit", "")).lower().replace("-", "")
+            if "ratelimit" not in rate_value:
                 errors.append(f"{provider_id}: rate-limit evidence missing")
-            idempotency_value = str(provider.get("idempotency", "")).lower()\n            if "idempot" not in idempotency_value and "dedupe" not in idempotency_value:
+            idempotency_value = str(provider.get("idempotency", "")).lower()
+            if "idempot" not in idempotency_value and "dedupe" not in idempotency_value:
                 errors.append(f"{provider_id}: idempotency evidence missing")
+
         elif status == "DISABLED_GATED":
             if env.get(env_flag) != "false":
-                errors.append(\n                    f"{provider_id}: disabled-gated provider must be false in canonical env"\n                )
-            if "INTEGRATIONS_ALLOW_UNREGISTERED_PROVIDERS=false" not in str(provider.get("policy")):
-                errors.append(\n                    f"{provider_id}: disabled-gated provider lacks registry fail-closed evidence"\n                )
+                errors.append(
+                    f"{provider_id}: disabled-gated provider must be false in canonical env"
+                )
+            if (
+                "INTEGRATIONS_ALLOW_UNREGISTERED_PROVIDERS=false"
+                not in str(provider.get("policy"))
+            ):
+                errors.append(
+                    f"{provider_id}: disabled-gated provider lacks registry fail-closed evidence"
+                )
+
         elif status == "INTERNAL_GATED":
             if "fail-closed" not in str(provider.get("policy")).lower():
-                errors.append(\n                    f"{provider_id}: internal-gated provider lacks fail-closed policy evidence"\n                )
+                errors.append(
+                    f"{provider_id}: internal-gated provider lacks fail-closed policy evidence"
+                )
 
     env_provider_flags = {
-        "GOOGLE_ENABLED", "GITHUB_ENABLED", "GMAIL_ENABLED", "YOUTUBE_ENABLED",
-        "NOTION_ENABLED", "SLACK_ENABLED", "TIKTOK_ENABLED", "META_ENABLED",
-        "INSTAGRAM_ENABLED", "X_ENABLED", "LINKEDIN_ENABLED", "LATER_ENABLED",
+        "GOOGLE_ENABLED",
+        "GITHUB_ENABLED",
+        "GMAIL_ENABLED",
+        "YOUTUBE_ENABLED",
+        "NOTION_ENABLED",
+        "SLACK_ENABLED",
+        "TIKTOK_ENABLED",
+        "META_ENABLED",
+        "INSTAGRAM_ENABLED",
+        "X_ENABLED",
+        "LINKEDIN_ENABLED",
+        "LATER_ENABLED",
         "OPENAI_ENABLED",
     }
     manifest_flags = {str(p.get("env_flag")) for p in providers}
     for key in sorted(env_provider_flags):
         if key in {"GMAIL_ENABLED", "YOUTUBE_ENABLED"}:
-            # Google service sub-surfaces are governed by the Google provider row.
             continue
         if key not in manifest_flags:
             errors.append(f"provider activation flag omitted from inventory: {key}")
@@ -154,6 +212,7 @@ def main() -> int:
     print(f"Provider inventory: {len(providers)}")
     for provider in providers:
         print(f"[{provider['status']}] {provider['id']}")
+
     if errors:
         for error in errors:
             print(f"ERROR: {error}")
@@ -164,6 +223,7 @@ def main() -> int:
     print("UNKNOWN/MISSING cells: 0")
     print("Production readiness: NOT CERTIFIED")
     return 0
+
 
 if __name__ == "__main__":
     raise SystemExit(main())
