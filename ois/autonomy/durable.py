@@ -57,7 +57,6 @@ class DurableWorkflowRun:
             status=DurableRunStatus.RECEIVED,
             idempotency_key=idempotency_key
             or (f"{tenant_id}:{workspace_id}:{workflow_id}:{workflow_version}:{event_id}"),
-            or f"{tenant_id}:{workspace_id}:{workflow_id}:{workflow_version}:{event_id}",
         )
 
 
@@ -66,7 +65,6 @@ class PostgresWorkflowRunRepository:
 
     Every mutating operation is scoped by tenant/workspace and keyed by the
     immutable workflow/event identity.  Idempotency claims are durable and
-    immutable workflow/event identity. Idempotency claims are durable and
     survive process restarts.
     """
 
