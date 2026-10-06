@@ -33,10 +33,17 @@ class PostgresApprovalStore:
                    VALUES (%s, %s, %s, %s, %s, %s, 'pending', %s, %s, %s, %s::jsonb, %s, %s)
                    """,
                 (
-                    request.approval_id, request.tenant_id, request.workspace_id,
-                    request.workflow_id, request.event_id, request.reason,
-                    request.created_at, request.expires_at, run_id,
-                    self._event_payload(event), event.source_id if event else None,
+                    request.approval_id,
+                    request.tenant_id,
+                    request.workspace_id,
+                    request.workflow_id,
+                    request.event_id,
+                    request.reason,
+                    request.created_at,
+                    request.expires_at,
+                    run_id,
+                    self._event_payload(event),
+                    event.source_id if event else None,
                     event.event_type if event else None,
                 ),
             )
