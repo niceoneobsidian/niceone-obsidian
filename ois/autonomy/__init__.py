@@ -1,4 +1,4 @@
-"""Phase C autonomous operations primitives."""
+"""Autonomy primitives and durable execution components."""
 
 from .approvals import ApprovalDecision, ApprovalGate, ApprovalRequest, InMemoryApprovalStore
 from .durable import (
@@ -7,6 +7,7 @@ from .durable import (
     FencedPostgresWorkflowRunRepository,
     PostgresWorkflowRunRepository,
 )
+from .durable_approvals import FencedApprovalResume, PostgresApprovalStore
 from .events import EventEnvelope, EventRoute, EventRouter, InMemoryEventRouter
 from .loops import AutonomousLoop, LoopDecision, LoopState
 from .operations import AutonomousOperations, OperationReceipt
@@ -17,16 +18,18 @@ from .workflows import SourceWorkflow, WorkflowRun, WorkflowStatus, WorkflowTrig
 
 __all__ = [
     "ApprovalDecision",
-    "DurableRunStatus",
-    "FencedPostgresWorkflowRunRepository",
-    "DurableWorkflowRun",
-    "PostgresWorkflowRunRepository",
     "ApprovalGate",
     "ApprovalRequest",
     "InMemoryApprovalStore",
+    "DurableRunStatus",
+    "DurableWorkflowRun",
+    "FencedPostgresWorkflowRunRepository",
+    "PostgresWorkflowRunRepository",
+    "FencedApprovalResume",
+    "PostgresApprovalStore",
     "EventEnvelope",
-    "EventRouter",
     "EventRoute",
+    "EventRouter",
     "InMemoryEventRouter",
     "AutonomousLoop",
     "LoopDecision",
