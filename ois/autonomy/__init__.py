@@ -11,6 +11,10 @@ from .durable_approvals import FencedApprovalResume, PostgresApprovalStore
 from .events import EventEnvelope, EventRoute, EventRouter, InMemoryEventRouter
 from .loops import AutonomousLoop, LoopDecision, LoopState
 from .operations import AutonomousOperations, OperationReceipt
+from .policy import AutomationPolicy, PolicyEvaluation, PolicyRule
+from .recovery import FailureRecovery, RecoveryAction, RecoveryRecord
+from .recovery_store import RecoveryCandidate, WorkflowRecoverySweeper
+from .workflows import SourceWorkflow, WorkflowRun, WorkflowStatus, WorkflowTrigger
 
 __all__ = [
     "ApprovalDecision",
@@ -32,4 +36,18 @@ __all__ = [
     "LoopState",
     "AutonomousOperations",
     "OperationReceipt",
+    "AutomationPolicy",
+    "PolicyEvaluation",
+    "PolicyRule",
+    "FailureRecovery",
+    "RecoveryCandidate",
+    "WorkflowRecoverySweeper",
+    "RecoveryAction",
+    "RecoveryRecord",
+    "PostgresSideEffectLedger",
+    "SideEffectLedgerEntry",
+    "SourceWorkflow",
+    "WorkflowRun",
+    "WorkflowStatus",
+    "WorkflowTrigger",
 ]
