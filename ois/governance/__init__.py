@@ -1,7 +1,7 @@
 """Phase F governance, trust, and production-control primitives."""
 
-from ois.governance.engine import GovernanceDecision, GovernanceEngine
-from ois.governance.models import (
+from .engine import GovernanceDecision, GovernanceEngine
+from .models import (
     ActionBudget,
     ActionLimit,
     AgentIdentity,
@@ -12,7 +12,7 @@ from ois.governance.models import (
     PolicyVersion,
     SLO,
 )
-from ois.governance.stores import InMemoryGovernanceStore
+from .stores import InMemoryGovernanceStore
 
 __all__ = [
     "ActionBudget",
