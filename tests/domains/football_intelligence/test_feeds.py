@@ -147,3 +147,24 @@ def test_sportmonks_fixture_includes_are_used_for_statistics() -> None:
 def test_missing_credentials_are_rejected() -> None:
     with pytest.raises(FeedConfigurationError):
         APIFootballProvider(api_key="")
+
+
+def test_sportmonks_reads_documented_environment_token(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("SPORTMONKS_API_TOKEN", raising=False)
+    monkeypatch.delenv("SPORTMONKS_TOKEN", raising=False)
+
+    monkeypatch.setenv("SPORTMONKS_API_TOKEN", "secret")
+
+    provider = SportmonksProvider()
+    assert provider.token == "secret"
+
+
+def test_sportmonks_does_not_use_legacy_token_name(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("SPORTMONKS_API_TOKEN", raising=False)
+    monkeypatch.setenv("SPORTMONKS_TOKEN", "secret")
+
+    with pytest.raises(
+        FeedConfigurationError,
+        match="SPORTMONKS_API_TOKEN is not configured",
+    ):
+        SportmonksProvider()
