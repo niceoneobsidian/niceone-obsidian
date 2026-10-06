@@ -20,8 +20,12 @@ class ExampleSource:
 ''',
         encoding="utf-8",
     )
-    (tmp_path / "tests/test_example_contract.py").write_text(
+    (tmp_path / "tests/test_example_structure.py").write_text(
         'def test_example(): assert "example.api.v1"\n',
+        encoding="utf-8",
+    )
+    (tmp_path / "tests/test_example_contract.py").write_text(
+        'def test_example_contract(): assert "example.api.v1"\n',
         encoding="utf-8",
     )
     (tmp_path / ".github/workflows/integration-conformance.yml").write_text(
@@ -31,7 +35,9 @@ class ExampleSource:
 
     cert = build_repository_certificate(
         tmp_path,
-        policy=CertificatePolicy(required=("ADAPTER", "STRUCTURAL TEST", "CI GATE")),
+        policy=CertificatePolicy(
+            required=("ADAPTER", "STRUCTURAL TEST", "CONTRACT TEST", "CI GATE")
+        ),
         commit="abc123",
     )
 
@@ -40,6 +46,7 @@ class ExampleSource:
     assert cert.valid
     assert cert.report.matrix[0]["ADAPTER"] == "IMPLEMENTED"
     assert cert.report.matrix[0]["STRUCTURAL TEST"] == "TESTED"
+    assert cert.report.matrix[0]["CONTRACT TEST"] == "TESTED"
     assert cert.report.matrix[0]["CI GATE"] == "TESTED"
 
 
