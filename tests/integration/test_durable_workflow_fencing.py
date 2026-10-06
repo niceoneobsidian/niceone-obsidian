@@ -7,7 +7,6 @@ import pytest
 
 from ois.autonomy.durable import (
     DurableRunStatus,
-    DurableWorkflowRun,
     FencedPostgresWorkflowRunRepository,
     PostgresWorkflowRunRepository,
 )
@@ -22,9 +21,18 @@ def test_stale_worker_cannot_transition_workflow_run(migrated_postgres: str) -> 
         cursor.execute("DELETE FROM ois_worker_leases WHERE execution_id = %s", (RUN_ID,))
         cursor.execute(
             """INSERT INTO autonomous_workflow_runs
-            (run_id, tenant_id, workspace_id, workflow_id, workflow_version, event_id, status)
-            VALUES (%s, 'tenant', 'workspace', 'workflow', '1', 'event-193', 'received')""",
-            (RUN_ID,),
+            (
+                run_id,
+                tenant_id,
+                workspace_id,
+                workflow_id,
+                workflow_version,
+                event_id,
+                status,
+                idempotency_key
+            )
+            VALUES (%s, 'tenant', 'workspace', 'workflow', '1', 'event-193', 'received', %s)""",
+            (RUN_ID, f"fencing-test-{RUN_ID}"),
         )
 
     leases = PostgresWorkerLeaseStore(lambda: psycopg.connect(migrated_postgres), ttl_seconds=30)

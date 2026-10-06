@@ -55,9 +55,8 @@ class DurableWorkflowRun:
             workflow_version=workflow_version,
             event_id=event_id,
             status=DurableRunStatus.RECEIVED,
-            idempotency_key=idempotency_key or (
-                f"{tenant_id}:{workspace_id}:{workflow_id}:{workflow_version}:{event_id}"
-            ),
+            idempotency_key=idempotency_key
+            or (f"{tenant_id}:{workspace_id}:{workflow_id}:{workflow_version}:{event_id}"),
         )
 
 
@@ -91,9 +90,15 @@ class PostgresWorkflowRunRepository:
                 RETURNING run_id
                 """,
                 (
-                    run.run_id, run.tenant_id, run.workspace_id, run.workflow_id,
-                    run.workflow_version, run.event_id, run.status.value,
-                    run.attempt, self._payload(run.checkpoint or {}),
+                    run.run_id,
+                    run.tenant_id,
+                    run.workspace_id,
+                    run.workflow_id,
+                    run.workflow_version,
+                    run.event_id,
+                    run.status.value,
+                    run.attempt,
+                    self._payload(run.checkpoint or {}),
                     run.idempotency_key,
                 ),
             )
@@ -212,15 +217,14 @@ class PostgresWorkflowRunRepository:
             status=DurableRunStatus(str(row[6])),
             attempt=int(row[7]),
             checkpoint=(
-                checkpoint
-                if isinstance(checkpoint, dict)
-                else json.loads(checkpoint or "{}")
+                checkpoint if isinstance(checkpoint, dict) else json.loads(checkpoint or "{}")
             ),
             result=result if not isinstance(result, str) else json.loads(result),
             error=error if not isinstance(error, str) else json.loads(error),
             idempotency_key=str(row[11]),
         )
-\n\n
+
+
 class FencedPostgresWorkflowRunRepository:
     """Worker-owned adapter for workflow-run mutations."""
 
