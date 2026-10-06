@@ -22,3 +22,15 @@ jobs:
         run: python -m pip install -e ".[test]"
       - name: Run canonical conformance tests
         run: python -m pytest tests/integration_conformance -q
+      - name: Build repository-wide conformance certificate
+        run: |
+          python -m ois.integration.repository_certificate \
+            --root . \
+            --commit "$GITHUB_SHA" \
+            --output integration-conformance-certificate.json
+      - name: Upload conformance certificate
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-conformance-certificate
+          path: integration-conformance-certificate.json
+          if-no-files-found: error
