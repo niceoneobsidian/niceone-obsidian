@@ -371,8 +371,12 @@ class RepositoryConformanceCertificateBuilder:
             "PRODUCTION_VERIFICATION",
             "PRODUCTION_MANIFEST" in kinds
             and any(
-                "production_verified" in self.scanner._read(self.scanner.root / item.path).lower()
-                and "true" in self.scanner._read(self.scanner.root / item.path).lower()
+                re.search(
+                    r'"production_verified"\\s*:\\s*true\\b',
+                    self.scanner._read(self.scanner.root / item.path),
+                    re.IGNORECASE,
+                )
+                is not None
                 for item in evidence
             ),
             evidence,
