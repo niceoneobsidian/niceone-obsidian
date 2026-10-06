@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from uuid import UUID
-
 from ois.autonomy.durable import DurableRunStatus, DurableWorkflowRun
 from ois.autonomy.engine import DurableAutonomousExecutionEngine
 from ois.autonomy.events import EventEnvelope
@@ -79,9 +77,9 @@ def test_unified_engine_completes_through_kernel_owned_callback(monkeypatch) -> 
         leases=Leases(),
         approvals=Approvals(),
         side_effects=Effects(),
-        policy=AutomationPolicy((
-            PolicyRule(rule_id="allow", event_type="source.event", maximum_risk=RiskLevel.HIGH),
-        )),
+        policy=AutomationPolicy(
+            (PolicyRule(rule_id="allow", event_type="source.event", maximum_risk=RiskLevel.HIGH),)
+        ),
     )
     workflow = SourceWorkflow(
         workflow_id="wf",

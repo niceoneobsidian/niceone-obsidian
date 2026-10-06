@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from typing import Any, Callable
+from typing import Any
 from uuid import UUID
 
 from ois.infrastructure.postgres_fencing import PostgresWorkerLeaseStore, WorkerLease
@@ -114,9 +115,7 @@ class DurableAutonomousExecutionEngine:
         lease = self.leases.claim(run.run_id, worker_id)
         if lease is None:
             raise RuntimeError("workflow run is owned by another worker")
-        event = FencedApprovalResume(self.approvals, self.leases, lease).resume_event(
-            approval_id
-        )
+        event = FencedApprovalResume(self.approvals, self.leases, lease).resume_event(approval_id)
         return self._execute(run, workflow, event, lease, execute, approval_granted=True)
 
     def _execute(
