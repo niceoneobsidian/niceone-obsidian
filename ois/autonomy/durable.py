@@ -160,6 +160,7 @@ class PostgresWorkflowRunRepository:
         result: Any = None,
         error: dict[str, Any] | None = None,
     ) -> DurableWorkflowRun:
+        updates = ["status = %s", "updated_at = now()", "last_heartbeat_at = now()"]
         updates = ["status = %s", "updated_at = now()"]
         params: list[Any] = [status.value]
         if attempt is not None:
