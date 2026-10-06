@@ -1,0 +1,169 @@
+{
+  "schema_version": "1.0.0",
+  "certificate": "OIS Integration Certificate",
+  "scope": "complete declared external-provider inventory",
+  "authority": {
+    "runtime_config": ".env.example",
+    "tool_registry": "ois/registries/core.py:ToolRegistry",
+    "capability_registry": "ois/registries/core.py:CapabilityRegistry",
+    "source_adapter_registry": "ois/infrastructure/source_adapters/base.py:SourceAdapterRegistry",
+    "auth": "ois/infrastructure/source_gateway/auth.py",
+    "credentials": "ois/infrastructure/source_gateway/credentials.py",
+    "policy": "ois/kernel/policy.py",
+    "transport": "ois/infrastructure/source_adapters/http.py",
+    "rate_limit": "ois/infrastructure/source_gateway/rate_limits.py",
+    "idempotency": "ois/infrastructure/source_gateway/idempotency.py"
+  },
+  "strict_rule": "No UNKNOWN or MISSING cells. A provider is VERIFIED through repository evidence, DISABLED_GATED with deterministic safety evidence, or INTERNAL_GATED until a concrete external provider is selected.",
+  "providers": [
+    {
+      "id": "github", "env_flag": "GITHUB_ENABLED", "status": "VERIFIED",
+      "adapter": "ois/integrations/github/source.py:GitHubSource", "source_id": "github.rest.user",
+      "tool_registry": "ois/registries/core.py:ToolRegistry", "capability_registry": "ois/registries/core.py:CapabilityRegistry",
+      "auth": "AuthScheme.BEARER + CredentialAuthManager", "scopes": "CredentialRef.scopes; read-only source contract",
+      "policy": "DefaultPolicyEngine + fail-closed integration policy", "retry": "GITHUB_MAX_RETRIES + OIS_HTTP_RETRY_*",
+      "rate_limit": "SourceGateway RateLimitManager", "idempotency": "SourceGateway IdempotencyStore",
+      "tests": "tests/integrations/test_phase_a_sources.py; tests/integrations/test_phase_a_live.py",
+      "ci": ".github/workflows/p0-conformance.yml", "live": "OIS_LIVE_PHASE_A; read-only"
+    },
+    {
+      "id": "google", "env_flag": "GOOGLE_ENABLED", "status": "VERIFIED",
+      "adapter": "ois/integrations/google/source.py:GoogleDriveSource", "source_id": "google.drive.files",
+      "tool_registry": "ois/registries/core.py:ToolRegistry", "capability_registry": "ois/registries/core.py:CapabilityRegistry",
+      "auth": "AuthScheme.BEARER + CredentialAuthManager", "scopes": "Google OAuth scope set via GOOGLE_OAUTH_SCOPES",
+      "policy": "DefaultPolicyEngine + fail-closed integration policy", "retry": "OIS_HTTP_RETRY_* + Google timeout/retry contract",
+      "rate_limit": "SourceGateway RateLimitManager", "idempotency": "SourceGateway IdempotencyStore",
+      "tests": "tests/integrations/test_phase_a_sources.py; tests/integrations/test_phase_a_live.py",
+      "ci": ".github/workflows/p0-conformance.yml", "live": "OIS_LIVE_PHASE_A; read-only"
+    },
+    {
+      "id": "meta", "env_flag": "META_ENABLED", "status": "VERIFIED",
+      "adapter": "ois/integrations/meta/source.py:MetaFacebookSource", "source_id": "meta.graph.me",
+      "tool_registry": "ois/registries/core.py:ToolRegistry", "capability_registry": "ois/registries/core.py:CapabilityRegistry",
+      "auth": "AuthScheme.BEARER + CredentialAuthManager", "scopes": "Meta OAuth scope set via provider OAuth contract",
+      "policy": "DefaultPolicyEngine + fail-closed integration policy", "retry": "OIS_HTTP_RETRY_* + Meta timeout/retry contract",
+      "rate_limit": "SourceGateway RateLimitManager", "idempotency": "SourceGateway IdempotencyStore",
+      "tests": "tests/integrations/test_phase_a_sources.py; tests/integrations/test_phase_a_live.py",
+      "ci": ".github/workflows/p0-conformance.yml", "live": "OIS_LIVE_PHASE_A; read-only"
+    },
+    {
+      "id": "tiktok", "env_flag": "TIKTOK_ENABLED", "status": "VERIFIED",
+      "adapter": "ois/integrations/tiktok/source.py:TikTokSource", "source_id": "tiktok.display.v2",
+      "tool_registry": "ois/registries/core.py:ToolRegistry", "capability_registry": "ois/registries/core.py:CapabilityRegistry",
+      "auth": "TikTok OAuth + CredentialRef + SourceGateway", "scopes": "user.info.basic,video.list",
+      "policy": "SourceGateway tenant boundary + fail-closed integration policy", "retry": "ois/integrations/tiktok/client.py:max_retries",
+      "rate_limit": "SourceGateway RateLimitManager", "idempotency": "SourceGateway evidence/outbox duplicate suppression",
+      "tests": "tests/integrations/test_phase_a_sources.py; tests/integrations/test_tiktok_source_phase2.py; tests/integrations/test_live_cross_source_g1.py",
+      "ci": ".github/workflows/p0-conformance.yml", "live": "OIS_LIVE_PHASE_A; read-only"
+    },
+    {
+      "id": "rss", "env_flag": "OIS_SEARCH_ENABLED", "status": "VERIFIED",
+      "adapter": "ois/integrations/rss/source.py:RSSSource", "source_id": "rss.news",
+      "tool_registry": "ois/registries/core.py:ToolRegistry", "capability_registry": "ois/registries/core.py:CapabilityRegistry",
+      "auth": "none; public feed boundary", "scopes": "public-read",
+      "policy": "fail-closed integration policy; tenant-scoped evidence", "retry": "RSS adapter bounded transport behavior",
+      "rate_limit": "SourceGateway RateLimitManager", "idempotency": "SourceGateway evidence dedupe",
+      "tests": "tests/integrations/test_rss_source.py; tests/integrations/test_live_cross_source_g1.py",
+      "ci": ".github/workflows/p0-conformance.yml", "live": "opt-in G1 live acceptance"
+    },
+    {
+      "id": "sportmonks", "env_flag": "OIS_SEARCH_ENABLED", "status": "VERIFIED",
+      "adapter": "ois/infrastructure/source_adapters/sportmonks.py:SportmonksFootballAdapter", "source_id": "sportmonks:football:v3",
+      "tool_registry": "ois/registries/core.py:ToolRegistry", "capability_registry": "ois/registries/core.py:CapabilityRegistry",
+      "auth": "api_key through HttpSourceAdapter", "scopes": "football.live,football.fixtures,evidence.raw",
+      "policy": "SourceGateway credential + tenant policy", "retry": "OIS HTTP/recovery retry contract",
+      "rate_limit": "SourceGateway RateLimitManager", "idempotency": "SourceGateway evidence/idempotency boundary",
+      "tests": "tests/infrastructure/test_sportmonks_adapter.py", "ci": ".github/workflows/live-sportmonks-verification.yml", "live": "protected opt-in workflow"
+    },
+    {
+      "id": "sociavault", "env_flag": "OIS_SEARCH_ENABLED", "status": "VERIFIED",
+      "adapter": "ois/domains/social_intelligence/providers.py:SociaVaultAdapter", "source_id": "tool.social.sociavault",
+      "tool_registry": "ois/domains/social_intelligence/registry.py:build_social_tool_registry", "capability_registry": "ois/domains/social_intelligence/registry.py:provider_capability_contracts",
+      "auth": "SOCIAVAULT_API_KEY via ToolContract.secrets_required", "scopes": "social.read",
+      "policy": "DefaultPolicyEngine permissions=(social.read,)", "retry": "ToolContract.max_retries=2",
+      "rate_limit": "OIS rate-limit boundary", "idempotency": "ToolContract.idempotent=true",
+      "tests": "social intelligence registry/provider tests", "ci": ".github/workflows/p0-conformance.yml", "live": "disabled by canonical env"
+    },
+    {
+      "id": "bundle.social", "env_flag": "OIS_SEARCH_ENABLED", "status": "VERIFIED",
+      "adapter": "ois/domains/social_intelligence/providers.py:BundleSocialAdapter", "source_id": "tool.social.bundle_social",
+      "tool_registry": "ois/domains/social_intelligence/registry.py:build_social_tool_registry", "capability_registry": "ois/domains/social_intelligence/registry.py:provider_capability_contracts",
+      "auth": "BUNDLE_SOCIAL_API_KEY via ToolContract.secrets_required", "scopes": "social.publish,social.analytics",
+      "policy": "DefaultPolicyEngine + requires_approval=true", "retry": "ToolContract.max_retries=0; irreversible operation is fail-closed",
+      "rate_limit": "OIS rate-limit boundary", "idempotency": "ToolContract.idempotent=false; approval/evidence required",
+      "tests": "social intelligence registry/provider tests", "ci": ".github/workflows/p0-conformance.yml", "live": "disabled by canonical env"
+    },
+    {
+      "id": "notion", "env_flag": "NOTION_ENABLED", "status": "DISABLED_GATED",
+      "adapter": "not implemented while disabled", "source_id": "not-active", "tool_registry": "not-active while NOTION_ENABLED=false",
+      "capability_registry": "not-active while NOTION_ENABLED=false", "auth": "NOTION_CREDENTIAL_REF reserved; no materialization",
+      "scopes": "not-active", "policy": "OIS_FAIL_CLOSED + INTEGRATIONS_ALLOW_UNREGISTERED_PROVIDERS=false",
+      "retry": "OIS_HTTP_RETRY_* after activation", "rate_limit": "OIS_RATE_LIMITING_ENABLED; no provider bucket while disabled",
+      "idempotency": "OIS_IDEMPOTENCY_ENABLED; no external operation while disabled", "tests": "certificate disabled-gate test",
+      "ci": ".github/workflows/p0-conformance.yml", "live": "disabled"
+    },
+    {
+      "id": "slack", "env_flag": "SLACK_ENABLED", "status": "DISABLED_GATED",
+      "adapter": "not implemented while disabled", "source_id": "not-active", "tool_registry": "not-active while SLACK_ENABLED=false",
+      "capability_registry": "not-active while SLACK_ENABLED=false", "auth": "SLACK_CREDENTIAL_REF reserved; no materialization",
+      "scopes": "not-active", "policy": "OIS_FAIL_CLOSED + INTEGRATIONS_ALLOW_UNREGISTERED_PROVIDERS=false",
+      "retry": "OIS_HTTP_RETRY_* after activation", "rate_limit": "OIS_RATE_LIMITING_ENABLED; no provider bucket while disabled",
+      "idempotency": "OIS_IDEMPOTENCY_ENABLED; no external operation while disabled", "tests": "certificate disabled-gate test",
+      "ci": ".github/workflows/p0-conformance.yml", "live": "disabled"
+    },
+    {
+      "id": "instagram", "env_flag": "INSTAGRAM_ENABLED", "status": "DISABLED_GATED",
+      "adapter": "not implemented while disabled", "source_id": "not-active", "tool_registry": "not-active while INSTAGRAM_ENABLED=false",
+      "capability_registry": "not-active while INSTAGRAM_ENABLED=false", "auth": "INSTAGRAM_CREDENTIAL_REF reserved; no materialization",
+      "scopes": "not-active", "policy": "OIS_FAIL_CLOSED + INTEGRATIONS_ALLOW_UNREGISTERED_PROVIDERS=false",
+      "retry": "OIS_HTTP_RETRY_* after activation", "rate_limit": "OIS_RATE_LIMITING_ENABLED; no provider bucket while disabled",
+      "idempotency": "OIS_IDEMPOTENCY_ENABLED; no external operation while disabled", "tests": "certificate disabled-gate test",
+      "ci": ".github/workflows/p0-conformance.yml", "live": "disabled"
+    },
+    {
+      "id": "x", "env_flag": "X_ENABLED", "status": "DISABLED_GATED",
+      "adapter": "not implemented while disabled", "source_id": "not-active", "tool_registry": "not-active while X_ENABLED=false",
+      "capability_registry": "not-active while X_ENABLED=false", "auth": "X_CREDENTIAL_REF reserved; no materialization",
+      "scopes": "not-active", "policy": "OIS_FAIL_CLOSED + INTEGRATIONS_ALLOW_UNREGISTERED_PROVIDERS=false",
+      "retry": "OIS_HTTP_RETRY_* after activation", "rate_limit": "OIS_RATE_LIMITING_ENABLED; no provider bucket while disabled",
+      "idempotency": "OIS_IDEMPOTENCY_ENABLED; no external operation while disabled", "tests": "certificate disabled-gate test",
+      "ci": ".github/workflows/p0-conformance.yml", "live": "disabled"
+    },
+    {
+      "id": "linkedin", "env_flag": "LINKEDIN_ENABLED", "status": "DISABLED_GATED",
+      "adapter": "not implemented while disabled", "source_id": "not-active", "tool_registry": "not-active while LINKEDIN_ENABLED=false",
+      "capability_registry": "not-active while LINKEDIN_ENABLED=false", "auth": "LINKEDIN_CREDENTIAL_REF reserved; no materialization",
+      "scopes": "not-active", "policy": "OIS_FAIL_CLOSED + INTEGRATIONS_ALLOW_UNREGISTERED_PROVIDERS=false",
+      "retry": "OIS_HTTP_RETRY_* after activation", "rate_limit": "OIS_RATE_LIMITING_ENABLED; no provider bucket while disabled",
+      "idempotency": "OIS_IDEMPOTENCY_ENABLED; no external operation while disabled", "tests": "certificate disabled-gate test",
+      "ci": ".github/workflows/p0-conformance.yml", "live": "disabled"
+    },
+    {
+      "id": "later", "env_flag": "LATER_ENABLED", "status": "DISABLED_GATED",
+      "adapter": "not implemented while disabled", "source_id": "not-active", "tool_registry": "not-active while LATER_ENABLED=false",
+      "capability_registry": "not-active while LATER_ENABLED=false", "auth": "LATER_CREDENTIAL_REF reserved; no materialization",
+      "scopes": "not-active", "policy": "OIS_FAIL_CLOSED + INTEGRATIONS_ALLOW_UNREGISTERED_PROVIDERS=false",
+      "retry": "OIS_HTTP_RETRY_* after activation", "rate_limit": "OIS_RATE_LIMITING_ENABLED; no provider bucket while disabled",
+      "idempotency": "OIS_IDEMPOTENCY_ENABLED; no external operation while disabled", "tests": "certificate disabled-gate test",
+      "ci": ".github/workflows/p0-conformance.yml", "live": "disabled"
+    },
+    {
+      "id": "openai", "env_flag": "OPENAI_ENABLED", "status": "DISABLED_GATED",
+      "adapter": "not implemented as external provider in current boundary", "source_id": "not-active", "tool_registry": "not-active while OPENAI_ENABLED=false",
+      "capability_registry": "not-active while OPENAI_ENABLED=false", "auth": "OPENAI_CREDENTIAL_REF reserved; no materialization",
+      "scopes": "not-active", "policy": "OIS_FAIL_CLOSED + INTEGRATIONS_ALLOW_UNREGISTERED_PROVIDERS=false",
+      "retry": "OPENAI_MAX_RETRIES + OIS_HTTP_RETRY_* after activation", "rate_limit": "OIS_RATE_LIMITING_ENABLED; no provider bucket while disabled",
+      "idempotency": "OIS_IDEMPOTENCY_ENABLED; no external operation while disabled", "tests": "certificate disabled-gate test",
+      "ci": ".github/workflows/p0-conformance.yml", "live": "disabled"
+    },
+    {
+      "id": "search", "env_flag": "OIS_SEARCH_ENABLED", "status": "INTERNAL_GATED",
+      "adapter": "selected by OIS_SEARCH_PROVIDER; no concrete external provider selected", "source_id": "not-selected",
+      "tool_registry": "OIS_TOOL_REGISTRY_STRICT=true", "capability_registry": "OIS_CAPABILITY_REGISTRY_STRICT=true",
+      "auth": "OIS_SEARCH_CREDENTIAL_REF reserved", "scopes": "OIS_POLICY_REQUIRE_SCOPE=true",
+      "policy": "fail-closed until provider is selected and registered", "retry": "OIS_HTTP_RETRY_*",
+      "rate_limit": "OIS_RATE_LIMITING_ENABLED", "idempotency": "OIS_IDEMPOTENCY_ENABLED",
+      "tests": "certificate internal-gate test", "ci": ".github/workflows/p0-conformance.yml", "live": "disabled until provider selected"
+    }
+  ]
+}
