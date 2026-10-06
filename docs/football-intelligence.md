@@ -30,4 +30,4 @@ The system must not promote a model from code existence alone. F7/F8 metrics, ca
 
 ## Runtime
 
-Set `SPORTMONKS_TOKEN` only in the runtime secret store. Never commit tokens. The development store defaults to `data/football_intelligence.db`; production persistence should use the existing OIS PostgreSQL/evidence services.
+Set `SPORTMONKS_API_TOKEN` only in the runtime secret store. Never commit tokens. The development store defaults to `data/football_intelligence.db`; production persistence should use the existing OIS PostgreSQL/evidence services.
