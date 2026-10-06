@@ -41,6 +41,8 @@ __all__ = [
     "WorkflowRecoverySweeper",
     "RecoveryAction",
     "RecoveryRecord",
+    "PostgresSideEffectLedger",
+    "SideEffectLedgerEntry",
     "SourceWorkflow",
     "WorkflowRun",
     "WorkflowStatus",
