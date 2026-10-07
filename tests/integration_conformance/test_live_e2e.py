@@ -1,6 +1,6 @@
 import pytest
 
-from ois.integration.live_harness import LiveTestConfig, live_tests_enabled
+from ois.integration.live_harness import LiveTestConfig
 
 @pytest.mark.live
 def test_live_provider_read_only():
