@@ -20,7 +20,7 @@ class LiveTestConfig:
     timeout_seconds: float
 
     @classmethod
-    def from_env(cls) -> "LiveTestConfig":
+    def from_env(cls) -> LiveTestConfig:
         enabled = os.getenv("OIS_LIVE_TESTS", "").lower() in {"1", "true", "yes"}
         allow_writes = os.getenv("OIS_LIVE_ALLOW_WRITES", "").lower() in {
             "1", "true", "yes"
@@ -47,7 +47,6 @@ class LiveTestConfig:
             raise ValueError("OIS_LIVE_PROVIDER is required when live tests are enabled")
         if self.timeout_seconds <= 0:
             raise ValueError("OIS_LIVE_TIMEOUT must be positive")
-
 
 
 def live_tests_enabled() -> bool:
