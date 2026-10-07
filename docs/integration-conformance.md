@@ -18,7 +18,7 @@ Canonical source registrations may attach `ProviderConformanceMetadata` to the s
 
 Metadata is evidence-backed and immutable. Positive claims must include evidence paths, and the repository certificate verifies those paths exist inside the repository. Metadata cannot claim live, E2E, or production verification; those statuses require runtime/CI proof. This keeps static provider declarations from becoming false production readiness signals.
 
-For the current canonical Phase-A sources, metadata explicitly declares authentication, credential binding, and timeout behavior. Scopes, policy, retry, rate-limit, idempotency, event, live, E2E, negative, and production dimensions remain UNKNOWN until their own evidence contracts are implemented.
+For the current canonical Phase-A sources, metadata explicitly declares the structural integration contract: adapter implementation, canonical registration, capabilities, provenance, raw evidence, structural tests, contract tests, and the CI gate. Authentication, credential binding, and timeout behavior are also explicitly evidenced from the existing Phase-A implementation. Tool mapping, scopes, policy, retry, rate-limit, idempotency, event, live, E2E, negative, and production dimensions remain UNKNOWN until their own evidence contracts are implemented.
 
 ### 3. Repository-wide certificate
 
