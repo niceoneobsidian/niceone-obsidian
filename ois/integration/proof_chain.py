@@ -1,6 +1,8 @@
 """Governed Tool -> Capability -> Policy -> Provider proof chain."""
 from __future__ import annotations
+
 from dataclasses import dataclass
+
 
 @dataclass(frozen=True)
 class ExecutionProof:
@@ -11,6 +13,7 @@ class ExecutionProof:
     authorized: bool
     provider_reached: bool = False
     evidence: tuple[str, ...] = ()
+
 
 def require_proof(
     *,
