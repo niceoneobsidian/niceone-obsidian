@@ -46,9 +46,6 @@ CONFORMANCE_METADATA_STATUSES: Final[frozenset[str]] = frozenset(
         "IMPLEMENTED",
         "TESTED",
         "INTEGRATED",
-        "LIVE VERIFIED",
-        "E2E VERIFIED",
-        "PRODUCTION VERIFIED",
         "N/A",
         "MISSING",
         "UNKNOWN",
@@ -69,9 +66,9 @@ class ConformanceEvidence:
             raise ValueError(f"unknown conformance status: {self.status}")
         if not self.evidence and self.status not in {"UNKNOWN", "N/A"}:
             raise ValueError("non-unknown conformance claims require evidence")
-        if self.status == "PRODUCTION VERIFIED":
+        if self.status in {"LIVE VERIFIED", "E2E VERIFIED", "PRODUCTION VERIFIED"}:
             raise ValueError(
-                "production verification requires runtime verification, not provider metadata"
+                "runtime verification statuses require runtime/CI evidence, not provider metadata"
             )
 
 
