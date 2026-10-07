@@ -42,5 +42,6 @@ def test_repository_certificate_cli_uses_application_bootstrap(tmp_path: Path) -
     assert certificate["report"]["matrix"][0]["ADAPTER"] == "IMPLEMENTED"
     assert certificate["report"]["matrix"][0]["REGISTRATION"] == "IMPLEMENTED"
     assert certificate["report"]["matrix"][0]["CAPABILITY"] == "IMPLEMENTED"
+    assert certificate["report"]["matrix"][0]["STRUCTURAL TEST"] == "TESTED"
     assert certificate["report"]["matrix"][0]["CONTRACT TEST"] == "TESTED"
     assert certificate["report"]["matrix"][0]["CI GATE"] == "TESTED"
