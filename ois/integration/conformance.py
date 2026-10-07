@@ -8,9 +8,10 @@ Unknown dimensions remain UNKNOWN until explicit evidence is supplied.
 from __future__ import annotations
 
 import json
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import asdict, dataclass
 from enum import StrEnum
-from typing import Any, Callable, Iterable, Mapping
+from typing import Any
 
 from ois.infrastructure.source_adapters.base import SourceAdapter, SourceAdapterRegistry
 from ois.infrastructure.source_gateway.contracts import SourceSpec
