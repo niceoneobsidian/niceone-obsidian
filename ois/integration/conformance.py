@@ -15,6 +15,7 @@ from typing import Any
 
 from ois.infrastructure.source_adapters.base import SourceAdapter, SourceAdapterRegistry
 from ois.infrastructure.source_gateway.contracts import SourceSpec
+from ois.integration.conformance_metadata import ProviderConformanceMetadata
 
 
 class ConformanceStatus(StrEnum):
@@ -83,7 +84,7 @@ class IntegrationConformanceRecord:
 @dataclass(frozen=True)
 class ConformanceReport:
     records: tuple[IntegrationConformanceRecord, ...]
-    generated_by: str = "ois.integration.conformance.v1"
+    generated_by: str = "ois.integration.conformance.v2"
 
     @property
     def columns(self) -> tuple[str, ...]:
@@ -147,6 +148,9 @@ class IntegrationConformance:
         adapter = self._registry.get(source_id)
         spec = self._registry.spec(source_id)
         cells = self._base_cells(source_id, adapter, spec)
+        metadata = self._registry.conformance(source_id)
+        if metadata is not None:
+            self._apply_metadata(cells, metadata)
         if self._verifier is not None:
             for column, value in self._verifier(source_id, adapter, spec).items():
                 if column not in CONFORMANCE_COLUMNS:
@@ -207,6 +211,18 @@ class IntegrationConformance:
         }.items():
             cells[column] = ConformanceCell(ConformanceStatus.UNKNOWN, (note,))
         return cells
+
+    @staticmethod
+    def _apply_metadata(
+        cells: dict[str, ConformanceCell],
+        metadata: ProviderConformanceMetadata,
+    ) -> None:
+        for column, claim in metadata.claims.items():
+            cells[column] = ConformanceCell(
+                status=ConformanceStatus(claim.status),
+                evidence=claim.evidence,
+                note=claim.note,
+            )
 
     @staticmethod
     def _coerce_cell(
