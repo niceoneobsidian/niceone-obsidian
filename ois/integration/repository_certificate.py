@@ -26,7 +26,7 @@ from .conformance import (
 )
 
 _SOURCE_ID_RE = re.compile(
-    r"""(?:source_id\s*=|source_id:\s*)["']([^"']+)["']"""
+    r"""(?:source_id\s*=|source_id:\s*)\s*["']([^"']+)["']"""
 )
 
 @dataclass(frozen=True)
@@ -283,7 +283,7 @@ class RepositoryConformanceCertificateBuilder:
         cells["SCOPES"] = self._status(
             "SCOPES",
             bool(re.search(r"scopes\s*=\s*\([^)]*[^)]\)", source_text, re.IGNORECASE))
-            or "scopes:" in all_text.lower(),
+            or "scopes:" in evidence_text.lower(),
             evidence,
         )
         cells["POLICY"] = self._status(
@@ -349,7 +349,8 @@ class RepositoryConformanceCertificateBuilder:
         cells["E2E TEST"] = self._status(
             "E2E_TEST",
             any(
-                "e2e" in item.path.lower() and source_id in self.scanner._read(self.scanner.root / item.path)
+                "e2e" in item.path.lower()
+            and source_id in self.scanner._read(self.scanner.root / item.path)
                 for item in evidence
             ),
             evidence,
