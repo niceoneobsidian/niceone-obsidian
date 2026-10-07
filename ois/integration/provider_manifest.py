@@ -5,8 +5,9 @@ runtime evidence by declaration alone.
 """
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Any, Mapping
+from typing import Any
 
 REQUIRED_SECTIONS = {
     "provider",
@@ -47,7 +48,7 @@ class ProviderConformanceManifest:
     metadata: Mapping[str, Any] = field(default_factory=dict)
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> "ProviderConformanceManifest":
+    def from_dict(cls, data: Mapping[str, Any]) -> ProviderConformanceManifest:
         missing = REQUIRED_SECTIONS - set(data)
         if missing:
             raise ValueError(f"provider manifest missing sections: {sorted(missing)}")
