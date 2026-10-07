@@ -47,14 +47,19 @@
       "ci": ".github/workflows/p0-conformance.yml", "live": "OIS_LIVE_PHASE_A; read-only"
     },
     {
-      "id": "tiktok", "env_flag": "TIKTOK_ENABLED", "status": "VERIFIED",
-      "adapter": "ois/integrations/tiktok/source.py:TikTokSource", "source_id": "tiktok.display.v2",
+      "id": "tiktok", "env_flag": "TIKTOK_ENABLED", "status": "INTERNAL_GATED",
+      "adapter": "ois/integrations/tiktok/source.py:TikTokSource",
+      "source_id": "tiktok.display.v2",
       "tool_registry": "ois/registries/core.py:ToolRegistry", "capability_registry": "ois/registries/core.py:CapabilityRegistry",
-      "auth": "TikTok OAuth + CredentialRef + SourceGateway", "scopes": "user.info.basic,video.list",
-      "policy": "SourceGateway tenant boundary + fail-closed integration policy", "retry": "ois/integrations/tiktok/client.py:max_retries",
-      "rate_limit": "SourceGateway RateLimitManager", "idempotency": "SourceGateway evidence/outbox duplicate suppression",
+      "auth": "CredentialRef reaches SourceGateway evidence boundary; client access-token materialization remains outside CredentialAuthManager",
+      "scopes": "user.info.basic,video.list",
+      "policy": "fail-closed until TikTok client authentication is routed through CredentialAuthManager",
+      "retry": "ois/integrations/tiktok/client.py:max_retries",
+      "rate_limit": "SourceGateway RateLimitManager",
+      "idempotency": "SourceGateway evidence/outbox duplicate suppression",
       "tests": "tests/integrations/test_phase_a_sources.py; tests/integrations/test_tiktok_source_phase2.py; tests/integrations/test_live_cross_source_g1.py",
-      "ci": ".github/workflows/p0-conformance.yml", "live": "OIS_LIVE_PHASE_A; read-only"
+      "ci": ".github/workflows/p0-conformance.yml",
+      "live": "disabled until credential isolation is complete"
     },
     {
       "id": "rss", "env_flag": "OIS_SEARCH_ENABLED", "status": "VERIFIED",
@@ -70,10 +75,15 @@
       "id": "sportmonks", "env_flag": "OIS_SEARCH_ENABLED", "status": "VERIFIED",
       "adapter": "ois/infrastructure/source_adapters/sportmonks.py:SportmonksFootballAdapter", "source_id": "sportmonks:football:v3",
       "tool_registry": "ois/registries/core.py:ToolRegistry", "capability_registry": "ois/registries/core.py:CapabilityRegistry",
-      "auth": "api_key through HttpSourceAdapter", "scopes": "football.live,football.fixtures,evidence.raw",
-      "policy": "SourceGateway credential + tenant policy", "retry": "OIS HTTP/recovery retry contract",
-      "rate_limit": "SourceGateway RateLimitManager", "idempotency": "SourceGateway evidence/idempotency boundary",
-      "tests": "tests/infrastructure/test_sportmonks_adapter.py", "ci": ".github/workflows/live-sportmonks-verification.yml", "live": "protected opt-in workflow"
+      "auth": "api_key via SourceGateway.authenticate_request -> CredentialAuthManager -> CredentialResolver",
+      "scopes": "football.live,football.fixtures,evidence.raw",
+      "policy": "SourceGateway credential + tenant policy",
+      "retry": "OIS HTTP/recovery retry contract",
+      "rate_limit": "SourceGateway RateLimitManager",
+      "idempotency": "SourceGateway IdempotencyStore + evidence/idempotency boundary",
+      "tests": "tests/infrastructure/test_sportmonks_adapter.py",
+      "ci": ".github/workflows/live-sportmonks-verification.yml",
+      "live": "protected opt-in workflow"
     },
     {
       "id": "sociavault", "env_flag": "OIS_SEARCH_ENABLED", "status": "VERIFIED",
