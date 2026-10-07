@@ -1,4 +1,5 @@
 """Deterministic recovery conformance scenarios."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -11,6 +12,7 @@ class RecoveryAction(StrEnum):
     REPLAN = "replan"
     ESCALATE = "escalate"
     TERMINATE = "terminate"
+
 
 @dataclass(frozen=True)
 class RecoveryCase:

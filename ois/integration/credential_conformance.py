@@ -7,9 +7,8 @@ from typing import Protocol
 
 
 class CredentialResolver(Protocol):
-    def resolve(
-        self, *, tenant_id: str, workspace_id: str, credential_id: str
-    ) -> object: ...
+    def resolve(self, *, tenant_id: str, workspace_id: str, credential_id: str) -> object: ...
+
 
 @dataclass(frozen=True)
 class CredentialResolutionProof:
@@ -31,9 +30,7 @@ def assert_credential_resolver_conformance(
         raise AssertionError("resolver failed valid credential resolution")
     blocked = False
     try:
-        resolver.resolve(
-            tenant_id="tenant-b", workspace_id="workspace-a", credential_id="cred-a"
-        )
+        resolver.resolve(tenant_id="tenant-b", workspace_id="workspace-a", credential_id="cred-a")
     except (PermissionError, KeyError, ValueError):
         blocked = True
     if not blocked:

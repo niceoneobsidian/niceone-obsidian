@@ -28,6 +28,7 @@ class ConformanceStatus(StrEnum):
     MISSING = "MISSING"
     UNKNOWN = "UNKNOWN"
 
+
 CONFORMANCE_COLUMNS: tuple[str, ...] = (
     "PROVIDER",
     "ADAPTER",
@@ -54,11 +55,13 @@ CONFORMANCE_COLUMNS: tuple[str, ...] = (
     "PRODUCTION VERIFICATION",
 )
 
+
 @dataclass(frozen=True)
 class ConformanceCell:
     status: ConformanceStatus
     evidence: tuple[str, ...] = ()
     note: str | None = None
+
 
 @dataclass(frozen=True)
 class IntegrationConformanceRecord:
@@ -75,6 +78,7 @@ class IntegrationConformanceRecord:
 
     def evidence_row(self) -> dict[str, dict[str, Any]]:
         return {column: asdict(self.cells[column]) for column in CONFORMANCE_COLUMNS}
+
 
 @dataclass(frozen=True)
 class ConformanceReport:
@@ -104,14 +108,12 @@ class ConformanceReport:
             "generated_by": self.generated_by,
             "columns": list(self.columns),
             "matrix": list(self.matrix),
-            "evidence": {
-                record.source_id: record.evidence_row()
-                for record in self.records
-            },
+            "evidence": {record.source_id: record.evidence_row() for record in self.records},
         }
 
     def to_json(self, *, indent: int = 2) -> str:
         return json.dumps(self.to_dict(), indent=indent, sort_keys=False)
+
 
 MetadataVerifier = Callable[
     [str, SourceAdapter, SourceSpec],
@@ -120,6 +122,7 @@ MetadataVerifier = Callable[
         ConformanceCell | ConformanceStatus | str | Mapping[str, Any],
     ],
 ]
+
 
 class IntegrationConformance:
     """Canonical registry-driven conformance auditor."""
@@ -163,8 +166,7 @@ class IntegrationConformance:
     ) -> dict[str, ConformanceCell]:
         has_ingest = callable(getattr(adapter, "ingest", None))
         cells = {
-            column: ConformanceCell(ConformanceStatus.UNKNOWN)
-            for column in CONFORMANCE_COLUMNS
+            column: ConformanceCell(ConformanceStatus.UNKNOWN) for column in CONFORMANCE_COLUMNS
         }
         cells["ADAPTER"] = ConformanceCell(
             ConformanceStatus.IMPLEMENTED if has_ingest else ConformanceStatus.MISSING,
@@ -208,10 +210,7 @@ class IntegrationConformance:
 
     @staticmethod
     def _coerce_cell(
-        value: ConformanceCell
-        | ConformanceStatus
-        | str
-        | Mapping[str, Any],
+        value: ConformanceCell | ConformanceStatus | str | Mapping[str, Any],
     ) -> ConformanceCell:
         if isinstance(value, ConformanceCell):
             return value
@@ -225,12 +224,14 @@ class IntegrationConformance:
             value.get("note"),
         )
 
+
 def audit_registered_integrations(
     registry: SourceAdapterRegistry,
     *,
     verifier: MetadataVerifier | None = None,
 ) -> ConformanceReport:
     return IntegrationConformance(registry, verifier=verifier).audit()
+
 
 def rows(report: ConformanceReport) -> Iterable[dict[str, str]]:
     return report.matrix

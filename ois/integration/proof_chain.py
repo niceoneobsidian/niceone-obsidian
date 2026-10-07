@@ -1,4 +1,5 @@
 """Governed Tool -> Capability -> Policy -> Provider proof chain."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass

@@ -3,6 +3,7 @@
 No credential is loaded unless explicitly enabled by the live-test environment.
 Writes remain prohibited by default.
 """
+
 from __future__ import annotations
 
 import os
@@ -22,9 +23,7 @@ class LiveTestConfig:
     @classmethod
     def from_env(cls) -> LiveTestConfig:
         enabled = os.getenv("OIS_LIVE_TESTS", "").lower() in {"1", "true", "yes"}
-        allow_writes = os.getenv("OIS_LIVE_ALLOW_WRITES", "").lower() in {
-            "1", "true", "yes"
-        }
+        allow_writes = os.getenv("OIS_LIVE_ALLOW_WRITES", "").lower() in {"1", "true", "yes"}
         mode = os.getenv("OIS_LIVE_MODE", "read_only")
         cfg = cls(
             enabled=enabled,

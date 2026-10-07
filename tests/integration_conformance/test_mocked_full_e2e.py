@@ -6,7 +6,6 @@ class Trace:
     events: list[str]
 
 
-
 def test_mocked_full_ois_e2e():
     trace = Trace([])
     trace.events.append("intent")
@@ -18,6 +17,12 @@ def test_mocked_full_ois_e2e():
     trace.events.append("provenance")
     trace.events.append("validation")
     assert trace.events == [
-        "intent", "policy", "capability", "tool", "provider",
-        "evidence", "provenance", "validation",
+        "intent",
+        "policy",
+        "capability",
+        "tool",
+        "provider",
+        "evidence",
+        "provenance",
+        "validation",
     ]

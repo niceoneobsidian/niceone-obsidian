@@ -3,6 +3,7 @@
 Manifests describe what a provider is expected to prove. They never promote
 runtime evidence by declaration alone.
 """
+
 from __future__ import annotations
 
 from collections.abc import Mapping
@@ -25,6 +26,7 @@ REQUIRED_SECTIONS = {
     "tests",
     "live",
 }
+
 
 @dataclass(frozen=True)
 class ProviderConformanceManifest:
@@ -83,6 +85,7 @@ class ProviderConformanceManifest:
             raise ValueError(
                 "provider conformance live policy must be read_only with writes disabled"
             )
+
 
 def load_manifest(data: Mapping[str, Any]) -> ProviderConformanceManifest:
     manifest = ProviderConformanceManifest.from_dict(data)
