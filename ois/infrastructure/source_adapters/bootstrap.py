@@ -29,6 +29,21 @@ def _http_provider_conformance(
     return ProviderConformanceMetadata(
         source_id=source_id,
         claims={
+            "ADAPTER": ConformanceEvidence(
+                "IMPLEMENTED",
+                (source_path,),
+                "Provider implements the governed SourceAdapter ingest boundary.",
+            ),
+            "REGISTRATION": ConformanceEvidence(
+                "IMPLEMENTED",
+                ("ois/infrastructure/source_adapters/bootstrap.py",),
+                "Provider is registered by the canonical application source registry.",
+            ),
+            "CAPABILITY": ConformanceEvidence(
+                "IMPLEMENTED",
+                ("ois/infrastructure/source_adapters/bootstrap.py",),
+                "Provider capabilities are declared by its canonical SourceSpec.",
+            ),
             "AUTH": ConformanceEvidence(
                 "IMPLEMENTED",
                 evidence,
@@ -45,6 +60,31 @@ def _http_provider_conformance(
                 evidence,
                 "HttpSourceAdapter requires a positive timeout and passes it to "
                 "urllib request execution.",
+            ),
+            "PROVENANCE": ConformanceEvidence(
+                "IMPLEMENTED",
+                ("ois/infrastructure/source_gateway/contracts.py",),
+                "SourceProvenance is part of the governed source gateway contract.",
+            ),
+            "EVIDENCE": ConformanceEvidence(
+                "IMPLEMENTED",
+                ("ois/infrastructure/source_gateway/gateway.py",),
+                "SourceGateway commits canonical raw evidence for source observations.",
+            ),
+            "STRUCTURAL TEST": ConformanceEvidence(
+                "TESTED",
+                ("tests/integration_conformance/test_repository_certificate_cli_contract.py",),
+                "Canonical registry structure and certificate integration are structurally tested.",
+            ),
+            "CONTRACT TEST": ConformanceEvidence(
+                "TESTED",
+                ("tests/integrations/test_phase_a_sources.py",),
+                "Provider source contracts are covered by the Phase A integration tests.",
+            ),
+            "CI GATE": ConformanceEvidence(
+                "TESTED",
+                (".github/workflows/p0-conformance.yml",),
+                "The canonical provider registry is exercised by the repository P0 conformance gate.",
             ),
         },
     )
@@ -104,6 +144,21 @@ def build_application_source_adapter_registry() -> SourceAdapterRegistry:
         conformance=ProviderConformanceMetadata(
             source_id=sportmonks.source_id,
             claims={
+                "ADAPTER": ConformanceEvidence(
+                    "IMPLEMENTED",
+                    ("ois/infrastructure/source_adapters/sportmonks.py",),
+                    "Sportmonks implements the governed SourceAdapter ingest boundary.",
+                ),
+                "REGISTRATION": ConformanceEvidence(
+                    "IMPLEMENTED",
+                    ("ois/infrastructure/source_adapters/bootstrap.py",),
+                    "Sportmonks is registered by the canonical application source registry.",
+                ),
+                "CAPABILITY": ConformanceEvidence(
+                    "IMPLEMENTED",
+                    ("ois/infrastructure/source_adapters/sportmonks.py",),
+                    "Sportmonks declares football and raw-evidence capabilities in SourceSpec.",
+                ),
                 "AUTH": ConformanceEvidence(
                     "IMPLEMENTED",
                     (
@@ -126,6 +181,31 @@ def build_application_source_adapter_registry() -> SourceAdapterRegistry:
                     "IMPLEMENTED",
                     ("ois/infrastructure/source_adapters/sportmonks.py",),
                     "Sportmonks exposes a positive HTTP timeout through its adapter constructor.",
+                ),
+                "PROVENANCE": ConformanceEvidence(
+                    "IMPLEMENTED",
+                    ("ois/infrastructure/source_gateway/contracts.py",),
+                    "SourceProvenance is part of the governed source gateway contract.",
+                ),
+                "EVIDENCE": ConformanceEvidence(
+                    "IMPLEMENTED",
+                    ("ois/infrastructure/source_gateway/gateway.py",),
+                    "SourceGateway commits canonical raw evidence for Sportmonks observations.",
+                ),
+                "STRUCTURAL TEST": ConformanceEvidence(
+                    "TESTED",
+                    ("tests/integration_conformance/test_repository_certificate_cli_contract.py",),
+                    "Canonical registry structure and certificate integration are structurally tested.",
+                ),
+                "CONTRACT TEST": ConformanceEvidence(
+                    "TESTED",
+                    ("tests/infrastructure/test_sportmonks_adapter.py",),
+                    "Sportmonks adapter behavior is covered by its infrastructure contract tests.",
+                ),
+                "CI GATE": ConformanceEvidence(
+                    "TESTED",
+                    (".github/workflows/p0-conformance.yml",),
+                    "Sportmonks participates in the repository P0 conformance gate.",
                 ),
             },
         ),
