@@ -259,6 +259,7 @@ def cmd_summary(args: argparse.Namespace) -> int:
 
 def cmd_config_validate(_: argparse.Namespace) -> int:
     from ois.config.startup import main as config_main
+
     return config_main()
 
 

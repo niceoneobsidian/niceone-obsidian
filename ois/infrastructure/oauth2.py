@@ -270,7 +270,11 @@ class OAuth2Provider:
         if self.config.use_pkce:
             verifier = secrets.token_urlsafe(48)
             self._pkce_verifiers[state_value] = verifier
-            challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode("ascii")).digest()).rstrip(b"=").decode("ascii")
+            challenge = (
+                base64.urlsafe_b64encode(hashlib.sha256(verifier.encode("ascii")).digest())
+                .rstrip(b"=")
+                .decode("ascii")
+            )
             params["code_challenge"] = challenge
             params["code_challenge_method"] = self.config.pkce_method
         params.update(dict(self.config.authorization_params))
@@ -282,7 +286,9 @@ class OAuth2Provider:
         ):
             raise PermissionError("invalid or replayed OAuth2 state")
 
-    def exchange_code(self, code: str, *, state: str | None = None, code_verifier: str | None = None) -> OAuth2Token:
+    def exchange_code(
+        self, code: str, *, state: str | None = None, code_verifier: str | None = None
+    ) -> OAuth2Token:
         if not code:
             raise ValueError("OAuth2 authorization code is required")
         verifier = code_verifier or (self._pkce_verifiers.pop(state, None) if state else None)
