@@ -18,12 +18,13 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
+from ois.infrastructure.source_adapters.base import SourceAdapterRegistry
+
 from .conformance import (
     ConformanceReport,
     ConformanceStatus,
     IntegrationConformance,
 )
-from ois.infrastructure.source_adapters.base import SourceAdapterRegistry
 
 
 DEFAULT_REGISTRY_FACTORY = (
@@ -309,7 +310,8 @@ def main(argv: list[str] | None = None) -> int:
         registry=_load_registry(args.registry_factory),
         commit=args.commit,
     )
-    Path(args.output).write_text(certificate.to_json() + "\n", encoding="utf-8")
+    Path(args.output).write_text(certificate.to_json() + "
+", encoding="utf-8")
     print(certificate.to_json())
     return 1 if args.strict and not certificate.valid else 0
 
