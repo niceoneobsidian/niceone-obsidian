@@ -14,6 +14,7 @@ def test_proof_chain_requires_authorization():
         )
 
 def test_live_harness_is_read_only_by_default(monkeypatch):
+
     for key in (
         "OIS_LIVE_TESTS", "OIS_LIVE_PROVIDER", "OIS_LIVE_ALLOW_WRITES",
         "OIS_LIVE_MODE", "OIS_LIVE_TENANT", "OIS_LIVE_WORKSPACE", "OIS_LIVE_TIMEOUT",
@@ -24,10 +25,12 @@ def test_live_harness_is_read_only_by_default(monkeypatch):
     assert cfg.mode == "read_only"
     assert cfg.allow_writes is False
 
+
 def test_live_harness_rejects_writes(monkeypatch):
     monkeypatch.setenv("OIS_LIVE_ALLOW_WRITES", "true")
     with pytest.raises(ValueError):
         LiveTestConfig.from_env()
+
 
 def test_live_harness_requires_provider_when_enabled(monkeypatch):
     monkeypatch.setenv("OIS_LIVE_TESTS", "true")
