@@ -13,6 +13,7 @@ those proofs.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from types import MappingProxyType
 from typing import Final, Mapping
 
 CONFORMANCE_METADATA_COLUMNS: Final[tuple[str, ...]] = (
@@ -87,6 +88,7 @@ class ProviderConformanceMetadata:
         unknown = set(self.claims) - set(CONFORMANCE_METADATA_COLUMNS)
         if unknown:
             raise ValueError(f"unknown conformance metadata columns: {sorted(unknown)}")
+        object.__setattr__(self, "claims", MappingProxyType(dict(self.claims)))
 
     def claim(self, column: str) -> ConformanceEvidence | None:
         return self.claims.get(column)
