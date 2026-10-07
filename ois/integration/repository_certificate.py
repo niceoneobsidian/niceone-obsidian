@@ -184,8 +184,43 @@ class RepositoryConformanceCertificateBuilder:
     def build(self) -> IntegrationConformanceCertificate:
         base_report = IntegrationConformance(self.registry).audit()
         evidence_map = {
-            record.source_id: self.scanner.evidence_for(record.source_id)
+            record.source_id: list(self.scanner.evidence_for(record.source_id))
             for record in base_report.records
+        }
+        metadata_failures: list[str] = []
+
+        for record in base_report.records:
+            metadata = self.registry.conformance(record.source_id)
+            if metadata is None:
+                continue
+            for column, claim in metadata.claims.items():
+                for evidence_path in claim.evidence:
+                    candidate = (self.scanner.root / evidence_path).resolve()
+                    try:
+                        relative = candidate.relative_to(self.scanner.root)
+                    except ValueError:
+                        metadata_failures.append(
+                            f"{record.source_id}:{column}:evidence-outside-root={evidence_path}"
+                        )
+                        continue
+                    if not candidate.is_file():
+                        metadata_failures.append(
+                            f"{record.source_id}:{column}:evidence-missing={evidence_path}"
+                        )
+                        continue
+                    evidence_map[record.source_id].append(
+                        RepositoryEvidence(
+                            str(relative),
+                            f"CONFORMANCE_{column}",
+                            claim.note or evidence_path,
+                        )
+                    )
+
+        evidence_map = {
+            source_id: tuple(
+                sorted(set(items), key=lambda item: (item.kind, item.path, item.detail))
+            )
+            for source_id, items in evidence_map.items()
         }
 
         evidence_to_column = {
@@ -219,7 +254,7 @@ class RepositoryConformanceCertificateBuilder:
             )
 
         report = ConformanceReport(tuple(enriched_records))
-        failures: list[str] = []
+        failures: list[str] = list(metadata_failures)
 
         if not report.records:
             failures.append("REGISTRY_EMPTY")
