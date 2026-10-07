@@ -2,7 +2,7 @@
 
 IntegrationConformance is the canonical verification layer over the existing integration fabric. It does not create a second provider registry, gateway, credential system, retry system, rate limiter, or evidence system.
 
-## Two evidence layers
+## Three evidence layers
 
 ### 1. Runtime registry conformance
 
@@ -12,11 +12,20 @@ PROVIDER | ADAPTER | REGISTRATION | CAPABILITY | TOOL | AUTH | CREDENTIAL | SCOP
 
 Unknown is intentional. A registered adapter is not automatically live, E2E verified, or production verified.
 
-### 2. Repository-wide certificate
+### 2. Explicit provider conformance metadata
+
+Canonical source registrations may attach `ProviderConformanceMetadata` to the same `SourceAdapterRegistry` entry. Each claim names a 23-column dimension, a conformance status, and repository-relative evidence paths. This is the explicit contract for dimensions that cannot safely be inferred from generic adapter structure.
+
+Metadata is evidence-backed and immutable. Positive claims must include evidence paths, and the repository certificate verifies those paths exist inside the repository. Metadata cannot claim live, E2E, or production verification; those statuses require runtime/CI proof. This keeps static provider declarations from becoming false production readiness signals.
+
+For the current canonical Phase-A sources, metadata explicitly declares authentication, credential binding, and timeout behavior. Scopes, policy, retry, rate-limit, idempotency, event, live, E2E, negative, and production dimensions remain UNKNOWN until their own evidence contracts are implemented.
+
+### 3. Repository-wide certificate
 
 ois.integration.repository_certificate binds the matrix to repository evidence:
 
 - provider/source adapter implementation
+- explicit provider conformance metadata and its evidence paths
 - registry and SourceSpec evidence
 - authentication and credential paths
 - scopes
