@@ -150,7 +150,12 @@ def test_canonical_providers_publish_explicit_conformance_metadata() -> None:
         for column in columns:
             claim = metadata.claim(column)
             assert claim is not None
-            assert claim.status == "IMPLEMENTED"
+            expected_status = "TESTED" if column in {
+                "STRUCTURAL TEST",
+                "CONTRACT TEST",
+                "CI GATE",
+            } else "IMPLEMENTED"
+            assert claim.status == expected_status
             assert claim.evidence
 
     for source_id in expected:
