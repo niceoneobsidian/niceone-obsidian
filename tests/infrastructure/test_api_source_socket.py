@@ -2,9 +2,64 @@ from __future__ import annotations
 
 import pytest
 
-from ois.infrastructure.source_adapters import FileSourceAdapter, SourceAdapterRegistry
+from ois.infrastructure.source_adapters import (
+    AdapterHealth,
+    FileSourceAdapter,
+    SourceAdapterRegistry,
+)
 from ois.infrastructure.source_gateway import SourceGateway, SQLiteSourceLedger
 from ois.infrastructure.source_gateway.socket import ApiSourceSocket
+
+
+def test_socket_health_passes_keyword_arguments_to_adapters() -> None:
+    class HealthAdapter:
+        source_id = "health:test"
+
+        def health(
+            self,
+            *,
+            gateway: SourceGateway | None = None,
+            tenant_id: str | None = None,
+            workspace_id: str | None = None,
+            credential_id: str | None = None,
+        ) -> AdapterHealth:
+            assert gateway is not None
+            assert tenant_id == "tenant-1"
+            assert workspace_id == "workspace-1"
+            assert credential_id == "credential-1"
+            return AdapterHealth(
+                source_id=self.source_id,
+                healthy=True,
+                checked_at="2026-01-01T00:00:00+00:00",
+            )
+
+        def ingest(
+            self,
+            *,
+            tenant_id: str,
+            workspace_id: str,
+            gateway: SourceGateway,
+            credential_id: str | None = None,
+        ):
+            raise NotImplementedError
+
+    api_socket = socket()
+    api_socket.register(HealthAdapter())
+
+    result = api_socket.health(
+        "health:test",
+        tenant_id="tenant-1",
+        workspace_id="workspace-1",
+        credential_id="credential-1",
+    )
+
+    assert result == (
+        AdapterHealth(
+            source_id="health:test",
+            healthy=True,
+            checked_at="2026-01-01T00:00:00+00:00",
+        ),
+    )
 
 
 def socket() -> ApiSourceSocket:
