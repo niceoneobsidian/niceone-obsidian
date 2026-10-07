@@ -310,8 +310,7 @@ def main(argv: list[str] | None = None) -> int:
         registry=_load_registry(args.registry_factory),
         commit=args.commit,
     )
-    Path(args.output).write_text(certificate.to_json() + "
-", encoding="utf-8")
+    Path(args.output).write_text(certificate.to_json() + "\n", encoding="utf-8")
     print(certificate.to_json())
     return 1 if args.strict and not certificate.valid else 0
 
