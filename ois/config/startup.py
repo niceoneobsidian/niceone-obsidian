@@ -17,7 +17,6 @@ def startup_report(env: Mapping[str, str] | None = None) -> dict[str, object]:
         "external_apis_enabled": s.external_apis_enabled,
         "external_reads_enabled": s.external_reads_enabled,
         "external_writes_enabled": s.external_writes_enabled,
-        "secret_provider": s.secret_provider,
         "validation_required": s.require_validation,
         "capability_evidence_required": s.require_capability_evidence,
     }
