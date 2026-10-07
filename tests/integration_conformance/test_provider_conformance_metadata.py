@@ -153,6 +153,24 @@ def test_canonical_providers_publish_explicit_conformance_metadata() -> None:
             assert claim.status == "IMPLEMENTED"
             assert claim.evidence
 
+    for source_id in expected:
+        metadata = registry.conformance(source_id)
+        assert metadata is not None
+        for column in {
+            "TOOL",
+            "SCOPES",
+            "POLICY",
+            "RATE LIMIT",
+            "RETRY",
+            "IDEMPOTENCY",
+            "EVENTS",
+            "LIVE TEST",
+            "E2E TEST",
+            "NEGATIVE TEST",
+            "PRODUCTION VERIFICATION",
+        }:
+            assert metadata.claim(column) is None
+
 
 def test_repository_certificate_validates_and_records_metadata_evidence(tmp_path: Path) -> None:
     evidence_path = tmp_path / "ois/example.py"
