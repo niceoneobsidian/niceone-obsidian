@@ -18,11 +18,16 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
-from ois.infrastructure.source_adapters.base import SourceAdapterRegistry
 from .conformance import (
     ConformanceReport,
     ConformanceStatus,
     IntegrationConformance,
+)
+from ois.infrastructure.source_adapters.base import SourceAdapterRegistry
+
+
+DEFAULT_REGISTRY_FACTORY = (
+    "ois.infrastructure.source_adapters.bootstrap:build_application_source_adapter_registry"
 )
 
 
@@ -286,9 +291,7 @@ def _load_registry(factory_path: str) -> SourceAdapterRegistry:
 
     registry = factory()
     if not isinstance(registry, SourceAdapterRegistry):
-        raise TypeError(
-            f"registry factory must return SourceAdapterRegistry: {factory_path}"
-        )
+        raise TypeError(f"registry factory must return SourceAdapterRegistry: {factory_path}")
     return registry
 
 
