@@ -116,33 +116,6 @@ class ApiSourceSocket:
             credential_id=credential_id or (definition.credential_id if definition else None),
         )
 
-    def _health_credential(
-        self,
-        *,
-        tenant_id: str | None,
-        workspace_id: str | None,
-        credential_id: str | None,
-        source_id: str,
-    ) -> object | None:
-        if credential_id is None:
-            return None
-        if tenant_id is None or workspace_id is None:
-            raise ValueError(
-                "tenant_id and workspace_id are required when credential_id is supplied"
-            )
-        from ois.infrastructure.source_gateway import CredentialRef, TenantScope
-
-        ref = CredentialRef(
-            credential_id=credential_id,
-            tenant_id=tenant_id,
-            provider=source_id.split(":", 1)[0],
-            scopes=(),
-        )
-        return self._gateway.resolve_credential(
-            ref,
-            TenantScope(tenant_id=tenant_id, workspace_id=workspace_id),
-        )
-
     def health(
         self,
         source_id: str | None = None,
@@ -158,13 +131,14 @@ class ApiSourceSocket:
             adapter = self._registry.get(item)
             check = getattr(cast(Any, adapter), "health", None)
             if callable(check):
-                credential = self._health_credential(
-                    tenant_id=tenant_id,
-                    workspace_id=workspace_id,
-                    credential_id=credential_id,
-                    source_id=item,
+                results.append(
+                    check(
+                        gateway=self._gateway,
+                        tenant_id=tenant_id,
+                        workspace_id=workspace_id,
+                        credential_id=credential_id,
+                    )
                 )
-                results.append(check(credential))
             else:
                 results.append(
                     AdapterHealth(
@@ -191,13 +165,12 @@ class ApiSourceSocket:
         health_check = getattr(cast(Any, adapter), "health", None)
         if not callable(health_check):
             return SocketStatus(source_id, True, True, "health_check_not_supported")
-        credential = self._health_credential(
+        health = health_check(
+            gateway=self._gateway,
             tenant_id=tenant_id,
             workspace_id=workspace_id,
             credential_id=credential_id,
-            source_id=source_id,
         )
-        health = health_check(credential)
         return SocketStatus(source_id, True, health.healthy, health.reason)
 
     def ingest_payload(

@@ -32,7 +32,12 @@ def main() -> int:
     branch = branch.strip()
     if code != 0:
         failures.append("unable to determine current Git branch")
-    elif branch == "main" and not os.environ.get("OIS_ALLOW_MAIN"):
+
+    is_github_actions = os.environ.get("GITHUB_ACTIONS") == "true"
+    event_name = os.environ.get("GITHUB_EVENT_NAME", "")
+    is_ci_context = is_github_actions and event_name in {"push", "pull_request"}
+
+    if branch == "main" and not is_ci_context and not os.environ.get("OIS_ALLOW_MAIN"):
         failures.append("governance check must run from a PR/development branch")
 
     code, status = run("git", "status", "--porcelain")
