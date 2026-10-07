@@ -3,6 +3,7 @@ import pytest
 from ois.integration.live_harness import LiveTestConfig
 
 @pytest.mark.live
+
 def test_live_provider_read_only():
     cfg = LiveTestConfig.from_env()
     if not cfg.enabled:
