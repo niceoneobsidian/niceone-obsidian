@@ -87,10 +87,58 @@ def test_canonical_providers_publish_explicit_conformance_metadata() -> None:
     registry = build_application_source_adapter_registry()
 
     expected = {
-        "github.rest.user": {"AUTH", "CREDENTIAL", "TIMEOUT"},
-        "google.drive.files": {"AUTH", "CREDENTIAL", "TIMEOUT"},
-        "meta.graph.me": {"AUTH", "CREDENTIAL", "TIMEOUT"},
-        "sportmonks:football:v3": {"AUTH", "CREDENTIAL", "TIMEOUT"},
+        "github.rest.user": {
+            "ADAPTER",
+            "REGISTRATION",
+            "CAPABILITY",
+            "AUTH",
+            "CREDENTIAL",
+            "TIMEOUT",
+            "PROVENANCE",
+            "EVIDENCE",
+            "STRUCTURAL TEST",
+            "CONTRACT TEST",
+            "CI GATE",
+        },
+        "google.drive.files": {
+            "ADAPTER",
+            "REGISTRATION",
+            "CAPABILITY",
+            "AUTH",
+            "CREDENTIAL",
+            "TIMEOUT",
+            "PROVENANCE",
+            "EVIDENCE",
+            "STRUCTURAL TEST",
+            "CONTRACT TEST",
+            "CI GATE",
+        },
+        "meta.graph.me": {
+            "ADAPTER",
+            "REGISTRATION",
+            "CAPABILITY",
+            "AUTH",
+            "CREDENTIAL",
+            "TIMEOUT",
+            "PROVENANCE",
+            "EVIDENCE",
+            "STRUCTURAL TEST",
+            "CONTRACT TEST",
+            "CI GATE",
+        },
+        "sportmonks:football:v3": {
+            "ADAPTER",
+            "REGISTRATION",
+            "CAPABILITY",
+            "AUTH",
+            "CREDENTIAL",
+            "TIMEOUT",
+            "PROVENANCE",
+            "EVIDENCE",
+            "STRUCTURAL TEST",
+            "CONTRACT TEST",
+            "CI GATE",
+        },
     }
 
     for source_id, columns in expected.items():
@@ -102,8 +150,31 @@ def test_canonical_providers_publish_explicit_conformance_metadata() -> None:
         for column in columns:
             claim = metadata.claim(column)
             assert claim is not None
-            assert claim.status == "IMPLEMENTED"
+            expected_status = (
+                "TESTED"
+                if column in {"STRUCTURAL TEST", "CONTRACT TEST", "CI GATE"}
+                else "IMPLEMENTED"
+            )
+            assert claim.status == expected_status
             assert claim.evidence
+
+    for source_id in expected:
+        metadata = registry.conformance(source_id)
+        assert metadata is not None
+        for column in {
+            "TOOL",
+            "SCOPES",
+            "POLICY",
+            "RATE LIMIT",
+            "RETRY",
+            "IDEMPOTENCY",
+            "EVENTS",
+            "LIVE TEST",
+            "E2E TEST",
+            "NEGATIVE TEST",
+            "PRODUCTION VERIFICATION",
+        }:
+            assert metadata.claim(column) is None
 
 
 def test_repository_certificate_validates_and_records_metadata_evidence(tmp_path: Path) -> None:
