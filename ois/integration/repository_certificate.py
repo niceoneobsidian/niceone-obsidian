@@ -26,7 +26,6 @@ from .conformance import (
     IntegrationConformance,
 )
 
-
 DEFAULT_REGISTRY_FACTORY = (
     "ois.infrastructure.source_adapters.bootstrap:build_application_source_adapter_registry"
 )
