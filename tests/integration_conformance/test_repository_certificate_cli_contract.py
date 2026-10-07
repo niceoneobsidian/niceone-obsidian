@@ -13,7 +13,15 @@ from ois.integration.repository_certificate import (
 def test_application_bootstrap_is_the_canonical_source_registry() -> None:
     registry = build_application_source_adapter_registry()
 
-    assert registry.list() == ("sportmonks:football:v3",)
+    assert registry.list() == (
+        "github.rest.user",
+        "google.drive.files",
+        "meta.graph.me",
+        "sportmonks:football:v3",
+    )
+    assert registry.spec("github.rest.user").provider == "github"
+    assert registry.spec("google.drive.files").provider == "google"
+    assert registry.spec("meta.graph.me").provider == "meta"
     assert registry.spec("sportmonks:football:v3").provider == "sportmonks"
 
 
