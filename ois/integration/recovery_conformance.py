@@ -1,7 +1,9 @@
 """Deterministic recovery conformance scenarios."""
 from __future__ import annotations
+
 from dataclasses import dataclass
 from enum import StrEnum
+
 
 class RecoveryAction(StrEnum):
     RETRY = "retry"
@@ -16,6 +18,7 @@ class RecoveryCase:
     fault: str
     expected: RecoveryAction
     max_attempts: int = 2
+
 
 RECOVERY_CASES = (
     RecoveryCase("RC-01", "timeout", RecoveryAction.RETRY),
