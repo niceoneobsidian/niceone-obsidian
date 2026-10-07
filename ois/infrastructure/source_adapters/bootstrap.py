@@ -84,7 +84,8 @@ def _http_provider_conformance(
             "CI GATE": ConformanceEvidence(
                 "TESTED",
                 (".github/workflows/p0-conformance.yml",),
-                "The canonical provider registry is exercised by the repository P0 conformance gate.",
+                "The canonical provider registry is exercised by the repository P0 "
+                "conformance gate.",
             ),
         },
     )
@@ -195,7 +196,8 @@ def build_application_source_adapter_registry() -> SourceAdapterRegistry:
                 "STRUCTURAL TEST": ConformanceEvidence(
                     "TESTED",
                     ("tests/integration_conformance/test_repository_certificate_cli_contract.py",),
-                    "Canonical registry structure and certificate integration are structurally tested.",
+                    "Canonical registry structure and certificate integration are "
+                    "structurally tested.",
                 ),
                 "CONTRACT TEST": ConformanceEvidence(
                     "TESTED",
