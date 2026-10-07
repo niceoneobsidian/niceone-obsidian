@@ -235,10 +235,14 @@ class RepositoryConformanceCertificateBuilder:
         source_text = ""
         for rel in source_paths:
             source_text += self.scanner._read(self.scanner.root / rel) + "\n"
-        all_text = "\n".join(
-            self.scanner._read(self.scanner.root / p) for p in paths
+        evidence_text = "\n".join(
+            self.scanner._read(self.scanner.root / p)
+            for p in paths
+            if source_id in self.scanner._read(self.scanner.root / p)
         )
-
+        # Provider/source-scoped evidence only. Generic repository infrastructure
+        # must not certify a specific provider unless the provider/source ID is
+        # explicitly present in the evidence artifact.
         cells = {
             column: ConformanceCell(ConformanceStatus.UNKNOWN)
             for column in CONFORMANCE_COLUMNS
@@ -253,17 +257,17 @@ class RepositoryConformanceCertificateBuilder:
         )
         cells["REGISTRATION"] = self._status(
             "REGISTRATION",
-            "REGISTRY" in kinds or "register(" in all_text,
+            "REGISTRY" in kinds or "register(" in evidence_text,
             evidence,
         )
         cells["CAPABILITY"] = self._status(
             "CAPABILITY",
-            "capabilities=" in all_text or "capability" in all_text.lower(),
+            "capabilities=" in evidence_text or "capability" in evidence_text.lower(),
             evidence,
         )
         cells["TOOL"] = self._status(
             "TOOL",
-            "toolregistry" in all_text.lower() and source_id in all_text,
+            "toolregistry" in evidence_text.lower(),
             evidence,
         )
         cells["AUTH"] = self._status(
@@ -284,19 +288,19 @@ class RepositoryConformanceCertificateBuilder:
         )
         cells["POLICY"] = self._status(
             "POLICY",
-            "policy" in all_text.lower() and (
-                "auth" in all_text.lower() or "authorize" in all_text.lower()
+            "policy" in evidence_text.lower() and (
+                "auth" in evidence_text.lower() or "authorize" in evidence_text.lower()
             ),
             evidence,
         )
         cells["RATE LIMIT"] = self._status(
             "RATE LIMIT",
-            "rate_limit" in source_text.lower() or "rate-limit" in all_text.lower(),
+            "rate_limit" in source_text.lower() or "rate-limit" in evidence_text.lower(),
             evidence,
         )
         cells["RETRY"] = self._status(
             "RETRY",
-            "retry" in source_text.lower() and source_id in all_text,
+            "retry" in source_text.lower() or "retry" in evidence_text.lower(),
             evidence,
         )
         cells["TIMEOUT"] = self._status(
@@ -306,22 +310,22 @@ class RepositoryConformanceCertificateBuilder:
         )
         cells["IDEMPOTENCY"] = self._status(
             "IDEMPOTENCY",
-            "idempotency_key" in source_text or "idempotency" in all_text.lower(),
+            "idempotency_key" in source_text or "idempotency" in evidence_text.lower(),
             evidence,
         )
         cells["EVENTS"] = self._status(
             "EVENTS",
-            "event_id" in source_text and "gateway" in all_text.lower(),
+            "event_id" in source_text or "event_id" in evidence_text.lower(),
             evidence,
         )
         cells["PROVENANCE"] = self._status(
             "PROVENANCE",
-            "SourceProvenance" in source_text or "provenance" in all_text.lower(),
+            "SourceProvenance" in source_text or "provenance" in evidence_text.lower(),
             evidence,
         )
         cells["EVIDENCE"] = self._status(
             "EVIDENCE",
-            "evidence" in source_text.lower() or "raw_evidence" in all_text.lower(),
+            "evidence" in source_text.lower() or "raw_evidence" in evidence_text.lower(),
             evidence,
         )
         cells["STRUCTURAL TEST"] = self._status(
@@ -372,7 +376,7 @@ class RepositoryConformanceCertificateBuilder:
             "PRODUCTION_MANIFEST" in kinds
             and any(
                 re.search(
-                    r'"production_verified"\\s*:\\s*true\\b',
+                    r'"production_verified"\s*:\s*true\b',
                     self.scanner._read(self.scanner.root / item.path),
                     re.IGNORECASE,
                 )
