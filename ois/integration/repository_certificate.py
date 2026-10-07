@@ -208,17 +208,21 @@ class RepositoryConformanceCertificateBuilder:
                             f"{record.source_id}:{column}:evidence-missing={evidence_path}"
                         )
                         continue
+                    detail = claim.note or evidence_path
                     evidence_map[record.source_id].append(
                         RepositoryEvidence(
                             str(relative),
                             f"CONFORMANCE_{column}",
-                            claim.note or evidence_path,
+                            detail,
                         )
                     )
 
-        evidence_map = {
+        normalized_evidence: dict[str, tuple[RepositoryEvidence, ...]] = {
             source_id: tuple(
-                sorted(set(items), key=lambda item: (item.kind, item.path, item.detail))
+                sorted(
+                    set(items),
+                    key=lambda item: (item.kind, item.path, item.detail),
+                )
             )
             for source_id, items in evidence_map.items()
         }
@@ -233,11 +237,11 @@ class RepositoryConformanceCertificateBuilder:
         for record in base_report.records:
             cells = dict(record.cells)
 
-            for item in evidence_map[record.source_id]:
-                column = evidence_to_column.get(item.kind)
-                if column is None:
+            for item in normalized_evidence[record.source_id]:
+                if item.kind not in evidence_to_column:
                     continue
 
+                column = evidence_to_column[item.kind]
                 existing = cells[column]
                 cells[column] = existing.__class__(
                     status=ConformanceStatus.TESTED,
@@ -275,7 +279,7 @@ class RepositoryConformanceCertificateBuilder:
             "report": report.to_dict(),
             "evidence": {
                 key: [item.__dict__ for item in value]
-                for key, value in sorted(evidence_map.items())
+                for key, value in sorted(normalized_evidence.items())
             },
         }
 
@@ -295,7 +299,7 @@ class RepositoryConformanceCertificateBuilder:
             certificate_hash=digest,
             valid=bool(report.records) and not failures,
             failures=tuple(sorted(set(failures))),
-            evidence=evidence_map,
+            evidence=normalized_evidence,
         )
 
 

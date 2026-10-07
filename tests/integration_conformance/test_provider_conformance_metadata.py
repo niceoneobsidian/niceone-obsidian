@@ -6,11 +6,11 @@ from ois.infrastructure.source_adapters.base import SourceAdapterRegistry
 from ois.infrastructure.source_adapters.bootstrap import build_application_source_adapter_registry
 from ois.infrastructure.source_gateway.contracts import SourceSpec
 from ois.integration.conformance import IntegrationConformance
-from ois.integration.repository_certificate import CertificatePolicy, build_repository_certificate
 from ois.integration.conformance_metadata import (
     ConformanceEvidence,
     ProviderConformanceMetadata,
 )
+from ois.integration.repository_certificate import CertificatePolicy, build_repository_certificate
 
 
 class Adapter:

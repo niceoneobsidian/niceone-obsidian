@@ -9,13 +9,13 @@ from repository text.
 from __future__ import annotations
 
 from ois.infrastructure.source_gateway.contracts import SourceSpec
-from ois.integrations.github import GitHubSource
-from ois.integrations.google import GoogleDriveSource
-from ois.integrations.meta import MetaFacebookSource
 from ois.integration.conformance_metadata import (
     ConformanceEvidence,
     ProviderConformanceMetadata,
 )
+from ois.integrations.github import GitHubSource
+from ois.integrations.google import GoogleDriveSource
+from ois.integrations.meta import MetaFacebookSource
 
 from .base import SourceAdapterRegistry
 from .sportmonks import SportmonksFootballAdapter
@@ -32,7 +32,8 @@ def _http_provider_conformance(
             "AUTH": ConformanceEvidence(
                 "IMPLEMENTED",
                 evidence,
-                "Provider authentication is bound to HttpSourceAdapter and SourceGateway credential handling.",
+                "Provider authentication is bound to HttpSourceAdapter and SourceGateway "
+                "credential handling.",
             ),
             "CREDENTIAL": ConformanceEvidence(
                 "IMPLEMENTED",
@@ -42,7 +43,8 @@ def _http_provider_conformance(
             "TIMEOUT": ConformanceEvidence(
                 "IMPLEMENTED",
                 evidence,
-                "HttpSourceAdapter requires a positive timeout and passes it to urllib request execution.",
+                "HttpSourceAdapter requires a positive timeout and passes it to "
+                "urllib request execution.",
             ),
         },
     )
@@ -108,7 +110,8 @@ def build_application_source_adapter_registry() -> SourceAdapterRegistry:
                         "ois/infrastructure/source_adapters/sportmonks.py",
                         "ois/infrastructure/source_adapters/http.py",
                     ),
-                    "Sportmonks uses API-key authentication through the governed HTTP adapter and SourceGateway.",
+                    "Sportmonks uses API-key authentication through the governed HTTP "
+                    "adapter and SourceGateway.",
                 ),
                 "CREDENTIAL": ConformanceEvidence(
                     "IMPLEMENTED",
@@ -116,7 +119,8 @@ def build_application_source_adapter_registry() -> SourceAdapterRegistry:
                         "ois/infrastructure/source_adapters/sportmonks.py",
                         "ois/infrastructure/source_gateway/credentials.py",
                     ),
-                    "Sportmonks requires a credential reference and resolves it through the governed gateway.",
+                    "Sportmonks requires a credential reference and resolves it through "
+                    "the governed gateway.",
                 ),
                 "TIMEOUT": ConformanceEvidence(
                     "IMPLEMENTED",
