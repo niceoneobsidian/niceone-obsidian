@@ -6,6 +6,7 @@ Unknown dimensions remain UNKNOWN until explicit evidence is supplied.
 """
 
 from __future__ import annotations
+
 import json
 from dataclasses import asdict, dataclass
 from enum import StrEnum
@@ -13,6 +14,7 @@ from typing import Any, Callable, Iterable, Mapping
 
 from ois.infrastructure.source_adapters.base import SourceAdapter, SourceAdapterRegistry
 from ois.infrastructure.source_gateway.contracts import SourceSpec
+
 
 class ConformanceStatus(StrEnum):
     IMPLEMENTED = "IMPLEMENTED"
@@ -26,11 +28,29 @@ class ConformanceStatus(StrEnum):
     UNKNOWN = "UNKNOWN"
 
 CONFORMANCE_COLUMNS: tuple[str, ...] = (
-    "PROVIDER", "ADAPTER", "REGISTRATION", "CAPABILITY", "TOOL",
-    "AUTH", "CREDENTIAL", "SCOPES", "POLICY", "RATE LIMIT", "RETRY",
-    "TIMEOUT", "IDEMPOTENCY", "EVENTS", "PROVENANCE", "EVIDENCE",
-    "STRUCTURAL TEST", "CONTRACT TEST", "LIVE TEST", "E2E TEST",
-    "NEGATIVE TEST", "CI GATE", "PRODUCTION VERIFICATION",
+    "PROVIDER",
+    "ADAPTER",
+    "REGISTRATION",
+    "CAPABILITY",
+    "TOOL",
+    "AUTH",
+    "CREDENTIAL",
+    "SCOPES",
+    "POLICY",
+    "RATE LIMIT",
+    "RETRY",
+    "TIMEOUT",
+    "IDEMPOTENCY",
+    "EVENTS",
+    "PROVENANCE",
+    "EVIDENCE",
+    "STRUCTURAL TEST",
+    "CONTRACT TEST",
+    "LIVE TEST",
+    "E2E TEST",
+    "NEGATIVE TEST",
+    "CI GATE",
+    "PRODUCTION VERIFICATION",
 )
 
 @dataclass(frozen=True)
@@ -149,13 +169,20 @@ class IntegrationConformance:
             ConformanceStatus.IMPLEMENTED if has_ingest else ConformanceStatus.MISSING,
             ("SourceAdapter.ingest" if has_ingest else "adapter.ingest missing",),
         )
-        cells["REGISTRATION"] = ConformanceCell(ConformanceStatus.IMPLEMENTED, ("SourceAdapterRegistry",))
+        cells["REGISTRATION"] = ConformanceCell(
+            ConformanceStatus.IMPLEMENTED, ("SourceAdapterRegistry",)
+        )
         cells["CAPABILITY"] = ConformanceCell(
             ConformanceStatus.IMPLEMENTED if spec.capabilities else ConformanceStatus.UNKNOWN,
             (f"SourceSpec.capabilities={spec.capabilities!r}",),
         )
-        cells["PROVENANCE"] = ConformanceCell(ConformanceStatus.IMPLEMENTED, ("SourceProvenance gateway contract",))
-        cells["EVIDENCE"] = ConformanceCell(ConformanceStatus.IMPLEMENTED, ("RawEvidence/source ledger gateway boundary",))
+        cells["PROVENANCE"] = ConformanceCell(
+            ConformanceStatus.IMPLEMENTED, ("SourceProvenance gateway contract",)
+        )
+        cells["EVIDENCE"] = ConformanceCell(
+            ConformanceStatus.IMPLEMENTED,
+            ("RawEvidence/source ledger gateway boundary",),
+        )
         for column, note in {
             "TOOL": "Tool Registry mapping requires explicit evidence",
             "AUTH": "Authentication binding requires explicit evidence",
