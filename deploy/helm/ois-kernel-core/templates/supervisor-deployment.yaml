@@ -52,6 +52,24 @@ spec:
           env:
             - name: REDIS_URI
               value: {{ .Values.redis.uri | quote }}
+            - name: OIS_ENVIRONMENT
+              value: {{ .Values.global.environment | quote }}
+            - name: OIS_SECRET_PROVIDER
+              value: {{ ternary "vault" "env" .Values.vault.enabled | quote }}
+            - name: OIS_EXTERNAL_APIS_ENABLED
+              value: {{ if eq .Values.global.environment "production" }}"true"{{ else }}"false"{{ end }}
+            - name: OIS_EXTERNAL_READS_ENABLED
+              value: "true"
+            - name: OIS_EXTERNAL_WRITES_ENABLED
+              value: {{ if eq .Values.global.environment "production" }}"true"{{ else }}"false"{{ end }}
+            - name: OIS_REQUIRE_APPROVAL_FOR_EXTERNAL_ACTIONS
+              value: "true"
+            - name: OIS_REQUIRE_CAPABILITY_EVIDENCE
+              value: "true"
+            - name: OIS_REQUIRE_TOOL_HEALTH
+              value: "true"
+            - name: OIS_REQUIRE_VALIDATION
+              value: "true"
             - name: DB_HOST
               value: {{ .Values.database.host | quote }}
             - name: DB_PORT

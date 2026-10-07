@@ -11,29 +11,26 @@ __pycache__/
 venv/
 env/
 
-# Secrets
+# Secrets / local configuration
 .env
 .env.*
 !.env.example
+!.env.test.example
 
-# IDE
+# IDE / OS
 .vscode/
 .idea/
-
-# macOS
 .DS_Store
 
-# Logs
+# Logs / generated
 *.log
 logs/
-
-# Generated files
 artifacts/
 outputs/
 tmp/
 temp/
 
-# Databases
+# Databases / local state
 *.db
 *.sqlite
 *.sqlite3
@@ -42,14 +39,8 @@ temp/
 models/
 checkpoints/
 
-# Credentials
+# Credentials / keys
 credentials.json
 secrets.json
 *.pem
 *.key
-.env
-.env.*
-!.env.example
-.env
-.env.*
-!.env.example

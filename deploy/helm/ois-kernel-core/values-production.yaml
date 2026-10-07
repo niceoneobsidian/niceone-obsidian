@@ -1,0 +1,13 @@
+global:
+  environment: production
+  namespace: ois-system
+
+vault:
+  enabled: true
+  role: ois-tenant-worker-role
+  secretPath: secret/data/ois/production/runtime
+
+supervisor:
+  replicaCount: 3
+
+runtimeClassName: ""

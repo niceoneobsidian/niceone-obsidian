@@ -47,17 +47,14 @@ jobs:
         env:
           PGPASSWORD: ois_local_only
         run: |
-          psql -h localhost -U ois_admin -d ois_test -v ON_ERROR_STOP=1 \
-            -c "CREATE ROLE ois LOGIN PASSWORD 'ois' NOSUPERUSER NOBYPASSRLS;" \
-            -c "GRANT CONNECT ON DATABASE ois_test TO ois;" \
-            -c "GRANT USAGE, CREATE ON SCHEMA public TO ois;"
+          psql -h localhost -U ois_admin -d ois_test -v ON_ERROR_STOP=1             -c "CREATE ROLE ois LOGIN PASSWORD 'ois' NOSUPERUSER NOBYPASSRLS;"             -c "GRANT CONNECT ON DATABASE ois_test TO ois;"             -c "GRANT USAGE, CREATE ON SCHEMA public TO ois;"
       - name: Install project and verification tools
         run: |
           python -m pip install --upgrade pip
           pip install -e .
           pip install ruff mypy bandit pip-licenses pytest pytest-asyncio
           python -m pip install -e ".[test]"
-          python -m pip install "ruff==0.9.10" mypy bandit pip-licenses
+          python -m pip install "ruff==0.16.9" mypy bandit pip-licenses
       - name: Ruff lint
         run: ruff check ois scripts tests test_p0_integrated_spine.py
       - name: Ruff format
