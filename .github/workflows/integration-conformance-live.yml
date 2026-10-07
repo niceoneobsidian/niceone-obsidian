@@ -1,0 +1,31 @@
+name: integration-conformance-live
+
+on:
+  workflow_dispatch:
+    inputs:
+      provider:
+        description: Provider to verify
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  conformance:
+    runs-on: ubuntu-latest
+    environment: ois-live-readonly
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e . pytest
+      - name: Protected read-only gate
+        env:
+          OIS_LIVE_TESTS: "true"
+          OIS_LIVE_PROVIDER: ${{ inputs.provider }}
+          OIS_LIVE_MODE: "read_only"
+          OIS_LIVE_ALLOW_WRITES: "false"
+        run: pytest -q tests/integration_conformance/test_live_e2e.py

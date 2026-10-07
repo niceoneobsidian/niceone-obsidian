@@ -81,6 +81,7 @@ markers = [
   "integration: requires live PostgreSQL or Redis infrastructure",
   "sandbox: must execute inside the OIS gVisor runtime",
   "recovery: deterministic recovery conformance scenarios",
+  "live: opt-in read-only live integration verification",
 ]
 
 [tool.mypy]
