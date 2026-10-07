@@ -234,7 +234,7 @@ class RepositoryConformanceCertificateBuilder:
                     failures.append(f"{record.source_id}:{column}={status.value}")
 
         payload = {
-            "schema_version": "ois.integration.conformance.certificate.v1",
+            "schema_version": "ois.integration.conformance.certificate.v2",
             "commit": self.commit,
             "mandatory_columns": list(self.policy.required),
             "report": report.to_dict(),
@@ -253,7 +253,7 @@ class RepositoryConformanceCertificateBuilder:
         ).hexdigest()
 
         return IntegrationConformanceCertificate(
-            schema_version="ois.integration.conformance.certificate.v1",
+            schema_version="ois.integration.conformance.certificate.v2",
             commit=self.commit,
             report=report,
             mandatory_columns=self.policy.required,
