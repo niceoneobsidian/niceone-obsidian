@@ -1,8 +1,10 @@
 from dataclasses import dataclass
 
+
 @dataclass
 class Trace:
     events: list[str]
+
 
 def test_mocked_full_ois_e2e():
     trace = Trace([])
