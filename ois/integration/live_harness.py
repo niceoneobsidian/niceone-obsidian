@@ -4,8 +4,10 @@ No credential is loaded unless explicitly enabled by the live-test environment.
 Writes remain prohibited by default.
 """
 from __future__ import annotations
+
 import os
 from dataclasses import dataclass
+
 
 @dataclass(frozen=True)
 class LiveTestConfig:
@@ -20,7 +22,9 @@ class LiveTestConfig:
     @classmethod
     def from_env(cls) -> "LiveTestConfig":
         enabled = os.getenv("OIS_LIVE_TESTS", "").lower() in {"1", "true", "yes"}
-        allow_writes = os.getenv("OIS_LIVE_ALLOW_WRITES", "").lower() in {"1", "true", "yes"}
+        allow_writes = os.getenv("OIS_LIVE_ALLOW_WRITES", "").lower() in {
+            "1", "true", "yes"
+        }
         mode = os.getenv("OIS_LIVE_MODE", "read_only")
         cfg = cls(
             enabled=enabled,
@@ -43,6 +47,8 @@ class LiveTestConfig:
             raise ValueError("OIS_LIVE_PROVIDER is required when live tests are enabled")
         if self.timeout_seconds <= 0:
             raise ValueError("OIS_LIVE_TIMEOUT must be positive")
+
+
 
 def live_tests_enabled() -> bool:
     return LiveTestConfig.from_env().enabled
