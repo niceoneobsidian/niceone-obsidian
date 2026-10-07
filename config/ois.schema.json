@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://niceoneobsidian.com/ois/config.schema.json",
+  "title": "Niceone OIS Runtime Configuration",
+  "type": "object",
+  "required": ["OIS_ENVIRONMENT", "OIS_CONFIG_PROFILE", "OIS_SECRET_PROVIDER"],
+  "properties": {
+    "OIS_ENVIRONMENT": {"enum": ["local", "test", "staging", "production"]},
+    "OIS_CONFIG_PROFILE": {"type": "string", "minLength": 1},
+    "OIS_DEBUG": {"type": "boolean"},
+    "OIS_EXTERNAL_APIS_ENABLED": {"type": "boolean"},
+    "OIS_EXTERNAL_READS_ENABLED": {"type": "boolean"},
+    "OIS_EXTERNAL_WRITES_ENABLED": {"type": "boolean"},
+    "OIS_REQUIRE_APPROVAL_FOR_EXTERNAL_ACTIONS": {"type": "boolean"},
+    "OIS_REQUIRE_CAPABILITY_EVIDENCE": {"type": "boolean"},
+    "OIS_REQUIRE_TOOL_HEALTH": {"type": "boolean"},
+    "OIS_REQUIRE_VALIDATION": {"type": "boolean"},
+    "OIS_EXECUTION_TIMEOUT_MS": {"type": "integer", "minimum": 1},
+    "OIS_MAX_RETRIES": {"type": "integer", "minimum": 0},
+    "OIS_HTTP_TIMEOUT_MS": {"type": "integer", "minimum": 1},
+    "OIS_HTTP_CONNECT_TIMEOUT_MS": {"type": "integer", "minimum": 1},
+    "OIS_HTTP_MAX_CONNECTIONS": {"type": "integer", "minimum": 1},
+    "OIS_HTTP_MAX_CONNECTIONS_PER_HOST": {"type": "integer", "minimum": 1},
+    "OIS_SECRET_PROVIDER": {"enum": ["env", "vault", "cloud"]},
+    "OIS_OTEL_EXPORTER_OTLP_ENDPOINT": {"type": "string", "minLength": 1}
+  },
+  "additionalProperties": true
+}
