@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Protocol
 
 from ois.infrastructure.source_gateway.contracts import SourceSpec
+from ois.integration.conformance_metadata import ProviderConformanceMetadata
 
 if TYPE_CHECKING:
     from ois.infrastructure.source_gateway.gateway import SourceGateway, SourceResponse
@@ -50,7 +51,7 @@ class SourceAdapterRegistry:
 
     def __init__(self) -> None:
         self._adapters: dict[str, SourceAdapter] = {}
-        self._specs: dict[str, SourceSpec] = {}
+        self._specs: dict[str, SourceSpec] = {}\n        self._conformance: dict[str, ProviderConformanceMetadata] = {}
 
     def register(self, adapter: SourceAdapter, spec: SourceSpec | None = None) -> None:
         if adapter.source_id in self._adapters:
@@ -81,7 +82,7 @@ class SourceAdapterRegistry:
         if source_id not in self._adapters:
             raise KeyError(f"source adapter not registered: {source_id}")
         del self._adapters[source_id]
-        self._specs.pop(source_id, None)
+        self._specs.pop(source_id, None)\n        self._conformance.pop(source_id, None)
 
     def list(self) -> tuple[str, ...]:
         return tuple(sorted(self._adapters))
