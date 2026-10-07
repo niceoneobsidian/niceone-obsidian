@@ -3,6 +3,7 @@ import pytest
 from ois.integration.live_harness import LiveTestConfig
 from ois.integration.proof_chain import require_proof
 
+
 def test_proof_chain_requires_authorization():
     with pytest.raises(PermissionError):
         require_proof(
@@ -12,6 +13,7 @@ def test_proof_chain_requires_authorization():
             policy_action="read",
             authorized=False,
         )
+
 
 def test_live_harness_is_read_only_by_default(monkeypatch):
 
@@ -26,10 +28,12 @@ def test_live_harness_is_read_only_by_default(monkeypatch):
     assert cfg.allow_writes is False
 
 
+
 def test_live_harness_rejects_writes(monkeypatch):
     monkeypatch.setenv("OIS_LIVE_ALLOW_WRITES", "true")
     with pytest.raises(ValueError):
         LiveTestConfig.from_env()
+
 
 
 def test_live_harness_requires_provider_when_enabled(monkeypatch):
