@@ -1,8 +1,11 @@
+from pathlib import Path
+
 import pytest
 
 from ois.infrastructure.source_adapters.base import SourceAdapterRegistry
 from ois.infrastructure.source_gateway.contracts import SourceSpec
 from ois.integration.conformance import IntegrationConformance
+from ois.integration.repository_certificate import CertificatePolicy, build_repository_certificate
 from ois.integration.conformance_metadata import (
     ConformanceEvidence,
     ProviderConformanceMetadata,
@@ -99,3 +102,63 @@ def test_canonical_providers_publish_explicit_conformance_metadata() -> None:
             assert claim is not None
             assert claim.status == "IMPLEMENTED"
             assert claim.evidence
+
+
+def test_repository_certificate_validates_and_records_metadata_evidence(tmp_path: Path) -> None:
+    evidence_path = tmp_path / "ois/example.py"
+    evidence_path.parent.mkdir(parents=True)
+    evidence_path.write_text('source_id = "example.api.v1"\n', encoding="utf-8")
+
+    registry = SourceAdapterRegistry()
+    registry.register(
+        Adapter(),
+        SourceSpec("example.api.v1", "example", "http"),
+        conformance=ProviderConformanceMetadata(
+            source_id="example.api.v1",
+            claims={
+                "AUTH": ConformanceEvidence(
+                    "IMPLEMENTED",
+                    ("ois/example.py",),
+                    "Authentication contract evidence.",
+                )
+            },
+        ),
+    )
+
+    certificate = build_repository_certificate(
+        tmp_path,
+        registry=registry,
+        policy=CertificatePolicy(required=("AUTH",)),
+    )
+
+    assert certificate.valid
+    assert any(
+        item.kind == "CONFORMANCE_AUTH" and item.path == "ois/example.py"
+        for item in certificate.evidence["example.api.v1"]
+    )
+
+
+def test_repository_certificate_rejects_missing_metadata_evidence(tmp_path: Path) -> None:
+    registry = SourceAdapterRegistry()
+    registry.register(
+        Adapter(),
+        SourceSpec("example.api.v1", "example", "http"),
+        conformance=ProviderConformanceMetadata(
+            source_id="example.api.v1",
+            claims={
+                "AUTH": ConformanceEvidence(
+                    "IMPLEMENTED",
+                    ("ois/missing.py",),
+                )
+            },
+        ),
+    )
+
+    certificate = build_repository_certificate(
+        tmp_path,
+        registry=registry,
+        policy=CertificatePolicy(required=("AUTH",)),
+    )
+
+    assert not certificate.valid
+    assert "example.api.v1:AUTH:evidence-missing=ois/missing.py" in certificate.failures
