@@ -107,9 +107,7 @@ def main() -> int:
             for column in REQUIRED_COLUMNS:
                 value = str(provider.get(column, "")).lower()
                 if "not-active" in value or "not implemented" in value:
-                    errors.append(
-                        f"{provider_id}: VERIFIED provider has inactive/missing {column}"
-                    )
+                    errors.append(f"{provider_id}: VERIFIED provider has inactive/missing {column}")
 
             adapter_ref = str(provider.get("adapter", ""))
             adapter_path = adapter_ref.split(":", 1)[0]
@@ -135,30 +133,25 @@ def main() -> int:
                 if "build_social_tool_registry" not in registry_text:
                     errors.append(f"{provider_id}: social ToolRegistry builder missing")
                 if "provider_capability_contracts" not in registry_text:
-                    errors.append(
-                        f"{provider_id}: social capability registry contract missing"
-                    )
+                    errors.append(f"{provider_id}: social capability registry contract missing")
             else:
                 source_tool_text = source_tool_registry.read_text(encoding="utf-8")
                 if "build_provider_tool_registry" not in source_tool_text:
                     errors.append(f"{provider_id}: provider ToolRegistry builder missing")
                 if f"provider.{provider_id}." not in source_tool_text:
                     errors.append(f"{provider_id}: ToolRegistry contract missing")
-                if "SourceAdapterRegistry" not in source_registry.read_text(
-                    encoding="utf-8"
-                ):
+                if "SourceAdapterRegistry" not in source_registry.read_text(encoding="utf-8"):
                     errors.append(f"{provider_id}: SourceAdapterRegistry authority missing")
                 if "ToolRegistry" not in tool_registry.read_text(encoding="utf-8"):
                     errors.append(f"{provider_id}: ToolRegistry authority missing")
 
             auth_value = str(provider.get("auth", ""))
-            if (
-                "CredentialAuthManager" not in auth_value
-                and provider_id not in {"rss", "sociavault", "bundle.social"}
-            ):
-                errors.append(
-                    f"{provider_id}: auth path is not bound to CredentialAuthManager"
-                )
+            if "CredentialAuthManager" not in auth_value and provider_id not in {
+                "rss",
+                "sociavault",
+                "bundle.social",
+            }:
+                errors.append(f"{provider_id}: auth path is not bound to CredentialAuthManager")
             if "policy" not in str(provider.get("policy", "")).lower():
                 errors.append(f"{provider_id}: policy evidence missing")
             rate_value = str(provider.get("rate_limit", "")).lower().replace("-", "")
@@ -173,10 +166,7 @@ def main() -> int:
                 errors.append(
                     f"{provider_id}: disabled-gated provider must be false in canonical env"
                 )
-            if (
-                "INTEGRATIONS_ALLOW_UNREGISTERED_PROVIDERS=false"
-                not in str(provider.get("policy"))
-            ):
+            if "INTEGRATIONS_ALLOW_UNREGISTERED_PROVIDERS=false" not in str(provider.get("policy")):
                 errors.append(
                     f"{provider_id}: disabled-gated provider lacks registry fail-closed evidence"
                 )

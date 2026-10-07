@@ -145,9 +145,7 @@ def main() -> int:
     for key, expected in SAFE_EXPECTATIONS.items():
         actual = values.get(key)
         if actual != expected:
-            errors.append(
-                f"unsafe/non-canonical default: {key}={actual!r}; expected {expected!r}"
-            )
+            errors.append(f"unsafe/non-canonical default: {key}={actual!r}; expected {expected!r}")
 
     for line in env_text.splitlines():
         line = line.strip()
