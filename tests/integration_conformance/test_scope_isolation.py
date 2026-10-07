@@ -1,4 +1,3 @@
-import pytest
 
 class FakeCredentialResolver:
     def __init__(self):
@@ -7,6 +6,7 @@ class FakeCredentialResolver:
         if (tenant_id, workspace_id, credential_id) not in self.values:
             raise PermissionError("credential outside tenant/workspace scope")
         return self.values[(tenant_id, workspace_id, credential_id)]
+
 
 def test_credential_scope_isolation():
     from ois.integration.credential_conformance import assert_credential_resolver_conformance
