@@ -14,16 +14,11 @@ import argparse
 import hashlib
 import importlib
 import json
-from collections.abc import Callable, Iterable
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
 from ois.infrastructure.source_adapters.base import SourceAdapterRegistry
-
-DEFAULT_REGISTRY_FACTORY = (
-    "ois.infrastructure.source_adapters.bootstrap:build_application_source_adapter_registry"
-)
-
 from .conformance import (
     ConformanceReport,
     ConformanceStatus,
@@ -119,6 +114,8 @@ class RepositoryConformanceScanner:
         lower = path.lower()
         content = text.lower()
         if "/tests/" in lower or lower.startswith("tests/"):
+            if "structure" in lower or "structural" in lower:
+                return "STRUCTURAL_TEST"
             if "live" in lower or "live_" in content or "phase_a" in lower:
                 return "LIVE_TEST"
             if "contract" in lower or "contract" in content:
