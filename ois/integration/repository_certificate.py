@@ -13,9 +13,9 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
 
 from .conformance import (
     CONFORMANCE_COLUMNS,
@@ -108,7 +108,15 @@ class RepositoryConformanceScanner:
             if path.suffix not in self.TEXT_SUFFIXES:
                 continue
             text = self._read(path)
-            if source_id not in text and provider not in text.lower():
+            is_conformance_workflow = (
+                ".github/workflows/" in str(path.relative_to(self.root)).lower()
+                and "conformance" in str(path).lower()
+            )
+            if (
+                source_id not in text
+                and provider not in text.lower()
+                and not is_conformance_workflow
+            ):
                 continue
             rel = str(path.relative_to(self.root))
             kind = self._kind(rel, text, source_id)
@@ -272,7 +280,10 @@ class RepositoryConformanceCertificateBuilder:
         )
         cells["AUTH"] = self._status(
             "AUTH",
-            any(token in source_text for token in ("AuthScheme.", "auth_scheme=", "OAuth", "Bearer")),
+            any(
+                token in source_text
+                for token in ("AuthScheme.", "auth_scheme=", "OAuth", "Bearer")
+            ),
             evidence,
         )
         cells["CREDENTIAL"] = self._status(
