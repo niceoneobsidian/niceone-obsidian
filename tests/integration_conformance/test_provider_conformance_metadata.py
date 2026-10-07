@@ -77,3 +77,25 @@ def test_registry_rejects_metadata_for_different_source() -> None:
                 claims={},
             ),
         )
+
+def test_canonical_providers_publish_explicit_conformance_metadata() -> None:
+    registry = build_application_source_adapter_registry()
+
+    expected = {
+        "github.rest.user": {"AUTH", "CREDENTIAL", "TIMEOUT"},
+        "google.drive.files": {"AUTH", "CREDENTIAL", "TIMEOUT"},
+        "meta.graph.me": {"AUTH", "CREDENTIAL", "TIMEOUT"},
+        "sportmonks:football:v3": {"AUTH", "CREDENTIAL", "TIMEOUT"},
+    }
+
+    for source_id, columns in expected.items():
+        metadata = registry.conformance(source_id)
+        assert metadata is not None
+        assert metadata.source_id == source_id
+        assert set(metadata.columns()) == columns
+
+        for column in columns:
+            claim = metadata.claim(column)
+            assert claim is not None
+            assert claim.status == "IMPLEMENTED"
+            assert claim.evidence
