@@ -68,3 +68,58 @@ def test_repository_certificate_does_not_promote_production_from_false_manifest(
 
     cert = build_repository_certificate(tmp_path)
     assert cert.report.matrix[0]["PRODUCTION VERIFICATION"] == "UNKNOWN"
+
+
+def test_repository_certificate_does_not_borrow_unrelated_provider_evidence(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "ois/integrations/example").mkdir(parents=True)
+    (tmp_path / "ois/integrations/other").mkdir(parents=True)
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".github/workflows").mkdir(parents=True)
+
+    (tmp_path / "ois/integrations/example/source.py").write_text(
+        'source_id = "example.api.v1"\n',
+        encoding="utf-8",
+    )
+    (tmp_path / "ois/integrations/other/source.py").write_text(
+        'source_id = "other.api.v1"\n',
+        encoding="utf-8",
+    )
+    (tmp_path / "tests/test_other_contract.py").write_text(
+        'def test_other(): assert "other.api.v1 retry event_id provenance"\n',
+        encoding="utf-8",
+    )
+    (tmp_path / ".github/workflows/integration-conformance.yml").write_text(
+        "name: Integration Conformance\nrun: pytest\n",
+        encoding="utf-8",
+    )
+
+    cert = build_repository_certificate(tmp_path)
+    row = next(
+        record.row()
+        for record in cert.report.records
+        if record.source_id == "example.api.v1"
+    )
+    assert row["RETRY"] == "UNKNOWN"
+    assert row["EVENTS"] == "UNKNOWN"
+    assert row["PROVENANCE"] == "UNKNOWN"
+
+
+def test_repository_certificate_accepts_true_production_manifest(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "ois/integrations/example").mkdir(parents=True)
+    (tmp_path / "manifests").mkdir()
+
+    (tmp_path / "ois/integrations/example/source.py").write_text(
+        'source_id = "example.api.v1"\n',
+        encoding="utf-8",
+    )
+    (tmp_path / "manifests/example_production_readiness.json").write_text(
+        '{"source_id":"example.api.v1","production_verified":true}\n',
+        encoding="utf-8",
+    )
+
+    cert = build_repository_certificate(tmp_path)
+    assert cert.report.matrix[0]["PRODUCTION VERIFICATION"] == "PRODUCTION VERIFIED"
