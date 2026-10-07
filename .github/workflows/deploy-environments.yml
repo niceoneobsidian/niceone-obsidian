@@ -1,0 +1,59 @@
+name: OIS protected deployment
+permissions:
+  contents: read
+on:
+  workflow_dispatch:
+    inputs:
+      image:
+        description: Container image or immutable artifact version
+        required: true
+        type: string
+jobs:
+  staging:
+    name: Deploy staging
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+    env:
+      OIS_ENVIRONMENT: staging
+      OIS_EXTERNAL_WRITES_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Validate staging contract
+        run: |
+          python3 - <<'PY'
+          from ois.config.settings import validate_startup
+          s = validate_startup()
+          assert s.environment == "staging"
+          assert not s.external_writes_enabled
+          print("staging configuration: PASS")
+          PY
+      - name: Deployment boundary
+        run: echo "Deploy immutable artifact supplied by workflow input to protected staging environment"
+  production:
+    name: Deploy production
+    needs: staging
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    env:
+      OIS_ENVIRONMENT: production
+      OIS_SECRET_PROVIDER: vault
+      OIS_DEBUG: "false"
+      OIS_EXTERNAL_APIS_ENABLED: "true"
+      OIS_EXTERNAL_READS_ENABLED: "true"
+      OIS_EXTERNAL_WRITES_ENABLED: "true"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Validate production contract
+        run: |
+          python3 - <<'PY'
+          from ois.config.settings import validate_startup
+          s = validate_startup()
+          assert s.environment == "production"
+          assert s.secret_provider != "env"
+          assert not s.debug
+          print("production configuration: PASS")
+          PY
+      - name: Production authorization boundary
+        run: echo "Deploy immutable artifact only after GitHub production environment approval"

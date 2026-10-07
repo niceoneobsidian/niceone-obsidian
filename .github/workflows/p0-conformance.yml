@@ -67,6 +67,10 @@ jobs:
         run: pip-licenses --format=csv
       - name: OIS governance
         run: python scripts/ois_governance_check.py
+      - name: OIS v2 Hybrid contract
+        run: python scripts/validate_ois_v2_hybrid.py
+      - name: OIS Integration Certificate (strict)
+        run: python scripts/verify_integration_certificate.py --strict
       - name: Full test suite
         run: python -m pytest -q
       - name: PostgreSQL RLS adversarial suite
