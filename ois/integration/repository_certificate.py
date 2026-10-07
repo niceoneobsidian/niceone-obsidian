@@ -10,13 +10,19 @@ or production verification.
 
 from __future__ import annotations
 
+import argparse
 import hashlib
+import importlib
 import json
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
 from ois.infrastructure.source_adapters.base import SourceAdapterRegistry
+
+DEFAULT_REGISTRY_FACTORY = (
+    "ois.infrastructure.source_adapters.bootstrap:build_application_source_adapter_registry"
+)
 
 from .conformance import (
     ConformanceReport,
@@ -271,8 +277,42 @@ def build_repository_certificate(
     ).build()
 
 
-if __name__ == "__main__":
-    raise SystemExit(
-        "CLI certificate generation requires an application SourceAdapterRegistry; "
-        "use build_repository_certificate(...) from Python."
+def _load_registry(factory_path: str) -> SourceAdapterRegistry:
+    """Load the canonical application registry factory by module path."""
+    if ":" not in factory_path:
+        raise ValueError("registry factory must use module:function syntax")
+
+    module_name, function_name = factory_path.split(":", 1)
+    factory = getattr(importlib.import_module(module_name), function_name, None)
+    if not callable(factory):
+        raise TypeError(f"registry factory is not callable: {factory_path}")
+
+    registry = factory()
+    if not isinstance(registry, SourceAdapterRegistry):
+        raise TypeError(
+            f"registry factory must return SourceAdapterRegistry: {factory_path}"
+        )
+    return registry
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--root", default=".")
+    parser.add_argument("--output", default="integration-conformance-certificate.json")
+    parser.add_argument("--commit", default=None)
+    parser.add_argument("--strict", action="store_true")
+    parser.add_argument("--registry-factory", default=DEFAULT_REGISTRY_FACTORY)
+    args = parser.parse_args(argv)
+
+    certificate = build_repository_certificate(
+        Path(args.root),
+        registry=_load_registry(args.registry_factory),
+        commit=args.commit,
     )
+    Path(args.output).write_text(certificate.to_json() + "\n", encoding="utf-8")
+    print(certificate.to_json())
+    return 1 if args.strict and not certificate.valid else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
