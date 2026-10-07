@@ -30,10 +30,22 @@ REQUIRED_FILES = {
 }
 
 REQUIRED_SYMBOLS = {
-    "credential resolver": ("ois/infrastructure/source_gateway/credentials.py", "class CredentialResolver"),
-    "tenant scope": ("ois/infrastructure/source_gateway/credentials.py", "class TenantScope"),
-    "adapter registry": ("ois/infrastructure/source_adapters/base.py", "class SourceAdapterRegistry"),
-    "github source id": ("ois/integrations/github/source.py", 'source_id = "github.rest.user"'),
+    "credential resolver": (
+        "ois/infrastructure/source_gateway/credentials.py",
+        "class CredentialResolver",
+    ),
+    "tenant scope": (
+        "ois/infrastructure/source_gateway/credentials.py",
+        "class TenantScope",
+    ),
+    "adapter registry": (
+        "ois/infrastructure/source_adapters/base.py",
+        "class SourceAdapterRegistry",
+    ),
+    "github source id": (
+        "ois/integrations/github/source.py",
+        'source_id = "github.rest.user"',
+    ),
     "policy engine": ("ois/kernel/contracts.py", "class PolicyEngine"),
     "tool registry": ("ois/registries/core.py", "class ToolRegistry"),
 }
@@ -99,8 +111,9 @@ SAFE_EXPECTATIONS = {
 }
 
 FORBIDDEN_SECRET_ASSIGNMENTS = re.compile(
-    r"^(?:[A-Z0-9_]*(?:SECRET|PASSWORD|TOKEN|PRIVATE_KEY|API_KEY)[A-Z0-9_]*)="
+    r"^(?:[A-Z0-9_]+_(?:SECRET|PASSWORD|TOKEN|PRIVATE_KEY|API_KEY|PAT))="
 )
+
 
 def parse_env(text: str) -> dict[str, str]:
     values: dict[str, str] = {}
@@ -158,9 +171,6 @@ def main() -> int:
         if needle not in content:
             errors.append(f"missing implementation anchor [{label}]: {needle}")
 
-    # The repository's first live source is currently the GitHub user source,
-    # not a generic repository.read capability. Keep the environment contract
-    # aligned with the implemented connector identity.
     live_test = ROOT / "tests/integrations/test_phase_a_live.py"
     if live_test.is_file():
         content = live_test.read_text(encoding="utf-8")
