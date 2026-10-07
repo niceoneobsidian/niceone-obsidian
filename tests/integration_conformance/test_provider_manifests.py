@@ -1,5 +1,6 @@
 from ois.integration.provider_manifest import load_manifest
 
+
 def test_manifest_is_fail_closed_for_live_writes():
     manifest = load_manifest({
         "provider": "example",
