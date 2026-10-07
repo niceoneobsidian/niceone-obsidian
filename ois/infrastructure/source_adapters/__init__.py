@@ -8,6 +8,7 @@ from .base import (
     SourceAdapter,
     SourceAdapterRegistry,
 )
+from .bootstrap import build_application_source_adapter_registry
 from .database import DatabaseSourceAdapter
 from .file import FileSourceAdapter
 from .github import GitHubSourceAdapter
@@ -36,4 +37,5 @@ __all__ = [
     "SourceAdapter",
     "SourceAdapterRegistry",
     "WebhookVerifier",
+    "build_application_source_adapter_registry",
 ]

@@ -24,10 +24,7 @@ jobs:
         run: python -m pytest tests/integration_conformance -q
       - name: Build repository-wide conformance certificate
         run: |
-          python -m ois.integration.repository_certificate \
-            --root . \
-            --commit "$GITHUB_SHA" \
-            --output integration-conformance-certificate.json
+          python -m ois.integration.repository_certificate             --root .             --commit "$GITHUB_SHA"             --registry-factory "ois.infrastructure.source_adapters.bootstrap:build_application_source_adapter_registry"             --strict             --output integration-conformance-certificate.json
       - name: Upload conformance certificate
         uses: actions/upload-artifact@v4
         with:
