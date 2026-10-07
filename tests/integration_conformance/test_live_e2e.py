@@ -2,9 +2,9 @@ import pytest
 
 from ois.integration.live_harness import LiveTestConfig
 
-@pytest.mark.live
 
-def test_live_provider_read_only():
+@pytest.mark.live
+def test_live_provider_read_only() -> None:
     cfg = LiveTestConfig.from_env()
     if not cfg.enabled:
         pytest.skip("live integration tests are disabled")
