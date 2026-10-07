@@ -9,9 +9,20 @@ from dataclasses import dataclass, field
 from typing import Any, Mapping
 
 REQUIRED_SECTIONS = {
-    "provider", "adapter", "registration", "capabilities", "tools",
-    "auth", "credentials", "scopes", "policy", "reliability", "events",
-    "evidence", "tests", "live",
+    "provider",
+    "adapter",
+    "registration",
+    "capabilities",
+    "tools",
+    "auth",
+    "credentials",
+    "scopes",
+    "policy",
+    "reliability",
+    "events",
+    "evidence",
+    "tests",
+    "live",
 }
 
 @dataclass(frozen=True)
@@ -68,7 +79,9 @@ class ProviderConformanceManifest:
 
     def validate_safe_live_policy(self) -> None:
         if self.live_mode != "read_only" or self.allow_writes:
-            raise ValueError("provider conformance live policy must be read_only with writes disabled")
+            raise ValueError(
+                "provider conformance live policy must be read_only with writes disabled"
+            )
 
 def load_manifest(data: Mapping[str, Any]) -> ProviderConformanceManifest:
     manifest = ProviderConformanceManifest.from_dict(data)
