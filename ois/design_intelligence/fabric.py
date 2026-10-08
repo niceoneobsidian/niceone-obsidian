@@ -3,8 +3,8 @@
 from dataclasses import dataclass
 from typing import Any, Protocol
 
-from ois.kernel.state import ExecutionContext
 from ois.design_intelligence.catalog import DesignCapability, get_capability
+from ois.kernel.state import ExecutionContext
 
 
 class DesignProvider(Protocol):

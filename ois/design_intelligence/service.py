@@ -4,7 +4,12 @@ from dataclasses import dataclass
 from typing import Any
 
 from ois.design_intelligence.adapters import AdapterRegistry, AdapterRequest, AdapterResponse
-from ois.design_intelligence.blueprints import FAMILIES, SUBCAPABILITIES, WORKFLOWS, validate_catalog
+from ois.design_intelligence.blueprints import (
+    FAMILIES,
+    SUBCAPABILITIES,
+    WORKFLOWS,
+    validate_catalog,
+)
 
 
 @dataclass(frozen=True)

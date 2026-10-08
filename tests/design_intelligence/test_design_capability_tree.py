@@ -1,6 +1,11 @@
 """Contract tests for the complete capability tree."""
 
-from ois.design_intelligence.blueprints import FAMILIES, SUBCAPABILITIES, WORKFLOWS, validate_catalog
+from ois.design_intelligence.blueprints import (
+    FAMILIES,
+    SUBCAPABILITIES,
+    WORKFLOWS,
+    validate_catalog,
+)
 
 
 def test_catalog_has_all_17_families() -> None:
