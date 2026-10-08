@@ -31,7 +31,7 @@ jobs:
           publish_results: false
 
       - name: Upload Scorecard results
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v6
         with:
           name: scorecard-results
           path: results.sarif
