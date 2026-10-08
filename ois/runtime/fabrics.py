@@ -236,10 +236,6 @@ class InMemoryLLMGateway:
                 if record.error_type is not None:
                     item["error"] = record.error_type
                 self.telemetry.append(item)
-succeeded",
-                }
-            )
-            return result
 
 
 @dataclass
