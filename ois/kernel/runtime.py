@@ -41,6 +41,7 @@ class ExecutionRuntime:
         cancellation: CancellationToken | None = None,
         idempotency: IdempotencyStore | None = None,
         fencing: PostgresWorkerLeaseStore | None = None,
+        secret_runtime: object | None = None,
     ) -> None:
         self.registry = registry
         self.checkpoint_store = checkpoint_store
@@ -51,6 +52,7 @@ class ExecutionRuntime:
         self.cancellation = cancellation or CancellationToken()
         self.idempotency = idempotency or InMemoryIdempotencyStore()
         self.fencing = fencing
+        self.secret_runtime = secret_runtime
 
     def execute(
         self,
@@ -61,6 +63,7 @@ class ExecutionRuntime:
         *,
         invocation_id: str | None = None,
         worker_lease: WorkerLease | None = None,
+        secret_bindings: dict[str, tuple[object, object]] | None = None,
     ) -> InvocationResult:
         if context.status in {ExecutionStatus.COMPLETED, ExecutionStatus.STOPPED}:
             raise ExecutionAlreadyCompleted(
@@ -110,6 +113,7 @@ class ExecutionRuntime:
             execution=context,
             timeout_seconds=entry.contract.timeout_seconds,
             cancellation=self.cancellation,
+            secret_resolver=lambda name: self._resolve_secret(name, secret_bindings),
         )
         self.validator.validate_input(request, entry.contract)
         self.evidence.record(
@@ -231,6 +235,14 @@ class ExecutionRuntime:
         )
         context.set_status(ExecutionStatus.ROUTED)
         return result
+
+    def _resolve_secret(self, name: str, bindings: dict[str, tuple[object, object]] | None) -> str:
+        if self.secret_runtime is None:
+            raise PermissionError("SecretRuntime is not bound to the OIS Kernel")
+        if not bindings or name not in bindings:
+            raise KeyError(f"secret binding not declared: {name}")
+        metadata, context = bindings[name]
+        return self.secret_runtime.resolve(metadata, context)
 
     def complete(
         self, context: ExecutionContext, *, worker_lease: WorkerLease | None = None
