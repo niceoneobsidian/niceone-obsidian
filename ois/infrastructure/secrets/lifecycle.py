@@ -44,7 +44,7 @@ class CredentialLifecycleManager:
         if metadata.state is SecretState.REVOKED:
             raise PermissionError(f"secret is revoked: {name}")
         replacement = value or secrets.token_urlsafe(32)
-        self._manager._provider.set(name, replacement)
+        self._manager.set(name, replacement)
         timestamp = now or datetime.now(UTC)
         previous = self._records.get(name)
         created = previous.created_at if previous else timestamp
@@ -57,7 +57,7 @@ class CredentialLifecycleManager:
         metadata = self._manager.metadata(name)
         if metadata is None:
             raise KeyError(f"secret is not registered: {name}")
-        self._manager._provider.delete(name)
+        self._manager.delete(name)
         self._manager.update_metadata(
             SecretMetadata(
                 name=metadata.name,
