@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-ODI is a governed design-intelligence platform. Its job is to transform design objectives into validated, evidence-backed outputs while preserving provenance, policy boundaries, and reversible evolution.
+OIS Design Intelligence is a governed design-intelligence platform. Its job is to transform design objectives into validated, evidence-backed outputs while preserving provenance, policy boundaries, and reversible evolution.
 
 ## 2. Planes
 
@@ -111,7 +111,7 @@ These domains are capability families. The kernel remains domain-neutral.
 
 ## 6. Memory Model
 
-ODI separates:
+OIS Design Intelligence separates:
 
 - **Knowledge:** curated, reusable, versioned domain information.
 - **Evidence:** source-backed observations and artifacts.

@@ -40,7 +40,7 @@ Family
 
 ## Workflow contract
 
-A workflow is provider-neutral and executable through the ODI planner/orchestrator:
+A workflow is provider-neutral and executable through the OIS Design Intelligence planner/orchestrator:
 
 ```text
 Intake / Context

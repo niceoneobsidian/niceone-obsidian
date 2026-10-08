@@ -8,7 +8,7 @@ version: 0.1.0
 
 ## Purpose
 
-Route design requests to the appropriate ODI capability family while preserving context, evidence, policy, and validation requirements.
+Route design requests to the appropriate OIS Design Intelligence capability family while preserving context, evidence, policy, and validation requirements.
 
 ## Routing Families
 

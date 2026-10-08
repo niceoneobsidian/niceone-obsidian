@@ -3,7 +3,7 @@
 This module defines the capability-tree layer: family -> sub-capability ->
 workflow -> skills -> validators -> evidence -> provider adapter contract.
 The blueprints are declarative so concrete providers can be added without
-changing the ODI kernel.
+changing the OIS Design Intelligence kernel.
 """
 
 from dataclasses import dataclass
@@ -79,7 +79,7 @@ VALIDATORS = {
         "layout_integrity", "Checks composition, spacing, alignment, and hierarchy."
     ),
     "asset_integrity": ValidatorSpec(
-        "asset_integrity", "Checks files, dimensions, encoding, corruption, and required assets."
+        "asset_integrity", "Checks files, dimensions, encoisng, corruption, and required assets."
     ),
     "visual_fidelity": ValidatorSpec(
         "visual_fidelity", "Compares candidate against references and acceptance criteria."
@@ -480,7 +480,7 @@ SUBCAPABILITIES = {
 }
 
 # Workflows are reusable lifecycle definitions. Stages are intentionally
-# provider-neutral and map to the ODI planner/orchestrator contracts.
+# provider-neutral and map to the OIS Design Intelligence planner/orchestrator contracts.
 WORKFLOWS = {
     "brand.strategy.develop": W(
         "brand.strategy.develop",

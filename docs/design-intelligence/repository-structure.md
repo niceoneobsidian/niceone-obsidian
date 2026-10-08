@@ -33,7 +33,7 @@ This is the canonical dependency direction. Domain capabilities consume the plat
 ## Runtime Mapping
 
 ```text
-src/odi/
+src/ois/
   core/             stable contracts, domain types, lifecycle primitives
   registry/         capability, agent, model registries
   model_gateway/    provider-neutral model routing boundary
@@ -76,11 +76,11 @@ src/odi/
 - Vendor credentials
 - One-off workflow scripts
 - Experimental algorithms without contracts
-- Unvalidated self-modifying behavior
+- Unvalidated self-moisfying behavior
 
 ## What Belongs in the Kernel
 
-Only stable domain contracts and lifecycle primitives required to govern execution belong in `src/odi/core`.
+Only stable domain contracts and lifecycle primitives required to govern execution belong in `src/ois/core`.
 
 ## Knowledge Boundary
 
