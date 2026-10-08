@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://niceoneobsidian.github.io/obsidian-design-intelligence/schemas/task.schema.json",
+  "title": "ODI Task",
+  "type": "object",
+  "required": ["id", "objective", "status"],
+  "properties": {
+    "id": {"type": "string"},
+    "objective": {"type": "string", "minLength": 1},
+    "context": {"type": "object"},
+    "constraints": {"type": "array", "items": {"type": "string"}},
+    "requested_capabilities": {"type": "array", "items": {"type": "string"}},
+    "status": {"enum": ["received", "planned", "authorized", "running", "validating", "completed", "failed", "cancelled"]},
+    "priority": {"type": "integer", "minimum": 0},
+    "deadline": {"type": ["string", "null"], "format": "date-time"}
+  },
+  "additionalProperties": true
+}

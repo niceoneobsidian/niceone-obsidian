@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://niceoneobsidian.github.io/obsidian-design-intelligence/schemas/capability.schema.json",
+  "title": "ODI Capability",
+  "type": "object",
+  "required": ["id", "name", "version", "input_schema", "output_schema", "risk_class", "lifecycle_state"],
+  "properties": {
+    "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
+    "name": {"type": "string", "minLength": 1},
+    "version": {"type": "string"},
+    "description": {"type": "string"},
+    "input_schema": {"type": "object"},
+    "output_schema": {"type": "object"},
+    "permissions": {"type": "array", "items": {"type": "string"}},
+    "dependencies": {"type": "array", "items": {"type": "string"}},
+    "risk_class": {"enum": ["low", "medium", "high", "critical"]},
+    "timeout_seconds": {"type": "number", "exclusiveMinimum": 0},
+    "retry_policy": {"type": "object"},
+    "validation_requirements": {"type": "array", "items": {"type": "string"}},
+    "evidence_requirements": {"type": "array", "items": {"type": "string"}},
+    "lifecycle_state": {"enum": ["draft", "designed", "implemented", "tested", "integrated", "deployed", "activated", "production_verified", "deprecated"]}
+  },
+  "additionalProperties": false
+}
