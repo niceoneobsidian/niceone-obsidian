@@ -531,3 +531,28 @@ Apache-2.0 permits commercial use, modification, distribution, and private exten
 **Niceone** and **OIS / Obsidian Intelligence System** names, logos, and other trademarks are not granted under the software license.
 
 Third-party dependencies remain subject to their respective licenses.
+
+
+## Design Intelligence Integration
+
+The former `obsidian-design-intelligence` repository is being consolidated into OIS as the governed design-intelligence domain.
+
+Canonical design domain:
+
+```text
+OIS Kernel / Control Plane
+        ↓
+ois/design_intelligence
+        ├── capability catalog
+        ├── capability blueprints
+        ├── design provider adapters
+        ├── design workflows
+        ├── design validators / evidence specifications
+        └── visual and production capability definitions
+```
+
+The merge intentionally does **not** duplicate OIS execution, policy, registries, persistence, recovery, observability, memory, or model infrastructure. Those remain OIS authorities. Design intelligence is a domain capability layer operating through the OIS governed execution boundary.
+
+Migration source: `niceoneobsidian/obsidian-design-intelligence` at commit `ccaeb874384fb2c9f8eb69887180ca0d87ef0364`.
+
+See `docs/design-intelligence/merge.md` for the migration boundary and retained source mapping.

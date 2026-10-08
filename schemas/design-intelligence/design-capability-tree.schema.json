@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Design Capability Tree",
+  "type": "object",
+  "required": ["id", "name", "sub_capabilities"],
+  "properties": {
+    "id": {"type": "string"},
+    "name": {"type": "string"},
+    "sub_capabilities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "skills", "workflows", "validators", "evidence", "adapters"],
+        "properties": {
+          "id": {"type": "string"},
+          "name": {"type": "string"},
+          "skills": {"type": "array", "items": {"type": "string"}},
+          "workflows": {"type": "array", "items": {"type": "string"}},
+          "validators": {"type": "array", "items": {"type": "string"}},
+          "evidence": {"type": "array", "items": {"type": "string"}},
+          "adapters": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    }
+  }
+}
