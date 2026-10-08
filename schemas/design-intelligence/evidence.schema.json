@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://niceoneobsidian.github.io/obsidian-design-intelligence/schemas/evidence.schema.json",
-  "title": "ODI Evidence",
+  "title": "Design Intelligence Evidence",
   "type": "object",
   "required": ["id", "type", "source", "provenance", "confidence"],
   "properties": {
