@@ -34,7 +34,7 @@ Every capability declares:
 - evidence requirements
 - risk class
 
-Providers are registered behind the capability contract. This keeps the ODI kernel independent of image, video, model, rendering, or SaaS vendors.
+Providers are registered behind the capability contract. This keeps the OIS Design Intelligence kernel independent of image, video, model, rendering, or SaaS vendors.
 
 ## Lifecycle
 
