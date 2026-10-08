@@ -5,14 +5,13 @@ identity attestations remain adapter responsibilities; no secret values are logg
 """
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 import hashlib
 import hmac
 import json
 import os
 from pathlib import Path
-import statistics
 import threading
 from typing import Any, Iterable, Mapping, Protocol
 
