@@ -65,4 +65,4 @@ class CredentialHealthManager:
         return {name: self.check(name) for name in self._registered_names()}
 
     def _registered_names(self) -> tuple[str, ...]:
-        return tuple(sorted(self._manager._metadata))
+        return self._manager.registered_names()
