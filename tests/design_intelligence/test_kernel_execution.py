@@ -44,7 +44,7 @@ def test_design_capabilities_are_registered_in_canonical_kernel_registry() -> No
 
     assert registry.has("brand.identity", "1.0.0")
     assert registry.has("quality.visual_qa", "1.0.0")
-    design_prefixes = ("brand.", "ui.", "visual.", "production.", "marketing.", "quality.")
+    design_prefixes = ("brand.", "ui.", "uiux.", "visual.", "production.", "marketing.", "quality.")
     design_entries = [entry for entry in registry.list() if entry.id.startswith(design_prefixes)]
     assert len(design_entries) == 17
 
