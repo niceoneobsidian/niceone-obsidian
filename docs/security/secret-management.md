@@ -5,7 +5,7 @@ runtime secrets.
 
 ## Layers
 
-1. Canonical registry: `config/secrets/registry.yaml`
+1. Canonical registry: `config/secrets/registry.toml`
 2. SecretManager: one API for get/require/validate/health
 3. Providers: environment for local/CI; Vault KV v2 for production
 4. Lifecycle: rotation and revocation
