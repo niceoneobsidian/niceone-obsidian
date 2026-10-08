@@ -1,0 +1,20 @@
+"""Brand diagnosis engine."""
+from .contracts import BrandContext,BrandDiagnosis,BrandIdentityIntent
+class BrandDiagnostics:
+    def diagnose(self,i:BrandIdentityIntent,c:BrandContext)->BrandDiagnosis:
+        strengths=[];weak=[];opp=[];threat=[];pos=[];diff=[];ident=[];msg=[];visual=[];aud=[];comp=[];contra=[];risk=[]
+        if c.existing_identity:strengths.append("Existing identity assets provide continuity.")
+        else:weak.append("No existing identity system was supplied.");ident.append("Define a coherent identity system.")
+        if c.existing_positioning:strengths.append("Existing positioning is available.")
+        else:pos.append("Positioning is not explicitly established.")
+        if i.differentiation_goal:opp.append("Differentiation objective is explicit.")
+        else:diff.append("Differentiation criteria are not explicit.")
+        if c.audience:strengths.append("Audience context is available.")
+        else:aud.append("Audience context is incomplete.")
+        if c.competitors:comp.append("Competitive comparison should be performed.")
+        else:opp.append("Competitive whitespace remains unverified.")
+        if c.cultural_context:strengths.append("Cultural context is available.")
+        else:risk.append("Cultural assumptions may remain unverified.")
+        d={"positioning":.8 if c.existing_positioning else .4,"differentiation":.8 if i.differentiation_goal else .4,"audience_fit":.8 if c.audience else .35,"competitive_separation":.75 if c.competitors else .45,"visual_coherence":.75 if c.existing_identity else .35,"scalability":.6}
+        priority=tuple(dict.fromkeys(pos+diff+ident+aud+comp))[:5]
+        return BrandDiagnosis(tuple(strengths),tuple(weak),tuple(opp),tuple(threat),tuple(pos),tuple(diff),tuple(ident),tuple(msg),tuple(visual),tuple(aud),tuple(comp),tuple(contra),tuple(risk),priority,d)
