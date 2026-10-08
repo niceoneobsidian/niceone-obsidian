@@ -52,9 +52,13 @@ class CredentialHealthManager:
             return CredentialHealth(name, HealthStatus.MISSING, checked, provider, "missing")
         validator = self._validators.get(name)
         if validator and not validator(value):
-            return CredentialHealth(name, HealthStatus.INVALID, checked, provider, "provider validation failed")
+            return CredentialHealth(
+                name, HealthStatus.INVALID, checked, provider, "provider validation failed"
+            )
         if self._lifecycle and self._lifecycle.status(name, now=checked) is CredentialStatus.EXPIRING:
-            return CredentialHealth(name, HealthStatus.EXPIRING, checked, provider, "rotation due")
+            return CredentialHealth(
+                name, HealthStatus.EXPIRING, checked, provider, "rotation due"
+            )
         return CredentialHealth(name, HealthStatus.HEALTHY, checked, provider)
 
     def check_all(self) -> dict[str, CredentialHealth]:
