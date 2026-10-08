@@ -160,7 +160,13 @@ class InMemoryModelRouter:
         ]
         if not candidates:
             raise LookupError(f"no model route satisfies capabilities={sorted(required)}")
-        return @dataclass
+        return min(
+            candidates,
+            key=lambda route: (sum(route.cost_profile.values()), route.provider, route.model),
+        )
+
+
+@dataclass
 class _CallableLLMProvider:
     """Adapt the legacy callable provider contract to the canonical gateway."""
 
