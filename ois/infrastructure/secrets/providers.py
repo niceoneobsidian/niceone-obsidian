@@ -50,7 +50,9 @@ class VaultKV2SecretProvider:
         self.namespace = namespace
         self.timeout = timeout
 
-    def _request(self, method: str, path: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+    def _request(
+        self, method: str, path: str, payload: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         data = json.dumps(payload).encode() if payload is not None else None
         headers = {"X-Vault-Token": self.token, "Content-Type": "application/json"}
         if self.namespace:
