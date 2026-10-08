@@ -9,6 +9,10 @@ from ois.design_intelligence.blueprints import (
     WORKFLOWS,
 )
 from ois.design_intelligence.service import DesignCapabilityService
+from ois.design_intelligence.kernel_integration import (
+    KernelDesignCapability,
+    register_design_kernel_capabilities,
+)
 
 __all__ = [
     "ADAPTERS",
@@ -18,4 +22,6 @@ __all__ = [
     "VALIDATORS",
     "WORKFLOWS",
     "DesignCapabilityService",
+    "KernelDesignCapability",
+    "register_design_kernel_capabilities",
 ]
