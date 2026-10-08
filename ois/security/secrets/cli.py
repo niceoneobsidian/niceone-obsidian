@@ -7,7 +7,7 @@ def main(argv=None):
     p=argparse.ArgumentParser(prog="ois secrets"); s=p.add_subparsers(dest="command",required=True)
     q=s.add_parser("scan"); q.add_argument("path",nargs="?",default="."); q.add_argument("--json",action="store_true")
     d=s.add_parser("doctor"); d.add_argument("--json",action="store_true")
-    r=s.add_parser("run"); r.add_argument("--secret",action="append",default=[]); r.add_argument("command",nargs=argparse.REMAINDER)
+    r=s.add_parser("run"); r.add_argument("--secret",action="append",default=[]); r.add_argument("exec_command",nargs=argparse.REMAINDER)
     a=p.parse_args(argv)
     if a.command=="scan":
         findings=SecretScanner().scan_path(Path(a.path))
@@ -16,7 +16,7 @@ def main(argv=None):
         return 1 if findings else 0
     if a.command=="run":
         from .runtime_cli import run_command
-        command = list(a.command)
+        command = list(a.exec_command)
         if command and command[0] == "--": command = command[1:]
         return run_command(a.secret, command)
     if a.command=="doctor":
