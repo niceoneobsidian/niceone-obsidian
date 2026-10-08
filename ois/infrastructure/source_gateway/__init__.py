@@ -15,7 +15,13 @@ from .auth import (
     authenticator_for,
 )
 from .contracts import FreshnessPolicy, SourceProvenance, SourceSpec
-from .credentials import (\n    CredentialRef,\n    CredentialResolver,\n    InMemoryCredentialResolver,\n    SecretManagerCredentialResolver,\n    TenantScope,\n)
+from .credentials import (
+    CredentialRef,
+    CredentialResolver,
+    InMemoryCredentialResolver,
+    SecretManagerCredentialResolver,
+    TenantScope,
+)
 from .cursors import SourceCursor, SQLiteCursorStore
 from .events import SourceEvent, canonical_event_id
 from .evidence import RawEvidence, RawEvidenceWriter, SQLiteRawEvidenceWriter, canonical_hash
@@ -49,7 +55,8 @@ __all__ = [
     "OAuth2Auth",
     "authenticator_for",
     "CredentialRef",
-    "CredentialResolver",\n    "SecretManagerCredentialResolver",
+    "CredentialResolver",
+    "SecretManagerCredentialResolver",
     "FreshnessPolicy",
     "InMemoryCredentialResolver",
     "OutboxEvent",
