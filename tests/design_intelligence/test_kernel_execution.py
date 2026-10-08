@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from ois.design_intelligence.fabric import DesignCapabilityFabric
+from ois.design_intelligence.integration import DesignOISRuntime
 from ois.design_intelligence.kernel_integration import register_design_kernel_capabilities
 from ois.kernel.checkpoint import InMemoryCheckpointStore
 from ois.kernel.evidence import EvidenceLedger
@@ -85,3 +86,21 @@ def test_unbound_design_provider_fails_explicitly() -> None:
     assert result.status.value == "failed"
     assert result.error["type"] == "DesignProviderUnavailable"
     assert result.error["capability_status"] == "unbound"
+
+
+def test_design_runtime_enters_through_canonical_ois_spine() -> None:
+    runtime = DesignOISRuntime.create()
+    runtime.fabric.register_provider("brand.identity", StubBrandIdentityProvider())
+
+    result = runtime.submit(
+        objective="Create a governed brand identity plan",
+        capability_id="brand.identity",
+        input_data={"brief": "OIS design intelligence"},
+        tenant_id="test-tenant",
+        invocation_id="design-spine-001",
+    )
+
+    assert result.status == "succeeded"
+    assert result.output["capability"] == "brand.identity"
+    assert any(event["event_type"] == "spine.intent.accepted" for event in result.evidence)
+    assert any(event["event_type"] == "spine.verified" for event in result.evidence)
