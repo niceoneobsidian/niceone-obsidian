@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Design Capability",
+  "type": "object",
+  "required": ["id", "family", "name", "description", "input_types", "output_types", "validation", "evidence"],
+  "properties": {
+    "id": {"type": "string"},
+    "family": {"type": "string"},
+    "name": {"type": "string"},
+    "description": {"type": "string"},
+    "input_types": {"type": "array", "items": {"type": "string"}},
+    "output_types": {"type": "array", "items": {"type": "string"}},
+    "validation": {"type": "array", "items": {"type": "string"}},
+    "evidence": {"type": "array", "items": {"type": "string"}},
+    "risk_class": {"enum": ["low", "medium", "high", "critical"]}
+  }
+}
