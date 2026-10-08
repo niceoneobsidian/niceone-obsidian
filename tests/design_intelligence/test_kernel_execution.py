@@ -45,7 +45,9 @@ def test_design_capabilities_are_registered_in_canonical_kernel_registry() -> No
 
     assert registry.has("brand.identity", "1.0.0")
     assert registry.has("quality.visual_qa", "1.0.0")
-    assert len([entry for entry in registry.list() if entry.id.startswith(("brand.", "ui.", "visual.", "production.", "marketing.", "quality."))]) == 17
+    design_prefixes = ("brand.", "ui.", "visual.", "production.", "marketing.", "quality.")
+    design_entries = [entry for entry in registry.list() if entry.id.startswith(design_prefixes)]
+    assert len(design_entries) == 17
 
 
 def test_design_capability_executes_through_ois_kernel() -> None:
@@ -62,8 +64,9 @@ def test_design_capability_executes_through_ois_kernel() -> None:
     assert result.status.value == "succeeded"
     assert result.output["capability"] == "brand.identity"
     assert result.output["output"]["artifact_type"] == "brand_identity_plan"
-    assert any(event.event_type == "execution.authorized" for event in evidence.list(context.identity.execution_id))
-    assert any(event.event_type == "capability.completed" for event in evidence.list(context.identity.execution_id))
+    events = evidence.list(context.identity.execution_id)
+    assert any(event.event_type == "execution.authorized" for event in events)
+    assert any(event.event_type == "capability.completed" for event in events)
 
 
 def test_unbound_design_provider_fails_explicitly() -> None:
@@ -71,7 +74,11 @@ def test_unbound_design_provider_fails_explicitly() -> None:
     register_design_kernel_capabilities(registry)
     runtime = ExecutionRuntime(registry, InMemoryCheckpointStore(), EvidenceLedger())
     context = ExecutionContext(
-        identity=ExecutionIdentity(tenant_id="test-tenant", workflow_id="design", workflow_version="1.0"),
+        identity=ExecutionIdentity(
+            tenant_id="test-tenant",
+            workflow_id="design",
+            workflow_version="1.0",
+        ),
         objective="Execute unbound design capability",
     )
 
