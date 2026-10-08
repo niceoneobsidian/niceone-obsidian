@@ -289,6 +289,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     handlers = {
         "security": cmd_security,
+        "secrets": cmd_security,
         "status": cmd_status,
         "doctor": cmd_doctor,
         "verify": cmd_verify,
