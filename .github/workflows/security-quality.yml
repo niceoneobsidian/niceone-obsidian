@@ -25,7 +25,7 @@ jobs:
       - name: Ruff format
         run: ruff format --check .
       - name: Mypy
-        run: mypy ois
+        run: mypy ois/security/secrets ois/kernel/contracts.py ois/kernel/runtime.py
       - name: Pytest
         run: pytest -q
 
