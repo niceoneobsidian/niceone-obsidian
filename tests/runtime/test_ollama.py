@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import json
 from io import BytesIO
-from urllib.error import URLError
 from unittest.mock import patch
+from urllib.error import URLError
 from urllib.request import Request
 
 from ois.architecture.fabrics import LLMGatewaySpec, ModelRoute
@@ -12,7 +12,7 @@ from ois.runtime.ollama import OllamaProvider
 
 
 class FakeResponse(BytesIO):
-    def __enter__(self) -> "FakeResponse":
+    def __enter__(self) -> FakeResponse:
         return self
 
     def __exit__(self, *args: object) -> None:
@@ -20,9 +20,7 @@ class FakeResponse(BytesIO):
 
 
 def _response(text: str) -> FakeResponse:
-    return FakeResponse(
-        json.dumps({"response": text, "done": True}).encode("utf-8")
-    )
+    return FakeResponse(json.dumps({"response": text, "done": True}).encode("utf-8"))
 
 
 def test_ollama_provider_implements_generate_contract() -> None:
