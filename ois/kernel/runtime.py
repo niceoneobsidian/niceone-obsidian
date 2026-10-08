@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import cast
+from typing import Protocol, cast
 from uuid import uuid4
 
 from ois.infrastructure.postgres_fencing import PostgresWorkerLeaseStore, WorkerLease
@@ -16,6 +16,10 @@ from .registry import CapabilityRegistry
 from .state import ExecutionContext
 from .types import ExecutionStatus, FailureClass, InvocationStatus
 from .validation import ContractValidator
+
+
+class SecretResolver(Protocol):
+    def resolve(self, metadata: object, context: object) -> str: ...
 
 
 class ExecutionError(Exception):
@@ -41,7 +45,7 @@ class ExecutionRuntime:
         cancellation: CancellationToken | None = None,
         idempotency: IdempotencyStore | None = None,
         fencing: PostgresWorkerLeaseStore | None = None,
-        secret_runtime: object | None = None,
+        secret_runtime: SecretResolver | None = None,
     ) -> None:
         self.registry = registry
         self.checkpoint_store = checkpoint_store
