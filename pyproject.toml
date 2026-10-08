@@ -110,3 +110,7 @@ exclude = [
 module = "tests.*"
 check_untyped_defs = false
 disallow_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = "ois.security.secrets.*"
+ignore_missing_imports = true
