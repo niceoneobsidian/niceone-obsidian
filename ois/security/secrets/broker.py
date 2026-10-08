@@ -24,13 +24,13 @@ class LocalKeychainProvider:
         p=subprocess.run((binary,*args),input=input_value,text=True,capture_output=True,check=False)
         if p.returncode: raise RuntimeError(p.stderr.strip() or "keychain operation failed")
         return p.stdout.strip()
-    def get(self,name,context=None):
+    def get(self,metadata,context=None):\n        name = metadata.name if hasattr(metadata, "name") else metadata
         if shutil.which("security"): return self._run("find-generic-password","-a","ois","-s",name,"-w")
         return self._run("lookup","service","ois","attribute",name)
-    def set(self,name,value,context=None):
+    def set(self,metadata,value,context=None):\n        name = metadata.name if hasattr(metadata, "name") else metadata
         if shutil.which("security"): self._run("add-generic-password","-U","-a","ois","-s",name,"-w",value)
         else: self._run("store","--label",f"OIS:{name}","service","ois","attribute",name,input_value=value)
-    def delete(self,name,context=None):
+    def delete(self,metadata,context=None):\n        name = metadata.name if hasattr(metadata, "name") else metadata
         if shutil.which("security"): self._run("delete-generic-password","-a","ois","-s",name)
         else: self._run("clear","service","ois","attribute",name)
 class _ClientAdapter:
