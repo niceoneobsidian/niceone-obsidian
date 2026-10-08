@@ -18,7 +18,11 @@ def _manager():
     provider = EnvironmentSecretProvider({"TEST_TOKEN": "initial"})
     manager = SecretManager(
         provider,
-        {"TEST_TOKEN": SecretMetadata("TEST_TOKEN", "test", "test", required=True, rotation_days=1)},
+        {
+            "TEST_TOKEN": SecretMetadata(
+                "TEST_TOKEN", "test", "test", required=True, rotation_days=1
+            )
+        },
     )
     return manager
 
@@ -58,5 +62,6 @@ def test_revoke_and_health():
     lifecycle = CredentialLifecycleManager(manager)
     lifecycle.register(manager.metadata("TEST_TOKEN"))
     lifecycle.revoke("TEST_TOKEN")
-    assert health_status := CredentialHealthManager(manager, lifecycle).check("TEST_TOKEN")
+    health_status = CredentialHealthManager(manager, lifecycle).check("TEST_TOKEN")
+    assert health_status
     assert health_status.status is HealthStatus.REVOKED
