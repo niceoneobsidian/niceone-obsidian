@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://niceoneobsidian.github.io/obsidian-design-intelligence/schemas/validation.schema.json",
+  "title": "ODI Validation Result",
+  "type": "object",
+  "required": ["validator", "status", "checks"],
+  "properties": {
+    "validator": {"type": "string"},
+    "status": {"enum": ["passed", "failed", "warning", "blocked"]},
+    "checks": {"type": "array", "items": {"type": "object"}},
+    "score": {"type": ["number", "null"], "minimum": 0},
+    "threshold": {"type": ["number", "null"]},
+    "evidence_ids": {"type": "array", "items": {"type": "string"}},
+    "recommendations": {"type": "array", "items": {"type": "string"}}
+  },
+  "additionalProperties": false
+}
