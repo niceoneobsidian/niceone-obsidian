@@ -1,29 +1,89 @@
-"""P0/P3 operator surface. Secret values are never printed."""
+"""Operator CLI for secret scanning and controlled secret use."""
+
 from __future__ import annotations
-import argparse,json,os,sys
+
+import argparse
+import json
+import os
+import sys
 from pathlib import Path
+from typing import Sequence
+
 from .scanner import SecretScanner
-def main(argv=None):
+
+
+def main(argv: Sequence[str] | None = None) -> int:
     args_in = list(sys.argv[1:] if argv is None else argv)
-    if args_in and args_in[0] in {"init", "list", "get", "set", "rotate", "revoke", "inspect", "health", "audit", "incident"}:
+    operator_commands = {
+        "init",
+        "list",
+        "get",
+        "set",
+        "rotate",
+        "revoke",
+        "inspect",
+        "health",
+        "audit",
+        "incident",
+    }
+    if args_in and args_in[0] in operator_commands:
         from .operator_cli import main as operator_main
+
         return operator_main(args_in)
-    p=argparse.ArgumentParser(prog="ois secrets"); s=p.add_subparsers(dest="command",required=True)
-    q=s.add_parser("scan"); q.add_argument("path",nargs="?",default="."); q.add_argument("--json",action="store_true")
-    d=s.add_parser("doctor"); d.add_argument("--json",action="store_true")
-    r=s.add_parser("run"); r.add_argument("--secret",action="append",default=[]); r.add_argument("exec_command",nargs=argparse.REMAINDER)
-    a=p.parse_args(argv)
-    if a.command=="scan":
-        findings=SecretScanner().scan_path(Path(a.path))
-        data=[{"detector":x.detector,"path":x.path,"line":x.line,"fingerprint":x.fingerprint} for x in findings]
-        print(json.dumps(data,indent=2) if a.json else "\n".join(f"{x['path']}:{x['line']} {x['detector']} [{x['fingerprint']}]" for x in data))
+
+    parser = argparse.ArgumentParser(prog="ois secrets")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    scan_parser = subparsers.add_parser("scan")
+    scan_parser.add_argument("path", nargs="?", default=".")
+    scan_parser.add_argument("--json", action="store_true")
+
+    doctor_parser = subparsers.add_parser("doctor")
+    doctor_parser.add_argument("--json", action="store_true")
+
+    run_parser = subparsers.add_parser("run")
+    run_parser.add_argument("--secret", action="append", default=[])
+    run_parser.add_argument("exec_command", nargs=argparse.REMAINDER)
+
+    args = parser.parse_args(args_in)
+    if args.command == "scan":
+        findings = SecretScanner().scan_path(Path(args.path))
+        data = [
+            {
+                "detector": finding.detector,
+                "path": finding.path,
+                "line": finding.line,
+                "fingerprint": finding.fingerprint,
+            }
+            for finding in findings
+        ]
+        if args.json:
+            print(json.dumps(data, indent=2))
+        else:
+            print(
+                "\n".join(
+                    f"{item['path']}:{item['line']} {item['detector']} "
+                    f"[{item['fingerprint']}]"
+                    for item in data
+                )
+            )
         return 1 if findings else 0
-    if a.command=="run":
+
+    if args.command == "run":
         from .runtime_cli import run_command
-        command = list(a.exec_command)
-        if command and command[0] == "--": command = command[1:]
-        return run_command(a.secret, command)
-    if a.command=="doctor":
-        data={"environment":os.getenv("OIS_ENV","development"),"secret_files_allowed":False,"raw_secret_logging":False}
-        print(json.dumps(data,indent=2) if a.json else data); return 0
+
+        command = list(args.exec_command)
+        if command and command[0] == "--":
+            command = command[1:]
+        return run_command(args.secret, command)
+
+    if args.command == "doctor":
+        data = {
+            "environment": os.getenv("OIS_ENV", "development"),
+            "secret_files_allowed": False,
+            "raw_secret_logging": False,
+        }
+        print(json.dumps(data, indent=2) if args.json else data)
+        return 0
+
     raise SystemExit("secrets run requires configured SecretRuntime, broker and policy")
