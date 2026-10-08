@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from ois.design_intelligence.fabric import DesignCapabilityFabric
 from ois.design_intelligence.integration import DesignOISRuntime
 from ois.design_intelligence.kernel_integration import register_design_kernel_capabilities
 from ois.kernel.checkpoint import InMemoryCheckpointStore

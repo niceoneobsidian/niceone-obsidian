@@ -15,7 +15,6 @@ from ois.kernel.contracts import CapabilityContract, InvocationRequest, Invocati
 from ois.kernel.registry import CapabilityRegistry
 from ois.kernel.types import InvocationStatus, RiskLevel, SideEffectLevel
 
-
 _RISK_LEVELS = {
     "low": RiskLevel.LOW,
     "medium": RiskLevel.MEDIUM,
@@ -61,8 +60,7 @@ class KernelDesignCapability:
                 error={
                     "type": "DesignProviderUnavailable",
                     "message": (
-                        f"No provider is bound for design capability "
-                        f"{self.contract.capability_id}."
+                        f"No provider is bound for design capability {self.contract.capability_id}."
                     ),
                     "failure_class": "tool",
                     "capability_status": "unbound",
