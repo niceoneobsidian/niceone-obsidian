@@ -35,7 +35,7 @@ def generate_api_key(environment:str,prefix="odk",length=32)->str:
     return f"{prefix}_{environment[:4]}_{secrets.token_urlsafe(length)}"
 class ApiKeyManager:
     """Persistent metadata registry. Raw issued keys are never stored."""
-    def __init__(self,database=":memory__"):
+    def __init__(self,database=":memory:"):
         self.db=sqlite3.connect(database); self.db.row_factory=sqlite3.Row
         self.db.execute("""CREATE TABLE IF NOT EXISTS api_keys(id TEXT PRIMARY KEY,key_prefix TEXT,key_hash TEXT UNIQUE,
         owner_id TEXT,project_id TEXT,service_id TEXT,environment TEXT,name TEXT,scopes TEXT,status TEXT,created_at TEXT,
