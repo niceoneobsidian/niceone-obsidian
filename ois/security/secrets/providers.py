@@ -1,6 +1,7 @@
 """Optional provider SDK factories. Imports are deferred until a provider is selected."""
 from __future__ import annotations
-import os\nfrom dataclasses import dataclass
+import os
+from dataclasses import dataclass
 from typing import Any
 
 def build_vault_client() -> Any:
