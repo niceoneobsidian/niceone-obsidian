@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://niceoneobsidian.github.io/obsidian-design-intelligence/schemas/evidence.schema.json",
+  "title": "ODI Evidence",
+  "type": "object",
+  "required": ["id", "type", "source", "provenance", "confidence"],
+  "properties": {
+    "id": {"type": "string"},
+    "type": {"enum": ["source", "observation", "artifact", "trace", "validation", "decision", "measurement", "experiment"]},
+    "source": {"type": "string"},
+    "provenance": {"type": "object"},
+    "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+    "scope": {"type": "array", "items": {"type": "string"}},
+    "content_hash": {"type": "string"},
+    "created_at": {"type": "string", "format": "date-time"},
+    "expires_at": {"type": ["string", "null"], "format": "date-time"}
+  },
+  "additionalProperties": true
+}
