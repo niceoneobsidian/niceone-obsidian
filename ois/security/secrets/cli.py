@@ -1,9 +1,13 @@
 """P0/P3 operator surface. Secret values are never printed."""
 from __future__ import annotations
-import argparse,json,os
+import argparse,json,os,sys
 from pathlib import Path
 from .scanner import SecretScanner
 def main(argv=None):
+    args_in = list(sys.argv[1:] if argv is None else argv)
+    if args_in and args_in[0] in {"init", "list", "get", "set", "rotate", "revoke", "inspect", "health", "audit", "incident"}:
+        from .operator_cli import main as operator_main
+        return operator_main(args_in)
     p=argparse.ArgumentParser(prog="ois secrets"); s=p.add_subparsers(dest="command",required=True)
     q=s.add_parser("scan"); q.add_argument("path",nargs="?",default="."); q.add_argument("--json",action="store_true")
     d=s.add_parser("doctor"); d.add_argument("--json",action="store_true")
