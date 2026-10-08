@@ -1,6 +1,6 @@
 """P0/P1: taxonomy, metadata registry primitives, API keys and log redaction."""
 from __future__ import annotations
-import hashlib,hmac,re,secrets,sqlite3
+import hashlib,hmac,os,re,secrets,sqlite3
 from dataclasses import dataclass,field
 from datetime import datetime,timedelta,timezone
 from enum import StrEnum
@@ -28,7 +28,12 @@ class ApiKeyRecord:
     id:str; key_prefix:str; key_hash:str; owner_id:str; project_id:str; service_id:str; environment:str
     name:str; scopes:frozenset[str]; status:str; created_at:datetime; expires_at:datetime|None
     last_used_at:datetime|None; rotated_at:datetime|None; revoked_at:datetime|None
-def hash_api_key(raw:str)->str: return hashlib.sha256(raw.encode()).hexdigest()
+def hash_api_key(raw: str, pepper: str | bytes | None = None) -> str:
+    key = pepper if pepper is not None else os.getenv("OIS_API_KEY_PEPPER")
+    if not key:
+        raise RuntimeError("OIS_API_KEY_PEPPER is required for API-key hashing")
+    key_bytes = key.encode() if isinstance(key, str) else key
+    return hmac.new(key_bytes, raw.encode(), hashlib.sha256).hexdigest()
 def generate_api_key(environment:str,prefix="odk",length=32)->str:
     if environment not in {x.value for x in Environment}: raise ValueError("unsupported environment")
     if length<32: raise ValueError("minimum entropy is 32 bytes")
@@ -45,7 +50,7 @@ class ApiKeyManager:
     def create(self,*,owner_id,project_id,service_id,environment,name,scopes:Iterable[str],expires_in:timedelta|None=None):
         raw=generate_api_key(environment); t=utcnow(); kid=secrets.token_hex(16); exp=t+expires_in if expires_in else None
         self.db.execute("INSERT INTO api_keys VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-        (kid,raw.rsplit("_",1)[0],hash_api_key(raw),owner_id,project_id,service_id,environment,name,
+        (kid,raw.rsplit("_",1)[0],hash_api_key(raw, self.pepper),owner_id,project_id,service_id,environment,name,
          ",".join(sorted(set(scopes))),"active",t.isoformat(),exp.isoformat() if exp else None,None,None,None))
         self._event(kid,"created",owner_id); self.db.commit(); return self.get(kid),raw
     def get(self,kid):
@@ -53,7 +58,7 @@ class ApiKeyManager:
         if row is None: raise KeyError(kid)
         return self._record(row)
     def validate(self,raw,required_scope=None):
-        digest=hash_api_key(raw); row=self.db.execute("SELECT * FROM api_keys WHERE key_hash=?",(digest,)).fetchone()
+        digest=hash_api_key(raw, self.pepper); row=self.db.execute("SELECT * FROM api_keys WHERE key_hash=?",(digest,)).fetchone()
         if row is None or not hmac.compare_digest(row["key_hash"],digest): raise PermissionError("invalid API key")
         if row["status"]!="active": raise PermissionError("inactive API key")
         exp=datetime.fromisoformat(row["expires_at"]) if row["expires_at"] else None
@@ -69,7 +74,7 @@ class ApiKeyManager:
         old=self.get(kid); raw=generate_api_key(old.environment); t=utcnow(); new_id=secrets.token_hex(16)
         self.db.execute("UPDATE api_keys SET status='revoked',rotated_at=?,revoked_at=? WHERE id=?",(t.isoformat(),t.isoformat(),kid))
         self.db.execute("INSERT INTO api_keys VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-        (new_id,raw.rsplit("_",1)[0],hash_api_key(raw),old.owner_id,old.project_id,old.service_id,old.environment,old.name,
+        (new_id,raw.rsplit("_",1)[0],hash_api_key(raw, self.pepper),old.owner_id,old.project_id,old.service_id,old.environment,old.name,
          ",".join(sorted(old.scopes)),"active",t.isoformat(),old.expires_at.isoformat() if old.expires_at else None,None,None,None))
         self._event(kid,"rotated",actor_id); self.db.commit(); return self.get(new_id),raw
     def _event(self,kid,event,actor):
