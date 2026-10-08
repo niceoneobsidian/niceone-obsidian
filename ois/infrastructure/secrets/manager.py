@@ -71,6 +71,10 @@ class SecretManager:
     def health(self) -> dict[str, bool]:
         return {name: self.validate(name) for name in self._metadata}
 
+    def registered_names(self) -> tuple[str, ...]:
+        """Return registered secret names without exposing secret values."""
+        return tuple(sorted(self._metadata))
+
     def register(self, metadata: SecretMetadata) -> None:
         if metadata.name in self._metadata:
             raise ValueError(f"secret already registered: {metadata.name}")
