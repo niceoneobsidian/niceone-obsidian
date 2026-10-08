@@ -5,11 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from ois.integration.spine import OISSpine, SpineRequest, SpineResult
-from ois.registries import CapabilityRegistry
-
 from ois.design_intelligence.fabric import DesignCapabilityFabric
 from ois.design_intelligence.kernel_integration import register_design_kernel_capabilities
+from ois.integration.spine import OISSpine, SpineRequest, SpineResult
+from ois.registries import CapabilityRegistry
 
 
 @dataclass
@@ -21,7 +20,7 @@ class DesignOISRuntime:
     spine: OISSpine
 
     @classmethod
-    def create(cls) -> "DesignOISRuntime":
+    def create(cls) -> DesignOISRuntime:
         registry = CapabilityRegistry()
         fabric = register_design_kernel_capabilities(registry)
         spine = OISSpine(registry)
