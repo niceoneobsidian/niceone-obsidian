@@ -2,7 +2,19 @@
 from .contracts import BrandContext,BrandDiagnosis,BrandIdentityIntent
 class BrandDiagnostics:
     def diagnose(self,i:BrandIdentityIntent,c:BrandContext)->BrandDiagnosis:
-        strengths=[];weak=[];opp=[];threat=[];pos=[];diff=[];ident=[];msg=[];visual=[];aud=[];comp=[];contra=[];risk=[]
+        strengths: list[str] = []
+        weak: list[str] = []
+        opp: list[str] = []
+        threat: list[str] = []
+        pos: list[str] = []
+        diff: list[str] = []
+        ident: list[str] = []
+        msg: list[str] = []
+        visual: list[str] = []
+        aud: list[str] = []
+        comp: list[str] = []
+        contra: list[str] = []
+        risk: list[str] = []
         if c.existing_identity:strengths.append("Existing identity assets provide continuity.")
         else:weak.append("No existing identity system was supplied.");ident.append("Define a coherent identity system.")
         if c.existing_positioning:strengths.append("Existing positioning is available.")
