@@ -51,6 +51,7 @@ class KernelDesignCapability:
         return self._contract
 
     def invoke(self, request: InvocationRequest) -> InvocationResult:
+        request.execution.working_memory["brand.identity.input"] = dict(request.input)
         result = self.fabric.execute(self.capability.id, request.execution)
         if result.status == "unbound":
             return InvocationResult(
