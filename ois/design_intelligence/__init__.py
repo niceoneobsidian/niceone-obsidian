@@ -9,6 +9,7 @@ from ois.design_intelligence.blueprints import (
     WORKFLOWS,
 )
 from ois.design_intelligence.service import DesignCapabilityService
+from ois.design_intelligence.integration import DesignOISRuntime
 from ois.design_intelligence.kernel_integration import (
     KernelDesignCapability,
     register_design_kernel_capabilities,
@@ -24,4 +25,5 @@ __all__ = [
     "DesignCapabilityService",
     "KernelDesignCapability",
     "register_design_kernel_capabilities",
+    "DesignOISRuntime",
 ]
