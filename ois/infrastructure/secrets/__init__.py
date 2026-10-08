@@ -15,5 +15,5 @@ __all__ = [
     "SecretManager",
     "SecretMetadata",
     "SecretState",
-    "VaultKV2SecretProvider",
+    "VaultKV2SecretProvider",\n    "load_registry",\n    "manager_from_registry",
 ]
