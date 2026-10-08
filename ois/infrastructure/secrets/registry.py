@@ -5,7 +5,7 @@ from __future__ import annotations
 import tomllib
 from pathlib import Path
 
-from .manager import SecretMetadata, SecretManager
+from .manager import SecretMetadata, SecretManager, SecretProvider
 
 DEFAULT_REGISTRY = Path(__file__).resolve().parents[3] / "config" / "secrets" / "registry.toml"
 
@@ -40,7 +40,7 @@ def load_registry(path: Path = DEFAULT_REGISTRY) -> dict[str, SecretMetadata]:
 
 
 def manager_from_registry(
-    provider: object,
+    provider: SecretProvider,
     path: Path = DEFAULT_REGISTRY,
 ) -> SecretManager:
     return SecretManager(provider, load_registry(path))
