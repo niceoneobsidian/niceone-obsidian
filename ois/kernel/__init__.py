@@ -33,6 +33,7 @@ from .planning import (
 )
 from .policy import AuthorizationDenied, DefaultPolicyEngine, PolicyDecision
 from .postgres import PostgresConfigurationError, PostgresDurableExecutionStore
+from .postgres_stores import PostgresEvidenceLedger, PostgresIdempotencyStore
 from .recovery import RecoveryDecision, RecoveryPolicy, RetryLimitExceeded
 from .registry import (
     AgentRegistry,
@@ -118,6 +119,8 @@ __all__ = [
     "PolicyEngine",
     "PostgresConfigurationError",
     "PostgresDurableExecutionStore",
+    "PostgresEvidenceLedger",
+    "PostgresIdempotencyStore",
     "RecoveryDecision",
     "RecoveryPolicy",
     "RetryLimitExceeded",
