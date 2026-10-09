@@ -46,10 +46,12 @@ class CountingCapability:
         )
 
 
-def stores(dsn: str) -> tuple[
-    PostgresDurableExecutionStore, PostgresIdempotencyStore, PostgresEvidenceLedger
-]:
-    connect = lambda: psycopg.connect(dsn)
+def stores(
+    dsn: str,
+) -> tuple[PostgresDurableExecutionStore, PostgresIdempotencyStore, PostgresEvidenceLedger]:
+    def connect():
+        return psycopg.connect(dsn)
+
     checkpoints = PostgresDurableExecutionStore(connect)
     idempotency = PostgresIdempotencyStore(connect)
     evidence = PostgresEvidenceLedger(connect)
@@ -69,7 +71,7 @@ def test_kernel_postgres_stores_survive_runtime_recreation(
     execution_id = uuid4()
     invocation_id = f"durable-replay-{uuid4()}"
     context = ExecutionContext(
-        identity=ExecutionIdentity(execution_id=execution_id, tenant_id="default"),
+        identity=ExecutionIdentity(execution_id=execution_id, tenant_id=str(uuid4())),
         objective="Verify durable Kernel replay",
     )
     runtime = ExecutionRuntime(
@@ -120,8 +122,7 @@ def test_kernel_postgres_stores_survive_runtime_recreation(
     assert replay.status is first.status
     assert capability.calls == 1
     assert any(
-        event.event_type == "execution.idempotency_hit"
-        for event in evidence_2.list(execution_id)
+        event.event_type == "execution.idempotency_hit" for event in evidence_2.list(execution_id)
     )
 
     checkpoint_store_2.close()
@@ -143,16 +144,23 @@ def test_kernel_postgres_idempotency_does_not_cache_failed_invocations(
         idempotency=idempotency_store,
     )
     invocation_id = f"failed-not-cached-{uuid4()}"
+    tenant_id = str(uuid4())
 
     first = runtime.execute(
-        ExecutionContext(identity=ExecutionIdentity(), objective="failure retry"),
+        ExecutionContext(
+            identity=ExecutionIdentity(tenant_id=tenant_id),
+            objective="failure retry",
+        ),
         "test.durable-echo",
         "1.0.0",
         {"message": "retry me"},
         invocation_id=invocation_id,
     )
     second = runtime.execute(
-        ExecutionContext(identity=ExecutionIdentity(), objective="failure retry"),
+        ExecutionContext(
+            identity=ExecutionIdentity(tenant_id=tenant_id),
+            objective="failure retry",
+        ),
         "test.durable-echo",
         "1.0.0",
         {"message": "retry me"},
@@ -175,10 +183,13 @@ def test_kernel_postgres_evidence_is_append_only(migrated_postgres: str) -> None
     event = evidence.record(execution_id, "test.persisted", {"safe": True})
     assert evidence.list(execution_id)[0].event_id == event.event_id
 
-    with pytest.raises(psycopg.Error, match="append-only"):
-        with psycopg.connect(migrated_postgres) as connection, connection.cursor() as cursor:
-            cursor.execute(
-                "DELETE FROM ois_kernel_evidence_events WHERE event_id = %s",
-                (event.event_id,),
-            )
+    with (
+        pytest.raises(psycopg.Error, match="append-only"),
+        psycopg.connect(migrated_postgres) as connection,
+        connection.cursor() as cursor,
+    ):
+        cursor.execute(
+            "DELETE FROM ois_kernel_evidence_events WHERE event_id = %s",
+            (event.event_id,),
+        )
     evidence.close()

@@ -196,9 +196,7 @@ class PostgresEvidenceLedger:
             events.append(
                 EvidenceEvent(
                     event_id=row[0] if isinstance(row[0], UUID) else UUID(str(row[0])),
-                    execution_id=(
-                        row[1] if isinstance(row[1], UUID) else UUID(str(row[1]))
-                    ),
+                    execution_id=(row[1] if isinstance(row[1], UUID) else UUID(str(row[1]))),
                     event_type=row[2],
                     timestamp=timestamp,
                     actor=row[4],

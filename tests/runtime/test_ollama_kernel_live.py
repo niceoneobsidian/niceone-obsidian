@@ -33,7 +33,9 @@ def test_live_ollama_kernel_vertical_slice_is_durable() -> None:
         pytest.skip("Set OIS_LIVE_DATABASE_URL to a dedicated disposable PostgreSQL test DB")
 
     model = os.getenv("OIS_OLLAMA_MODEL", "qwen2.5-coder:1.5b")
-    connect = lambda: psycopg.connect(dsn)
+
+    def connect():
+        return psycopg.connect(dsn)
 
     checkpoint_store = PostgresDurableExecutionStore(connect)
     checkpoint_store.initialize()
@@ -68,6 +70,7 @@ def test_live_ollama_kernel_vertical_slice_is_durable() -> None:
     context = ExecutionContext(
         identity=ExecutionIdentity(
             execution_id=execution_id,
+            tenant_id=str(uuid4()),
             workflow_id="local-llm.live-workflow",
             workflow_version="1.0.0",
         ),
@@ -145,8 +148,7 @@ def test_live_ollama_kernel_vertical_slice_is_durable() -> None:
     assert replay.output == first.output
     assert len(gateway.telemetry) == telemetry_count
     assert any(
-        event.event_type == "execution.idempotency_hit"
-        for event in evidence_2.list(execution_id)
+        event.event_type == "execution.idempotency_hit" for event in evidence_2.list(execution_id)
     )
     assert len(evidence_2.list(execution_id)) > len(stored_events)
 
