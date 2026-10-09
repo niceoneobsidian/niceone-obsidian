@@ -8,6 +8,7 @@ authoritative.
 
 from __future__ import annotations
 
+import contextlib
 import os
 from pathlib import Path
 from typing import Any
@@ -79,21 +80,16 @@ class ReadOnlyMCPService:
 
         self.state_dir = Path(state_dir).expanduser()
         self.state_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
-        try:
+        with contextlib.suppress(OSError):
             self.state_dir.chmod(0o700)
-        except OSError:
-            # Some filesystems do not support POSIX permissions; SQLite remains local.
-            pass
 
         checkpoint_path = self.state_dir / "checkpoints.sqlite3"
         evidence_path = self.state_dir / "evidence.sqlite3"
         self.checkpoints = SQLiteCheckpointStore(str(checkpoint_path))
         self.evidence = SQLiteEvidenceLedger(str(evidence_path))
         for database_path in (checkpoint_path, evidence_path):
-            try:
+            with contextlib.suppress(OSError):
                 database_path.chmod(0o600)
-            except OSError:
-                pass
 
         registry = CapabilityRegistry()
         registry.register(ReadOnlyProbeCapability())
@@ -102,8 +98,7 @@ class ReadOnlyMCPService:
             registry,
             checkpoint_store=self.checkpoints,
             evidence=self.evidence,
-            policy=policy
-            or DefaultPolicyEngine(allowed_permissions=(READ_PERMISSION,)),
+            policy=policy or DefaultPolicyEngine(allowed_permissions=(READ_PERMISSION,)),
         )
 
     def readiness(self) -> dict[str, Any]:
@@ -162,9 +157,7 @@ def create_server(service: ReadOnlyMCPService) -> FastMCP:
 
 def main() -> None:
     """Start the stdio MCP server for a local VS Code client."""
-    state_dir = Path(
-        os.environ.get("OIS_MCP_STATE_DIR", str(Path.home() / ".ois" / "mcp"))
-    )
+    state_dir = Path(os.environ.get("OIS_MCP_STATE_DIR", str(Path.home() / ".ois" / "mcp")))
     tenant_id = os.environ.get("OIS_MCP_TENANT_ID", "local-vscode")
     service = ReadOnlyMCPService(state_dir, tenant_id=tenant_id)
     try:
