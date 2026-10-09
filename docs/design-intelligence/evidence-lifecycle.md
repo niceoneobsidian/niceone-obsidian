@@ -1,6 +1,6 @@
 # Evidence Lifecycle
 
-ODI uses explicit evidence states to prevent architecture from being mistaken for operational capability.
+OIS Design Intelligence uses explicit evidence states to prevent architecture from being mistaken for operational capability.
 
 ```text
 UNKNOWN

@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from threading import RLock
 from typing import Any
+from uuid import uuid4
 
 from ois.architecture.fabrics import (
     AgentWorkspace,
@@ -37,6 +38,7 @@ from ois.kernel.contracts import (
 )
 from ois.kernel.registry import CapabilityRegistry
 from ois.kernel.types import InvocationStatus, RiskLevel, SideEffectLevel
+from ois.runtime.llm_gateway import LLMGateway
 
 CAPABILITY_VERSION = "1.0.0"
 
@@ -158,15 +160,48 @@ class InMemoryModelRouter:
         ]
         if not candidates:
             raise LookupError(f"no model route satisfies capabilities={sorted(required)}")
-        return min(candidates, key=lambda route: sum(route.cost_profile.values()))
+        return min(
+            candidates,
+            key=lambda route: (sum(route.cost_profile.values()), route.provider, route.model),
+        )
+
+
+@dataclass
+class _CallableLLMProvider:
+    """Adapt the legacy callable provider contract to the canonical gateway."""
+
+    provider_id: str
+    callback: Callable[[str, dict[str, Any]], Any]
+
+    def invoke(self, model: str, request: dict[str, Any]) -> Any:
+        return self.callback(model, request)
 
 
 @dataclass
 class InMemoryLLMGateway:
+    """Compatibility facade backed by the canonical LLM execution gateway.
+
+    The in-memory fabric keeps its existing registration and invoke API while
+    delegating route selection, fallback, and inference records to LLMGateway.
+    """
+
     spec: LLMGatewaySpec
     router: InMemoryModelRouter
     providers: dict[str, Callable[[str, dict[str, Any]], Any]] = field(default_factory=dict)
     telemetry: list[dict[str, Any]] = field(default_factory=list)
+    engine: LLMGateway = field(init=False, repr=False)
+
+    def __post_init__(self) -> None:
+        self.engine = LLMGateway(spec=self.spec)
+        self._sync_routes()
+
+    def _sync_routes(self) -> None:
+        # The router remains the fabric's route registry; mirror its current
+        # snapshot so routes registered after gateway configuration are visible.
+        self.engine.routes = sorted(
+            self.router.routes,
+            key=lambda route: (route.provider, route.model, route.version),
+        )
 
     def register_provider(
         self,
@@ -174,6 +209,7 @@ class InMemoryLLMGateway:
         invoke: Callable[[str, dict[str, Any]], Any],
     ) -> None:
         self.providers[provider_id] = invoke
+        self.engine.register_provider(_CallableLLMProvider(provider_id, invoke))
 
     def invoke(
         self,
@@ -182,45 +218,30 @@ class InMemoryLLMGateway:
         capabilities: set[str] | None = None,
         options: dict[str, Any] | None = None,
     ) -> Any:
-        options = options or {}
-        required = capabilities or set()
-        route = self.router.select(required, options.get("constraints"))
-        provider = self.providers.get(route.provider)
-        if provider is None:
-            raise LookupError(f"provider not registered: {route.provider}")
+        request_options = dict(options or {})
+        request_id = str(request_options.pop("request_id", "") or uuid4().hex)
+        self._sync_routes()
+        record_start = len(self.engine.records)
         try:
-            result = provider(route.model, {"prompt": prompt, **options})
-        except Exception as exc:
-            self.telemetry.append(
-                {
-                    "provider": route.provider,
-                    "model": route.model,
-                    "status": "failed",
-                    "error": type(exc).__name__,
-                }
+            return self.engine.invoke(
+                request_id,
+                prompt,
+                capabilities=set(capabilities or ()),
+                options=request_options,
             )
-            if self.spec.fallback_policy != "next_compatible":
-                raise
-            for fallback in self.router.routes:
-                if fallback == route or not required.issubset(fallback.capabilities):
-                    continue
-                fallback_provider = self.providers.get(fallback.provider)
-                if fallback_provider is not None:
-                    return fallback_provider(
-                        fallback.model,
-                        {"prompt": prompt, **options},
-                    )
-            raise
-        else:
-            self.telemetry.append(
-                {
-                    "provider": route.provider,
-                    "model": route.model,
-                    "started_at": _now(),
-                    "status": "succeeded",
+        finally:
+            for record in self.engine.records[record_start:]:
+                item: dict[str, Any] = {
+                    "request_id": record.request_id,
+                    "provider": record.provider,
+                    "model": record.model,
+                    "started_at": record.started_at,
+                    "latency_ms": record.latency_ms,
+                    "status": record.status,
                 }
-            )
-            return result
+                if record.error_type is not None:
+                    item["error"] = record.error_type
+                self.telemetry.append(item)
 
 
 @dataclass

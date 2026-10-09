@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://niceoneobsidian.github.io/obsidian-design-intelligence/schemas/task.schema.json",
-  "title": "ODI Task",
+  "title": "Design Intelligence Task",
   "type": "object",
   "required": ["id", "objective", "status"],
   "properties": {

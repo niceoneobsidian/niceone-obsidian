@@ -1,10 +1,10 @@
 # Reference Architecture Research
 
-This document records structural patterns selected from the repositories supplied for ODI architecture research. The goal is to extract reusable architectural ideas, not copy implementations.
+This document records structural patterns selected from the repositories supplied for OIS Design Intelligence architecture research. The goal is to extract reusable architectural ideas, not copy implementations.
 
 ## Core System References
 
-| Reference | Pattern to study | ODI application |
+| Reference | Pattern to study | OIS Design Intelligence application |
 |---|---|---|
 | FareedKhan-dev/all-agentic-architectures | Uniform architecture contract, many agentic patterns, benchmarks, notebooks, tests | Architecture pattern registry + benchmark discipline |
 | infiniflow/ragflow | Deep document processing, retrieval, agent/context layer, orchestration | Knowledge ingestion, retrieval, context fabric |
@@ -14,7 +14,7 @@ This document records structural patterns selected from the repositories supplie
 | langflow-ai/langflow | Visual flow construction and component-oriented AI applications | Inspectable workflow composition |
 | langgenius/dify | Full AI application platform, workflow, model and knowledge abstractions | Application/control-plane separation |
 | langchain-ai/langchain | Modular ecosystem and provider/tool abstractions | Adapter boundaries, integrations |
-| open-webui/open-webui | UI + backend application boundary | Optional ODI control surface |
+| open-webui/open-webui | UI + backend application boundary | Optional OIS Design Intelligence control surface |
 | ollama/ollama | Local model runtime and provider boundary | Local inference adapter |
 | vllm-project/vllm | High-throughput model serving/runtime separation | Inference infrastructure adapter |
 | ggml-org/llama.cpp | Portable inference runtime | Local/edge model adapter |
@@ -29,7 +29,7 @@ This document records structural patterns selected from the repositories supplie
 
 ## Visual / Design Intelligence References
 
-| Reference | Pattern to study | ODI application |
+| Reference | Pattern to study | OIS Design Intelligence application |
 |---|---|---|
 | nextlevelbuilder/ui-ux-pro-max-skill | Searchable design intelligence, design-system generation, sub-skill routing, persistence, pre-delivery checks | Design knowledge fabric + skill routing + visual QA |
 | YubaNeupane/Research-AI-DesginPattern | AI design-pattern research | Design reasoning knowledge |
@@ -46,7 +46,7 @@ This document records structural patterns selected from the repositories supplie
 
 ### 1. Uniform contracts
 
-Agentic architectures benefit from a stable execution contract. ODI therefore defines common task, capability, result, evidence, and validation contracts.
+Agentic architectures benefit from a stable execution contract. OIS Design Intelligence therefore defines common task, capability, result, evidence, and validation contracts.
 
 ### 2. Gateway boundaries
 
@@ -54,7 +54,7 @@ Model providers should be behind a model gateway rather than called throughout t
 
 ### 3. Context engineering
 
-Knowledge retrieval is broader than vector search. ODI treats ingestion, parsing, chunking, retrieval, reranking, context assembly, memory, tools, and current environment as coordinated context sources.
+Knowledge retrieval is broader than vector search. OIS Design Intelligence treats ingestion, parsing, chunking, retrieval, reranking, context assembly, memory, tools, and current environment as coordinated context sources.
 
 ### 4. Skill discovery and gating
 
@@ -62,7 +62,7 @@ Skills need explicit metadata, scope, routing, precedence, and allowlists. A dis
 
 ### 5. Package boundaries
 
-Large systems benefit from explicit package boundaries around shared types, runtime, integrations, UI, and domain modules. ODI adopts this separation without copying another repository's package layout verbatim.
+Large systems benefit from explicit package boundaries around shared types, runtime, integrations, UI, and domain modules. OIS Design Intelligence adopts this separation without copying another repository's package layout verbatim.
 
 ### 6. Evaluation as infrastructure
 
