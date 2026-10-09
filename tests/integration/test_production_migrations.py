@@ -51,9 +51,11 @@ def test_production_runner_rejects_duplicate_numeric_versions(
     (migrations_dir / "9002_first.sql").write_text("SELECT 1;", encoding="utf-8")
     (migrations_dir / "09002_duplicate.sql").write_text("SELECT 2;", encoding="utf-8")
 
-    with psycopg.connect(migrated_postgres) as connection:
-        with pytest.raises(RuntimeError, match="Duplicate migration version"):
-            apply_migrations(connection, migrations_dir)
+    with (
+        psycopg.connect(migrated_postgres) as connection,
+        pytest.raises(RuntimeError, match="Duplicate migration version"),
+    ):
+        apply_migrations(connection, migrations_dir)
 
 
 def test_production_runner_rejects_empty_migrations(
@@ -63,9 +65,11 @@ def test_production_runner_rejects_empty_migrations(
     migrations_dir = _copy_repository_migrations(tmp_path / "migrations")
     (migrations_dir / "90020_empty.sql").write_text("  \n", encoding="utf-8")
 
-    with psycopg.connect(migrated_postgres) as connection:
-        with pytest.raises(RuntimeError, match="Migration is empty"):
-            apply_migrations(connection, migrations_dir)
+    with (
+        psycopg.connect(migrated_postgres) as connection,
+        pytest.raises(RuntimeError, match="Migration is empty"),
+    ):
+        apply_migrations(connection, migrations_dir)
 
 
 def test_production_runner_detects_checksum_tampering(
@@ -79,9 +83,11 @@ def test_production_runner_detects_checksum_tampering(
         encoding="utf-8",
     )
 
-    with psycopg.connect(migrated_postgres) as connection:
-        with pytest.raises(RuntimeError, match="checksum mismatch"):
-            apply_migrations(connection, migrations_dir)
+    with (
+        psycopg.connect(migrated_postgres) as connection,
+        pytest.raises(RuntimeError, match="checksum mismatch"),
+    ):
+        apply_migrations(connection, migrations_dir)
 
 
 def test_production_runner_is_idempotent(
@@ -121,9 +127,11 @@ def test_production_runner_rolls_back_all_pending_migrations_on_failure(
         encoding="utf-8",
     )
 
-    with psycopg.connect(migrated_postgres) as connection:
-        with pytest.raises(psycopg.Error):
-            apply_migrations(connection, migrations_dir)
+    with (
+        psycopg.connect(migrated_postgres) as connection,
+        pytest.raises(psycopg.Error),
+    ):
+        apply_migrations(connection, migrations_dir)
 
     with psycopg.connect(migrated_postgres) as connection, connection.cursor() as cursor:
         cursor.execute(
