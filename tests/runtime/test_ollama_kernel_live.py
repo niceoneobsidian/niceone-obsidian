@@ -91,9 +91,7 @@ def test_live_ollama_inference_executes_through_kernel_fabric() -> None:
     assert telemetry["model"] == model
     assert telemetry["status"] == "succeeded"
 
-    event_types = {
-        event.event_type for event in evidence.list(context.identity.execution_id)
-    }
+    event_types = {event.event_type for event in evidence.list(context.identity.execution_id)}
     assert "execution.authorized" in event_types
     assert "execution.checkpointed" in event_types
     assert "capability.completed" in event_types
