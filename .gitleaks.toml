@@ -17,3 +17,10 @@ paths = [
 regexes = [
   '''(effect|invocation|idempotency)-exclusive-\d+''',
 ]
+
+
+[[rules]]
+id = "ois-api-key"
+description = "OIS issued API key"
+regex = '''odk_(?:deve|test|stag|prod)_[A-Za-z0-9_-]{32,}'''
+tags = ["ois","credential"]

@@ -201,6 +201,7 @@ class OISProductionLifecycle:
         canary: CanaryController | None = None,
         authorization: RBACABAC | None = None,
         deployment: DeploymentAdapter | None = None,
+        secret_runtime: object | None = None,
     ) -> None:
         self.control_plane = control_plane
         self.capabilities = capabilities
@@ -218,6 +219,7 @@ class OISProductionLifecycle:
             self.checkpoints,
             evidence=self.kernel_evidence,
             policy=self.policy,
+            secret_runtime=secret_runtime,
         )
         self.deployment = ProductionControlPlane(
             authorization=self.authorization,
@@ -237,6 +239,7 @@ class OISProductionLifecycle:
         permissions: frozenset[str] = frozenset(),
         environment: str = "staging",
         attributes: Mapping[str, str] | None = None,
+        secret_bindings: dict[str, tuple[object, object]] | None = None,
     ) -> LifecycleResult:
         """Resolve via the existing Control Plane and execute only via the Kernel."""
         self.control_plane.resolve_capability(request)
@@ -277,6 +280,7 @@ class OISProductionLifecycle:
             request.capability_version,
             dict(request.input),
             invocation_id=invocation_id,
+            secret_bindings=secret_bindings,
         )
         succeeded = result.status == InvocationStatus.SUCCEEDED
         self.world.assert_fact(

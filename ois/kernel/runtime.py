@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import cast
+from typing import Protocol, cast
 from uuid import uuid4
 
 from ois.infrastructure.postgres_fencing import PostgresWorkerLeaseStore, WorkerLease
@@ -16,6 +16,10 @@ from .registry import CapabilityRegistry
 from .state import ExecutionContext
 from .types import ExecutionStatus, FailureClass, InvocationStatus
 from .validation import ContractValidator
+
+
+class SecretResolver(Protocol):
+    def resolve(self, metadata: object, context: object) -> str: ...
 
 
 class ExecutionError(Exception):
@@ -41,6 +45,7 @@ class ExecutionRuntime:
         cancellation: CancellationToken | None = None,
         idempotency: IdempotencyStore | None = None,
         fencing: PostgresWorkerLeaseStore | None = None,
+        secret_runtime: SecretResolver | None = None,
     ) -> None:
         self.registry = registry
         self.checkpoint_store = checkpoint_store
@@ -51,6 +56,7 @@ class ExecutionRuntime:
         self.cancellation = cancellation or CancellationToken()
         self.idempotency = idempotency or InMemoryIdempotencyStore()
         self.fencing = fencing
+        self.secret_runtime = secret_runtime
 
     def execute(
         self,
@@ -61,6 +67,7 @@ class ExecutionRuntime:
         *,
         invocation_id: str | None = None,
         worker_lease: WorkerLease | None = None,
+        secret_bindings: dict[str, tuple[object, object]] | None = None,
     ) -> InvocationResult:
         if context.status in {ExecutionStatus.COMPLETED, ExecutionStatus.STOPPED}:
             raise ExecutionAlreadyCompleted(
@@ -110,6 +117,7 @@ class ExecutionRuntime:
             execution=context,
             timeout_seconds=entry.contract.timeout_seconds,
             cancellation=self.cancellation,
+            secret_resolver=lambda name: self._resolve_secret(name, secret_bindings),
         )
         self.validator.validate_input(request, entry.contract)
         self.evidence.record(
@@ -231,6 +239,14 @@ class ExecutionRuntime:
         )
         context.set_status(ExecutionStatus.ROUTED)
         return result
+
+    def _resolve_secret(self, name: str, bindings: dict[str, tuple[object, object]] | None) -> str:
+        if self.secret_runtime is None:
+            raise PermissionError("SecretRuntime is not bound to the OIS Kernel")
+        if not bindings or name not in bindings:
+            raise KeyError(f"secret binding not declared: {name}")
+        metadata, context = bindings[name]
+        return self.secret_runtime.resolve(metadata, context)
 
     def complete(
         self, context: ExecutionContext, *, worker_lease: WorkerLease | None = None

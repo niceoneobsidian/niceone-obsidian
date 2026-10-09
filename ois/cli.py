@@ -263,6 +263,12 @@ def cmd_config_validate(_: argparse.Namespace) -> int:
     return config_main()
 
 
+def cmd_security(args: argparse.Namespace) -> int:
+    from ois.security.cli import main as security_main
+    argv = list(args.security_args or [])
+    return int(security_main(argv))
+
+
 def cmd_version(_: argparse.Namespace) -> int:
     print("OIS CLI v1.1")
     print(f"Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")
@@ -282,6 +288,8 @@ def build_parser() -> argparse.ArgumentParser:
     sub.required = True
 
     handlers = {
+        "security": cmd_security,
+        "secrets": cmd_security,
         "status": cmd_status,
         "doctor": cmd_doctor,
         "verify": cmd_verify,
@@ -296,7 +304,9 @@ def build_parser() -> argparse.ArgumentParser:
     }
     for name, handler in handlers.items():
         child = sub.add_parser(name)
-        if name != "verify":
+        if name == "security":
+            child.add_argument("security_args", nargs=argparse.REMAINDER)
+        elif name != "verify":
             _add_json_flag(child)
         child.set_defaults(handler=handler)
     return parser

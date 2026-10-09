@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
 from dataclasses import dataclass, field
+from collections.abc import Callable, Mapping
 from typing import Any, Protocol
 
 from .state import ExecutionContext
@@ -61,6 +61,12 @@ class InvocationRequest:
     timeout_seconds: float | None = None
     attempt: int = 0
     cancellation: CancellationHandle | None = None
+    secret_resolver: Callable[[str], str] | None = None
+
+    def resolve_secret(self, name: str) -> str:
+        if self.secret_resolver is None:
+            raise PermissionError("secret runtime is not bound to this invocation")
+        return self.secret_resolver(name)
 
 
 @dataclass
