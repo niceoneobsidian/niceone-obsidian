@@ -174,8 +174,9 @@ def test_live_ollama_durable_execution_replays_after_runtime_restart(
         assert "execution.received" in event_types
         assert "execution.authorized" in event_types
         assert "execution.checkpointed" in event_types
-        assert "execution.idempotency_hit" in event_types
-        assert evidence_second.count(execution_id) >= len(event_types)
+        assert event_types.count("execution.idempotency_hit") == 1
+        assert event_types.count("execution.received") == 1
+        assert event_types.count("capability.completed") == 1
     finally:
         evidence_second.close()
         redis_first.client.close()
