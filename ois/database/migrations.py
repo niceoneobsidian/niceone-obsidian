@@ -149,9 +149,7 @@ def _connection_parameters() -> dict[str, str | int]:
     required = ("DB_HOST", "DB_NAME", "DB_USER", "DB_PASSWORD")
     missing = [name for name in required if not os.environ.get(name)]
     if missing:
-        raise RuntimeError(
-            "Missing required database environment variables: " + ", ".join(missing)
-        )
+        raise RuntimeError("Missing required database environment variables: " + ", ".join(missing))
 
     try:
         port = int(os.environ.get("DB_PORT", "5432"))
