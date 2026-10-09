@@ -1,4 +1,4 @@
-"""Source Gateway module exports."""
+""""Source Gateway module exports."""
 
 from __future__ import annotations
 
@@ -33,6 +33,11 @@ from .outbox import OutboxEvent, OutboxStore, SQLiteOutboxStore
 from .postgres import PostgresSourceLedger
 from .rate_limits import RateLimitDecision, RateLimitManager
 from .retry import RetryController, RetryDecision, RetryPolicy
+from .secret_manager import (
+    CredentialBinding,
+    CredentialConformanceAdapter,
+    VaultCredentialResolver,
+)
 from .webhook_security import WebhookSecurity, WebhookSecurityPolicy
 
 __all__ = [
@@ -48,6 +53,8 @@ __all__ = [
     "HmacAuth",
     "OAuth2Auth",
     "authenticator_for",
+    "CredentialBinding",
+    "CredentialConformanceAdapter",
     "CredentialRef",
     "CredentialResolver",
     "FreshnessPolicy",
@@ -79,6 +86,7 @@ __all__ = [
     "SourceSpec",
     "TenantScope",
     "TokenBucket",
+    "VaultCredentialResolver",
     "IdempotencyRecord",
     "IdempotencyStore",
     "WebhookSecurity",
