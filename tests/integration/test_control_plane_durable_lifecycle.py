@@ -134,7 +134,7 @@ def test_control_plane_durable_lifecycle_replay_and_tenant_denial(tmp_path: Path
         first_redis.client.close()
 
     # Construct a new lifecycle/runtime and reopen all external persistence adapters.
-    second_lifecycle, second_checkpoints, second_redis = _lifecycle(
+    second_lifecycle, _second_checkpoints, second_redis = _lifecycle(
         calls,
         postgres_url=postgres_url,
         redis_url=redis_url,
