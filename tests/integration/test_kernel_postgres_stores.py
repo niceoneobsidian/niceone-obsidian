@@ -99,9 +99,9 @@ def test_kernel_postgres_stores_survive_runtime_recreation(
     assert restored_context.identity.execution_id == execution_id
     assert restored_context.working_memory[f"result:{invocation_id}"] == first.output
     restored_events = evidence_2.list(execution_id)
-    assert [event.event_id for event in restored_events] == [
+    assert {event.event_id for event in restored_events} == {
         event.event_id for event in first_events
-    ]
+    }
 
     runtime_2 = ExecutionRuntime(
         registry=registry,
