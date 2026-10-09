@@ -6,8 +6,8 @@ import pytest
 
 from ois.runtime import cloud_provider_setup as setup
 from ois.runtime.cloud_llm import ProviderConfigurationError
-from ois.runtime.fabrics import FabricRuntime
 from ois.architecture.fabrics import LLMGatewaySpec
+from ois.runtime.fabrics import FabricRuntime
 
 
 class FakeProvider:
@@ -20,8 +20,13 @@ class FakeProvider:
 
 def test_cloud_providers_are_disabled_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
     for name in (
-        "OPENAI_ENABLED", "OPENAI_API_KEY", "ANTHROPIC_ENABLED", "ANTHROPIC_API_KEY",
-        "GEMINI_ENABLED", "GEMINI_API_KEY", "GOOGLE_API_KEY",
+        "OPENAI_ENABLED",
+        "OPENAI_API_KEY",
+        "ANTHROPIC_ENABLED",
+        "ANTHROPIC_API_KEY",
+        "GEMINI_ENABLED",
+        "GEMINI_API_KEY",
+        "GOOGLE_API_KEY",
     ):
         monkeypatch.delenv(name, raising=False)
     gateway = FabricRuntime().configure_gateway(
@@ -41,9 +46,7 @@ def test_only_explicitly_enabled_providers_register(
     monkeypatch.setenv("GEMINI_ENABLED", "false")
     monkeypatch.setattr(setup, "OpenAIProvider", lambda: FakeProvider("openai"))
     gateway = FabricRuntime().configure_gateway(
-        __import__("ois.architecture.fabrics", fromlist=["LLMGatewaySpec"]).LLMGatewaySpec(
-            ref_id="test", providers=("openai",)
-        ),
+        LLMGatewaySpec(ref_id="test", providers=("openai",)),
         register_cloud_providers=False,
     )
     assert setup.register_configured_cloud_providers(gateway) == ("openai",)
@@ -68,9 +71,7 @@ def test_enabled_provider_requires_credentials(
     with pytest.raises(ProviderConfigurationError, match="requires"):
         setup.register_configured_cloud_providers(
             FabricRuntime().configure_gateway(
-                __import__("ois.architecture.fabrics", fromlist=["LLMGatewaySpec"]).LLMGatewaySpec(
-                    ref_id="test"
-                ),
+                LLMGatewaySpec(ref_id="test"),
                 register_cloud_providers=False,
             )
         )
@@ -80,7 +81,11 @@ def test_gateway_initialization_calls_cloud_registration(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     calls: list[object] = []
-    monkeypatch.setattr(setup, "register_configured_cloud_providers", lambda gateway: calls.append(gateway) or ())
+    monkeypatch.setattr(
+        setup,
+        "register_configured_cloud_providers",
+        lambda gateway: calls.append(gateway) or (),
+    )
     runtime = FabricRuntime()
     gateway = runtime.configure_gateway(LLMGatewaySpec(ref_id="auto"))
     assert calls == [gateway]
