@@ -87,6 +87,7 @@ def test_live_ollama_durable_execution_replays_after_runtime_restart(
     context = ExecutionContext(
         identity=ExecutionIdentity(
             execution_id=execution_id,
+            tenant_id=str(uuid4()),
             workflow_id="local-llm.durable-replay",
             workflow_version="1.0.0",
         ),
