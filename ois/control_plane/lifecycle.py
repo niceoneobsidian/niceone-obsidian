@@ -21,6 +21,7 @@ from ois.kernel.contracts import (
 )
 from ois.kernel.evidence import EvidenceEvent as KernelEvidenceEvent
 from ois.kernel.evidence import EvidenceStore as KernelEvidenceStore
+from ois.kernel.idempotency import IdempotencyStore
 from ois.kernel.policy import DefaultPolicyEngine
 from ois.kernel.registry import CapabilityEntry as KernelRegistryEntry
 from ois.kernel.runtime import ExecutionRuntime
@@ -201,6 +202,7 @@ class OISProductionLifecycle:
         canary: CanaryController | None = None,
         authorization: RBACABAC | None = None,
         deployment: DeploymentAdapter | None = None,
+        idempotency: IdempotencyStore | None = None,
     ) -> None:
         self.control_plane = control_plane
         self.capabilities = capabilities
@@ -218,6 +220,7 @@ class OISProductionLifecycle:
             self.checkpoints,
             evidence=self.kernel_evidence,
             policy=self.policy,
+            idempotency=idempotency,
         )
         self.deployment = ProductionControlPlane(
             authorization=self.authorization,
@@ -256,6 +259,7 @@ class OISProductionLifecycle:
             },
         )
         execution_id = str(context.identity.execution_id)
+        invocation_id = invocation_id or str(uuid4())
         entity = self.world.upsert_entity(
             "execution",
             {"execution_id": execution_id, "objective": objective},
@@ -277,6 +281,9 @@ class OISProductionLifecycle:
             request.capability_version,
             dict(request.input),
             invocation_id=invocation_id,
+            idempotency_key=(
+                f"{tenant_id}:{request.capability_id}:{request.capability_version}:{invocation_id}"
+            ),
         )
         succeeded = result.status == InvocationStatus.SUCCEEDED
         self.world.assert_fact(
