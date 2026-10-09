@@ -10,7 +10,7 @@ from .checkpoint import CheckpointStore
 from .contracts import InvocationRequest, InvocationResult
 from .evidence import EvidenceLedger, EvidenceStore
 from .idempotency import IdempotencyStore, InMemoryIdempotencyStore
-from .policy import DefaultPolicyEngine, PolicyEngine
+from .policy import AuthorizationDenied, DefaultPolicyEngine, PolicyEngine
 from .recovery import RecoveryPolicy
 from .registry import CapabilityRegistry
 from .state import ExecutionContext
@@ -94,7 +94,7 @@ class ExecutionRuntime:
         self.validator.validate_input(request, entry.contract)
         try:
             self.policy.authorize(request, entry.contract)
-        except PermissionError as exc:
+        except (AuthorizationDenied, PermissionError) as exc:
             self.evidence.record(
                 execution_id,
                 "execution.input_validated",
