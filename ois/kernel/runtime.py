@@ -60,6 +60,7 @@ class ExecutionRuntime:
         input_data: dict,
         *,
         invocation_id: str | None = None,
+        idempotency_key: str | None = None,
         worker_lease: WorkerLease | None = None,
     ) -> InvocationResult:
         if context.status in {ExecutionStatus.COMPLETED, ExecutionStatus.STOPPED}:
@@ -69,8 +70,49 @@ class ExecutionRuntime:
 
         execution_id = context.identity.execution_id
         logical_invocation_id = invocation_id or str(uuid4())
+        storage_idempotency_key = idempotency_key or logical_invocation_id
         self._assert_fence(worker_lease)
-        cached = self.idempotency.get(logical_invocation_id)
+        context.set_status(ExecutionStatus.NORMALIZED)
+        entry = self.registry.get(capability_id, version)
+        context.set_status(ExecutionStatus.PLAN_VALIDATED)
+
+        try:
+            self.cancellation.raise_if_cancelled()
+        except ExecutionCancellation as exc:
+            return self._handle_cancellation(
+                context, capability_id, exc, logical_invocation_id, worker_lease
+            )
+
+        request = InvocationRequest(
+            invocation_id=logical_invocation_id,
+            capability_id=capability_id,
+            input=input_data,
+            execution=context,
+            timeout_seconds=entry.contract.timeout_seconds,
+            cancellation=self.cancellation,
+        )
+        self.validator.validate_input(request, entry.contract)
+        try:
+            self.policy.authorize(request, entry.contract)
+        except PermissionError as exc:
+            self.evidence.record(
+                execution_id,
+                "execution.input_validated",
+                {"capability_id": capability_id, "invocation_id": request.invocation_id},
+            )
+            self.evidence.record(
+                execution_id,
+                "execution.authorization_denied",
+                {
+                    "capability_id": capability_id,
+                    "invocation_id": request.invocation_id,
+                    "tenant_id": context.identity.tenant_id,
+                    "reason": str(exc),
+                },
+            )
+            raise
+
+        cached = self.idempotency.get(storage_idempotency_key)
         if cached is not None:
             self.evidence.record(
                 execution_id,
@@ -92,32 +134,11 @@ class ExecutionRuntime:
                 "invocation_id": logical_invocation_id,
             },
         )
-        context.set_status(ExecutionStatus.NORMALIZED)
-        entry = self.registry.get(capability_id, version)
-        context.set_status(ExecutionStatus.PLAN_VALIDATED)
-
-        try:
-            self.cancellation.raise_if_cancelled()
-        except ExecutionCancellation as exc:
-            return self._handle_cancellation(
-                context, capability_id, exc, logical_invocation_id, worker_lease
-            )
-
-        request = InvocationRequest(
-            invocation_id=logical_invocation_id,
-            capability_id=capability_id,
-            input=input_data,
-            execution=context,
-            timeout_seconds=entry.contract.timeout_seconds,
-            cancellation=self.cancellation,
-        )
-        self.validator.validate_input(request, entry.contract)
         self.evidence.record(
             execution_id,
             "execution.input_validated",
             {"capability_id": capability_id, "invocation_id": request.invocation_id},
         )
-        self.policy.authorize(request, entry.contract)
         context.set_status(ExecutionStatus.AUTHORIZED)
         self.evidence.record(
             execution_id,
@@ -212,7 +233,7 @@ class ExecutionRuntime:
         if result.status == InvocationStatus.SUCCEEDED:
             context.working_memory[f"result:{result.invocation_id}"] = result.output
 
-        self._cache_terminal_result(logical_invocation_id, result, worker_lease)
+        self._cache_terminal_result(storage_idempotency_key, result, worker_lease)
         self.evidence.record(
             execution_id,
             "execution.idempotency_recorded",
