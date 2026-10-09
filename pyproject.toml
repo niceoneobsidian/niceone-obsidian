@@ -16,12 +16,16 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+mcp = [
+  "mcp>=1.30,<2",
+]
 test = [
   "pytest>=9,<10",
   "psycopg[binary]>=3.3.6,<4",
   "psycopg-pool>=3.3.3,<4",
   "testcontainers[postgres]>=4.15,<5",
   "pytest-asyncio>=1.4.0,<2",
+  "mcp>=1.30,<2",
   "ruff==0.16.10",
   "mypy",
   "bandit",
@@ -29,6 +33,7 @@ test = [
 ]
 [project.scripts]
 ois = "ois.cli:main"
+ois-mcp = "ois.mcp_server:main"
 
 [build-system]
 requires = ["setuptools>=68"]
