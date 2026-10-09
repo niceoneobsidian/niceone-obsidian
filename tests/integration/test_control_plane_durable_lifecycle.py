@@ -104,6 +104,8 @@ def test_control_plane_durable_lifecycle_replay_and_tenant_denial(tmp_path: Path
         pytest.skip("OIS_DATABASE_URL and OIS_REDIS_URL are required")
 
     evidence_path = tmp_path / "control-plane-durable-evidence.sqlite3"
+    tenant_alpha = str(UUID("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"))
+    tenant_beta = str(UUID("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"))
     calls: list[dict[str, object]] = []
     invocation_id = "durable-lifecycle-cross-runtime-replay"
     first_lifecycle, first_checkpoints, first_redis = _lifecycle(
@@ -117,7 +119,7 @@ def test_control_plane_durable_lifecycle_replay_and_tenant_denial(tmp_path: Path
     try:
         first = _execute(
             first_lifecycle,
-            tenant_id="tenant-alpha",
+            tenant_id=tenant_alpha,
             invocation_id=invocation_id,
             input_data={"value": "persist-this-result"},
             permissions=frozenset({"execution.invoke"}),
@@ -125,7 +127,7 @@ def test_control_plane_durable_lifecycle_replay_and_tenant_denial(tmp_path: Path
         assert first.result.status is InvocationStatus.SUCCEEDED
         assert first.result.output == {"echo": {"value": "persist-this-result"}}
         assert calls == [{"value": "persist-this-result"}]
-        assert first_checkpoints.load(UUID(first.execution_id)).identity.tenant_id == "tenant-alpha"
+        assert first_checkpoints.load(UUID(first.execution_id)).identity.tenant_id == tenant_alpha
         assert first_checkpoints.load(UUID(first.execution_id)).identity.execution_id == UUID(
             first.execution_id
         )
@@ -145,7 +147,7 @@ def test_control_plane_durable_lifecycle_replay_and_tenant_denial(tmp_path: Path
     try:
         replay = _execute(
             second_lifecycle,
-            tenant_id="tenant-alpha",
+            tenant_id=tenant_alpha,
             invocation_id=invocation_id,
             input_data={"value": "changed-input-must-not-run"},
             permissions=frozenset({"execution.invoke"}),
@@ -159,7 +161,7 @@ def test_control_plane_durable_lifecycle_replay_and_tenant_denial(tmp_path: Path
         with pytest.raises(AuthorizationError, match="permission is missing"):
             _execute(
                 second_lifecycle,
-                tenant_id="tenant-beta",
+                tenant_id=tenant_beta,
                 invocation_id=invocation_id,
                 input_data={"value": "cross-tenant-must-not-run"},
                 permissions=frozenset(),

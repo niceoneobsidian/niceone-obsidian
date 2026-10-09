@@ -45,13 +45,10 @@ class SQLiteProductionEvidenceLedger:
         self._connection.commit()
         self._lock = RLock()
 
-    def append(
-        self, execution_id: str, event_type: str, payload: dict[str, Any]
-    ) -> EvidenceEvent:
+    def append(self, execution_id: str, event_type: str, payload: dict[str, Any]) -> EvidenceEvent:
         with self._lock:
             previous_row = self._connection.execute(
-                "SELECT content_hash FROM production_evidence_events "
-                "ORDER BY sequence DESC LIMIT 1"
+                "SELECT content_hash FROM production_evidence_events ORDER BY sequence DESC LIMIT 1"
             ).fetchone()
             previous_hash = previous_row[0] if previous_row else None
             event_id = str(uuid4())
