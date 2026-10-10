@@ -51,6 +51,9 @@ jobs:
       - name: Security lint
         run: uv run --locked bandit -q -r ois
 
+      - name: Migration inventory and naming contract
+        run: uv run --locked pytest -q tests/governance/test_migration_names.py
+
       - name: Representative governed end-to-end workflow
         run: >-
           uv run --locked pytest -q
@@ -64,7 +67,7 @@ jobs:
   postgres-integration:
     name: PostgreSQL durability and recovery integration
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     services:
       postgres:
         image: postgres:16
@@ -99,9 +102,11 @@ jobs:
       - name: Install locked dependencies
         run: uv sync --locked --extra test
 
-      - name: Run PostgreSQL durability integration tests
-        run: |
-          uv run --locked pytest -q test_durable_postgres_side_effects.py
+      - name: Run PostgreSQL migration, fencing, idempotency, outbox, and recovery integration suite
+        run: uv run --locked pytest -q tests/integration
+
+      - name: Run PostgreSQL durable side-effect boundary tests against service database
+        run: uv run --locked pytest -q test_durable_postgres_side_effects.py
 
   secret-history:
     name: Full Git-history secret scan
@@ -166,8 +171,11 @@ jobs:
           SECRETS_RESULT: ${{ needs.secret-history.result }}
           DEPLOY_RESULT: ${{ needs.deployment-contract.result }}
         run: |
-          printf 'Static/unit: %s\nPostgreSQL integration: %s\nFull-history secret scan: %s\nDeployment contract: %s\n' \
-            "$STATIC_RESULT" "$POSTGRES_RESULT" "$SECRETS_RESULT" "$DEPLOY_RESULT"
+          printf '%s\n' \
+            "Static/unit: $STATIC_RESULT" \
+            "PostgreSQL integration: $POSTGRES_RESULT" \
+            "Full-history secret scan: $SECRETS_RESULT" \
+            "Deployment contract: $DEPLOY_RESULT"
           test "$STATIC_RESULT" = success
           test "$POSTGRES_RESULT" = success
           test "$SECRETS_RESULT" = success
