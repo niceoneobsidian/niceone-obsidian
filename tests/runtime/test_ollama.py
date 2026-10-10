@@ -6,6 +6,8 @@ from unittest.mock import patch
 from urllib.error import URLError
 from urllib.request import Request
 
+import pytest
+
 from ois.architecture.fabrics import LLMGatewaySpec, ModelRoute
 from ois.runtime.llm_gateway import LLMGateway
 from ois.runtime.ollama import OllamaProvider
@@ -115,3 +117,14 @@ def test_gateway_falls_back_to_deepseek_when_qwen_fails() -> None:
         "qwen3:8b",
         "deepseek-r1:8b",
     ]
+
+
+def test_ollama_provider_surfaces_transport_timeout() -> None:
+    def fake_urlopen(_request: Request, *, timeout: float) -> FakeResponse:
+        assert timeout == 0.25
+        raise URLError("simulated provider timeout")
+
+    provider = OllamaProvider(base_url="http://ollama:11434", timeout=0.25)
+    with patch("ois.runtime.ollama.urlopen", fake_urlopen):
+        with pytest.raises(RuntimeError, match="Ollama request failed"):
+            provider.invoke("qwen3:8b", {"prompt": "timeout test"})
