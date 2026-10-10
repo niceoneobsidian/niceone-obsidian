@@ -1,0 +1,168 @@
+name: Production Readiness Evidence Gate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-readiness-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static-and-unit:
+    name: Static analysis and full test suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install uv
+        run: python -m pip install "uv==0.12.17"
+
+      - name: Verify lockfile and install locked dependencies
+        run: |
+          uv lock --check
+          uv sync --locked --extra test
+
+      - name: Ruff lint
+        run: uv run --locked ruff check .
+
+      - name: Ruff formatting
+        run: uv run --locked ruff format --check .
+
+      - name: Static type checking
+        run: uv run --locked mypy ois
+
+      - name: Security lint
+        run: uv run --locked bandit -q -r ois
+
+      - name: Full pytest suite
+        run: uv run --locked pytest -q
+
+  postgres-integration:
+    name: PostgreSQL durability and recovery integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: ois_test
+          POSTGRES_USER: ois
+          POSTGRES_PASSWORD: ois-test-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ois -d ois_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      OIS_POSTGRES_TEST_DSN: postgresql://ois:ois-test-only@localhost:5432/ois_test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install uv
+        run: python -m pip install "uv==0.12.17"
+
+      - name: Install locked dependencies
+        run: uv sync --locked --extra test
+
+      - name: Run PostgreSQL durability integration tests
+        run: |
+          uv run --locked pytest -q -m integration
+          uv run --locked pytest -q test_durable_postgres_side_effects.py
+
+  secret-history:
+    name: Full Git-history secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_VERSION: 8.28.0
+          GITLEAKS_ENABLE_COMMENTS: "true"
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "true"
+          GITLEAKS_ENABLE_SUMMARY: "true"
+
+  deployment-contract:
+    name: Deployment and rollback contract checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Validate readiness evidence documents
+        run: |
+          set -eu
+          for file in \
+            docs/capability-evidence-matrix.md \
+            docs/end-to-end-execution.md \
+            docs/operability.md \
+            docs/deployment-and-rollback.md \
+            docs/durable-execution-postgres.md \
+            docs/production-readiness-evidence-gate.md; do
+            test -s "$file" || { echo "::error::Missing required evidence contract: $file"; exit 1; }
+          done
+          grep -qi "rollback" docs/deployment-and-rollback.md
+          grep -qi "health" docs/operability.md
+          grep -qi "recovery" docs/durable-execution-postgres.md
+          echo "Contract documents exist. This job does not claim a live deployment or rollback was executed."
+
+  gate-summary:
+    name: Gate summary
+    if: always()
+    needs: [static-and-unit, postgres-integration, secret-history, deployment-contract]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce required evidence jobs
+        env:
+          STATIC_RESULT: ${{ needs.static-and-unit.result }}
+          POSTGRES_RESULT: ${{ needs.postgres-integration.result }}
+          SECRETS_RESULT: ${{ needs.secret-history.result }}
+          DEPLOY_RESULT: ${{ needs.deployment-contract.result }}
+        run: |
+          printf 'Static/unit: %s\nPostgreSQL integration: %s\nFull-history secret scan: %s\nDeployment contract: %s\n' \
+            "$STATIC_RESULT" "$POSTGRES_RESULT" "$SECRETS_RESULT" "$DEPLOY_RESULT"
+          test "$STATIC_RESULT" = success
+          test "$POSTGRES_RESULT" = success
+          test "$SECRETS_RESULT" = success
+          test "$DEPLOY_RESULT" = success
