@@ -103,7 +103,7 @@ jobs:
         run: uv sync --locked --extra test
 
       - name: Run PostgreSQL migration, fencing, idempotency, outbox, and recovery integration suite
-        run: uv run --locked pytest -q tests/integration
+        run: uv run --locked python -m pytest -q tests/integration
 
       - name: Run PostgreSQL durable side-effect boundary tests against service database
         run: uv run --locked pytest -q test_durable_postgres_side_effects.py
@@ -122,14 +122,24 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Gitleaks
+      - name: Gitleaks pull-request scan
         uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e
+        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_VERSION: 8.28.0
           GITLEAKS_ENABLE_COMMENTS: "true"
           GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "true"
           GITLEAKS_ENABLE_SUMMARY: "true"
+
+      - name: Enforce full reachable Git-history scan
+        env:
+          GITLEAKS_VERSION: 8.28.0
+        run: |
+          gitleaks_bin="/tmp/gitleaks-${GITLEAKS_VERSION}/gitleaks"
+          test -x "$gitleaks_bin" || { echo "::error::Gitleaks binary was not installed"; exit 1; }
+          "$gitleaks_bin" git --log-opts="--all" --redact --exit-code=2 \
+            --report-format=sarif --report-path=full-history-results.sarif .
 
   deployment-contract:
     name: Deployment and rollback contract checks

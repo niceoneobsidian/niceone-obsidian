@@ -29,7 +29,9 @@ def test_migration_filenames_follow_the_repository_contract() -> None:
     migration_files = sorted(MIGRATIONS_DIR.glob("*.sql"))
 
     assert migration_files, "No SQL migrations found"
-    invalid_names = [path.name for path in migration_files if not MIGRATION_NAME.fullmatch(path.name)]
+    invalid_names = [
+        path.name for path in migration_files if not MIGRATION_NAME.fullmatch(path.name)
+    ]
     assert not invalid_names, f"Invalid migration filenames: {invalid_names}"
 
 

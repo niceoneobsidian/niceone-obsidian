@@ -54,7 +54,8 @@ def test_ollama_kernel_execution_persists_state_evidence_and_replays(
 
     monkeypatch.setattr("ois.runtime.ollama.urlopen", fake_urlopen)
 
-    connection_factory = lambda: psycopg.connect(migrated_postgres)
+    def connection_factory() -> Any:
+        return psycopg.connect(migrated_postgres)
     checkpoint_store = PostgresDurableExecutionStore(connection_factory)
     checkpoint_store.initialize()
     evidence_store = PostgresEvidenceLedger(connection_factory)
@@ -94,7 +95,7 @@ def test_ollama_kernel_execution_persists_state_evidence_and_replays(
     )
 
     identity = ExecutionIdentity(
-        tenant_id="test-ollama-durable",
+        tenant_id="00000000-0000-0000-0000-000000000401",
         workflow_id="ollama-durable.vertical-slice",
         workflow_version="1.0.0",
     )
