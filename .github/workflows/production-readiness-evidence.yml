@@ -46,7 +46,7 @@ jobs:
         run: uv run --locked ruff format --check .
 
       - name: Static type checking
-        run: uv run --locked mypy ois
+        run: uv run --locked mypy ois ops production
 
       - name: Security lint
         run: uv run --locked bandit -q -r ois
