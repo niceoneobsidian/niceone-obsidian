@@ -118,6 +118,7 @@ def test_ollama_kernel_execution_persists_state_evidence_and_replays(
     assert first.status == InvocationStatus.SUCCEEDED
     assert first.output is not None
     assert first.output["response"] == "OIS completed a durable local inference."
+    runtime.complete(first_context)
     assert checkpoint_store.load(identity.execution_id).status == ExecutionStatus.COMPLETED
     assert idempotency_store.get(invocation_id) is not None
 
