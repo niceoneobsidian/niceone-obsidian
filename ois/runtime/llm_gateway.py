@@ -26,8 +26,14 @@ def _fallback_allowed(exc: Exception) -> bool:
         return bool(explicit)
     name = type(exc).__name__.lower()
     blocked = (
-        "authentication", "permission", "forbidden", "unauthorized",
-        "invalidrequest", "badrequest", "contentpolicy", "policyviolation",
+        "authentication",
+        "permission",
+        "forbidden",
+        "unauthorized",
+        "invalidrequest",
+        "badrequest",
+        "contentpolicy",
+        "policyviolation",
     )
     return not any(token in name for token in blocked)
 

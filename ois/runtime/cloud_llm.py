@@ -72,9 +72,9 @@ class GeminiProvider:
     provider_id = "gemini"
 
     def __init__(self) -> None:
-        self.api_key = os.getenv("GEMINI_API_KEY", "").strip() or os.getenv(
-            "GOOGLE_API_KEY", ""
-        ).strip()
+        self.api_key = (
+            os.getenv("GEMINI_API_KEY", "").strip() or os.getenv("GOOGLE_API_KEY", "").strip()
+        )
         if not self.api_key:
             raise ProviderConfigurationError(
                 "Set GEMINI_API_KEY or GOOGLE_API_KEY to configure Gemini"

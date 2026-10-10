@@ -29,11 +29,7 @@ def test_cloud_providers_are_disabled_by_default(monkeypatch: pytest.MonkeyPatch
         "GOOGLE_API_KEY",
     ):
         monkeypatch.delenv(name, raising=False)
-    gateway = FabricRuntime().configure_gateway(
-        LLMGatewaySpec(
-            ref_id="test"
-        )
-    )
+    gateway = FabricRuntime().configure_gateway(LLMGatewaySpec(ref_id="test"))
     assert gateway.providers == {}
 
 
@@ -50,9 +46,7 @@ def test_only_explicitly_enabled_providers_register(
         register_cloud_providers=False,
     )
     assert setup.register_configured_cloud_providers(gateway) == ("openai",)
-    assert gateway.providers["openai"]("model", {"prompt": "hello"}) == {
-        "response": "openai:model"
-    }
+    assert gateway.providers["openai"]("model", {"prompt": "hello"}) == {"response": "openai:model"}
 
 
 @pytest.mark.parametrize(
