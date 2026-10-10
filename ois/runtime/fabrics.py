@@ -502,8 +502,19 @@ class FabricRuntime:
     social: InMemorySocialFabric = field(default_factory=InMemorySocialFabric)
     learning: InMemoryLearningFabric = field(default_factory=InMemoryLearningFabric)
 
-    def configure_gateway(self, spec: LLMGatewaySpec) -> InMemoryLLMGateway:
+    def configure_gateway(
+        self, spec: LLMGatewaySpec, *, register_cloud_providers: bool = True
+    ) -> InMemoryLLMGateway:
+        """Configure the gateway and register explicitly enabled cloud providers.
+
+        Cloud adapters remain disabled by default through their environment flags.
+        Set register_cloud_providers=False for deterministic/offline-only runtimes.
+        """
         self.llm_gateway = InMemoryLLMGateway(spec, self.model_router)
+        if register_cloud_providers:
+            from ois.runtime.cloud_provider_setup import register_configured_cloud_providers
+
+            register_configured_cloud_providers(self.llm_gateway)
         return self.llm_gateway
 
     def bind_workflow(self, spec: WorkflowSpec) -> None:
