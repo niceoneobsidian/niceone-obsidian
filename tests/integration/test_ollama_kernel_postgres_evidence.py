@@ -122,9 +122,7 @@ def test_ollama_kernel_execution_persists_state_evidence_and_replays(
     assert checkpoint_store.load(identity.execution_id).status == ExecutionStatus.COMPLETED
     assert idempotency_store.get(invocation_id) is not None
 
-    event_types = {
-        event.event_type for event in evidence_store.list(identity.execution_id)
-    }
+    event_types = {event.event_type for event in evidence_store.list(identity.execution_id)}
     assert {
         "execution.authorized",
         "execution.checkpointed",
