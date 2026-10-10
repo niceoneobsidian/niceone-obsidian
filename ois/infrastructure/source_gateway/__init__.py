@@ -15,7 +15,13 @@ from .auth import (
     authenticator_for,
 )
 from .contracts import FreshnessPolicy, SourceProvenance, SourceSpec
-from .credentials import CredentialRef, CredentialResolver, InMemoryCredentialResolver, TenantScope
+from .credentials import (
+    CredentialRef,
+    CredentialResolver,
+    InMemoryCredentialResolver,
+    SecretManagerCredentialResolver,
+    TenantScope,
+)
 from .cursors import SourceCursor, SQLiteCursorStore
 from .events import SourceEvent, canonical_event_id
 from .evidence import RawEvidence, RawEvidenceWriter, SQLiteRawEvidenceWriter, canonical_hash
@@ -50,6 +56,7 @@ __all__ = [
     "authenticator_for",
     "CredentialRef",
     "CredentialResolver",
+    "SecretManagerCredentialResolver",
     "FreshnessPolicy",
     "InMemoryCredentialResolver",
     "OutboxEvent",
