@@ -56,6 +56,7 @@ def test_ollama_kernel_execution_persists_state_evidence_and_replays(
 
     def connection_factory() -> Any:
         return psycopg.connect(migrated_postgres)
+
     checkpoint_store = PostgresDurableExecutionStore(connection_factory)
     checkpoint_store.initialize()
     evidence_store = PostgresEvidenceLedger(connection_factory)
