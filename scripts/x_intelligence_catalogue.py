@@ -75,15 +75,21 @@ def _gallery_evidence_text(row: dict[str, Any]) -> list[str]:
     return texts
 
 
+def _contains_term(text: str, term: str) -> bool:
+    """Match a phrase on token boundaries to avoid substring false positives."""
+    pattern = rf"(?<![a-z0-9]){re.escape(term)}(?![a-z0-9])"
+    return re.search(pattern, text) is not None
+
+
 def classify_text(text: str) -> dict[str, Any]:
     """Classify with explicit keyword evidence and return reproducible heuristic scores."""
     normalized = re.sub(r"\s+", " ", text.lower()).strip()
     topic_hits = {
-        topic: [term for term in terms if term in normalized]
+        topic: [term for term in terms if _contains_term(normalized, term)]
         for topic, terms in TOPICS.items()
     }
     topic_hits = {topic: hits for topic, hits in topic_hits.items() if hits}
-    ois_hits = [term for term in OIS_TERMS if term in normalized]
+    ois_hits = [term for term in OIS_TERMS if _contains_term(normalized, term)]
     relevance = min(100, len(set(ois_hits)) * 12)
     distinct_tokens = set(re.findall(r"[a-z0-9_+#.-]{3,}", normalized))
     novelty_proxy = min(100, len(distinct_tokens) * 2)
