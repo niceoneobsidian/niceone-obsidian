@@ -125,6 +125,8 @@ def test_ollama_provider_surfaces_transport_timeout() -> None:
         raise URLError("simulated provider timeout")
 
     provider = OllamaProvider(base_url="http://ollama:11434", timeout=0.25)
-    with patch("ois.runtime.ollama.urlopen", fake_urlopen):
-        with pytest.raises(RuntimeError, match="Ollama request failed"):
-            provider.invoke("qwen3:8b", {"prompt": "timeout test"})
+    with (
+        patch("ois.runtime.ollama.urlopen", fake_urlopen),
+        pytest.raises(RuntimeError, match="Ollama request failed"),
+    ):
+        provider.invoke("qwen3:8b", {"prompt": "timeout test"})
