@@ -110,6 +110,7 @@ def run_gallery_dl(url: str, evidence_dir: Path, timeout: int) -> dict[str, Any]
             "returncode": result.returncode,
             "elapsed_seconds": round(time.monotonic() - started, 3),
             "records": len(records),
+            "text": max(_find_text(records), key=len, default=None),
             "media_references": media_refs,
             "parse_errors": parse_errors,
             "stdout_evidence": raw,
@@ -138,6 +139,22 @@ def _find_urls(value: Any) -> list[str]:
     elif isinstance(value, list):
         for child in value:
             found.extend(_find_urls(child))
+    return found
+
+
+def _find_text(value: Any) -> list[str]:
+    """Extract text fields from adapter metadata without rewriting the raw evidence."""
+    found: list[str] = []
+    if isinstance(value, dict):
+        for key, child in value.items():
+            if key.lower() in {"text", "rawcontent", "full_text", "description", "title", "note_tweet"}:
+                if isinstance(child, str) and child.strip():
+                    found.append(child.strip())
+            else:
+                found.extend(_find_text(child))
+    elif isinstance(value, list):
+        for child in value:
+            found.extend(_find_text(child))
     return found
 
 
