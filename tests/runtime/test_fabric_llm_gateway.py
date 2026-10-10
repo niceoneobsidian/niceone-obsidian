@@ -131,14 +131,21 @@ def test_fabric_gateway_does_not_fallback_when_policy_disallows_it() -> None:
 def test_gateway_excludes_providers_outside_allow_list() -> None:
     runtime = FabricRuntime()
     runtime.configure_gateway(
-        LLMGatewaySpec(ref_id="allow-listed", providers=("allowed",), fallback_policy="next_compatible")
+        LLMGatewaySpec(
+            ref_id="allow-listed",
+            providers=("allowed",),
+            fallback_policy="next_compatible",
+        )
     )
     runtime.model_router.register(_route("blocked", "blocked", "blocked-model", 0.0))
     runtime.model_router.register(_route("allowed", "allowed", "allowed-model", 1.0))
     assert runtime.llm_gateway is not None
     calls: list[str] = []
     runtime.llm_gateway.register_provider("blocked", lambda model, request: calls.append("blocked"))
-    runtime.llm_gateway.register_provider("allowed", lambda model, request: calls.append("allowed") or {"response": "ok"})
+    runtime.llm_gateway.register_provider(
+        "allowed",
+        lambda model, request: calls.append("allowed") or {"response": "ok"},
+    )
     assert runtime.llm_gateway.invoke("hello", capabilities={"text"}) == {"response": "ok"}
     assert calls == ["allowed"]
 
@@ -159,7 +166,10 @@ def test_gateway_does_not_fallback_after_authentication_error() -> None:
         raise AuthenticationError("invalid credential")
 
     runtime.llm_gateway.register_provider("primary", fail)
-    runtime.llm_gateway.register_provider("backup", lambda model, request: calls.append("backup") or {"response": "unexpected"})
+    runtime.llm_gateway.register_provider(
+        "backup",
+        lambda model, request: calls.append("backup") or {"response": "unexpected"},
+    )
     with pytest.raises(AuthenticationError):
         runtime.llm_gateway.invoke("hello", capabilities={"text"})
     assert calls == ["primary"]

@@ -4,9 +4,9 @@ from typing import Any
 
 import pytest
 
+from ois.architecture.fabrics import LLMGatewaySpec
 from ois.runtime import cloud_provider_setup as setup
 from ois.runtime.cloud_llm import ProviderConfigurationError
-from ois.architecture.fabrics import LLMGatewaySpec
 from ois.runtime.fabrics import FabricRuntime
 
 

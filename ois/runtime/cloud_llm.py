@@ -22,7 +22,7 @@ class OpenAIProvider:
 
     def invoke(self, model: str, request: dict[str, Any]) -> dict[str, Any]:
         try:
-            from openai import OpenAI
+            from openai import OpenAI  # type: ignore[import-not-found]
         except ImportError as exc:
             raise ProviderConfigurationError(
                 "OpenAI provider requires the 'openai' package; install the cloud-llm extra"
@@ -46,7 +46,7 @@ class AnthropicProvider:
 
     def invoke(self, model: str, request: dict[str, Any]) -> dict[str, Any]:
         try:
-            from anthropic import Anthropic
+            from anthropic import Anthropic  # type: ignore[import-not-found]
         except ImportError as exc:
             raise ProviderConfigurationError(
                 "Anthropic provider requires the 'anthropic' package; install the cloud-llm extra"
@@ -76,11 +76,13 @@ class GeminiProvider:
             "GOOGLE_API_KEY", ""
         ).strip()
         if not self.api_key:
-            raise ProviderConfigurationError("Set GEMINI_API_KEY or GOOGLE_API_KEY to configure Gemini")
+            raise ProviderConfigurationError(
+                "Set GEMINI_API_KEY or GOOGLE_API_KEY to configure Gemini"
+            )
 
     def invoke(self, model: str, request: dict[str, Any]) -> dict[str, Any]:
         try:
-            from google import genai
+            from google import genai  # type: ignore[import-untyped]
         except ImportError as exc:
             raise ProviderConfigurationError(
                 "Gemini provider requires the 'google-genai' package; install the cloud-llm extra"
