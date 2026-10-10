@@ -27,6 +27,9 @@ python scripts/x_intelligence_benchmark.py benchmark \
   --urls data/x_intelligence/sources.sample.txt \
   --limit 3 \
   --output artifacts/x_intelligence
+python scripts/x_intelligence_catalogue.py \
+  --report artifacts/x_intelligence/retrieval-comparison.json \
+  --output artifacts/x_intelligence
 ```
 
 For all URLs in a manifest, use `--limit 0`. Use a manifest containing one status URL per line; comments beginning with `#` and blank lines are ignored. Duplicate URLs are collapsed in first-seen order.
