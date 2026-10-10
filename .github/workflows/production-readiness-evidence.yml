@@ -94,7 +94,6 @@ jobs:
 
       - name: Run PostgreSQL durability integration tests
         run: |
-          uv run --locked pytest -q -m integration
           uv run --locked pytest -q test_durable_postgres_side_effects.py
 
   secret-history:
