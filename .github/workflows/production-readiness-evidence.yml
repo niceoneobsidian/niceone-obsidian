@@ -51,6 +51,13 @@ jobs:
       - name: Security lint
         run: uv run --locked bandit -q -r ois
 
+      - name: Representative governed end-to-end workflow
+        run: >-
+          uv run --locked pytest -q
+          tests/test_tiktok_vertical_slice.py
+          tests/test_tiktok_supervisor_integration.py
+          tests/test_vertical_slice_hardening.py
+
       - name: Full pytest suite
         run: uv run --locked pytest -q
 
