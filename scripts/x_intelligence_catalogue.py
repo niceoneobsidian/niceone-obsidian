@@ -3,6 +3,7 @@
 No network calls or LLM/API usage occur in this stage. Every derived row retains its
 source URL and raw evidence hashes; scores are heuristics, not model judgments.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -15,14 +16,46 @@ TOPICS: dict[str, tuple[str, ...]] = {
     "ai_tools": ("agent", "llm", "model", "claude", "gpt", "gemini", "ai tool", "mcp", "rag"),
     "coding": ("python", "typescript", "javascript", "code", "github", "repo", "api", "sdk", "cli"),
     "design": ("figma", "design system", "ui", "ux", "component", "prototype", "visual"),
-    "automation": ("automation", "workflow", "n8n", "trigger", "pipeline", "orchestration", "agentic"),
-    "resources": ("open source", "github.com", "documentation", "tutorial", "library", "framework", "repo"),
+    "automation": (
+        "automation",
+        "workflow",
+        "n8n",
+        "trigger",
+        "pipeline",
+        "orchestration",
+        "agentic",
+    ),
+    "resources": (
+        "open source",
+        "github.com",
+        "documentation",
+        "tutorial",
+        "library",
+        "framework",
+        "repo",
+    ),
     "growth": ("viral", "hook", "retention", "content", "audience", "engagement", "distribution"),
 }
 OIS_TERMS = (
-    "agent", "workflow", "automation", "memory", "rag", "retrieval", "scoring", "pipeline",
-    "orchestration", "api", "integration", "observability", "evaluation", "guardrail",
-    "classification", "content", "growth", "signal", "knowledge",
+    "agent",
+    "workflow",
+    "automation",
+    "memory",
+    "rag",
+    "retrieval",
+    "scoring",
+    "pipeline",
+    "orchestration",
+    "api",
+    "integration",
+    "observability",
+    "evaluation",
+    "guardrail",
+    "classification",
+    "content",
+    "growth",
+    "signal",
+    "knowledge",
 )
 
 
@@ -43,7 +76,14 @@ def _text_from_value(value: Any) -> list[str]:
     texts: list[str] = []
     if isinstance(value, dict):
         for key, child in value.items():
-            if key.lower() in {"text", "rawcontent", "full_text", "description", "title", "note_tweet"}:
+            if key.lower() in {
+                "text",
+                "rawcontent",
+                "full_text",
+                "description",
+                "title",
+                "note_tweet",
+            }:
                 if isinstance(child, str) and child.strip():
                     texts.append(child.strip())
             else:
@@ -114,20 +154,24 @@ def build_catalogue(report: dict[str, Any]) -> tuple[list[dict[str, Any]], list[
         hashes: list[str] = []
         _evidence_hashes(row, hashes)
         unique_hashes = sorted(set(hashes))
-        media_references = sorted(set(
-            (twscrape.get("media_references") or [])
-            + (row.get("gallery_dl", {}).get("media_references") or [])
-        ))
+        media_references = sorted(
+            set(
+                (twscrape.get("media_references") or [])
+                + (row.get("gallery_dl", {}).get("media_references") or [])
+            )
+        )
         if not text:
-            catalogue.append({
-                "source_url": row.get("url"),
-                "status_id": row.get("status_id"),
-                "retrieval_status": "no_text_recovered",
-                "text": None,
-                "media_references": media_references,
-                "evidence_sha256": unique_hashes,
-                "classification": None,
-            })
+            catalogue.append(
+                {
+                    "source_url": row.get("url"),
+                    "status_id": row.get("status_id"),
+                    "retrieval_status": "no_text_recovered",
+                    "text": None,
+                    "media_references": media_references,
+                    "evidence_sha256": unique_hashes,
+                    "classification": None,
+                }
+            )
             continue
         classification = classify_text(text)
         record = {
@@ -141,24 +185,28 @@ def build_catalogue(report: dict[str, Any]) -> tuple[list[dict[str, Any]], list[
         }
         catalogue.append(record)
         if classification["ois_relevance_score"] >= 24:
-            backlog.append({
-                "source_url": row.get("url"),
-                "status_id": row.get("status_id"),
-                "priority": "P1" if classification["ois_relevance_score"] >= 48 else "P2",
-                "title": "Review recovered post for OIS implementation opportunity",
-                "proposed_action": (
-                    "Manually validate the cited post, extract the concrete mechanism, "
-                    "map it to an existing OIS capability, then add acceptance tests before implementation."
-                ),
-                "ois_relevance_score": classification["ois_relevance_score"],
-                "topics": classification["topics"],
-                "evidence_sha256": unique_hashes,
-                "status": "needs_human_validation",
-            })
+            backlog.append(
+                {
+                    "source_url": row.get("url"),
+                    "status_id": row.get("status_id"),
+                    "priority": "P1" if classification["ois_relevance_score"] >= 48 else "P2",
+                    "title": "Review recovered post for OIS implementation opportunity",
+                    "proposed_action": (
+                        "Manually validate the cited post, extract the concrete mechanism, "
+                        "map it to an existing OIS capability, then add acceptance "
+                        "tests before implementation."
+                    ),
+                    "ois_relevance_score": classification["ois_relevance_score"],
+                    "topics": classification["topics"],
+                    "evidence_sha256": unique_hashes,
+                    "status": "needs_human_validation",
+                }
+            )
     catalogue.sort(
         key=lambda item: (
             item.get("classification", {}).get("ois_relevance_score", -1)
-            if item.get("classification") else -1
+            if item.get("classification")
+            else -1
         ),
         reverse=True,
     )
@@ -168,19 +216,27 @@ def build_catalogue(report: dict[str, Any]) -> tuple[list[dict[str, Any]], list[
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--report", type=Path, default=Path("artifacts/x_intelligence/retrieval-comparison.json"))
+    parser.add_argument(
+        "--report", type=Path, default=Path("artifacts/x_intelligence/retrieval-comparison.json")
+    )
     parser.add_argument("--output", type=Path, default=Path("artifacts/x_intelligence"))
     args = parser.parse_args()
     report = json.loads(args.report.read_text(encoding="utf-8"))
     catalogue, backlog = build_catalogue(report)
     args.output.mkdir(parents=True, exist_ok=True)
     (args.output / "intelligence-catalogue.json").write_text(
-        json.dumps({"schema_version": "1.0", "method": "keyword_heuristic_v1", "records": catalogue},
-                   ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        json.dumps(
+            {"schema_version": "1.0", "method": "keyword_heuristic_v1", "records": catalogue},
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
     )
     (args.output / "implementation-backlog.json").write_text(
-        json.dumps({"schema_version": "1.0", "items": backlog}, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8"
+        json.dumps({"schema_version": "1.0", "items": backlog}, ensure_ascii=False, indent=2)
+        + "\n",
+        encoding="utf-8",
     )
     print(f"Catalogue records: {len(catalogue)}; backlog candidates: {len(backlog)}")
     print("Scores are provisional heuristics. Validate each source post before implementation.")

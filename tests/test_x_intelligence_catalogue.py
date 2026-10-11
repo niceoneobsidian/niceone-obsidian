@@ -1,4 +1,5 @@
 """Tests for deterministic, evidence-grounded X intelligence cataloguing."""
+
 from __future__ import annotations
 
 import json
@@ -43,7 +44,10 @@ class XIntelligenceCatalogueTests(unittest.TestCase):
                     "status_id": "2",
                     "twscrape": {
                         "status": "success",
-                        "text": "An agent workflow improves retrieval, scoring, memory, and integration for OIS.",
+                        "text": (
+                            "An agent workflow improves retrieval, scoring, memory, "
+                            "and integration for OIS."
+                        ),
                         "raw_evidence": {"sha256": "a" * 64},
                     },
                     "gallery_dl": {"status": "failed"},

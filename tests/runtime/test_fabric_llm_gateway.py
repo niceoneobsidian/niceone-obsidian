@@ -126,3 +126,63 @@ def test_fabric_gateway_does_not_fallback_when_policy_disallows_it() -> None:
 
     assert len(runtime.llm_gateway.engine.records) == 1
     assert runtime.llm_gateway.engine.records[0].status == "failed"
+
+
+def test_gateway_excludes_providers_outside_allow_list() -> None:
+    runtime = FabricRuntime()
+    runtime.configure_gateway(
+        LLMGatewaySpec(
+            ref_id="allow-listed-models",
+            providers=("allowed",),
+            fallback_policy="next_compatible",
+        )
+    )
+    runtime.model_router.register(_route("blocked-route", "blocked", "blocked-model", 0.0))
+    runtime.model_router.register(_route("allowed-route", "allowed", "allowed-model", 1.0))
+
+    assert runtime.llm_gateway is not None
+    calls: list[str] = []
+    runtime.llm_gateway.register_provider(
+        "blocked",
+        lambda model, request: calls.append("blocked") or {"response": "blocked"},
+    )
+    runtime.llm_gateway.register_provider(
+        "allowed",
+        lambda model, request: calls.append("allowed") or {"response": "allowed"},
+    )
+
+    result = runtime.llm_gateway.invoke("Test allow-list", capabilities={"text"})
+
+    assert result == {"response": "allowed"}
+    assert calls == ["allowed"]
+
+
+def test_gateway_never_falls_back_to_disallowed_provider() -> None:
+    runtime = FabricRuntime()
+    runtime.configure_gateway(
+        LLMGatewaySpec(
+            ref_id="allow-listed-fallback",
+            providers=("primary",),
+            fallback_policy="next_compatible",
+        )
+    )
+    runtime.model_router.register(_route("primary-route", "primary", "primary-model", 0.0))
+    runtime.model_router.register(_route("blocked-route", "blocked", "blocked-model", 1.0))
+
+    assert runtime.llm_gateway is not None
+    calls: list[str] = []
+
+    def fail_primary(model: str, request: dict[str, Any]) -> Any:
+        calls.append("primary")
+        raise RuntimeError("simulated primary failure")
+
+    runtime.llm_gateway.register_provider("primary", fail_primary)
+    runtime.llm_gateway.register_provider(
+        "blocked",
+        lambda model, request: calls.append("blocked") or {"response": "blocked"},
+    )
+
+    with pytest.raises(RuntimeError, match="simulated primary failure"):
+        runtime.llm_gateway.invoke("Test fallback allow-list", capabilities={"text"})
+
+    assert calls == ["primary"]

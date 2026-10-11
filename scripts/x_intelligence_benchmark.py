@@ -4,6 +4,7 @@ The command is intentionally API-key-free. twscrape requires a locally configure
 account pool; gallery-dl may use browser cookies configured outside the repository.
 Never commit cookies, account databases, or raw private session material.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -124,7 +125,9 @@ def run_gallery_dl(url: str, evidence_dir: Path, timeout: int) -> dict[str, Any]
             "error": f"Timed out after {timeout}s",
             "stdout_evidence": write_evidence(
                 evidence_dir / "gallery-dl" / f"{status_id(url)}.timeout.stdout.txt",
-                (exc.stdout or b"") if isinstance(exc.stdout, bytes) else (exc.stdout or "").encode(),
+                (exc.stdout or b"")
+                if isinstance(exc.stdout, bytes)
+                else (exc.stdout or "").encode(),
             ),
         }
 
@@ -147,7 +150,14 @@ def _find_text(value: Any) -> list[str]:
     found: list[str] = []
     if isinstance(value, dict):
         for key, child in value.items():
-            if key.lower() in {"text", "rawcontent", "full_text", "description", "title", "note_tweet"}:
+            if key.lower() in {
+                "text",
+                "rawcontent",
+                "full_text",
+                "description",
+                "title",
+                "note_tweet",
+            }:
                 if isinstance(child, str) and child.strip():
                     found.append(child.strip())
             else:
@@ -170,7 +180,11 @@ async def _fetch_twscrape(url: str, db_path: str) -> dict[str, Any]:
     try:
         from twscrape import API
     except ImportError:
-        return {"adapter": "twscrape", "status": "unavailable", "error": "Install optional twscrape package"}
+        return {
+            "adapter": "twscrape",
+            "status": "unavailable",
+            "error": "Install optional twscrape package",
+        }
 
     try:
         api = API(db_path)
@@ -188,18 +202,26 @@ def run_twscrape(url: str, evidence_dir: Path, db_path: str, timeout: int) -> di
     try:
         result = asyncio.run(asyncio.wait_for(_fetch_twscrape(url, db_path), timeout=timeout))
     except TimeoutError:
-        result = {"adapter": "twscrape", "status": "timeout", "error": f"Timed out after {timeout}s"}
+        result = {
+            "adapter": "twscrape",
+            "status": "timeout",
+            "error": f"Timed out after {timeout}s",
+        }
     result["elapsed_seconds"] = round(time.monotonic() - started, 3)
     if "record" in result:
         # Preserve the adapter's complete returned object before extracting fields.
-        raw = json.dumps(result.pop("record"), ensure_ascii=False, sort_keys=True, default=str).encode()
+        raw = json.dumps(
+            result.pop("record"), ensure_ascii=False, sort_keys=True, default=str
+        ).encode()
         result["raw_evidence"] = write_evidence(
             evidence_dir / "twscrape" / f"{status_id(url)}.json", raw
         )
         record = json.loads(raw)
         result["text"] = record.get("rawContent") or record.get("text")
         result["media_references"] = _find_urls(record.get("media") or [])
-        result["status"] = "success" if result["text"] or result["media_references"] or record else "empty"
+        result["status"] = (
+            "success" if result["text"] or result["media_references"] or record else "empty"
+        )
     else:
         payload = json.dumps(result, ensure_ascii=False, sort_keys=True).encode()
         result["raw_evidence"] = write_evidence(
@@ -246,7 +268,9 @@ def compare(args: argparse.Namespace) -> int:
     }
     output_path = args.output / "retrieval-comparison.json"
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    output_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
     print(f"Report: {output_path}")
     print(json.dumps(payload["summary"], indent=2))
     return 0
@@ -271,8 +295,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
     bench = sub.add_parser("benchmark", help="Compare twscrape and gallery-dl on supplied X URLs")
-    bench.add_argument("--urls", type=Path, default=DEFAULT_SAMPLE, help="One X status URL per line")
-    bench.add_argument("--limit", type=int, default=3, help="Number of first URLs to test; use 0 for all")
+    bench.add_argument(
+        "--urls", type=Path, default=DEFAULT_SAMPLE, help="One X status URL per line"
+    )
+    bench.add_argument(
+        "--limit", type=int, default=3, help="Number of first URLs to test; use 0 for all"
+    )
     bench.add_argument("--output", type=Path, default=Path("artifacts/x_intelligence"))
     bench.add_argument("--db-path", default=os.environ.get("OIS_TWSCRAPE_DB", "accounts.db"))
     bench.add_argument("--timeout", type=int, default=45)
