@@ -35,14 +35,17 @@ analysis tools remain unregistered.
 
 ## Configuration
 
-Install the optional MCP dependency and ensure Node.js/npm (npx) is available
-inside the isolated worker:
+Install the optional MCP dependency and preinstall Node.js 22.19+ plus the pinned
+REA package into the isolated worker image. The worker must not download packages
+at invocation time because sandbox egress is deny-by-default:
 
     python -m pip install -e '.[mcp]'
+    npm install --global rea-agents@6.4.0
 
-The adapter launches a pinned package without a shell:
+The adapter resolves the installed rea executable, verifies its reported version,
+and launches it without a shell:
 
-    npx --yes rea-agents@6.4.0 mcp
+    rea mcp
 
 The target roots are supplied by trusted application configuration, not by an
 MCP caller. Example registration:
