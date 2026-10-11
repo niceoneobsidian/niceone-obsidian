@@ -20,6 +20,7 @@ from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
 from ois.kernel.contracts import InvocationRequest, InvocationResult, ToolContract
+from production.sandbox import attest as attest_gvisor_runtime
 from ois.kernel.types import InvocationStatus, RiskLevel, SideEffectLevel
 from ois.registries.core import CapabilityRegistry, ToolRegistry
 
@@ -75,6 +76,9 @@ class REAStdioMCPClient:
             return pool.submit(asyncio.run, coroutine).result(timeout=self.timeout_seconds + 5)
 
     async def _call_tool(self, name: str, arguments: dict[str, Any]) -> Mapping[str, Any]:
+        # REA is a local-process MCP server. Never launch it on the host outside
+        # the existing OIS gVisor isolation boundary.
+        attest_gvisor_runtime()
         executable = shutil.which("npx")
         if executable is None:
             raise RuntimeError("REA MCP requires Node.js/npm with npx available on PATH")
