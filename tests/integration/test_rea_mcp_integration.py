@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from collections.abc import Mapping
 from typing import Any
 
 
@@ -24,7 +25,7 @@ class FakeREAClient:
         self.result = result or {"normalized_result": {"status": "ok"}}
         self.calls: list[tuple[str, dict[str, Any]]] = []
 
-    def call_tool(self, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
+    def call_tool(self, name: str, arguments: Mapping[str, Any]) -> Mapping[str, Any]:
         self.calls.append((name, dict(arguments)))
         return self.result
 
