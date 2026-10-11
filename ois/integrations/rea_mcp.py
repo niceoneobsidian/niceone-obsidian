@@ -146,6 +146,8 @@ class REAToolCapability:
         capability_id: str,
         client: REAMCPClient,
         allowed_roots: Sequence[Path],
+        capability_registry: CapabilityRegistry,
+        tool_registry: ToolRegistry,
     ) -> None:
         if tool_name not in {REA_SESSION_TOOL, REA_ANALYZE_TOOL}:
             raise ValueError(f"REA tool is not allowlisted: {tool_name}")
@@ -155,6 +157,8 @@ class REAToolCapability:
         self.tool_name = tool_name
         self.client = client
         self.allowed_roots = roots
+        self.capability_registry = capability_registry
+        self.tool_registry = tool_registry
         if tool_name == REA_SESSION_TOOL:
             input_schema: Mapping[str, Any] = {"type": "object"}
             required: tuple[str, ...] = ()
@@ -207,6 +211,7 @@ class REAToolCapability:
         self._required = required
 
     def invoke(self, request: InvocationRequest) -> InvocationResult:
+        self._assert_registry_conformance()
         arguments = dict(request.input)
         if set(arguments) != set(self._required):
             raise ValueError(
@@ -225,6 +230,23 @@ class REAToolCapability:
             output={"provider": "rea", "tool": self.tool_name, "result": dict(result)},
             metadata={"mcp_tool": self.tool_name, "mcp_package": REA_PACKAGE},
         )
+
+    def _assert_registry_conformance(self) -> None:
+        capability_id = self.contract.capability_id
+        version = self.contract.version
+        if not self.capability_registry.has(capability_id, version):
+            raise PermissionError("REA capability is not registered in the canonical CapabilityRegistry")
+        if not self.tool_registry.has(capability_id, version):
+            raise PermissionError("REA tool is not registered in the canonical ToolRegistry")
+        capability_entry = self.capability_registry.get(capability_id, version)
+        tool_entry = self.tool_registry.get(capability_id, version)
+        if (
+            capability_entry.capability is not self
+            or tool_entry.capability is not self
+            or capability_entry.contract != tool_entry.contract
+            or capability_entry.contract != self.contract
+        ):
+            raise PermissionError("REA ToolRegistry/CapabilityRegistry contract conformance failed")
 
 
 def register_rea_tools(
@@ -252,6 +274,8 @@ def register_rea_tools(
             capability_id=capability_id,
             client=transport,
             allowed_roots=tuple(root.resolve(strict=True) for root in roots),
+            capability_registry=capability_registry,
+            tool_registry=tool_registry,
         )
         for tool_name, capability_id in definitions
     )
