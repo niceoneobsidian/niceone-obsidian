@@ -81,14 +81,30 @@ class REAStdioMCPClient:
         # REA is a local-process MCP server. Never launch it on the host outside
         # the existing OIS gVisor isolation boundary.
         attest_gvisor_runtime()
-        executable = shutil.which("npx")
+        executable = shutil.which("rea")
         if executable is None:
-            raise RuntimeError("REA MCP requires Node.js/npm with npx available on PATH")
+            raise RuntimeError(
+                f"REA MCP requires the preinstalled {REA_PACKAGE} CLI available as rea on PATH"
+            )
 
         environment = {key: os.environ[key] for key in self._ENV_KEYS if key in os.environ}
+        async with asyncio.timeout(min(self.timeout_seconds, 10.0)):
+            version_process = await asyncio.create_subprocess_exec(
+                executable,
+                "--version",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                env=environment,
+            )
+            version_stdout, version_stderr = await version_process.communicate()
+        version_text = (version_stdout + version_stderr).decode("utf-8", errors="replace")
+        if version_process.returncode != 0 or "6.4.0" not in version_text:
+            raise RuntimeError(
+                f"REA CLI version mismatch; expected {REA_PACKAGE}, observed {version_text[:200]!r}"
+            )
         parameters = StdioServerParameters(
             command=executable,
-            args=["--yes", REA_PACKAGE, "mcp"],
+            args=["mcp"],
             env=environment,
         )
         async with asyncio.timeout(self.timeout_seconds):
