@@ -1,46 +1,74 @@
-# Python
-__pycache__/
-*.py[cod]
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-*.egg-info/
+# --- Project Specific Temporary & Scratch Directories ---
+.tmp.driveupload/
+.tmp.*/
+tmp/
+*.tmp
+*.log
 
-# Virtual environments
+# --- Python Virtual Environments & Caches ---
 .venv/
 venv/
+ENV/
 env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
 
-# Secrets / local configuration
-.env
-.env.*
-!.env.example
-!.env.test.example
+# --- Python Bytecode & Runtime ---
+__pycache__/
+*.py[cod]
+*$py.class
 
-# IDE / OS
-.vscode/
-.idea/
+# --- Code Quality & Testing Frameworks ---
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+.cache
+htmlcov/
+tox/
+.tox/
+.noscript/
+
+# --- macOS System Files ---
 .DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
 
-# Logs / generated
-*.log
-logs/
-artifacts/
-outputs/
-tmp/
-temp/
+# --- Editor Environments (VS Code & Cursor) ---
+.vscode/*
+!.vscode/extensions.json
+.history/
+*.code-workspace
 
-# Databases / local state
+# --- Containerization & Local Databases ---
+.docker/
+# Exclude local infrastructure persistent state directories if matched locally
+pgdata/
+redisdata/
+
+# --- Environment Secrets (Never Commit Credentials) ---
+.env
+.env.local
+.env.*.local
+
+# --- Additional Local Databases, Artifacts, and Secret Backups ---
 *.db
-*.sqlite
-*.sqlite3
-
-# Model artifacts
-models/
-checkpoints/
-
-# Credentials / keys
-credentials.json
-secrets.json
-*.pem
-*.key
+.env.backup.*
+artifacts/

@@ -19,6 +19,25 @@ def _now() -> str:
     return datetime.now(UTC).isoformat()
 
 
+def _fallback_allowed(exc: Exception) -> bool:
+    """Avoid fallback after authentication, permission, request, or policy errors."""
+    explicit = getattr(exc, "fallback_allowed", None)
+    if explicit is not None:
+        return bool(explicit)
+    name = type(exc).__name__.lower()
+    blocked = (
+        "authentication",
+        "permission",
+        "forbidden",
+        "unauthorized",
+        "invalidrequest",
+        "badrequest",
+        "contentpolicy",
+        "policyviolation",
+    )
+    return not any(token in name for token in blocked)
+
+
 class LLMProvider(Protocol):
     provider_id: str
 
@@ -65,7 +84,8 @@ class LLMGateway:
         candidates = [
             route
             for route in self.routes
-            if capabilities.issubset(route.capabilities)
+            if (not self.spec.providers or route.provider in self.spec.providers)
+            and capabilities.issubset(route.capabilities)
             and all(route.constraints.get(key) == value for key, value in constraints.items())
         ]
         if not candidates:
@@ -92,6 +112,7 @@ class LLMGateway:
                 route
                 for route in self.routes
                 if route != selected
+                and (not self.spec.providers or route.provider in self.spec.providers)
                 and capabilities.issubset(route.capabilities)
                 and all(
                     route.constraints.get(key) == value
@@ -122,6 +143,8 @@ class LLMGateway:
                         error_type=type(exc).__name__,
                     )
                 )
+                if not _fallback_allowed(exc):
+                    break
                 continue
             self.records.append(
                 InferenceRecord(
@@ -131,6 +154,10 @@ class LLMGateway:
                     status="succeeded",
                     started_at=started_at,
                     latency_ms=(monotonic() - started) * 1000,
+                    input_tokens=result.get("input_tokens") if isinstance(result, dict) else None,
+                    output_tokens=(
+                        result.get("output_tokens") if isinstance(result, dict) else None
+                    ),
                 )
             )
             return result

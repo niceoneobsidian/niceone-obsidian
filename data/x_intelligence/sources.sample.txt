@@ -1,0 +1,5 @@
+# Small, representative smoke-test sample from the supplied X post collection.
+# Increase --limit to 0 after confirming adapter setup.
+https://x.com/suraj_sharma14/status/2108376910577246579
+https://x.com/abs_uiux/status/2108168409724658174
+https://x.com/TheRelatiodah/status/2108139372902306115

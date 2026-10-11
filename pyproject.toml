@@ -19,6 +19,11 @@ dependencies = [
 mcp = [
   "mcp>=1.30,<2",
 ]
+cloud-llm = [
+  "openai>=1.68,<3",
+  "anthropic>=0.49,<1",
+  "google-genai>=1.5,<2",
+]
 test = [
   "pytest>=9,<10",
   "psycopg[binary]>=3.3.6,<4",
@@ -28,9 +33,11 @@ test = [
   "mcp>=1.30,<2",
   "ruff==0.16.10",
   "mypy",
+  "types-redis",
   "bandit",
   "pip-licenses",
 ]
+
 [project.scripts]
 ois = "ois.cli:main"
 ois-mcp = "ois.mcp_server:main"
@@ -77,9 +84,6 @@ select = [
 quote-style = "double"
 indent-style = "space"
 line-ending = "auto"
-exclude = [
-  "ois/domains/social_intelligence/inventory.py",
-]
 
 [tool.pytest.ini_options]
 markers = [
@@ -90,9 +94,9 @@ markers = [
 ]
 
 [tool.mypy]
+python_version = "3.12"
 warn_return_any = true
 warn_unused_configs = true
-python_version = "3.12"
 warn_redundant_casts = true
 warn_unused_ignores = true
 disallow_untyped_defs = true
@@ -100,6 +104,7 @@ check_untyped_defs = true
 no_implicit_optional = true
 strict_equality = true
 explicit_package_bases = true
+ignore_missing_imports = true
 exclude = [
   '^\.git/',
   '^\.venv/',
@@ -110,8 +115,3 @@ exclude = [
   '^\.pytest_cache/',
   '^\.ruff_cache/',
 ]
-
-[[tool.mypy.overrides]]
-module = "tests.*"
-check_untyped_defs = false
-disallow_untyped_defs = false
