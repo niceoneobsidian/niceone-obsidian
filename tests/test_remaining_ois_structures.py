@@ -4,7 +4,7 @@ import sqlite3
 
 import pytest
 
-from ois.infrastructure.source_gateway.contracts import SourceProvenance
+from ois.infrastructure.source_gateway.contracts import FreshnessPolicy, SourceProvenance
 from production.knowledge_world import KnowledgeWorldStore
 from production.model_gateway import ModelGateway, ModelRequest, ModelSpec
 from production.production_loop import STAGES, LoopArtifact, ProductionLoopProof
@@ -86,7 +86,7 @@ def test_knowledge_world_rejects_empty_provenance_and_invalid_confidence() -> No
         )
 
 
-def test_source_provenance_redacts_nested_credentials_without_mutating_input() -> None:
+def test_source_provenance_redacts_metadata_and_endpoint_query_credentials() -> None:
     metadata = {
         "page": {"title": "Public title", "api_key": "do-not-store"},
         "access-token": "also-secret",
@@ -95,11 +95,14 @@ def test_source_provenance_redacts_nested_credentials_without_mutating_input() -
     }
     provenance = SourceProvenance(
         provider="example",
-        endpoint="/items",
+        endpoint="https://api.example/items?access_token=secret&limit=10",
         operation="list",
         request_id="req-1",
         metadata=metadata,
     ).as_dict()
+    assert provenance["endpoint"] == (
+        "https://api.example/items?access_token=%5BREDACTED%5D&limit=10"
+    )
     assert provenance["metadata"] == {
         "page": {"title": "Public title", "api_key": "[REDACTED]"},
         "access-token": "[REDACTED]",
@@ -107,6 +110,12 @@ def test_source_provenance_redacts_nested_credentials_without_mutating_input() -
         "items": [{"authorization": "[REDACTED]", "name": "safe"}],
     }
     assert metadata["page"]["api_key"] == "do-not-store"
+
+
+@pytest.mark.parametrize("age", [float("nan"), float("inf"), 0.0, -1.0])
+def test_freshness_policy_rejects_nonfinite_or_nonpositive_age(age: float) -> None:
+    with pytest.raises(ValueError, match="finite and positive"):
+        FreshnessPolicy(age)
 
 
 def test_production_loop_fails_closed_until_all_stages_exist() -> None:
