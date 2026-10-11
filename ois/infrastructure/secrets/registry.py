@@ -5,7 +5,7 @@ from __future__ import annotations
 import tomllib
 from pathlib import Path
 
-from .manager import SecretMetadata, SecretManager, SecretProvider
+from .manager import SecretManager, SecretMetadata, SecretProvider
 
 DEFAULT_REGISTRY = (
     Path(__file__).resolve().parents[3] / "config" / "secrets" / "registry.toml"
