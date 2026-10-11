@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from hashlib import sha256
 from json import dumps
+from math import isfinite
 from uuid import uuid4
 
 from .models import AuditEvent, DecisionProvenance
@@ -46,6 +47,13 @@ class GovernanceEngine:
         except (TypeError, ValueError):
             serialized_inputs = '{"invalid_input_payload":true}'
             allowed, reason = False, "inputs are not valid canonical JSON"
+
+        if allowed and (
+            not isinstance(estimated_cost, (int, float))
+            or not isfinite(estimated_cost)
+            or estimated_cost < 0
+        ):
+            allowed, reason = False, "estimated cost must be finite and non-negative"
 
         identity = self.store.agents.get((tenant_id, agent_id))
         if allowed and (not tenant_id or not workspace_id or not execution_id):
