@@ -6,12 +6,7 @@ import pytest
 
 from ois.infrastructure.source_gateway.contracts import SourceProvenance
 from production.knowledge_world import KnowledgeWorldStore
-from production.model_gateway import (
-    ModelGateway,
-    ModelGatewayError,
-    ModelRequest,
-    ModelSpec,
-)
+from production.model_gateway import ModelGateway, ModelRequest, ModelSpec
 from production.production_loop import STAGES, LoopArtifact, ProductionLoopProof
 
 
@@ -53,9 +48,7 @@ def test_model_gateway_falls_back_when_preferred_model_is_unhealthy() -> None:
     gateway.register(ModelSpec("preferred", "1", FakeModel(), generation, priority=1))
     gateway.register(ModelSpec("backup", "1", FakeModel(), generation, priority=10))
     gateway.set_health("preferred", "1", False)
-    result = gateway.invoke(
-        ModelRequest("generation", "hello", preferred_model="preferred")
-    )
+    result = gateway.invoke(ModelRequest("generation", "hello", preferred_model="preferred"))
     assert result.model_id == "backup"
     assert result.fallback_used
 
@@ -88,7 +81,9 @@ def test_knowledge_world_rejects_empty_provenance_and_invalid_confidence() -> No
     with pytest.raises(ValueError, match="provenance"):
         store.assert_fact("post-1", "platform", "tiktok", source=" ")
     with pytest.raises(ValueError, match="confidence"):
-        store.assert_fact("post-1", "platform", "tiktok", source="test", confidence=float("inf"))
+        store.assert_fact(
+            "post-1", "platform", "tiktok", source="test", confidence=float("inf")
+        )
 
 
 def test_source_provenance_redacts_nested_credentials_without_mutating_input() -> None:
