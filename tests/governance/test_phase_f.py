@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+import pytest
+
 from ois.governance import (
     ActionBudget,
     ActionLimit,
@@ -110,3 +114,24 @@ def test_inactive_policy_version_fails_closed() -> None:
     )
     assert not result.allowed
     assert "policy" in result.reason
+
+
+@pytest.mark.parametrize("invalid", [{"value": object()}, {"value": float("nan")}])
+def test_noncanonical_inputs_are_denied_and_audited(invalid: dict) -> None:
+    store = InMemoryGovernanceStore()
+    store.put_agent(AgentIdentity("agent-1", "tenant-a", "operator"))
+    store.grant(CapabilityGrant("cap.write", "tenant-a", "agent-1", ("write",)))
+    result = GovernanceEngine(store).authorize(
+        tenant_id="tenant-a",
+        workspace_id="ws-a",
+        execution_id="e",
+        agent_id="agent-1",
+        action="write",
+        capability_id="cap.write",
+        inputs=invalid,
+    )
+    assert not result.allowed
+    assert "canonical JSON" in result.reason
+    assert store.decisions[-1].outcome == "deny"
+    assert store.audit[-1].outcome == "denied"
+    assert store.action_counts[("tenant-a", "write")] == 0
