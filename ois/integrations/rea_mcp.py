@@ -8,6 +8,7 @@ the MCP boundary. Invocation remains inside the OIS Kernel lifecycle.
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import os
 import shutil
@@ -20,6 +21,7 @@ from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
 from ois.kernel.contracts import InvocationRequest, InvocationResult, ToolContract
+from ois.kernel.evidence import EvidenceStore
 from production.sandbox import attest as attest_gvisor_runtime
 from ois.kernel.types import InvocationStatus, RiskLevel, SideEffectLevel
 from ois.registries.core import CapabilityRegistry, ToolRegistry
@@ -115,6 +117,21 @@ class REAStdioMCPClient:
                 raise RuntimeError("REA returned no structured JSON tool result")
 
 
+def _extract_evidence_ids(value: Any) -> list[str]:
+    """Collect explicit REA evidence references without copying their payloads."""
+    found: set[str] = set()
+    if isinstance(value, Mapping):
+        for key, item in value.items():
+            if key == "evidence_id" and isinstance(item, str) and item.startswith("ev_"):
+                found.add(item)
+            else:
+                found.update(_extract_evidence_ids(item))
+    elif isinstance(value, list | tuple):
+        for item in value:
+            found.update(_extract_evidence_ids(item))
+    return sorted(found)
+
+
 def _tool_error_text(result: Any) -> str:
     """Extract bounded, useful MCP error detail without dumping arbitrary payloads."""
     for block in getattr(result, "content", ()):
@@ -148,6 +165,7 @@ class REAToolCapability:
         allowed_roots: Sequence[Path],
         capability_registry: CapabilityRegistry,
         tool_registry: ToolRegistry,
+        evidence: EvidenceStore,
     ) -> None:
         if tool_name not in {REA_SESSION_TOOL, REA_ANALYZE_TOOL}:
             raise ValueError(f"REA tool is not allowlisted: {tool_name}")
@@ -159,6 +177,7 @@ class REAToolCapability:
         self.allowed_roots = roots
         self.capability_registry = capability_registry
         self.tool_registry = tool_registry
+        self.evidence = evidence
         if tool_name == REA_SESSION_TOOL:
             input_schema: Mapping[str, Any] = {"type": "object"}
             required: tuple[str, ...] = ()
@@ -222,7 +241,25 @@ class REAToolCapability:
             resolved = _inside_allowed_root(Path(str(arguments["input_path"])), self.allowed_roots)
             arguments["input_path"] = str(resolved)
 
-        result = self.client.call_tool(self.tool_name, arguments)
+        result = dict(self.client.call_tool(self.tool_name, arguments))
+        serialized_result = json.dumps(
+            result, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+        )
+        self.evidence.record(
+            request.execution.identity.execution_id,
+            "rea.mcp.result_received",
+            {
+                "provider": "rea",
+                "mcp_tool": self.tool_name,
+                "package": REA_PACKAGE,
+                "result_sha256": hashlib.sha256(serialized_result.encode("utf-8")).hexdigest(),
+                "result_bytes": len(serialized_result.encode("utf-8")),
+                "evidence_ids": _extract_evidence_ids(result),
+            },
+            actor="rea-mcp",
+            component="ois.integrations.rea_mcp",
+            correlation_id=request.invocation_id,
+        )
         return InvocationResult(
             invocation_id=request.invocation_id,
             capability_id=self.contract.capability_id,
@@ -257,6 +294,7 @@ def register_rea_tools(
     *,
     allowed_roots: Sequence[str | Path],
     client: REAMCPClient | None = None,
+    evidence: EvidenceStore,
 ) -> tuple[REAToolCapability, ...]:
     """Register the small, read-only REA allowlist in both canonical registries.
 
@@ -278,6 +316,7 @@ def register_rea_tools(
             allowed_roots=tuple(root.resolve(strict=True) for root in roots),
             capability_registry=capability_registry,
             tool_registry=tool_registry,
+            evidence=evidence,
         )
         for tool_name, capability_id in definitions
     )
