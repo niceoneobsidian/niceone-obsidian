@@ -235,7 +235,9 @@ class REAToolCapability:
         capability_id = self.contract.capability_id
         version = self.contract.version
         if not self.capability_registry.has(capability_id, version):
-            raise PermissionError("REA capability is not registered in the canonical CapabilityRegistry")
+            raise PermissionError(
+                "REA capability is not registered in the canonical CapabilityRegistry"
+            )
         if not self.tool_registry.has(capability_id, version):
             raise PermissionError("REA tool is not registered in the canonical ToolRegistry")
         capability_entry = self.capability_registry.get(capability_id, version)
