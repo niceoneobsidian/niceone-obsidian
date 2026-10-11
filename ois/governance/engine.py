@@ -60,7 +60,12 @@ class GovernanceEngine:
             grant = self.store.grants.get((tenant_id, agent_id, capability_id))
             if allowed and (grant is None or not grant.active()):
                 allowed, reason = False, "capability grant is missing or expired"
-            elif allowed and grant is not None and grant.allowed_actions and action not in grant.allowed_actions:
+            elif (
+                allowed
+                and grant is not None
+                and grant.allowed_actions
+                and action not in grant.allowed_actions
+            ):
                 allowed, reason = False, "action is not granted"
             if allowed:
                 limit = self.store.limits.get((tenant_id, action))
