@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import Callable
+from collections.abc import Callable
 
 from .lifecycle import CredentialLifecycleManager, CredentialStatus
 from .manager import SecretManager
@@ -45,7 +45,10 @@ class CredentialHealthManager:
         provider = metadata.provider if metadata else "unknown"
         if metadata is None:
             return CredentialHealth(name, HealthStatus.INVALID, checked, provider, "unregistered")
-        if self._lifecycle and self._lifecycle.status(name, now=checked) is CredentialStatus.REVOKED:
+        if (
+            self._lifecycle
+            and self._lifecycle.status(name, now=checked) is CredentialStatus.REVOKED
+        ):
             return CredentialHealth(name, HealthStatus.REVOKED, checked, provider, "revoked")
         value = self._manager.get(name)
         if not value:
@@ -55,7 +58,10 @@ class CredentialHealthManager:
             return CredentialHealth(
                 name, HealthStatus.INVALID, checked, provider, "provider validation failed"
             )
-        if self._lifecycle and self._lifecycle.status(name, now=checked) is CredentialStatus.EXPIRING:
+        if (
+            self._lifecycle
+            and self._lifecycle.status(name, now=checked) is CredentialStatus.EXPIRING
+        ):
             return CredentialHealth(
                 name, HealthStatus.EXPIRING, checked, provider, "rotation due"
             )
