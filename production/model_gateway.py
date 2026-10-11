@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from math import isfinite
 from time import monotonic
 from typing import Any, Protocol
 
@@ -24,6 +25,14 @@ class ModelSpec:
     max_tokens: int = 8192
     healthy: bool = True
 
+    def __post_init__(self) -> None:
+        if not self.model_id.strip() or not self.version.strip():
+            raise ValueError("model_id and version are required")
+        if not isfinite(self.cost_per_1k_tokens) or self.cost_per_1k_tokens < 0:
+            raise ValueError("cost_per_1k_tokens must be finite and non-negative")
+        if self.max_tokens < 1:
+            raise ValueError("max_tokens must be positive")
+
 
 @dataclass(frozen=True)
 class ModelRequest:
@@ -32,6 +41,16 @@ class ModelRequest:
     max_tokens: int = 2048
     budget: float | None = None
     preferred_model: str | None = None
+
+    def __post_init__(self) -> None:
+        if not self.capability.strip():
+            raise ValueError("capability is required")
+        if self.max_tokens < 1:
+            raise ValueError("max_tokens must be positive")
+        if self.budget is not None and (
+            not isfinite(self.budget) or self.budget < 0
+        ):
+            raise ValueError("budget must be finite and non-negative")
 
 
 @dataclass(frozen=True)
@@ -80,27 +99,39 @@ class ModelGateway:
             and self._health.get((entry.id, entry.version), False)
             and request.max_tokens <= entry.value.max_tokens
         ]
-        if request.preferred_model:
-            preferred = [m for m in candidates if m.model_id == request.preferred_model]
-            candidates = preferred + [
-                m for m in candidates if m.model_id != request.preferred_model
-            ]
-        candidates.sort(key=lambda m: (m.priority, m.model_id, m.version))
+        candidates.sort(
+            key=lambda model: (
+                model.model_id != request.preferred_model
+                if request.preferred_model is not None
+                else False,
+                model.priority,
+                model.model_id,
+                model.version,
+            )
+        )
         for candidate in candidates:
             cost = request.max_tokens / 1000 * candidate.cost_per_1k_tokens
             if request.budget is None or cost <= request.budget:
-                higher_priority_exists = any(
-                    entry.value.model_id != candidate.model_id
-                    and request.capability in entry.value.capabilities
-                    and request.max_tokens <= entry.value.max_tokens
-                    and entry.value.priority < candidate.priority
-                    for entry in registered
-                )
-                preferred_missed = (
-                    request.preferred_model is not None
-                    and candidate.model_id != request.preferred_model
-                )
-                return candidate, higher_priority_exists or preferred_missed
+                if request.preferred_model is not None:
+                    fallback = candidate.model_id != request.preferred_model
+                else:
+                    fallback = any(
+                        entry.value.model_id != candidate.model_id
+                        and request.capability in entry.value.capabilities
+                        and entry.value.priority < candidate.priority
+                        and (
+                            not self._health.get((entry.id, entry.version), False)
+                            or request.max_tokens > entry.value.max_tokens
+                            or (
+                                request.budget is not None
+                                and request.max_tokens / 1000
+                                * entry.value.cost_per_1k_tokens
+                                > request.budget
+                            )
+                        )
+                        for entry in registered
+                    )
+                return candidate, fallback
         raise ModelGatewayError(
             f"No healthy model satisfies capability={request.capability!r} and budget"
         )
