@@ -31,7 +31,8 @@ class WorldFact:
 
 
 def _canonical_json(value: Any) -> str:
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False, default=str)
+    # Preserve the historical on-disk representation so existing SQLite facts remain queryable.
+    return json.dumps(value, sort_keys=True, default=str)
 
 
 class KnowledgeWorldStore:
