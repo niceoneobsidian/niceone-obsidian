@@ -10,6 +10,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Protocol
 
+from ois.infrastructure.secrets.manager import SecretManager
+
 
 @dataclass(frozen=True)
 class TenantScope:
@@ -46,3 +48,20 @@ class InMemoryCredentialResolver:
             return self._credentials[ref.credential_id]
         except KeyError as exc:
             raise KeyError(f"credential not configured: {ref.credential_id}") from exc
+
+
+class SecretManagerCredentialResolver:
+    """Resolve credential references through the governed secret manager."""
+
+    def __init__(self, secrets: SecretManager) -> None:
+        self._secrets = secrets
+
+    def resolve(self, ref: CredentialRef, scope: TenantScope) -> str:
+        if ref.tenant_id != scope.tenant_id:
+            raise PermissionError("credential belongs to another tenant")
+        metadata = self._secrets.metadata(ref.credential_id)
+        if metadata is None:
+            raise KeyError(f"credential not configured: {ref.credential_id}")
+        if ref.scopes and not set(ref.scopes).issubset(metadata.scopes):
+            raise PermissionError("credential does not grant the requested scopes")
+        return self._secrets.require(ref.credential_id)
