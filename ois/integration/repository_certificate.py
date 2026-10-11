@@ -15,7 +15,7 @@ import hashlib
 import importlib
 import json
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from ois.infrastructure.source_adapters.base import SourceAdapterRegistry
@@ -24,6 +24,12 @@ from .conformance import (
     ConformanceReport,
     ConformanceStatus,
     IntegrationConformance,
+)
+from .inventory_drift import DEFAULT_INVENTORY_PATH, compare_inventory_to_registry
+from .provider_manifest_check import (
+    DEFAULT_MANIFEST_DIR,
+    load_manifest_documents,
+    validate_provider_manifests,
 )
 
 DEFAULT_REGISTRY_FACTORY = (
@@ -64,6 +70,8 @@ class IntegrationConformanceCertificate:
     valid: bool
     failures: tuple[str, ...]
     evidence: dict[str, tuple[RepositoryEvidence, ...]]
+    provider_manifests: dict[str, object] = field(default_factory=dict)
+    inventory_drift: dict[str, object] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -73,6 +81,8 @@ class IntegrationConformanceCertificate:
             "valid": self.valid,
             "failures": list(self.failures),
             "certificate_hash": self.certificate_hash,
+            "provider_manifests": self.provider_manifests,
+            "inventory_drift": self.inventory_drift,
             "report": self.report.to_dict(),
             "evidence": {
                 source: [
@@ -175,7 +185,13 @@ class RepositoryConformanceCertificateBuilder:
         registry: SourceAdapterRegistry,
         policy: CertificatePolicy | None = None,
         commit: str | None = None,
+        manifest_dir: Path | None = None,
+        inventory_path: Path | None = None,
+        inventory_drift_report_only: bool = False,
     ) -> None:
+        self.manifest_dir = manifest_dir
+        self.inventory_path = inventory_path
+        self.inventory_drift_report_only = inventory_drift_report_only
         self.scanner = RepositoryConformanceScanner(root)
         self.registry = registry
         self.policy = policy or CertificatePolicy()
@@ -259,6 +275,19 @@ class RepositoryConformanceCertificateBuilder:
 
         report = ConformanceReport(tuple(enriched_records))
         failures: list[str] = list(metadata_failures)
+        drift_section: dict[str, object] = {}
+        if self.inventory_path is not None:
+            drift = compare_inventory_to_registry(
+                self.scanner.root, self.registry, self.inventory_path
+            )
+            drift_section = drift.to_dict()
+            if not self.inventory_drift_report_only:
+                failures.extend(drift.failures())
+        if self.manifest_dir is not None:
+            failures.extend(
+                validate_provider_manifests(self.scanner.root, self.registry, self.manifest_dir)
+            )
+        manifest_section = self._manifest_section(failures)
 
         if not report.records:
             failures.append("REGISTRY_EMPTY")
@@ -276,6 +305,8 @@ class RepositoryConformanceCertificateBuilder:
             "schema_version": "ois.integration.conformance.certificate.v2",
             "commit": self.commit,
             "mandatory_columns": list(self.policy.required),
+            "provider_manifests": manifest_section,
+            "inventory_drift": drift_section,
             "report": report.to_dict(),
             "evidence": {
                 key: [item.__dict__ for item in value]
@@ -300,7 +331,29 @@ class RepositoryConformanceCertificateBuilder:
             valid=bool(report.records) and not failures,
             failures=tuple(sorted(set(failures))),
             evidence=normalized_evidence,
+            provider_manifests=manifest_section,
+            inventory_drift=drift_section,
         )
+
+    def _manifest_section(self, failures: list[str]) -> dict[str, object]:
+        """Record which manifests were checked; never promotes any conformance cell."""
+        if self.manifest_dir is None:
+            return {}
+        docs, _ = load_manifest_documents(self.manifest_dir)
+        providers: dict[str, object] = {}
+        for source_id in sorted(self.registry.list()):
+            failed = [f for f in failures if f.startswith(f"{source_id}:MANIFEST:")]
+            doc = docs.get(source_id)
+            providers[source_id] = {
+                "status": "MISSING" if doc is None else ("INVALID" if failed else "CONSISTENT"),
+                "sha256": None
+                if doc is None
+                else hashlib.sha256(
+                    json.dumps(doc, sort_keys=True, separators=(",", ":")).encode("utf-8")
+                ).hexdigest(),
+                "unknown_fields": [] if doc is None else sorted(doc.get("unknown", [])),
+            }
+        return {"directory": str(self.manifest_dir), "providers": providers}
 
 
 def build_repository_certificate(
@@ -309,12 +362,18 @@ def build_repository_certificate(
     registry: SourceAdapterRegistry,
     policy: CertificatePolicy | None = None,
     commit: str | None = None,
+    manifest_dir: Path | None = None,
+    inventory_path: Path | None = None,
+    inventory_drift_report_only: bool = False,
 ) -> IntegrationConformanceCertificate:
     return RepositoryConformanceCertificateBuilder(
         root,
         registry=registry,
         policy=policy,
         commit=commit,
+        manifest_dir=manifest_dir,
+        inventory_path=inventory_path,
+        inventory_drift_report_only=inventory_drift_report_only,
     ).build()
 
 
@@ -341,12 +400,31 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--commit", default=None)
     parser.add_argument("--strict", action="store_true")
     parser.add_argument("--registry-factory", default=DEFAULT_REGISTRY_FACTORY)
+    parser.add_argument(
+        "--manifest-dir",
+        default=None,
+        help="Provider manifest directory (default: <root>/manifests/providers).",
+    )
+    parser.add_argument(
+        "--inventory",
+        default=None,
+        help="Declared provider inventory (default: config/integration-provider-certificate.json).",
+    )
+    parser.add_argument(
+        "--report-only-inventory-drift",
+        action="store_true",
+        help="Downgrade unexplained registry/inventory drift from failure to report (not for CI).",
+    )
     args = parser.parse_args(argv)
 
+    root = Path(args.root)
     certificate = build_repository_certificate(
-        Path(args.root),
+        root,
         registry=_load_registry(args.registry_factory),
         commit=args.commit,
+        manifest_dir=Path(args.manifest_dir) if args.manifest_dir else root / DEFAULT_MANIFEST_DIR,
+        inventory_path=Path(args.inventory) if args.inventory else root / DEFAULT_INVENTORY_PATH,
+        inventory_drift_report_only=args.report_only_inventory_drift,
     )
     Path(args.output).write_text(certificate.to_json() + "\n", encoding="utf-8")
     print(certificate.to_json())

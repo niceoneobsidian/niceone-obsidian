@@ -1,0 +1,71 @@
+{
+  "schema_version": "ois.provider.registration.backlog.v1",
+  "purpose": "Providers declared in config/integration-provider-certificate.json that are NOT in the canonical SourceAdapterRegistry. Listing here explains drift; it is not registration, readiness or verification.",
+  "rules": [
+    "An entry must be removed when the provider is registered in the canonical registry.",
+    "Every required_evidence state must be UNKNOWN, MISSING or NOT_STARTED; anything stronger is rejected until the provider is registered and conformance-checked.",
+    "Do not add placeholder adapters to remove an entry."
+  ],
+  "entries": [
+    {
+      "source_id": "tiktok.display.v2",
+      "inventory_status": "INTERNAL_GATED",
+      "inventory_adapter": "ois/integrations/tiktok/source.py:TikTokSource",
+      "registration_state": "NOT_REGISTERED",
+      "required_evidence": {
+        "client": "UNKNOWN",
+        "credential_injection": "UNKNOWN",
+        "scopes": "UNKNOWN",
+        "policy": "UNKNOWN",
+        "tests": "UNKNOWN",
+        "live_verification": "UNKNOWN"
+      },
+      "tracking": "UNASSIGNED"
+    },
+    {
+      "source_id": "rss.news",
+      "inventory_status": "VERIFIED",
+      "inventory_adapter": "ois/integrations/rss/source.py:RSSSource",
+      "registration_state": "NOT_REGISTERED",
+      "required_evidence": {
+        "client": "UNKNOWN",
+        "credential_injection": "UNKNOWN",
+        "scopes": "UNKNOWN",
+        "policy": "UNKNOWN",
+        "tests": "UNKNOWN",
+        "live_verification": "UNKNOWN"
+      },
+      "tracking": "UNASSIGNED"
+    },
+    {
+      "source_id": "tool.social.sociavault",
+      "inventory_status": "VERIFIED",
+      "inventory_adapter": "ois/domains/social_intelligence/providers.py:SociaVaultAdapter",
+      "registration_state": "NOT_REGISTERED",
+      "required_evidence": {
+        "client": "UNKNOWN",
+        "credential_injection": "UNKNOWN",
+        "scopes": "UNKNOWN",
+        "policy": "UNKNOWN",
+        "tests": "UNKNOWN",
+        "live_verification": "UNKNOWN"
+      },
+      "tracking": "UNASSIGNED"
+    },
+    {
+      "source_id": "tool.social.bundle_social",
+      "inventory_status": "VERIFIED",
+      "inventory_adapter": "ois/domains/social_intelligence/providers.py:BundleSocialAdapter",
+      "registration_state": "NOT_REGISTERED",
+      "required_evidence": {
+        "client": "UNKNOWN",
+        "credential_injection": "UNKNOWN",
+        "scopes": "UNKNOWN",
+        "policy": "UNKNOWN",
+        "tests": "UNKNOWN",
+        "live_verification": "UNKNOWN"
+      },
+      "tracking": "UNASSIGNED"
+    }
+  ]
+}
