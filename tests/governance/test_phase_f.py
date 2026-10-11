@@ -135,3 +135,24 @@ def test_noncanonical_inputs_are_denied_and_audited(invalid: dict) -> None:
     assert store.decisions[-1].outcome == "deny"
     assert store.audit[-1].outcome == "denied"
     assert store.action_counts[("tenant-a", "write")] == 0
+
+
+@pytest.mark.parametrize("estimated_cost", [-1.0, float("nan"), float("inf")])
+def test_invalid_estimated_cost_is_denied_and_audited(estimated_cost: float) -> None:
+    store = InMemoryGovernanceStore()
+    store.put_agent(AgentIdentity("agent-1", "tenant-a", "operator"))
+    store.grant(CapabilityGrant("cap.write", "tenant-a", "agent-1", ("write",)))
+    result = GovernanceEngine(store).authorize(
+        tenant_id="tenant-a",
+        workspace_id="ws-a",
+        execution_id="e",
+        agent_id="agent-1",
+        action="write",
+        capability_id="cap.write",
+        inputs={},
+        estimated_cost=estimated_cost,
+    )
+    assert not result.allowed
+    assert "estimated cost" in result.reason
+    assert store.audit[-1].outcome == "denied"
+    assert store.action_counts[("tenant-a", "write")] == 0
