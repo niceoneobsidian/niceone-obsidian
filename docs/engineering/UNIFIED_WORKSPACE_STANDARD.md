@@ -18,6 +18,14 @@ The repository name `niceone` and `obsidian-design-intelligence` were not visibl
 - **Runtime promotion:** Python 3.15 is not considered production-certified merely because the interpreter is stable. Require green unit/integration tests, dependency installation, container build, migrations, and deployment-image verification.
 - **No experimental free-threaded build** in production until separately benchmarked and validated.
 
+### Known OIS blocker found by CI
+
+The first OIS Python 3.15 compatibility run failed during dependency installation, before OIS tests ran:
+
+`langgraph` → `langgraph-checkpoint 4.3.0` → `ormsgpack 1.12.2` → PyO3 `0.27.2`.
+
+PyO3 0.27.2 explicitly rejects Python 3.15 because its maximum supported version is 3.14. Do not suppress that guard with `PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1` as a production workaround without upstream support and dedicated ABI/runtime validation. Keep the OIS migration PR in draft until a compatible `ormsgpack` wheel/release or a separately validated dependency path is available.
+
 ## Tooling policy
 
 - Use a single, pinned `uv` version for Python interpreter provisioning and environment operations.
@@ -28,7 +36,7 @@ The repository name `niceone` and `obsidian-design-intelligence` were not visibl
 
 ## Workspace layout
 
-Keep the repositories separate so each retains its own release boundary and dependency graph. Clone them as sibling folders and open them together in a local multi-root VS Code workspace. Share editor settings, task conventions, formatting/lint commands, and version policy; do not combine their runtime dependencies into one virtual environment.
+Keep the repositories separate so each retains its own release boundary and dependency graph. Clone them as sibling folders and open them together in the committed `Niceone.code-workspace` multi-root VS Code workspace. Share editor settings, task conventions, formatting/lint commands, and version policy; do not combine their runtime dependencies into one virtual environment.
 
 Suggested local layout:
 
