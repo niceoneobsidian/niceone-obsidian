@@ -1,19 +1,25 @@
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any, Protocol
 from uuid import uuid4
 
+from .llm_gateway import ModelOutput, ModelOutputError
+
 
 class AgentLLMGateway(Protocol):
+    """Gateways validate output and enforce timeout_seconds at blocking I/O."""
+
     def invoke(
         self,
         *,
         model: str,
         messages: list[dict[str, Any]],
+        timeout_seconds: float,
         metadata: dict[str, Any] | None = None,
-    ) -> Any: ...
+    ) -> ModelOutput: ...
 
 
 class AgentMemory(Protocol):
@@ -29,6 +35,16 @@ class AgentWorkspace:
     skills: tuple[str, ...] = ()
     tools: tuple[str, ...] = ()
     memory_ref: str | None = None
+    timeout_seconds: float = 30.0
+
+    def __post_init__(self) -> None:
+        if (
+            isinstance(self.timeout_seconds, bool)
+            or not isinstance(self.timeout_seconds, (int, float))
+            or not math.isfinite(self.timeout_seconds)
+            or self.timeout_seconds <= 0
+        ):
+            raise ValueError("agent timeout_seconds must be a finite positive number")
 
 
 @dataclass
@@ -45,7 +61,7 @@ class AgentSession:
 class AgentRunResult:
     session_id: str
     status: str
-    output: Any
+    output: str
     model: str
     started_at: datetime
     completed_at: datetime
@@ -102,9 +118,12 @@ class AgentRuntime:
         response = self._llm_gateway.invoke(
             model=model,
             messages=messages,
+            timeout_seconds=workspace.timeout_seconds,
             metadata={"agent_id": workspace.agent_id, "session_id": session_id},
         )
-        output = getattr(response, "output", response)
+        if not isinstance(response, ModelOutput):
+            raise ModelOutputError("agent gateway returned an invalid model output type")
+        output = response.content
         assistant_message = {"role": "assistant", "content": output}
         session.messages.append(assistant_message)
         self._memory.append(workspace.agent_id, session_id, assistant_message)

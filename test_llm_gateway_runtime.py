@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import pytest
 
 from ois.architecture.fabrics import LLMGatewaySpec, ModelRoute
-from ois.runtime.llm_gateway import InferenceRecord, LLMGateway
+from ois.runtime.llm_gateway import InferenceRecord, LLMGateway, ModelOutput
 
 
 @dataclass
@@ -12,10 +12,10 @@ class Provider:
     value: str
     fail: bool = False
 
-    def invoke(self, model: str, request: dict[str, object]) -> object:
+    def invoke(self, model: str, request: dict[str, object]) -> ModelOutput:
         if self.fail:
             raise RuntimeError("provider unavailable")
-        return {"model": model, "prompt": request["prompt"], "value": self.value}
+        return ModelOutput(self.value)
 
 
 def build_gateway() -> LLMGateway:
@@ -48,7 +48,7 @@ def test_gateway_routes_and_records_inference() -> None:
 
     result = gateway.invoke("request-1", "hello", capabilities={"text"})
 
-    assert result["value"] == "primary"
+    assert result.content == "primary"
     assert len(gateway.records) == 1
     assert isinstance(gateway.records[0], InferenceRecord)
     assert gateway.records[0].status == "succeeded"
@@ -60,7 +60,7 @@ def test_gateway_falls_back_to_next_compatible_provider() -> None:
 
     result = gateway.invoke("request-2", "hello", capabilities={"text"})
 
-    assert result["value"] == "fallback"
+    assert result.content == "fallback"
     assert [record.status for record in gateway.records] == ["failed", "succeeded"]
 
 

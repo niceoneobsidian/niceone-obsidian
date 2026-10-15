@@ -13,6 +13,7 @@ from ois.infrastructure.source_adapters import (
     HttpSourceAdapter,
     PollingSourceAdapter,
     PollPage,
+    RSSSourceAdapter,
     SourceAdapterRegistry,
     WebhookVerifier,
 )
@@ -22,6 +23,7 @@ from ois.infrastructure.source_gateway import (
     SQLiteSourceLedger,
 )
 from ois.infrastructure.source_gateway.auth import AuthScheme
+from ois.integrations.rss.source import RSSSource
 
 
 def gateway() -> tuple[SourceGateway, SQLiteSourceLedger]:
@@ -99,6 +101,23 @@ def test_polling_advances_cursor_after_gateway_acceptance() -> None:
 def test_registry_is_deterministic() -> None:
     registry = SourceAdapterRegistry()
     assert registry.list() == ()
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "file:///tmp/feed.xml",
+        "ftp://example.test/feed.xml",
+        "https:///missing-host/feed.xml",
+        "https://user:pass@example.test/feed.xml",
+    ],
+)
+def test_rss_adapters_reject_non_http_or_credential_urls(url: str) -> None:
+    with pytest.raises(ValueError, match=r"absolute HTTP\(S\) URL"):
+        RSSSourceAdapter(source_id="rss:test", url=url)
+
+    with pytest.raises(ValueError, match=r"absolute HTTP\(S\) URL"):
+        RSSSource(feed_url=url, gateway=gateway()[0])
 
 
 class _FakeHttpResponse:

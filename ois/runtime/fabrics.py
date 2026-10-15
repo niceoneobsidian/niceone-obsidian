@@ -38,7 +38,7 @@ from ois.kernel.contracts import (
 )
 from ois.kernel.registry import CapabilityRegistry
 from ois.kernel.types import InvocationStatus, RiskLevel, SideEffectLevel
-from ois.runtime.llm_gateway import LLMGateway
+from ois.runtime.llm_gateway import LLMGateway, ModelOutput, ModelOutputError
 
 CAPABILITY_VERSION = "1.0.0"
 
@@ -173,8 +173,17 @@ class _CallableLLMProvider:
     provider_id: str
     callback: Callable[[str, dict[str, Any]], Any]
 
-    def invoke(self, model: str, request: dict[str, Any]) -> Any:
-        return self.callback(model, request)
+    def invoke(self, model: str, request: dict[str, Any]) -> ModelOutput:
+        result = self.callback(model, request)
+        if isinstance(result, ModelOutput):
+            return result
+        if (
+            isinstance(result, dict)
+            and set(result) == {"response"}
+            and isinstance(result["response"], str)
+        ):
+            return ModelOutput(result["response"])
+        raise ModelOutputError("legacy provider must return only a string response")
 
 
 @dataclass
@@ -223,12 +232,13 @@ class InMemoryLLMGateway:
         self._sync_routes()
         record_start = len(self.engine.records)
         try:
-            return self.engine.invoke(
+            result = self.engine.invoke(
                 request_id,
                 prompt,
                 capabilities=set(capabilities or ()),
                 options=request_options,
             )
+            return {"response": result.content}
         finally:
             for record in self.engine.records[record_start:]:
                 item: dict[str, Any] = {
