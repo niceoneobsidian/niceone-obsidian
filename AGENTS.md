@@ -1,6 +1,6 @@
 # SYSTEM ARCHITECTURE GUIDE & AI AGENT BEHAVIOR MANDATE
 
-Follow the shared engineering standards at `../niceone-workspace/standards/ENGINEERING_STANDARDS.md` in addition to this repository guidance.
+Follow the shared engineering standards at `../niceone-cli/workspace/standards/ENGINEERING_STANDARDS.md` in addition to this repository guidance.
 
 ## 1. IDENTITY & GOAL
 

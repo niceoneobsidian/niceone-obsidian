@@ -1,2 +1,2 @@
 @AGENTS.md
-@../niceone-workspace/standards/ENGINEERING_STANDARDS.md
+@../niceone-cli/workspace/standards/ENGINEERING_STANDARDS.md
