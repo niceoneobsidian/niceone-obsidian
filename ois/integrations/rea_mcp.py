@@ -1,0 +1,350 @@
+"""Governed, read-only integration with the REA MCP server.
+
+Only the explicitly registered REA tools are callable. Local analysis targets are
+canonicalized and constrained to administrator-configured roots before crossing
+the MCP boundary. Invocation remains inside the OIS Kernel lifecycle.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import hashlib
+import json
+import os
+import shutil
+from collections.abc import Mapping, Sequence
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+from typing import Any, Protocol
+
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
+
+from ois.kernel.contracts import InvocationRequest, InvocationResult, ToolContract
+from ois.kernel.evidence import EvidenceStore
+from production.sandbox import attest as attest_gvisor_runtime
+from ois.kernel.types import InvocationStatus, RiskLevel, SideEffectLevel
+from ois.registries.core import CapabilityRegistry, ToolRegistry
+
+REA_PACKAGE = "rea-agents@6.4.0"
+REA_ANALYZE_TOOL = "analyze_javascript_application"
+REA_SESSION_TOOL = "binary_session"
+REA_PERMISSION = "reverse_engineering.read"
+REA_TIMEOUT_SECONDS = 300.0
+
+
+class REAMCPClient(Protocol):
+    """Minimal client interface, injectable for tests and alternate transports."""
+
+    def call_tool(self, name: str, arguments: Mapping[str, Any]) -> Mapping[str, Any]: ...
+
+
+class REAStdioMCPClient:
+    """One-request stdio MCP client for the pinned REA package.
+
+    The server command is fixed (no shell and no caller-provided command vector).
+    Only a small environment allowlist is inherited by the REA process.
+    """
+
+    _ENV_KEYS = (
+        "PATH",
+        "HOME",
+        "TMPDIR",
+        "TMP",
+        "TEMP",
+        "SYSTEMROOT",
+        "APPDATA",
+        "LOCALAPPDATA",
+        "USERPROFILE",
+    )
+
+    def __init__(self, *, timeout_seconds: float = REA_TIMEOUT_SECONDS) -> None:
+        if timeout_seconds <= 0:
+            raise ValueError("timeout_seconds must be positive")
+        self.timeout_seconds = timeout_seconds
+
+    def call_tool(self, name: str, arguments: Mapping[str, Any]) -> Mapping[str, Any]:
+        if name not in {REA_SESSION_TOOL, REA_ANALYZE_TOOL}:
+            raise ValueError(f"REA tool is not allowlisted: {name}")
+        coroutine = self._call_tool(name, dict(arguments))
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            return asyncio.run(coroutine)
+
+        # OIS capability invocation is synchronous. If called from an async host,
+        # keep the MCP event loop isolated on a dedicated worker thread.
+        with ThreadPoolExecutor(max_workers=1, thread_name_prefix="rea-mcp") as pool:
+            return pool.submit(asyncio.run, coroutine).result(timeout=self.timeout_seconds + 5)
+
+    async def _call_tool(self, name: str, arguments: dict[str, Any]) -> Mapping[str, Any]:
+        # REA is a local-process MCP server. Never launch it on the host outside
+        # the existing OIS gVisor isolation boundary.
+        attest_gvisor_runtime()
+        executable = shutil.which("rea")
+        if executable is None:
+            raise RuntimeError(
+                f"REA MCP requires the preinstalled {REA_PACKAGE} CLI available as rea on PATH"
+            )
+
+        environment = {key: os.environ[key] for key in self._ENV_KEYS if key in os.environ}
+        async with asyncio.timeout(min(self.timeout_seconds, 10.0)):
+            version_process = await asyncio.create_subprocess_exec(
+                executable,
+                "--version",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                env=environment,
+            )
+            version_stdout, version_stderr = await version_process.communicate()
+        version_text = (version_stdout + version_stderr).decode("utf-8", errors="replace")
+        if version_process.returncode != 0 or "6.4.0" not in version_text:
+            raise RuntimeError(
+                f"REA CLI version mismatch; expected {REA_PACKAGE}, observed {version_text[:200]!r}"
+            )
+        parameters = StdioServerParameters(
+            command=executable,
+            args=["mcp"],
+            env=environment,
+        )
+        async with asyncio.timeout(self.timeout_seconds):
+            async with (
+                stdio_client(parameters) as (read_stream, write_stream),
+                ClientSession(read_stream, write_stream) as session,
+            ):
+                await session.initialize()
+                catalog = await session.list_tools()
+                if name not in {tool.name for tool in catalog.tools}:
+                    raise RuntimeError(f"REA server does not advertise required tool: {name}")
+                result = await session.call_tool(name, arguments=dict(arguments))
+                if getattr(result, "isError", False):
+                    raise RuntimeError(_tool_error_text(result))
+                structured = getattr(result, "structuredContent", None)
+                if isinstance(structured, Mapping):
+                    return dict(structured)
+                for block in getattr(result, "content", ()):
+                    if getattr(block, "type", None) == "text":
+                        try:
+                            parsed = json.loads(block.text)
+                        except (TypeError, json.JSONDecodeError):
+                            continue
+                        if isinstance(parsed, Mapping):
+                            return dict(parsed)
+                raise RuntimeError("REA returned no structured JSON tool result")
+
+
+def _extract_evidence_ids(value: Any) -> list[str]:
+    """Collect explicit REA evidence references without copying their payloads."""
+    found: set[str] = set()
+    if isinstance(value, Mapping):
+        for key, item in value.items():
+            if key == "evidence_id" and isinstance(item, str) and item.startswith("ev_"):
+                found.add(item)
+            else:
+                found.update(_extract_evidence_ids(item))
+    elif isinstance(value, list | tuple):
+        for item in value:
+            found.update(_extract_evidence_ids(item))
+    return sorted(found)
+
+
+def _tool_error_text(result: Any) -> str:
+    """Extract bounded, useful MCP error detail without dumping arbitrary payloads."""
+    for block in getattr(result, "content", ()):
+        if getattr(block, "type", None) == "text":
+            text = str(getattr(block, "text", ""))
+            if text:
+                return text[:2000]
+    return "REA MCP tool returned isError=true"
+
+
+def _inside_allowed_root(target: Path, roots: Sequence[Path]) -> Path:
+    if not target.is_absolute():
+        raise ValueError("input_path must be absolute")
+    resolved = target.resolve(strict=True)
+    if not any(resolved == root or root in resolved.parents for root in roots):
+        raise PermissionError("input_path is outside configured REA analysis roots")
+    if not (resolved.is_file() or resolved.is_dir()):
+        raise ValueError("input_path must resolve to a file or directory")
+    return resolved
+
+
+class REAToolCapability:
+    """Adapt one fixed REA MCP operation to the canonical OIS capability contract."""
+
+    def __init__(
+        self,
+        *,
+        tool_name: str,
+        capability_id: str,
+        client: REAMCPClient,
+        allowed_roots: Sequence[Path],
+        capability_registry: CapabilityRegistry,
+        tool_registry: ToolRegistry,
+        evidence: EvidenceStore,
+    ) -> None:
+        if tool_name not in {REA_SESSION_TOOL, REA_ANALYZE_TOOL}:
+            raise ValueError(f"REA tool is not allowlisted: {tool_name}")
+        roots = tuple(root.resolve(strict=True) for root in allowed_roots)
+        if not roots or any(not root.is_dir() for root in roots):
+            raise ValueError("at least one existing REA analysis root directory is required")
+        self.tool_name = tool_name
+        self.client = client
+        self.allowed_roots = roots
+        self.capability_registry = capability_registry
+        self.tool_registry = tool_registry
+        self.evidence = evidence
+        if tool_name == REA_SESSION_TOOL:
+            input_schema: Mapping[str, Any] = {"type": "object"}
+            required: tuple[str, ...] = ()
+            description = "Read REA MCP session/provider readiness without opening a target."
+        else:
+            input_schema = {
+                "type": "object",
+                "required": ["input_path", "detail"],
+                "properties": {
+                    "input_path": {"type": "string"},
+                    "detail": {"type": "string", "enum": ["summary", "complete"]},
+                },
+            }
+            required = ("input_path", "detail")
+            description = (
+                "Statically analyze a local JavaScript/Electron application through REA. "
+                "Target paths must remain inside configured analysis roots; this operation "
+                "does not execute the target application."
+            )
+        self.contract = ToolContract(
+            capability_id=capability_id,
+            version="1.0.0",
+            description=description,
+            input_schema=input_schema,
+            output_schema={
+                "type": "object",
+                "required": ["provider", "tool", "result"],
+                "properties": {
+                    "provider": {"type": "string", "enum": ["rea"]},
+                    "tool": {"type": "string", "enum": [tool_name]},
+                    "result": {"type": "object"},
+                },
+            },
+            risk_level=RiskLevel.MEDIUM,
+            permissions=(REA_PERMISSION,),
+            allowed_domains=("local-analysis",),
+            timeout_seconds=REA_TIMEOUT_SECONDS,
+            max_retries=0,
+            side_effects=SideEffectLevel.NONE,
+            idempotent=True,
+            network_policy={
+                "transport": "stdio",
+                "package": REA_PACKAGE,
+                "allowed_tools": [REA_SESSION_TOOL, REA_ANALYZE_TOOL],
+                "target_execution": False,
+            },
+            secrets_required=(),
+            requires_approval=False,
+        )
+        self._required = required
+
+    def invoke(self, request: InvocationRequest) -> InvocationResult:
+        self._assert_registry_conformance()
+        arguments = dict(request.input)
+        if set(arguments) != set(self._required):
+            raise ValueError(
+                "REA capability accepts exactly these input keys: "
+                + ", ".join(self._required)
+            )
+        if self.tool_name == REA_ANALYZE_TOOL:
+            resolved = _inside_allowed_root(Path(str(arguments["input_path"])), self.allowed_roots)
+            arguments["input_path"] = str(resolved)
+
+        result = dict(self.client.call_tool(self.tool_name, arguments))
+        serialized_result = json.dumps(
+            result, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+        )
+        self.evidence.record(
+            request.execution.identity.execution_id,
+            "rea.mcp.result_received",
+            {
+                "provider": "rea",
+                "mcp_tool": self.tool_name,
+                "package": REA_PACKAGE,
+                "result_sha256": hashlib.sha256(serialized_result.encode("utf-8")).hexdigest(),
+                "result_bytes": len(serialized_result.encode("utf-8")),
+                "evidence_ids": _extract_evidence_ids(result),
+            },
+            actor="rea-mcp",
+            component="ois.integrations.rea_mcp",
+            correlation_id=request.invocation_id,
+        )
+        return InvocationResult(
+            invocation_id=request.invocation_id,
+            capability_id=self.contract.capability_id,
+            status=InvocationStatus.SUCCEEDED,
+            output={"provider": "rea", "tool": self.tool_name, "result": dict(result)},
+            metadata={"mcp_tool": self.tool_name, "mcp_package": REA_PACKAGE},
+        )
+
+    def _assert_registry_conformance(self) -> None:
+        capability_id = self.contract.capability_id
+        version = self.contract.version
+        if not self.capability_registry.has(capability_id, version):
+            raise PermissionError(
+                "REA capability is not registered in the canonical CapabilityRegistry"
+            )
+        if not self.tool_registry.has(capability_id, version):
+            raise PermissionError("REA tool is not registered in the canonical ToolRegistry")
+        capability_entry = self.capability_registry.get(capability_id, version)
+        tool_entry = self.tool_registry.get(capability_id, version)
+        if (
+            capability_entry.capability is not self
+            or tool_entry.capability is not self
+            or capability_entry.contract != tool_entry.contract
+            or capability_entry.contract != self.contract
+        ):
+            raise PermissionError("REA ToolRegistry/CapabilityRegistry contract conformance failed")
+
+
+def register_rea_tools(
+    capability_registry: CapabilityRegistry,
+    tool_registry: ToolRegistry,
+    *,
+    allowed_roots: Sequence[str | Path],
+    client: REAMCPClient | None = None,
+    evidence: EvidenceStore,
+) -> tuple[REAToolCapability, ...]:
+    """Register the small, read-only REA allowlist in both canonical registries.
+
+    This function intentionally does not register every tool advertised by REA.
+    Expand the allowlist only alongside explicit contracts, path/risk policy and
+    conformance tests for each additional operation.
+    """
+    roots = tuple(Path(root).expanduser() for root in allowed_roots)
+    transport = client or REAStdioMCPClient()
+    definitions = (
+        (REA_SESSION_TOOL, "rea.binary_session"),
+        (REA_ANALYZE_TOOL, "rea.analyze_javascript_application"),
+    )
+    capabilities = tuple(
+        REAToolCapability(
+            tool_name=tool_name,
+            capability_id=capability_id,
+            client=transport,
+            allowed_roots=tuple(root.resolve(strict=True) for root in roots),
+            capability_registry=capability_registry,
+            tool_registry=tool_registry,
+            evidence=evidence,
+        )
+        for tool_name, capability_id in definitions
+    )
+    for capability in capabilities:
+        capability_registry.register(capability)
+        tool_registry.register(
+            capability,
+            metadata={
+                "provider": "rea",
+                "mcp_tool": capability.tool_name,
+                "authority": "OIS Kernel policy and execution spine",
+                "side_effects": "none",
+            },
+        )
+    return capabilities
