@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 
 import pytest
 from langgraph.checkpoint.memory import MemorySaver
 
 from ois.integration.langgraph_runtime import build_ois_graph
-from ois.integration.spine import SpineRequest
+from ois.integration.spine import OISSpine, SpineRequest
 
 
 class RecordingSpine:
@@ -41,7 +41,7 @@ def _request() -> SpineRequest:
 
 def test_graph_propagates_invocation_id_to_governed_spine() -> None:
     spine = RecordingSpine()
-    graph = build_ois_graph(spine)
+    graph = build_ois_graph(cast(OISSpine, spine))
 
     result = graph.invoke(
         {"request": _request(), "invocation_id": "invocation-stable-1"}
@@ -57,7 +57,7 @@ def test_graph_preserves_checkpointed_result_for_thread() -> None:
     spine = RecordingSpine()
     checkpointer = MemorySaver()
     config = {"configurable": {"thread_id": "langgraph-recovery-test"}}
-    graph = build_ois_graph(spine, checkpointer=checkpointer)
+    graph = build_ois_graph(cast(OISSpine, spine), checkpointer=checkpointer)
 
     graph.invoke(
         {"request": _request(), "invocation_id": "invocation-checkpoint-1"},
