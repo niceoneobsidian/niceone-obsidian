@@ -87,10 +87,21 @@ read-only or isolated workflow with:
 7. human approval for consequential changes;
 8. tested rollback and provider disablement.
 
-Use the existing model gateway and integration/credential boundaries. Do not introduce a second
-gateway, policy engine, credential store, provider registry, or orchestration authority. Select
-OpenHands, browser-use, Composio, E2B, or another adapter only after the use case and acceptance
-criteria are specified; this change intentionally adds no provider dependency.
+Use the existing local Ollama pilot first; do not add a second external agent/provider
+integration yet. The repository already contains:
+- `ois/runtime/ollama.py` — adapter behind the OIS model gateway;
+- `tests/runtime/test_ollama_kernel_live.py` — opt-in local Ollama + PostgreSQL durable slice;
+- `tests/integration/test_ollama_durable_execution.py` — opt-in PostgreSQL/Redis replay-after-restart test.
+
+Enable only against dedicated disposable test services and explicitly set the documented
+environment variables. Capture the model/version, provider-call count, persisted checkpoint,
+idempotency-hit evidence, and independent output validation. Run these tests after the earlier
+recovery, telemetry, and evaluation gates; this PR does not claim they were executed.
+
+Keep the model gateway and integration/credential boundaries authoritative. Do not introduce a
+second gateway, policy engine, credential store, provider registry, or orchestration authority.
+OpenHands, browser-use, Composio, and E2B remain deferred until the Ollama pilot is measured and
+a separate use case justifies another adapter.
 
 ## Local verification commands
 
