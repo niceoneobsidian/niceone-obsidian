@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from hashlib import sha256
 from json import dumps
+from math import isfinite
 from uuid import uuid4
 
 from .models import AuditEvent, DecisionProvenance
@@ -37,22 +38,44 @@ class GovernanceEngine:
         policy_version: str | None = None,
     ) -> GovernanceDecision:
         decision_id = str(uuid4())
-        identity = self.store.agents.get((tenant_id, agent_id))
         reason = "authorized"
         allowed = True
-        if identity is None or not identity.enabled:
+        try:
+            serialized_inputs = dumps(
+                inputs, sort_keys=True, separators=(",", ":"), allow_nan=False
+            )
+        except (TypeError, ValueError):
+            serialized_inputs = '{"invalid_input_payload":true}'
+            allowed, reason = False, "inputs are not valid canonical JSON"
+
+        if allowed and (
+            not isinstance(estimated_cost, (int, float))
+            or not isfinite(estimated_cost)
+            or estimated_cost < 0
+        ):
+            allowed, reason = False, "estimated cost must be finite and non-negative"
+
+        identity = self.store.agents.get((tenant_id, agent_id))
+        if allowed and (not tenant_id or not workspace_id or not execution_id):
+            allowed, reason = False, "tenant, workspace, and execution identity are required"
+        if allowed and (identity is None or not identity.enabled):
             allowed, reason = False, "agent identity is not active"
-        else:
+        elif allowed:
             if policy_id is not None:
                 policy = self.store.policies.get((tenant_id, policy_id, policy_version or ""))
                 if policy is None or not policy.active:
                     allowed, reason = False, "policy version is missing or inactive"
             grant = self.store.grants.get((tenant_id, agent_id, capability_id))
-            if grant is None or not grant.active():
+            if allowed and (grant is None or not grant.active()):
                 allowed, reason = False, "capability grant is missing or expired"
-            elif grant.allowed_actions and action not in grant.allowed_actions:
+            elif (
+                allowed
+                and grant is not None
+                and grant.allowed_actions
+                and action not in grant.allowed_actions
+            ):
                 allowed, reason = False, "action is not granted"
-            else:
+            if allowed:
                 limit = self.store.limits.get((tenant_id, action))
                 if limit is not None:
                     count = self.store.action_counts[(tenant_id, action)]
@@ -63,7 +86,7 @@ class GovernanceEngine:
                     if not budgets or not any(b.can_spend(estimated_cost) for b in budgets):
                         allowed, reason = False, "action budget exceeded"
 
-        digest = sha256(dumps(inputs, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+        digest = sha256(serialized_inputs.encode("utf-8")).hexdigest()
         provenance = DecisionProvenance(
             decision_id=decision_id,
             tenant_id=tenant_id,

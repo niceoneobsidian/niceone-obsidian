@@ -2,9 +2,62 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from math import isfinite
 from typing import Any
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+
+
+_SENSITIVE_PROVENANCE_KEYS = {
+    "authorization",
+    "cookie",
+    "set_cookie",
+    "password",
+    "passwd",
+    "secret",
+    "token",
+    "access_token",
+    "refresh_token",
+    "api_token",
+    "bearer_token",
+    "api_key",
+    "private_key",
+    "credential",
+    "credentials",
+}
+
+
+def _is_sensitive_key(key: str) -> bool:
+    normalized = key.strip().lower().replace("-", "_").replace(" ", "_")
+    return normalized in _SENSITIVE_PROVENANCE_KEYS or normalized.endswith(
+        ("_secret", "_password", "_token", "_api_key")
+    )
+
+
+def _safe_provenance_value(value: Any) -> Any:
+    """Copy provenance metadata while redacting credential-like fields recursively."""
+    if isinstance(value, Mapping):
+        safe: dict[str, Any] = {}
+        for key, item in value.items():
+            safe[str(key)] = "[REDACTED]" if _is_sensitive_key(str(key)) else (
+                _safe_provenance_value(item)
+            )
+        return safe
+    if isinstance(value, (list, tuple)):
+        return [_safe_provenance_value(item) for item in value]
+    return value
+
+
+def _safe_endpoint(endpoint: str) -> str:
+    """Remove credential-like query values from endpoint URLs before recording provenance."""
+    parts = urlsplit(endpoint)
+    query = [
+        (key, "[REDACTED]" if _is_sensitive_key(key) else value)
+        for key, value in parse_qsl(parts.query, keep_blank_values=True)
+    ]
+    return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))
 
 
 @dataclass(frozen=True)
@@ -14,8 +67,8 @@ class FreshnessPolicy:
     max_age_seconds: float
 
     def __post_init__(self) -> None:
-        if self.max_age_seconds <= 0:
-            raise ValueError("max_age_seconds must be positive")
+        if not isfinite(self.max_age_seconds) or self.max_age_seconds <= 0:
+            raise ValueError("max_age_seconds must be finite and positive")
 
     def is_fresh(self, observed_at: datetime, *, now: datetime | None = None) -> bool:
         current = now or datetime.now(UTC)
@@ -31,7 +84,7 @@ class FreshnessPolicy:
 
 @dataclass(frozen=True)
 class SourceProvenance:
-    """Stable provenance attached to a source observation."""
+    """Stable, secret-redacted provenance attached to a source observation."""
 
     provider: str
     endpoint: str
@@ -46,13 +99,13 @@ class SourceProvenance:
         observed = self.observed_at or datetime.now(UTC)
         return {
             "provider": self.provider,
-            "endpoint": self.endpoint,
+            "endpoint": _safe_endpoint(self.endpoint),
             "operation": self.operation,
             "request_id": self.request_id,
             "resource_id": self.resource_id,
             "cursor": self.cursor,
             "observed_at": observed.isoformat(),
-            "metadata": dict(self.metadata or {}),
+            "metadata": _safe_provenance_value(self.metadata or {}),
         }
 
 
