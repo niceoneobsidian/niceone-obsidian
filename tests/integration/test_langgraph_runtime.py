@@ -64,8 +64,8 @@ def test_graph_preserves_checkpointed_result_for_thread() -> None:
         config=config,
     )
 
-    # Rebuild the compiled graph around the same checkpointer to model a
-    # process restart without claiming this proves PostgreSQL durability.
+    # Rebuild the compiled graph around the same checkpoint store to verify
+    # state is graph-independent. This is not a process-restart durability test.
     restarted_graph = build_ois_graph(cast(OISSpine, spine), checkpointer=checkpointer)
     saved = restarted_graph.get_state(config)
 
