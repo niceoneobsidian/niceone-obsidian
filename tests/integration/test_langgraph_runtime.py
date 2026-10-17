@@ -66,7 +66,7 @@ def test_graph_preserves_checkpointed_result_for_thread() -> None:
 
     # Rebuild the compiled graph around the same checkpointer to model a
     # process restart without claiming this proves PostgreSQL durability.
-    restarted_graph = build_ois_graph(spine, checkpointer=checkpointer)
+    restarted_graph = build_ois_graph(cast(OISSpine, spine), checkpointer=checkpointer)
     saved = restarted_graph.get_state(config)
 
     assert saved.values["execution_id"] == "execution-1"
@@ -77,7 +77,7 @@ def test_graph_preserves_checkpointed_result_for_thread() -> None:
 
 def test_graph_rejects_missing_request_before_spine_submission() -> None:
     spine = RecordingSpine()
-    graph = build_ois_graph(spine)
+    graph = build_ois_graph(cast(OISSpine, spine))
 
     with pytest.raises(ValueError, match="missing a request"):
         graph.invoke({})
