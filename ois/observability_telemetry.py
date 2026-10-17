@@ -152,7 +152,7 @@ class SupervisorExecutionTracker:
         started = perf_counter()
         with self.tracer.start_as_current_span("ois.workflow.execution") as span:
             span.set_attribute("ois.tenant_fingerprint", self._tenant_fingerprint(tenant_id))
-            span.set_attribute("ois.thread_id", thread_id)
+            span.set_attribute("ois.thread_fingerprint", self._thread_fingerprint(thread_id))
             span.set_attribute("ois.workflow_id", workflow_id)
             try:
                 yield
