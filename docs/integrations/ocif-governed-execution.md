@@ -7,7 +7,7 @@
 - `ois/integration/spine.py`: `OISSpine.submit()` creates execution identity, checkpoints the request, calls the Kernel and returns execution status plus evidence events.
 - `ois/kernel/runtime.py`: validates capability input, invokes the policy engine before execution, emits authorization evidence, checkpoints execution, supports idempotency and records recovery decisions.
 - `ois/kernel/policy.py`: `DefaultPolicyEngine` evaluates tenant identity, required permissions, risk and irreversible side effects; denied authorization raises `AuthorizationDenied`.
-- `ois/kernel/recovery.py`: `RecoveryPolicy` has explicit retry and recovery limits. Its default retry limit is two; permission failures escalate and safety failures stop.
+- `ois/kernel/recovery.py`: `RecoveryPolicy` classifies failures and caps retry/recovery decisions. Its default retry limit is two; permission failures escalate and safety failures stop. This policy does not by itself guarantee that a retry is automatically scheduled or delayed. The caller/orchestrator must enforce attempt limits, use bounded backoff, preserve the idempotency key and record each attempt.
 - `ois/kernel/postgres.py`: `PostgresDurableExecutionStore` stores current checkpoints, immutable checkpoint history, idempotency results and side-effect outbox records. Recovery checks checkpoint hashes.
 - `ois/kernel/evidence.py`: evidence ledger interfaces and SQLite durable evidence implementation.
 
@@ -31,10 +31,10 @@ Do not grant a general-purpose agent direct write access to the OCIF database. T
 2. The OIS registry resolves the exact capability ID and version.
 3. Kernel schema validation runs before policy evaluation.
 4. Policy checks tenant, permission, risk and approval requirements. A denied decision must not call the OCIF importer.
-5. Execution is persisted through the configured durable checkpoint/idempotency store; use PostgreSQL for a shared production runtime. In-memory stores are development-only.
+5. Execution is persisted through the configured durable checkpoint store; use PostgreSQL for a shared production runtime. In-memory stores are development-only. Important: the current `OISSpine` constructor does not expose explicit durable idempotency-store or recovery-policy injection. Before production wiring, extend the Spine contract or use `ExecutionRuntime` directly with a compatible durable `IdempotencyStore` and `RecoveryPolicy`; do not assume the default in-memory idempotency store is durable.
 6. The importer validates the contract and provenance and applies idempotent database writes.
 7. OIS records execution, authorization, outcome, failure and recovery evidence. OCIF records its own import/quarantine events. Correlate them by invocation ID, OIS execution ID and evidence IDs.
-8. On transient failure, use the configured bounded retry/backoff policy with the same idempotency key. Do not retry schema incompatibility, permission denial, blocked sources or missing/tampered evidence indefinitely.
+8. On transient failure, the orchestration layer may schedule a retry only when OIS recovery policy permits it; it must enforce a hard attempt cap, bounded backoff and the same durable idempotency key. Do not retry schema incompatibility, permission denial, blocked sources or missing/tampered evidence indefinitely.
 9. After restart, recover from durable checkpoint history, reconcile the import key and verify that a repeated invocation does not create a second observation.
 
 ## Required conformance tests
