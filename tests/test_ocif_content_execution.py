@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-
 from ois.integration.ocif_content_execution import (
     OCIFContentExecutionCapability,
     authorize_ocif_content_request,
