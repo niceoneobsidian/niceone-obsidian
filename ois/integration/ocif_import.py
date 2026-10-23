@@ -10,6 +10,7 @@ from typing import Any
 from ois.kernel.contracts import CapabilityContract, InvocationRequest, InvocationResult
 from ois.kernel.recovery import RecoveryBackoff
 from ois.kernel.types import InvocationStatus, RiskLevel, SideEffectLevel
+from ois.registries import CapabilityRegistry
 
 EnvelopeImporter = Callable[[Mapping[str, Any], str], Any]
 
@@ -88,3 +89,16 @@ class OCIFImportCapability:
             output=output,
             metadata={"contract_version": "0.1.0"},
         )
+
+
+def register_ocif_import_capability(
+    registry: CapabilityRegistry,
+    importer: EnvelopeImporter,
+    *,
+    backoff: RecoveryBackoff | None = None,
+    sleep: Callable[[float], None] = time.sleep,
+) -> OCIFImportCapability:
+    """Register the exact versioned capability in an explicitly composed OIS registry."""
+    capability = OCIFImportCapability(importer, backoff=backoff, sleep=sleep)
+    registry.register(capability)
+    return capability
