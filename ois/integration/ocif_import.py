@@ -71,7 +71,7 @@ class OCIFImportCapability:
                     raise
                 if attempt >= self.contract.max_retries:
                     raise
-                self._sleep(self._backoff.delay(attempt + 1)
+                self._sleep(self._backoff.delay(attempt + 1))
         status = str(getattr(result, "status", ""))
         output = {
             "status": status,
