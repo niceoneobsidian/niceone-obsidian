@@ -7,6 +7,7 @@ The existing OIS evidence/idempotency tables still require a reviewed tenant-iso
 migration and live conformance review before this composition is approved for multi-tenant
 production; this factory is a production-shaped composition, not a deployment attestation.
 """
+
 from __future__ import annotations
 
 from collections.abc import Callable
