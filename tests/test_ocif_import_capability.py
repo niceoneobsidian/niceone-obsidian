@@ -82,6 +82,7 @@ def test_authorized_ocif_import_uses_durable_idempotency_across_restart() -> Non
         assert first.output["observation_id"] == 17
         assert second.output["observation_id"] == 17
 
+
 def test_transient_import_failures_have_a_hard_retry_cap_and_bounded_backoff() -> None:
     delays: list[float] = []
     invocation_ids: list[str] = []
