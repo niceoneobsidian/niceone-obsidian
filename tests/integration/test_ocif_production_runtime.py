@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from typing import Any
 from uuid import uuid4
 
 import psycopg
@@ -44,7 +45,7 @@ def test_real_ocif_consumer_authorization_and_restart_replay() -> None:
     consumer_one = PostgresOCIFStore(dsn)
     consumer_one.initialize()
 
-    def connect() -> psycopg.Connection:
+    def connect() -> Any:
         return psycopg.connect(dsn)
 
     denied_registry = CapabilityRegistry()
