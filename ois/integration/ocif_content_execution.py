@@ -37,7 +37,16 @@ class PostgresOCIFApprovalVerifier:
             row = cursor.fetchone()
         if row is None:
             return False
-        decision, draft_id, approved_digest, approved_version, reviewer_id, content, digest, version = row
+        (
+            decision,
+            draft_id,
+            approved_digest,
+            approved_version,
+            reviewer_id,
+            content,
+            digest,
+            version,
+        ) = row
         return (
             decision == "approved"
             and str(draft_id) == str(request.get("draft_id"))
