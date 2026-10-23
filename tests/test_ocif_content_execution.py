@@ -83,3 +83,15 @@ def test_ocif_workflow_authorizer_calls_real_ois_spine() -> None:
     assert result["allowed"] is True
     assert result["invocation_id"] == "vertical-slice-key"
     assert result["external_side_effects"] is False
+
+
+def test_ois_rejects_unverified_approval_even_with_permission() -> None:
+    registry = CapabilityRegistry()
+    registry.register(OCIFContentExecutionCapability(lambda _request: False))
+    spine = OISSpine(
+        registry,
+        policy=DefaultPolicyEngine(allowed_permissions=("ocif.content.execute",)),
+    )
+    result = spine.submit(request(), invocation_id="unverified-approval")
+    assert result.status == "failed"
+    assert result.output is None
