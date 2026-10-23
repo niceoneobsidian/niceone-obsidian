@@ -1,13 +1,13 @@
 # OCIF Governed Execution Boundary
 
-**Status:** Integration contract and acceptance plan; no OCIF capability is registered or production-wired by this document.
+**Status:** Candidate integration implementation and acceptance plan. A versioned capability and explicit registry helper exist; production composition and deployment are not yet verified.
 
 ## Existing OIS control surfaces verified in source
 
 - `ois/integration/spine.py`: `OISSpine.submit()` creates execution identity, checkpoints the request, calls the Kernel and returns execution status plus evidence events.
 - `ois/kernel/runtime.py`: validates capability input, invokes the policy engine before execution, emits authorization evidence, checkpoints execution, supports idempotency and records recovery decisions.
 - `ois/kernel/policy.py`: `DefaultPolicyEngine` evaluates tenant identity, required permissions, risk and irreversible side effects; denied authorization raises `AuthorizationDenied`.
-- `ois/kernel/recovery.py`: `RecoveryPolicy` classifies failures and caps retry/recovery decisions. Its default retry limit is two; permission failures escalate and safety failures stop. This policy does not by itself guarantee that a retry is automatically scheduled or delayed. The caller/orchestrator must enforce attempt limits, use bounded backoff, preserve the idempotency key and record each attempt.
+- `ois/kernel/recovery.py`: `RecoveryPolicy` classifies failures and caps retry/recovery decisions. The `ocif.import.consume` capability retries only known transient timeout/connection/SQLite-lock errors, with a hard two-retry limit and bounded exponential backoff. Permission, schema and other non-transient errors are not retried by the capability.
 - `ois/kernel/postgres.py`: `PostgresDurableExecutionStore` stores current checkpoints, immutable checkpoint history, idempotency results and side-effect outbox records. Recovery checks checkpoint hashes.
 - `ois/kernel/evidence.py`: evidence ledger interfaces and SQLite durable evidence implementation.
 
@@ -15,7 +15,7 @@ These are repository source interfaces, not evidence that an OCIF workflow has b
 
 ## Required OCIF capability contract
 
-Register an explicit, versioned capability such as `ocif.import.consume@1.0.0` with:
+The branch implements `OCIFImportCapability` and `register_ocif_import_capability(...)` for explicit registration of `ocif.import.consume@1.0.0`. The composition root must supply a durable importer and registry. The contract declares:
 - a strict input schema for a validated envelope reference or bounded payload;
 - least-privilege permission such as `ocif.evidence.import`;
 - low risk and no external side effects for local import only;
@@ -31,10 +31,10 @@ Do not grant a general-purpose agent direct write access to the OCIF database. T
 2. The OIS registry resolves the exact capability ID and version.
 3. Kernel schema validation runs before policy evaluation.
 4. Policy checks tenant, permission, risk and approval requirements. A denied decision must not call the OCIF importer.
-5. Execution is persisted through the configured durable checkpoint store; use PostgreSQL for a shared production runtime. In-memory stores are development-only. The feature branch now exposes `idempotency` and `recovery` injection on `OISSpine`, with tests for dependency forwarding, deny-before-invoke authorization behavior and the retry-decision limit. These tests are authored but not yet executed. Callers must supply a compatible durable `IdempotencyStore` (for example `PostgresIdempotencyStore`) and an explicit `RecoveryPolicy`; defaults remain process-local/in-memory. The forwarding test is authored but not yet executed.
+5. Execution is persisted through the configured checkpoint, evidence and idempotency stores; use PostgreSQL-backed stores for a shared production runtime. The branch exposes `idempotency` and `recovery` injection on `OISSpine`. Tests cover denied-before-invoke behavior, SQLite-backed replay across store instances, stable invocation IDs, a hard retry cap and bounded backoff. Latest CI for this expanded test set is pending.
 6. The importer validates the contract and provenance and applies idempotent database writes.
 7. OIS records execution, authorization, outcome, failure and recovery evidence. OCIF records its own import/quarantine events. Correlate them by invocation ID, OIS execution ID and evidence IDs.
-8. On transient failure, the orchestration layer may schedule a retry only when OIS recovery policy permits it; it must enforce a hard attempt cap, bounded backoff and the same durable idempotency key. Do not retry schema incompatibility, permission denial, blocked sources or missing/tampered evidence indefinitely.
+8. The capability retries only classified transient failures with a hard attempt cap, bounded backoff and the same invocation ID. Do not retry schema incompatibility, permission denial, blocked sources or missing/tampered evidence.
 9. After restart, recover from durable checkpoint history, reconcile the import key and verify that a repeated invocation does not create a second observation.
 
 ## Required conformance tests
@@ -50,4 +50,4 @@ Do not grant a general-purpose agent direct write access to the OCIF database. T
 
 ## Readiness statement
 
-The repository contains reusable policy, runtime, checkpoint, recovery and evidence primitives. The OCIF capability registration, adapter, end-to-end tests, production wiring and runtime evidence remain outstanding until implemented and verified in a dedicated change.
+The branch now contains the versioned capability, explicit registration helper, bounded transient retry logic and tests. The cross-repository USIE export → OCIF import test passes in OCIF CI. Full latest USIE CI and OIS CI must pass, and production wiring must select durable PostgreSQL stores and provide a reviewed importer adapter before deployment. Contract `0.1.0` remains a candidate until explicit USIE and OCIF owner approval.
