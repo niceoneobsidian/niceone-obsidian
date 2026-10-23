@@ -3,6 +3,7 @@
 This capability authorizes only the sandbox/no-op execution mode. It deliberately
 contains no social-platform publishing adapter.
 """
+
 from __future__ import annotations
 
 from collections.abc import Mapping
