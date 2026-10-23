@@ -10,6 +10,7 @@ from typing import Any
 
 from ois.kernel.contracts import CapabilityContract, InvocationRequest, InvocationResult
 from ois.kernel.types import InvocationStatus, RiskLevel, SideEffectLevel
+from ois.integration.spine import OISSpine, SpineRequest
 from ois.registries import CapabilityRegistry
 
 
@@ -83,3 +84,37 @@ def register_ocif_content_execution_capability(
     capability = OCIFContentExecutionCapability()
     registry.register(capability)
     return capability
+
+
+def authorize_ocif_content_request(
+    spine: OISSpine, request: Mapping[str, Any], *, tenant_id: str
+) -> dict[str, Any]:
+    """Adapt the OCIF workflow authorization callback to the real OIS spine."""
+    idempotency_key = str(request.get("idempotency_key", "")).strip()
+    if not idempotency_key:
+        return {"allowed": False, "reason": "idempotency_key is required"}
+    result = spine.submit(
+        SpineRequest(
+            objective="Authorize a human-approved OCIF draft in sandbox no-op mode",
+            capability_id="ocif.content.execute",
+            capability_version="1.0.0",
+            tenant_id=tenant_id,
+            input=dict(request),
+            workflow_id="ocif.content.workflow",
+            workflow_version="1.0",
+        ),
+        invocation_id=idempotency_key,
+    )
+    if result.status != "succeeded" or not isinstance(result.output, Mapping):
+        return {
+            "allowed": False,
+            "reason": (dict(result.error) if result.error else "OIS did not authorize execution"),
+            "ois_execution_id": result.execution_id,
+        }
+    return {
+        **dict(result.output),
+        "allowed": result.output.get("allowed") is True,
+        "invocation_id": result.invocation_id,
+        "ois_execution_id": result.execution_id,
+        "policy_version": "ois-policy-v1",
+    }
