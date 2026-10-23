@@ -29,7 +29,7 @@ def request(mode: str = "sandbox_noop") -> SpineRequest:
 
 def test_ois_denial_blocks_ocif_content_execution() -> None:
     registry = CapabilityRegistry()
-    registry.register(OCIFContentExecutionCapability())
+    registry.register(OCIFContentExecutionCapability(lambda _request: True))
     spine = OISSpine(registry, policy=DefaultPolicyEngine(allowed_permissions=()))
     result = spine.submit(request(), invocation_id="denied-content-run")
     assert result.status == "denied"
@@ -38,7 +38,7 @@ def test_ois_denial_blocks_ocif_content_execution() -> None:
 
 def test_ois_allows_only_noop_for_approved_content() -> None:
     registry = CapabilityRegistry()
-    registry.register(OCIFContentExecutionCapability())
+    registry.register(OCIFContentExecutionCapability(lambda _request: True))
     spine = OISSpine(
         registry,
         policy=DefaultPolicyEngine(allowed_permissions=("ocif.content.execute",)),
@@ -51,7 +51,7 @@ def test_ois_allows_only_noop_for_approved_content() -> None:
 
 def test_ois_capability_rejects_live_publish_mode_even_when_permission_exists() -> None:
     registry = CapabilityRegistry()
-    registry.register(OCIFContentExecutionCapability())
+    registry.register(OCIFContentExecutionCapability(lambda _request: True))
     spine = OISSpine(
         registry,
         policy=DefaultPolicyEngine(allowed_permissions=("ocif.content.execute",)),
@@ -62,7 +62,7 @@ def test_ois_capability_rejects_live_publish_mode_even_when_permission_exists() 
 
 def test_ocif_workflow_authorizer_calls_real_ois_spine() -> None:
     registry = CapabilityRegistry()
-    registry.register(OCIFContentExecutionCapability())
+    registry.register(OCIFContentExecutionCapability(lambda _request: True))
     spine = OISSpine(
         registry,
         policy=DefaultPolicyEngine(allowed_permissions=("ocif.content.execute",)),
