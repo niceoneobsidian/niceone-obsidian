@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import sqlite3
 import time
-
-import psycopg
 from collections.abc import Callable, Mapping
 from typing import Any
+
+import psycopg
 
 from ois.kernel.contracts import CapabilityContract, InvocationRequest, InvocationResult
 from ois.kernel.recovery import RecoveryBackoff
