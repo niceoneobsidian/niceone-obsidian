@@ -24,8 +24,13 @@ class OCIFContentExecutionCapability:
         input_schema={
             "type": "object",
             "required": [
-                "approval_id", "draft_id", "content_sha256", "draft_version",
-                "reviewer_id", "idempotency_key", "mode",
+                "approval_id",
+                "draft_id",
+                "content_sha256",
+                "draft_version",
+                "reviewer_id",
+                "idempotency_key",
+                "mode",
             ],
         },
         output_schema={"type": "object"},
@@ -41,8 +46,12 @@ class OCIFContentExecutionCapability:
     def invoke(self, request: InvocationRequest) -> InvocationResult:
         payload: Mapping[str, Any] = request.input
         required = (
-            "approval_id", "draft_id", "content_sha256", "draft_version",
-            "reviewer_id", "idempotency_key",
+            "approval_id",
+            "draft_id",
+            "content_sha256",
+            "draft_version",
+            "reviewer_id",
+            "idempotency_key",
         )
         missing = [key for key in required if not payload.get(key)]
         if missing:
