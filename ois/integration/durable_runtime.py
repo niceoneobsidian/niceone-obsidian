@@ -37,7 +37,7 @@ def build_durable_ois_runtime(
     registry: CapabilityRegistry,
     *,
     postgres_dsn: str,
-    tenant_id: str = "default",
+    tenant_id: str,
     policy: PolicyEngine | None = None,
     allowed_permissions: tuple[str, ...] = (),
     connection_factory: Callable[[], Any] | None = None,
