@@ -5,7 +5,8 @@ from uuid import uuid4
 
 import pytest
 
-from ocif.postgres_store import PostgresOCIFStore
+PostgresOCIFStore = pytest.importorskip("ocif.postgres_store").PostgresOCIFStore
+
 from ois.integration.spine import SpineRequest
 from production.ocif_runtime import build_ocif_production_runtime
 
