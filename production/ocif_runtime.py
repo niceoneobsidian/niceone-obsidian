@@ -16,11 +16,11 @@ from typing import Any, Protocol
 
 import psycopg
 
-from ois.integration.ocif_import import register_ocif_import_capability
 from ois.integration.ocif_content_execution import (
     OCIFContentExecutionCapability,
     PostgresOCIFApprovalVerifier,
 )
+from ois.integration.ocif_import import register_ocif_import_capability
 from ois.integration.spine import OISSpine
 from ois.kernel.policy import DefaultPolicyEngine
 from ois.kernel.postgres import PostgresDurableExecutionStore
@@ -54,7 +54,8 @@ def build_ocif_production_runtime(
     """Build a PostgreSQL-durable OIS spine around the real OCIF consumer.
 
     The caller must explicitly grant ocif.evidence.import and pass a durable
-    PostgresOCIFStore for a shared runtime. No in-memory OIS store is selected here.
+    PostgresOCIFStore for a shared runtime. The content capability is registered too,
+    but requires separate ocif.content.execute permission and a live approved draft.
     Tenant isolation of OIS evidence/idempotency tables remains a separate release gate.
     """
     if not postgres_dsn.strip():
