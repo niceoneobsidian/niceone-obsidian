@@ -1,10 +1,11 @@
 """Production composition for the governed OIS -> OCIF import path.
 
-Install the OCIF consumer package in the same runtime and pass its real OCIFStore.
-OIS execution, idempotency and evidence state use PostgreSQL. The current OCIFStore
-implementation is SQLite-backed; therefore this factory is suitable for controlled
-single-consumer deployments, not a horizontally scaled OCIF writer until OCIF ships
-a PostgreSQL consumer store.
+Install OCIF with its postgres extra and pass a durable ocif.PostgresOCIFStore.
+OIS checkpoints, idempotency and evidence plus OCIF observations/quarantine/events
+then use PostgreSQL. The SQLite OCIFStore remains the local reference consumer.
+The existing OIS evidence/idempotency tables still require a reviewed tenant-isolation
+migration and live conformance review before this composition is approved for multi-tenant
+production; this factory is a production-shaped composition, not a deployment attestation.
 """
 from __future__ import annotations
 
@@ -24,7 +25,7 @@ from ois.registries import CapabilityRegistry
 
 
 class OCIFConsumer(Protocol):
-    """Minimum interface implemented by the real OCIF ingestion.OCIFStore."""
+    """Minimum interface implemented by OCIFStore and PostgresOCIFStore."""
 
     def import_payload(self, payload: Any) -> Any: ...
 
@@ -47,8 +48,9 @@ def build_ocif_production_runtime(
 ) -> OCIFProductionRuntime:
     """Build a PostgreSQL-durable OIS spine around the real OCIF consumer.
 
-    The caller must explicitly grant ocif.evidence.import. The supplied OCIF
-    store must itself use durable storage. No in-memory OIS store is selected here.
+    The caller must explicitly grant ocif.evidence.import and pass a durable
+    PostgresOCIFStore for a shared runtime. No in-memory OIS store is selected here.
+    Tenant isolation of OIS evidence/idempotency tables remains a separate release gate.
     """
     if not postgres_dsn.strip():
         raise ValueError("postgres_dsn is required")
