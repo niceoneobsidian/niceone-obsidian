@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
 import sqlite3
 import time
+from collections.abc import Callable, Mapping
 from typing import Any
 
 from ois.kernel.contracts import CapabilityContract, InvocationRequest, InvocationResult
