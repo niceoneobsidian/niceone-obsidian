@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from typing import Any
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import psycopg
 import pytest
@@ -92,6 +92,12 @@ def test_real_ocif_consumer_authorization_and_restart_replay() -> None:
     first = runtime_one.spine.submit(request, invocation_id=invocation_id)
     assert first.status == "succeeded"
     assert first.output["status"] == "accepted"
+    recovered_checkpoint = runtime_one.spine.checkpoints.fetch_last_valid_checkpoint(
+        UUID(first.execution_id),
+        tenant_id=tenant_id,
+    )
+    assert recovered_checkpoint is not None
+    assert recovered_checkpoint.identity.tenant_id == tenant_id
 
     # Rebuild every OIS store and the consumer as if the worker process restarted.
     consumer_two = PostgresOCIFStore(dsn)
