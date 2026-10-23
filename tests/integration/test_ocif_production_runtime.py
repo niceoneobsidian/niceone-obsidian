@@ -3,12 +3,18 @@ from __future__ import annotations
 import os
 from uuid import uuid4
 
+import psycopg
 import pytest
 
-PostgresOCIFStore = pytest.importorskip("ocif.postgres_store").PostgresOCIFStore
-
-from ois.integration.spine import SpineRequest
+from ois.integration.ocif_import import register_ocif_import_capability
+from ois.integration.spine import OISSpine, SpineRequest
+from ois.kernel.policy import DefaultPolicyEngine
+from ois.kernel.postgres import PostgresDurableExecutionStore
+from ois.kernel.postgres_stores import PostgresEvidenceLedger, PostgresIdempotencyStore
+from ois.registries import CapabilityRegistry
 from production.ocif_runtime import build_ocif_production_runtime
+
+PostgresOCIFStore = pytest.importorskip("ocif.postgres_store").PostgresOCIFStore
 
 
 @pytest.mark.integration
@@ -16,7 +22,7 @@ from production.ocif_runtime import build_ocif_production_runtime
     not os.getenv("OIS_TEST_POSTGRES_DSN"),
     reason="PostgreSQL integration DSN not configured",
 )
-def test_real_ocif_consumer_replay_survives_ois_runtime_restart() -> None:
+def test_real_ocif_consumer_authorization_and_restart_replay() -> None:
     dsn = os.environ["OIS_TEST_POSTGRES_DSN"]
     tenant_id = f"ocif-test-{uuid4()}"
     source_id, capture_id = str(uuid4()), str(uuid4())
@@ -35,12 +41,29 @@ def test_real_ocif_consumer_replay_survives_ois_runtime_restart() -> None:
         "producer_revision": "ois-postgres-integration-test",
         "warnings": [],
     }
-    permissions = ("ocif.evidence.import",)
     consumer_one = PostgresOCIFStore(dsn)
     consumer_one.initialize()
-    runtime_one = build_ocif_production_runtime(
-        postgres_dsn=dsn, tenant_id=tenant_id, consumer=consumer_one,
-        allowed_permissions=permissions,
+
+    def connect() -> psycopg.Connection:
+        return psycopg.connect(dsn)
+
+    denied_registry = CapabilityRegistry()
+    register_ocif_import_capability(
+        denied_registry,
+        lambda envelope, stable_id: consumer_one.import_payload(envelope),
+    )
+    denied_checkpoints = PostgresDurableExecutionStore(dsn, tenant_id=tenant_id)
+    denied_idempotency = PostgresIdempotencyStore(connect)
+    denied_evidence = PostgresEvidenceLedger(connect)
+    denied_checkpoints.initialize()
+    denied_idempotency.initialize()
+    denied_evidence.initialize()
+    denied_spine = OISSpine(
+        denied_registry,
+        checkpoint_store=denied_checkpoints,
+        idempotency=denied_idempotency,
+        evidence=denied_evidence,
+        policy=DefaultPolicyEngine(allowed_permissions=()),
     )
     request = SpineRequest(
         objective="Import verified evidence",
@@ -48,6 +71,22 @@ def test_real_ocif_consumer_replay_survives_ois_runtime_restart() -> None:
         capability_version="1.0.0",
         tenant_id=tenant_id,
         input={"payload": payload},
+    )
+    denied = denied_spine.submit(request, invocation_id=f"denied-{uuid4()}")
+    assert denied.status == "denied"
+    with psycopg.connect(dsn) as connection, connection.cursor() as cursor:
+        cursor.execute(
+            "SELECT COUNT(*) FROM ocif_observations WHERE source_id=%s AND capture_id=%s",
+            (source_id, capture_id),
+        )
+        assert cursor.fetchone()[0] == 0
+
+    permissions = ("ocif.evidence.import",)
+    runtime_one = build_ocif_production_runtime(
+        postgres_dsn=dsn,
+        tenant_id=tenant_id,
+        consumer=consumer_one,
+        allowed_permissions=permissions,
     )
     first = runtime_one.spine.submit(request, invocation_id=invocation_id)
     assert first.status == "succeeded"
@@ -57,14 +96,14 @@ def test_real_ocif_consumer_replay_survives_ois_runtime_restart() -> None:
     consumer_two = PostgresOCIFStore(dsn)
     consumer_two.initialize()
     runtime_two = build_ocif_production_runtime(
-        postgres_dsn=dsn, tenant_id=tenant_id, consumer=consumer_two,
+        postgres_dsn=dsn,
+        tenant_id=tenant_id,
+        consumer=consumer_two,
         allowed_permissions=permissions,
     )
     replay = runtime_two.spine.submit(request, invocation_id=invocation_id)
     assert replay.status == "succeeded"
     assert replay.output["observation_id"] == first.output["observation_id"]
-
-    import psycopg
 
     with psycopg.connect(dsn) as connection, connection.cursor() as cursor:
         cursor.execute(
