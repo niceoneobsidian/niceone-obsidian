@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
-from types import SimpleNamespace
 
 from ois.integration.ocif_content_execution import OCIFContentExecutionCapability
 from ois.integration.spine import OISSpine, SpineRequest
