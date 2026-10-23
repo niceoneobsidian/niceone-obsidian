@@ -8,9 +8,9 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from ois.integration.spine import OISSpine, SpineRequest
 from ois.kernel.contracts import CapabilityContract, InvocationRequest, InvocationResult
 from ois.kernel.types import InvocationStatus, RiskLevel, SideEffectLevel
-from ois.integration.spine import OISSpine, SpineRequest
 from ois.registries import CapabilityRegistry
 
 
