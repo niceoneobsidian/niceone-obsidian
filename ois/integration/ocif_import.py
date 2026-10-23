@@ -11,7 +11,7 @@ from ois.kernel.contracts import CapabilityContract, InvocationRequest, Invocati
 from ois.kernel.recovery import RecoveryBackoff
 from ois.kernel.types import InvocationStatus, RiskLevel, SideEffectLevel
 
-EnvelopeImporter = Callable[[Mapping[str, Any]], Any]
+EnvelopeImporter = Callable[[Mapping[str, Any], str], Any]
 
 
 class OCIFImportCapability:
@@ -60,7 +60,7 @@ class OCIFImportCapability:
         # stable request invocation ID is preserved; the importer must be idempotent.
         for attempt in range(self.contract.max_retries + 1):
             try:
-                result = self._importer(payload)
+                result = self._importer(payload, request.invocation_id)
                 break
             except (TimeoutError, ConnectionError, sqlite3.OperationalError) as exc:
                 transient_sqlite_lock = isinstance(exc, sqlite3.OperationalError) and (
