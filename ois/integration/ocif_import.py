@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
+import sqlite3
+import time
 from typing import Any
 
 from ois.kernel.contracts import CapabilityContract, InvocationRequest, InvocationResult
+from ois.kernel.recovery import RecoveryBackoff
 from ois.kernel.types import InvocationStatus, RiskLevel, SideEffectLevel
 
 EnvelopeImporter = Callable[[Mapping[str, Any]], Any]
@@ -33,8 +36,16 @@ class OCIFImportCapability:
         idempotent=True,
     )
 
-    def __init__(self, importer: EnvelopeImporter) -> None:
+    def __init__(
+        self,
+        importer: EnvelopeImporter,
+        *,
+        backoff: RecoveryBackoff | None = None,
+        sleep: Callable[[float], None] = time.sleep,
+    ) -> None:
         self._importer = importer
+        self._backoff = backoff or RecoveryBackoff(base_seconds=0.05, max_seconds=1.0)
+        self._sleep = sleep
 
     def invoke(self, request: InvocationRequest) -> InvocationResult:
         payload = request.input.get("payload")
@@ -45,9 +56,21 @@ class OCIFImportCapability:
                 status=InvocationStatus.FAILED,
                 error={"type": "ValueError", "message": "payload must be an object"},
             )
-        # Deliberately let transient importer exceptions reach the Kernel recovery
-        # policy; never derive permission from fields in the incoming payload.
-        result = self._importer(payload)
+        # Only known transient transport/SQLite-lock failures are retried. The
+        # stable request invocation ID is preserved; the importer must be idempotent.
+        for attempt in range(self.contract.max_retries + 1):
+            try:
+                result = self._importer(payload)
+                break
+            except (TimeoutError, ConnectionError, sqlite3.OperationalError) as exc:
+                transient_sqlite_lock = isinstance(exc, sqlite3.OperationalError) and (
+                    "locked" in str(exc).lower() or "busy" in str(exc).lower()
+                )
+                if isinstance(exc, sqlite3.OperationalError) and not transient_sqlite_lock:
+                    raise
+                if attempt >= self.contract.max_retries:
+                    raise
+                self._sleep(self._backoff.delay(attempt + 1)
         status = str(getattr(result, "status", ""))
         output = {
             "status": status,
