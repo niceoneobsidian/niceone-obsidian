@@ -17,6 +17,10 @@ from typing import Any, Protocol
 import psycopg
 
 from ois.integration.ocif_import import register_ocif_import_capability
+from ois.integration.ocif_content_execution import (
+    OCIFContentExecutionCapability,
+    PostgresOCIFApprovalVerifier,
+)
 from ois.integration.spine import OISSpine
 from ois.kernel.policy import DefaultPolicyEngine
 from ois.kernel.postgres import PostgresDurableExecutionStore
@@ -77,6 +81,7 @@ def build_ocif_production_runtime(
         registry,
         lambda payload, invocation_id: consumer.import_payload(payload),
     )
+    registry.register(OCIFContentExecutionCapability(PostgresOCIFApprovalVerifier(connect)))
     spine = OISSpine(
         registry,
         checkpoint_store=checkpoints,
