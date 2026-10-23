@@ -32,8 +32,10 @@ def _request() -> SpineRequest:
 def test_denied_ocif_import_never_calls_consumer() -> None:
     calls: list[dict] = []
     capability = OCIFImportCapability(
-        lambda payload: calls.append(dict(payload))
-        or SimpleNamespace(status="accepted", source_id="source-1", capture_id="capture-1")
+        lambda payload: (
+            calls.append(dict(payload))
+            or SimpleNamespace(status="accepted", source_id="source-1", capture_id="capture-1")
+        )
     )
     registry = CapabilityRegistry()
     registry.register(capability)
@@ -68,9 +70,7 @@ def test_authorized_ocif_import_uses_durable_idempotency_across_restart() -> Non
                 checkpoint_store=SQLiteCheckpointStore(str(root / "checkpoints.sqlite")),
                 evidence=SQLiteEvidenceLedger(str(root / "evidence.sqlite")),
                 idempotency=SQLiteIdempotencyStore(str(root / "idempotency.sqlite")),
-                policy=DefaultPolicyEngine(
-                    allowed_permissions=("ocif.evidence.import",)
-                ),
+                policy=DefaultPolicyEngine(allowed_permissions=("ocif.evidence.import",)),
             )
 
         first = make_spine().submit(_request(), invocation_id="ocif-replay-stable-id")
