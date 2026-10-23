@@ -193,5 +193,6 @@ def authorize_ocif_content_request(
         "allowed": result.output.get("allowed") is True,
         "invocation_id": result.invocation_id,
         "ois_execution_id": result.execution_id,
-        "policy_version": "ois-policy-v1",
+        "authorization_boundary": "ois",
+        "capability_version": "1.0.0",
     }
