@@ -15,7 +15,7 @@ OCIF owns the research brief, draft content, score formula/version, reviewer dec
 
 OCIF must present the approval ID, draft ID, SHA-256 content digest, draft version, reviewer ID, and idempotency key. OIS evaluates the capability permission before invoking the capability. The capability rejects any mode other than sandbox_noop and returns a policy-governed invocation ID. OCIF must persist the authorization response and execution receipt with the same digest and idempotency key.
 
-The OCIF workflow rejects stale approvals when the current draft digest or version differs from the approval. The executor is not called when OIS denies the request. A repeated idempotency key may replay only the same receipt for the same approval, draft, and digest.
+The OCIF workflow releases its row-lock transaction before calling OIS so the independent OIS verifier can read the committed approval. It re-locks and rechecks the approval after authorization and before receipt persistence, closing the edit-between-checks race. The executor is not called when OIS denies the request. A repeated idempotency key may replay only the same receipt for the same approval, draft, and digest.
 
 ## Current limitation
 
