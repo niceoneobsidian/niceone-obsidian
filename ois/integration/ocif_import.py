@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import sqlite3
 import time
+
+import psycopg
 from collections.abc import Callable, Mapping
 from typing import Any
 
@@ -63,7 +65,15 @@ class OCIFImportCapability:
             try:
                 result = self._importer(payload, request.invocation_id)
                 break
-            except (TimeoutError, ConnectionError, sqlite3.OperationalError) as exc:
+            except (
+                TimeoutError,
+                ConnectionError,
+                sqlite3.OperationalError,
+                psycopg.OperationalError,
+                psycopg.errors.SerializationFailure,
+                psycopg.errors.DeadlockDetected,
+                psycopg.errors.LockNotAvailable,
+            ) as exc:
                 transient_sqlite_lock = isinstance(exc, sqlite3.OperationalError) and (
                     "locked" in str(exc).lower() or "busy" in str(exc).lower()
                 )
