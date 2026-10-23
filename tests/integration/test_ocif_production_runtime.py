@@ -12,7 +12,10 @@ from production.ocif_runtime import build_ocif_production_runtime
 
 
 @pytest.mark.integration
-@pytest.mark.skipif(not os.getenv("OIS_TEST_POSTGRES_DSN"), reason="PostgreSQL integration DSN not configured")
+@pytest.mark.skipif(
+    not os.getenv("OIS_TEST_POSTGRES_DSN"),
+    reason="PostgreSQL integration DSN not configured",
+)
 def test_real_ocif_consumer_replay_survives_ois_runtime_restart() -> None:
     dsn = os.environ["OIS_TEST_POSTGRES_DSN"]
     tenant_id = f"ocif-test-{uuid4()}"
@@ -64,7 +67,10 @@ def test_real_ocif_consumer_replay_survives_ois_runtime_restart() -> None:
     import psycopg
 
     with psycopg.connect(dsn) as connection, connection.cursor() as cursor:
-        cursor.execute("SELECT COUNT(*) FROM ocif_observations WHERE source_id=%s AND capture_id=%s", (source_id, capture_id))
+        cursor.execute(
+            "SELECT COUNT(*) FROM ocif_observations WHERE source_id=%s AND capture_id=%s",
+            (source_id, capture_id),
+        )
         assert cursor.fetchone()[0] == 1
 
     consumer_one.close()
