@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 
-from ois.integration.ocif_content_execution import OCIFContentExecutionCapability
+from ois.integration.ocif_content_execution import (
+    OCIFContentExecutionCapability,
+    authorize_ocif_content_request,
+)
 from ois.integration.spine import OISSpine, SpineRequest
 from ois.kernel.policy import DefaultPolicyEngine
 from ois.registries import CapabilityRegistry
@@ -56,3 +59,28 @@ def test_ois_capability_rejects_live_publish_mode_even_when_permission_exists() 
     )
     result = spine.submit(request(mode="publish_live"), invocation_id="live-publish-denied")
     assert result.status == "failed"
+
+
+def test_ocif_workflow_authorizer_calls_real_ois_spine() -> None:
+    registry = CapabilityRegistry()
+    registry.register(OCIFContentExecutionCapability())
+    spine = OISSpine(
+        registry,
+        policy=DefaultPolicyEngine(allowed_permissions=("ocif.content.execute",)),
+    )
+    result = authorize_ocif_content_request(
+        spine,
+        {
+            "approval_id": "approval-1",
+            "draft_id": "draft-1",
+            "content_sha256": "a" * 64,
+            "draft_version": 1,
+            "reviewer_id": "reviewer-1",
+            "idempotency_key": "vertical-slice-key",
+            "mode": "sandbox_noop",
+        },
+        tenant_id="tenant-test",
+    )
+    assert result["allowed"] is True
+    assert result["invocation_id"] == "vertical-slice-key"
+    assert result["external_side_effects"] is False
