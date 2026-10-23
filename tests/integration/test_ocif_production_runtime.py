@@ -25,7 +25,7 @@ PostgresOCIFStore = pytest.importorskip("ocif.postgres_store").PostgresOCIFStore
 )
 def test_real_ocif_consumer_authorization_and_restart_replay() -> None:
     dsn = os.environ["OIS_TEST_POSTGRES_DSN"]
-    tenant_id = f"ocif-test-{uuid4()}"
+    tenant_id = str(uuid4())
     source_id, capture_id = str(uuid4()), str(uuid4())
     invocation_id = f"ocif-restart-{uuid4()}"
     payload = {
