@@ -37,7 +37,7 @@ jobs:
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       with:
         repository: niceoneobsidian/obsidian-content-intelligence-factory
-        ref: 5fc994562b87a409011d02b8c25bfe4df729c520
+        ref: 0806867121c3c905ce4414ce38f7e30cf774a53e
         path: ocif_repo
 
     - name: Set up Python 3.12
