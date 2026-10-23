@@ -56,4 +56,4 @@ jobs:
       run: python scripts/ois_governance_check.py
 
     - name: Run test suite
-      run: python -m pytest -q
+      run: python -m pytest -q tests
