@@ -6,7 +6,8 @@ contains no social-platform publishing adapter.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+import hashlib
+from collections.abc import Callable, Mapping
 from typing import Any
 
 from ois.integration.spine import OISSpine, SpineRequest
@@ -15,8 +16,45 @@ from ois.kernel.types import InvocationStatus, RiskLevel, SideEffectLevel
 from ois.registries import CapabilityRegistry
 
 
+class PostgresOCIFApprovalVerifier:
+    """Verify the live OCIF approval row and exact current draft in shared PostgreSQL."""
+
+    def __init__(self, connection_factory: Callable[[], Any]) -> None:
+        self._connect = connection_factory
+
+    def __call__(self, request: Mapping[str, Any]) -> bool:
+        with self._connect() as connection, connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT a.decision, a.draft_id, a.content_sha256, a.draft_version,
+                       a.reviewer_id, d.content, d.content_sha256, d.version
+                FROM ocif_human_approvals AS a
+                JOIN ocif_content_drafts AS d ON d.draft_id = a.draft_id
+                WHERE a.approval_id = %s
+                """,
+                (str(request.get("approval_id", "")),),
+            )
+            row = cursor.fetchone()
+        if row is None:
+            return False
+        decision, draft_id, approved_digest, approved_version, reviewer_id, content, digest, version = row
+        return (
+            decision == "approved"
+            and str(draft_id) == str(request.get("draft_id"))
+            and str(approved_digest) == str(request.get("content_sha256"))
+            and int(approved_version) == int(request.get("draft_version", -1))
+            and str(reviewer_id) == str(request.get("reviewer_id"))
+            and str(digest) == str(approved_digest)
+            and int(version) == int(approved_version)
+            and hashlib.sha256(str(content).encode("utf-8")).hexdigest() == str(digest)
+        )
+
+
 class OCIFContentExecutionCapability:
-    """Policy-gated execution receipt for a human-approved OCIF draft."""
+    """Policy-gated execution receipt for a database-verified OCIF approval."""
+
+    def __init__(self, approval_verifier: Callable[[Mapping[str, Any]], bool]) -> None:
+        self._approval_verifier = approval_verifier
 
     contract = CapabilityContract(
         capability_id="ocif.content.execute",
@@ -69,6 +107,25 @@ class OCIFContentExecutionCapability:
                 status=InvocationStatus.FAILED,
                 error={"type": "PolicyError", "message": "only sandbox_noop mode is supported"},
             )
+        try:
+            approval_is_current = self._approval_verifier(payload)
+        except Exception as exc:
+            return InvocationResult(
+                invocation_id=request.invocation_id,
+                capability_id=self.contract.capability_id,
+                status=InvocationStatus.FAILED,
+                error={"type": type(exc).__name__, "message": "approval verification failed"},
+            )
+        if approval_is_current is not True:
+            return InvocationResult(
+                invocation_id=request.invocation_id,
+                capability_id=self.contract.capability_id,
+                status=InvocationStatus.FAILED,
+                error={
+                    "type": "ApprovalVerificationError",
+                    "message": "approval is missing, rejected, stale, or not bound to this draft",
+                },
+            )
         return InvocationResult(
             invocation_id=request.invocation_id,
             capability_id=self.contract.capability_id,
@@ -89,9 +146,10 @@ class OCIFContentExecutionCapability:
 
 def register_ocif_content_execution_capability(
     registry: CapabilityRegistry,
+    approval_verifier: Callable[[Mapping[str, Any]], bool],
 ) -> OCIFContentExecutionCapability:
-    """Register the no-op capability in the OIS policy-governed registry."""
-    capability = OCIFContentExecutionCapability()
+    """Register the no-op capability with an explicit approval verifier."""
+    capability = OCIFContentExecutionCapability(approval_verifier)
     registry.register(capability)
     return capability
 
