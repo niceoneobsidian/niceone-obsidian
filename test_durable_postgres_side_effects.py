@@ -30,8 +30,9 @@ def postgres_store() -> PostgresDurableExecutionStore:
 def test_postgres_checkpoint_survives_new_connection(
     postgres_store: PostgresDurableExecutionStore,
 ) -> None:
+    tenant_id = str(uuid4())
     context = ExecutionContext(
-        identity=ExecutionIdentity(tenant_id="test", workflow_id="durable-v1"),
+        identity=ExecutionIdentity(tenant_id=tenant_id, workflow_id="durable-v1"),
         objective="postgres persistence",
         working_memory={"step": 3},
     )
@@ -40,7 +41,7 @@ def test_postgres_checkpoint_survives_new_connection(
     restored = postgres_store.load(context.identity.execution_id)
 
     assert restored.identity.execution_id == context.identity.execution_id
-    assert restored.identity.tenant_id == "test"
+    assert restored.identity.tenant_id == tenant_id
     assert restored.working_memory == {"step": 3}
 
 
@@ -58,7 +59,7 @@ def test_postgres_does_not_store_failed_idempotency_result(
         error={"type": "transient"},
     )
 
-    postgres_store.put_idempotency(invocation_id, uuid4(), "test", result)
+    postgres_store.put_idempotency(invocation_id, uuid4(), str(uuid4()), result)
 
     assert postgres_store.get_idempotency(invocation_id) is None
 
@@ -66,11 +67,12 @@ def test_postgres_does_not_store_failed_idempotency_result(
 def test_outbox_reuses_idempotency_key_and_completes(
     postgres_store: PostgresDurableExecutionStore,
 ) -> None:
+    tenant_id = str(uuid4())
     boundary = TransactionalSideEffectBoundary(postgres_store._connect)
     execution_id = uuid4()
     invocation_id = f"effect-{uuid4()}"
     command = boundary.enqueue(
-        tenant_id="test",
+        tenant_id=tenant_id,
         execution_id=execution_id,
         invocation_id=invocation_id,
         capability_id="publish.test",
@@ -98,14 +100,15 @@ def test_outbox_reuses_idempotency_key_and_completes(
 def test_checkpoint_and_outbox_are_committed_as_one_transaction(
     postgres_store: PostgresDurableExecutionStore,
 ) -> None:
+    tenant_id = str(uuid4())
     context = ExecutionContext(
-        identity=ExecutionIdentity(tenant_id="test", workflow_id="atomic"),
+        identity=ExecutionIdentity(tenant_id=tenant_id, workflow_id="atomic"),
         objective="atomic checkpoint and effect intent",
         status=ExecutionStatus.EXECUTING,
     )
     command = SideEffectCommand(
         effect_id=str(uuid4()),
-        tenant_id="test",
+        tenant_id=tenant_id,
         execution_id=context.identity.execution_id,
         invocation_id=f"atomic-{uuid4()}",
         capability_id="publish.test",
