@@ -128,13 +128,18 @@ class SupervisorExecutionTracker:
     ) -> None:
         with self.tracer.start_as_current_span("workflow_state_transition") as span:
             span.set_attribute("ois.tenant_fingerprint", self._tenant_fingerprint(tenant_id))
-            span.set_attribute("ois.thread_id", thread_id)
+            span.set_attribute("ois.thread_fingerprint", self._thread_fingerprint(thread_id))
             span.set_attribute("ois.transition.from", from_state)
             span.set_attribute("ois.transition.to", to_state)
             self.transition_counter.add(
                 1,
                 {"from_state": from_state, "to_state": to_state},
             )
+
+    @staticmethod
+    def _thread_fingerprint(thread_id: str) -> str:
+        """Return a stable, non-reversible thread correlation key for traces."""
+        return hashlib.sha256(thread_id.encode("utf-8")).hexdigest()[:16]
 
     @contextmanager
     def track_execution(
@@ -147,7 +152,7 @@ class SupervisorExecutionTracker:
         started = perf_counter()
         with self.tracer.start_as_current_span("ois.workflow.execution") as span:
             span.set_attribute("ois.tenant_fingerprint", self._tenant_fingerprint(tenant_id))
-            span.set_attribute("ois.thread_id", thread_id)
+            span.set_attribute("ois.thread_fingerprint", self._thread_fingerprint(thread_id))
             span.set_attribute("ois.workflow_id", workflow_id)
             try:
                 yield
