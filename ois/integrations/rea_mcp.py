@@ -250,8 +250,7 @@ class REAToolCapability:
         arguments = dict(request.input)
         if set(arguments) != set(self._required):
             raise ValueError(
-                "REA capability accepts exactly these input keys: "
-                + ", ".join(self._required)
+                "REA capability accepts exactly these input keys: " + ", ".join(self._required)
             )
         if self.tool_name == REA_ANALYZE_TOOL:
             resolved = _inside_allowed_root(Path(str(arguments["input_path"])), self.allowed_roots)
