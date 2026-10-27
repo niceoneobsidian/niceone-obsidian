@@ -18,7 +18,13 @@ env/
 !.env.test.example
 
 # IDE / OS
+# Share workspace-relative developer workflows; keep local MCP config/backups private.
 .vscode/
+!.vscode/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
 .idea/
 .DS_Store
 
@@ -44,3 +50,6 @@ credentials.json
 secrets.json
 *.pem
 *.key
+
+# Temporary cross-repository checkout used by governance CI
+/ocif_repo/

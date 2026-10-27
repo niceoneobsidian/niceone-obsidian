@@ -8,17 +8,31 @@ Do not describe architectural intent as implemented capability without evidence.
 
 ## Local verification
 
-The supported baseline is Python 3.12+.
+The supported baseline is Python 3.12+. Run checks from the OIS repository root, using its `.venv`:
 
 ```bash
-python -m pip install -e ".[test]"
-ruff check .
-ruff format --check .
-python -m mypy ois
-python -m pytest -q
+.venv/bin/python -m ruff check .
+.venv/bin/python -m ruff format --check .
+.venv/bin/python -m mypy ois
+env \
+	OIS_POSTGRES_TEST_DSN= OIS_TEST_DATABASE_URL= OIS_TEST_REDIS_URL= \
+	OIS_POSTGRES_DSN= OIS_LIVE_DATABASE_URL= OIS_DATABASE_URL= OIS_REDIS_URL= \
+	.venv/bin/python -m pytest \
+	--ignore=tests/integration \
+	--ignore=tests/integrations \
+	-m 'not integration and not live and not sandbox'
 ```
 
-Integration and recovery tests may require PostgreSQL, Redis, Docker, or other documented infrastructure.
+The offline pytest command is also available as **OIS: pytest (offline subset)** in VS Code. Do not use an unrestricted `pytest -q` as the default: integration tests can start PostgreSQL through Testcontainers and other integration/live/sandbox tests require separate prerequisites and review. Run those only when their infrastructure and external-operation scope are explicitly approved.
+
+To recreate the OIS environment, run from this repository root:
+
+```bash
+python3.12 -m venv .venv
+.venv/bin/python -m pip install -e ".[test]"
+```
+
+The repository also contains `uv.lock`; the supported setup command above currently uses pip and does not enforce that lock file.
 
 ## Pull requests
 

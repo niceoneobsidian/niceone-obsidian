@@ -9,8 +9,11 @@ from ois.kernel import (
     InvocationResult,
     InvocationStatus,
     JsonFileCheckpointStore,
+    PlanBuilder,
+    PlanOrchestrator,
     RiskLevel,
     SideEffectLevel,
+    TaskStatus,
 )
 from ois.kernel.evidence import EvidenceLedger
 
@@ -215,3 +218,37 @@ def test_checkpoint_store_survives_process_boundary_simulation(tmp_path):  # typ
 
     assert restored.identity.execution_id == execution_id
     assert restored.working_memory
+
+
+def test_orchestrator_resume_does_not_replay_completed_task(tmp_path):  # type: ignore
+    checkpoint_path = tmp_path / "interrupted-plan-checkpoints"
+    capability = DurableRecoveryCapability()
+    runtime = make_runtime(capability, checkpoint_path)
+    context = make_context()
+    plan = (
+        PlanBuilder(objective="Resume interrupted plan")
+        .task(
+            task_id="completed-step",
+            capability_id="test.durable.recovery",
+            capability_version="1.0.0",
+        )
+        .task(
+            task_id="interrupted-step",
+            capability_id="test.durable.recovery",
+            capability_version="1.0.0",
+            dependencies=("completed-step",),
+        )
+        .build()
+    )
+    plan.tasks["completed-step"].status = TaskStatus.SUCCEEDED
+    plan.tasks["completed-step"].output = {"completed": True}
+    plan.tasks["interrupted-step"].status = TaskStatus.RUNNING
+    context.plan = plan.to_dict()
+    runtime.checkpoint_store.save(context)
+
+    resumed, restored_context = PlanOrchestrator(runtime).resume(context.identity.execution_id)
+
+    assert resumed.tasks["completed-step"].status == TaskStatus.SUCCEEDED
+    assert resumed.tasks["interrupted-step"].status == TaskStatus.SUCCEEDED
+    assert capability.invocations == 1
+    assert restored_context.status.name == "COMPLETED"

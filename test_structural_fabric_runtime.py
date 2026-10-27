@@ -58,14 +58,11 @@ def test_llm_gateway_routes_to_registered_provider() -> None:
     gateway = runtime.configure_gateway(LLMGatewaySpec("gateway", providers=("test",)))
     gateway.register_provider(
         "test",
-        lambda model, payload: {
-            "model": model,
-            "text": payload["prompt"],
-        },
+        lambda model, payload: {"response": f"{model}: {payload['prompt']}"},
     )
 
     result = gateway.invoke("hello", capabilities={"chat"})
-    assert result == {"model": "model-a", "text": "hello"}
+    assert result == {"response": "model-a: hello"}
 
 
 def test_context_knowledge_reasoning_social_and_learning() -> None:

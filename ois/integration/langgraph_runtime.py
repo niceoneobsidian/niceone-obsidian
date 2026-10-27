@@ -29,7 +29,7 @@ def _builder(spine: OISSpine) -> StateGraph:
         request = state.get("request")
         if request is None:
             raise ValueError("OIS graph state is missing a request")
-        result = spine.submit(request)
+        result = spine.submit(request, invocation_id=state.get("invocation_id"))
         return {
             **state,
             "execution_id": result.execution_id,
