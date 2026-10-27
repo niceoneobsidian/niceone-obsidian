@@ -50,3 +50,6 @@ credentials.json
 secrets.json
 *.pem
 *.key
+
+# Temporary cross-repository checkout used by governance CI
+/ocif_repo/
