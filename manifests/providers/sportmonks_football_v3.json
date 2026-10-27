@@ -1,0 +1,77 @@
+{
+  "provider": "sportmonks:football:v3",
+  "adapter": "ois/infrastructure/source_adapters/sportmonks.py",
+  "registration": "ois.infrastructure.source_adapters.bootstrap:build_application_source_adapter_registry",
+  "capabilities": [
+    "football.live",
+    "football.fixtures",
+    "evidence.raw"
+  ],
+  "tools": [],
+  "auth": {
+    "schemes": []
+  },
+  "credentials": {
+    "types": []
+  },
+  "scopes": [],
+  "policy": {
+    "actions": []
+  },
+  "reliability": {
+    "rate_limit": null,
+    "retry": null,
+    "timeout_seconds": 20.0,
+    "idempotency": null
+  },
+  "events": [],
+  "evidence": {
+    "required": true,
+    "claims": {
+      "ADAPTER": [
+        "ois/infrastructure/source_adapters/sportmonks.py"
+      ],
+      "REGISTRATION": [
+        "ois/infrastructure/source_adapters/bootstrap.py"
+      ],
+      "CAPABILITY": [
+        "ois/infrastructure/source_adapters/sportmonks.py"
+      ],
+      "TIMEOUT": [
+        "ois/infrastructure/source_adapters/sportmonks.py"
+      ]
+    }
+  },
+  "tests": {
+    "required": []
+  },
+  "live": {
+    "mode": "read_only",
+    "allow_writes": false,
+    "verified": false
+  },
+  "unknown": [
+    "tools",
+    "auth_schemes",
+    "credential_types",
+    "scopes",
+    "policy_actions",
+    "rate_limit",
+    "retry",
+    "idempotency",
+    "events"
+  ],
+  "verification": {
+    "declared": true,
+    "live": "UNKNOWN",
+    "e2e": "UNKNOWN",
+    "negative": "UNKNOWN",
+    "production": "UNKNOWN"
+  },
+  "metadata": {
+    "protocol": "rest",
+    "version": "v3",
+    "derived_from": "SourceSpec, registered ProviderConformanceMetadata and adapter timeout at authoring; enforced by validate_provider_manifests",
+    "status": "DECLARED_FROM_CODE_ONLY"
+  }
+}

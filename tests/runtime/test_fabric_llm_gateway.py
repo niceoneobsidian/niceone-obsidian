@@ -6,6 +6,7 @@ import pytest
 
 from ois.architecture.fabrics import LLMGatewaySpec, ModelRoute
 from ois.runtime.fabrics import FabricRuntime
+from ois.runtime.llm_gateway import ModelProvidersExhausted
 
 
 def _route(
@@ -121,9 +122,11 @@ def test_fabric_gateway_does_not_fallback_when_policy_disallows_it() -> None:
         lambda model, request: {"response": "must not be called"},
     )
 
-    with pytest.raises(RuntimeError, match="primary failed"):
+    with pytest.raises(ModelProvidersExhausted) as error:
         runtime.llm_gateway.invoke("No fallback.", capabilities={"text"})
 
+    assert error.value.attempts == 1
+    assert error.value.last_error_type == "RuntimeError"
     assert len(runtime.llm_gateway.engine.records) == 1
     assert runtime.llm_gateway.engine.records[0].status == "failed"
 
@@ -170,6 +173,23 @@ def test_gateway_does_not_fallback_after_authentication_error() -> None:
         "backup",
         lambda model, request: calls.append("backup") or {"response": "unexpected"},
     )
-    with pytest.raises(AuthenticationError):
+    with pytest.raises(ModelProvidersExhausted) as error:
         runtime.llm_gateway.invoke("hello", capabilities={"text"})
+    assert error.value.attempts == 1
+    assert error.value.last_error_type == "AuthenticationError"
     assert calls == ["primary"]
+
+
+def test_fabric_gateway_rejects_command_shaped_provider_output() -> None:
+    runtime = _runtime()
+    runtime.model_router.register(_route("primary-route", "primary", "local-primary", 0.0))
+    runtime.llm_gateway.register_provider(
+        "primary",
+        lambda model, request: {"command": "rm -rf /tmp/not-a-command"},
+    )
+
+    with pytest.raises(RuntimeError, match="attempts exhausted"):
+        runtime.llm_gateway.invoke("Return a response.", capabilities={"text"})
+
+    assert runtime.llm_gateway.engine.records[0].status == "failed"
+    assert runtime.llm_gateway.engine.records[0].error_type == "ModelOutputError"

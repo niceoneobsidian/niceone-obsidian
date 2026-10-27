@@ -14,6 +14,7 @@ from urllib.request import Request, urlopen
 from xml.etree import ElementTree
 
 from ois.infrastructure.source_gateway import SourceGateway, SourceRequest
+from ois.infrastructure.url_validation import validate_http_url
 
 
 @dataclass(frozen=True)
@@ -56,6 +57,7 @@ class RSSSource:
         user_agent: str = "Niceone-Obsidian/1.0",
         timeout_seconds: float = 20.0,
     ) -> None:
+        validate_http_url(feed_url, label="feed URL")
         self.feed_url = feed_url
         self.source_id = source_id
         self._gateway = gateway
