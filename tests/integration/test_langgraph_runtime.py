@@ -43,9 +43,7 @@ def test_graph_propagates_invocation_id_to_governed_spine() -> None:
     spine = RecordingSpine()
     graph = build_ois_graph(cast(OISSpine, spine))
 
-    result = graph.invoke(
-        {"request": _request(), "invocation_id": "invocation-stable-1"}
-    )
+    result = graph.invoke({"request": _request(), "invocation_id": "invocation-stable-1"})
 
     assert spine.calls == [(_request(), "invocation-stable-1")]
     assert result["execution_id"] == "execution-1"
