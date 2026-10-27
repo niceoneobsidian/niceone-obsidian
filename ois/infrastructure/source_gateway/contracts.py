@@ -6,8 +6,8 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from math import isfinite
-from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from typing import Any
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 
 _SENSITIVE_PROVENANCE_KEYS = {
