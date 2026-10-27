@@ -31,6 +31,8 @@ redis:
   uri: redis://redis-cluster.cache.svc.cluster.local:6379/0
 
 supervisor:
+  # BLOCKED: enable only after the supervisor entry point and image are implemented and verified.
+  enabled: false
   replicaCount: 3
   image:
     repository: ois-registry.internal/kernel/supervisor
@@ -46,6 +48,8 @@ supervisor:
       memory: 256Mi
 
 crdController:
+  # BLOCKED: enable only after the controller entry point and image are implemented and verified.
+  enabled: false
   replicaCount: 2
   image:
     repository: ois-registry.internal/kernel/crd-controller
@@ -65,7 +69,8 @@ migration:
     repository: ois-registry.internal/kernel/schema-tool
     tag: v1.0.0
     pullPolicy: IfNotPresent
-  command: []
+  # The schema-tool image must install niceone-obsidian and include /app/migrations.
+  command: ["ois-migrate", "--migrations-dir", "/app/migrations"]
   backoffLimit: 3
   activeDeadlineSeconds: 900
 

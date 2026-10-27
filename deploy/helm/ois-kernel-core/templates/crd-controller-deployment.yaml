@@ -1,3 +1,4 @@
+{{- if .Values.crdController.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -32,3 +33,4 @@ spec:
             {{- toYaml .Values.crdController.resources | nindent 12 }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
+{{- end }}
