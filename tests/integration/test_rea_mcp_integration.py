@@ -205,9 +205,7 @@ def test_rea_session_tool_is_fixed_and_takes_no_arguments(tmp_path: Path) -> Non
         )
         assert result.status == "succeeded"
         assert client.calls == [(REA_SESSION_TOOL, {})]
-        assert any(
-            event["event_type"] == "rea.mcp.result_received" for event in result.evidence
-        )
+        assert any(event["event_type"] == "rea.mcp.result_received" for event in result.evidence)
     finally:
         ledger.close()
         checkpoints.close()
