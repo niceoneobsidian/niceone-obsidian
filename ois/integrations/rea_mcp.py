@@ -23,8 +23,8 @@ from mcp.client.stdio import stdio_client
 from ois.kernel.contracts import InvocationRequest, InvocationResult, ToolContract
 from ois.kernel.evidence import EvidenceStore
 from ois.kernel.types import InvocationStatus, RiskLevel, SideEffectLevel
-from production.sandbox import attest as attest_gvisor_runtime
 from ois.registries.core import CapabilityRegistry, ToolRegistry
+from production.sandbox import attest as attest_gvisor_runtime
 
 REA_PACKAGE = "rea-agents@6.4.0"
 REA_ANALYZE_TOOL = "analyze_javascript_application"
