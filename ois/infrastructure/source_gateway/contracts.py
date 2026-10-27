@@ -9,7 +9,6 @@ from math import isfinite
 from typing import Any
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
-
 _SENSITIVE_PROVENANCE_KEYS = {
     "authorization",
     "cookie",
