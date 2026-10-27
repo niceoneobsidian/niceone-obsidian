@@ -182,9 +182,7 @@ def test_policy_denial_prevents_rea_call(tmp_path: Path) -> None:
         )
         assert result.status == "denied"
         assert client.calls == []
-        assert any(
-            event["event_type"] == "spine.authorization.denied" for event in result.evidence
-        )
+        assert any(event["event_type"] == "spine.authorization.denied" for event in result.evidence)
     finally:
         ledger.close()
         checkpoints.close()
