@@ -449,6 +449,10 @@ Core invariants include:
 9. Production changes have rollback paths.
 10. Architectural possibility is never presented as verified implementation.
 
+## OCIF governed execution integration
+
+The repository contains reusable Kernel policy, execution, checkpoint, recovery and evidence primitives. The feature branch adds explicit idempotency/recovery injection through `OISSpine` and a focused unit test. The OCIF integration contract documents the capability boundary and required conformance tests at [docs/integrations/ocif-governed-execution.md](docs/integrations/ocif-governed-execution.md). No claim is made that an OCIF capability is registered, production-wired or runtime-verified.
+
 ## Current Status
 
 This is a **development repository**.
