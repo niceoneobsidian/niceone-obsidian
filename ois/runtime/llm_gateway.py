@@ -19,6 +19,25 @@ def _now() -> str:
     return datetime.now(UTC).isoformat()
 
 
+def _fallback_allowed(exc: Exception) -> bool:
+    """Fail closed for auth, permission, malformed-request, and policy errors."""
+    explicit = getattr(exc, "fallback_allowed", None)
+    if explicit is not None:
+        return bool(explicit)
+    name = type(exc).__name__.lower()
+    blocked = (
+        "authentication",
+        "permission",
+        "forbidden",
+        "unauthorized",
+        "invalidrequest",
+        "badrequest",
+        "contentpolicy",
+        "policyviolation",
+    )
+    return not any(token in name for token in blocked)
+
+
 class LLMProvider(Protocol):
     """Provider adapters return ModelOutput and honor request timeout_seconds."""
 
@@ -104,7 +123,8 @@ class LLMGateway:
         candidates = [
             route
             for route in self.routes
-            if capabilities.issubset(route.capabilities)
+            if (not self.spec.providers or route.provider in self.spec.providers)
+            and capabilities.issubset(route.capabilities)
             and all(route.constraints.get(key) == value for key, value in constraints.items())
         ]
         if not candidates:
@@ -131,6 +151,7 @@ class LLMGateway:
                 route
                 for route in self.routes
                 if route != selected
+                and (not self.spec.providers or route.provider in self.spec.providers)
                 and capabilities.issubset(route.capabilities)
                 and all(
                     route.constraints.get(key) == value
@@ -176,6 +197,8 @@ class LLMGateway:
                         error_type=type(exc).__name__,
                     )
                 )
+                if not _fallback_allowed(exc):
+                    break
                 continue
             self.records.append(
                 InferenceRecord(
