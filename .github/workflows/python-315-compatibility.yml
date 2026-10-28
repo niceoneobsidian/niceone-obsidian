@@ -1,0 +1,39 @@
+name: Python 3.15 Compatibility Gate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main, "chore/unified-python-315-workspace"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-python-315:
+    name: Python 3.15 — dependency install and tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Install uv and CPython 3.15
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: "0.13.0"
+          python-version: "3.15"
+          enable-cache: true
+
+      - name: Create isolated environment
+        run: uv venv --python 3.15 .venv-315
+
+      - name: Install project and test dependencies
+        run: uv pip install --python .venv-315/bin/python -e ".[test]"
+
+      - name: Confirm interpreter
+        run: .venv-315/bin/python --version
+
+      - name: Run tests
+        run: .venv-315/bin/python -m pytest -v
