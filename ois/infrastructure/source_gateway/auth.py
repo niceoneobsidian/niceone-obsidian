@@ -9,7 +9,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import hmac
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Protocol
@@ -34,7 +34,7 @@ class AuthRequest:
 
 @dataclass(frozen=True)
 class CredentialMaterial:
-    secret: str
+    secret: str = field(repr=False)
     client_id: str | None = None
     token_type: str = "Bearer"
 

@@ -14,7 +14,9 @@ from typing import Any
 
 from ois.kernel.checkpoint import CheckpointStore, InMemoryCheckpointStore
 from ois.kernel.evidence import EvidenceLedger, EvidenceStore
+from ois.kernel.idempotency import IdempotencyStore
 from ois.kernel.policy import AuthorizationDenied, DefaultPolicyEngine, PolicyEngine
+from ois.kernel.recovery import RecoveryPolicy
 from ois.kernel.runtime import ExecutionRuntime
 from ois.kernel.state import ExecutionContext, ExecutionIdentity
 from ois.kernel.types import ExecutionStatus
@@ -56,6 +58,8 @@ class OISSpine:
         checkpoint_store: CheckpointStore | None = None,
         evidence: EvidenceStore | None = None,
         policy: PolicyEngine | None = None,
+        idempotency: IdempotencyStore | None = None,
+        recovery: RecoveryPolicy | None = None,
     ) -> None:
         self.registry = registry
         self.evidence = evidence or EvidenceLedger()
@@ -66,6 +70,8 @@ class OISSpine:
             self.checkpoints,
             evidence=self.evidence,
             policy=self.policy,
+            idempotency=idempotency,
+            recovery=recovery,
         )
 
     def submit(self, request: SpineRequest, *, invocation_id: str | None = None) -> SpineResult:

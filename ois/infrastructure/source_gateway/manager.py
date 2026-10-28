@@ -8,7 +8,9 @@ except as request headers/signatures produced by an authenticator.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
+from datetime import UTC, datetime
 
 from .auth import (
     Authenticator,
@@ -41,9 +43,22 @@ class CredentialAuthManager:
         *,
         client_id: str | None = None,
         token_type: str = "Bearer",
+        required_scopes: Iterable[str] = (),
+        expected_provider: str | None = None,
+        now: datetime | None = None,
     ) -> CredentialMaterial:
         if ref.tenant_id != scope.tenant_id:
             raise PermissionError("credential belongs to another tenant")
+        if expected_provider is not None and ref.provider != expected_provider:
+            raise PermissionError("credential belongs to another provider")
+        if ref.expires_at is not None:
+            if ref.expires_at.tzinfo is None:
+                raise PermissionError("credential expiry must be timezone-aware")
+            if (now or datetime.now(UTC)) >= ref.expires_at:
+                raise PermissionError("credential has expired")
+        missing = set(required_scopes) - set(ref.scopes)
+        if missing:
+            raise PermissionError("credential lacks required scopes: " + ", ".join(sorted(missing)))
         secret = self._resolver.resolve(ref, scope)
         if not secret:
             raise PermissionError("credential material is empty")

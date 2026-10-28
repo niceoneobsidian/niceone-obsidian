@@ -6,12 +6,14 @@ import urllib.request
 import xml.etree.ElementTree as ET
 
 from ois.infrastructure.source_gateway import SourceGateway, SourceRequest
+from ois.infrastructure.url_validation import validate_http_url
 
 from .base import AdapterHealth, AdapterResult, SourceAdapterRegistry, utc_now
 
 
 class RSSSourceAdapter:
     def __init__(self, *, source_id: str, url: str, timeout: float = 20.0) -> None:
+        validate_http_url(url, label="feed URL")
         self.source_id = source_id
         self._url = url
         self._timeout = timeout
