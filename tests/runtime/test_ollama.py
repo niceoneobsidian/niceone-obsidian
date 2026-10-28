@@ -139,6 +139,8 @@ def test_ollama_provider_surfaces_transport_timeout() -> None:
         pytest.raises(RuntimeError, match="Ollama request failed"),
     ):
         provider.invoke("qwen3:8b", {"prompt": "timeout test"})
+
+
 def test_ollama_rejects_malformed_model_output() -> None:
     with patch("ois.runtime.ollama.urlopen", lambda *_args, **_kwargs: _response("")):
         try:
