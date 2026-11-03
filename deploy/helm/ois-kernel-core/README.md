@@ -5,11 +5,16 @@ This chart packages the OIS deployment boundary for the Kernel supervisor and CR
 ## Deployment contract
 
 1. The PostgreSQL secret named by `database.secretName` must already exist in the target namespace.
-2. The schema migration Job runs as a Helm `pre-install,pre-upgrade` hook and must complete before the release proceeds.
-3. The `SandboxGuard` CRD must be installed before the CRD controller is activated.
-4. Vault Agent Injector must be installed and configured when `vault.enabled=true`.
-5. The configured images must already exist in the private registry.
-6. `runtimeClassName` should only be set when the cluster has the corresponding RuntimeClass installed.
+2. The schema migration Job runs as a Helm `pre-install,pre-upgrade` hook and must complete before the release proceeds. It invokes `ois-migrate --migrations-dir /app/migrations` explicitly.
+3. The migration image must install the `niceone-obsidian` package (including the `ois-migrate` console script) and copy the repository's numbered SQL files into `/app/migrations`. The chart does not build or publish images.
+4. The `SandboxGuard` CRD must be installed before the CRD controller is activated.
+5. Vault Agent Injector must be installed and configured when `vault.enabled=true`.
+6. All enabled images must already exist in the private registry.
+7. `runtimeClassName` should only be set when the cluster has the corresponding RuntimeClass installed.
+
+## Workloads that are not yet deployable
+
+The supervisor and CRD controller Deployments are **disabled by default** (`supervisor.enabled: false` and `crdController.enabled: false`). Their configured runtime entry points and container images have not been implemented and verified in this repository. Do not enable either workload until its real entry point is present in the image and its runtime contract has passed deployment verification. The migration Job is independently configured, but still requires a built and published schema-tool image containing the package and migration files described above.
 
 ## Security boundary
 

@@ -35,6 +35,7 @@ test = [
 [project.scripts]
 ois = "ois.cli:main"
 ois-mcp = "ois.mcp_server:main"
+ois-migrate = "ois.database.migrations:main"
 
 [build-system]
 requires = ["setuptools>=68"]
