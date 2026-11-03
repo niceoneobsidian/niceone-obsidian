@@ -6,6 +6,7 @@ import json
 import sqlite3
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from math import isfinite
 from typing import Any
 
 
@@ -29,6 +30,11 @@ class WorldFact:
     observed_at: datetime
 
 
+def _canonical_json(value: Any) -> str:
+    # Preserve the historical on-disk representation so existing SQLite facts remain queryable.
+    return json.dumps(value, sort_keys=True, default=str)
+
+
 class KnowledgeWorldStore:
     """Append-only fact history with versioned entity projection and provenance."""
 
@@ -45,11 +51,21 @@ class KnowledgeWorldStore:
             "object_json TEXT NOT NULL, source TEXT NOT NULL, confidence REAL NOT NULL, "
             "version INTEGER NOT NULL, observed_at TEXT NOT NULL)"
         )
+        self.db.execute(
+            "CREATE INDEX IF NOT EXISTS idx_world_facts_predicate_object "
+            "ON world_facts(predicate, object_json)"
+        )
+        self.db.execute(
+            "CREATE INDEX IF NOT EXISTS idx_world_facts_subject_version "
+            "ON world_facts(subject_id, version)"
+        )
         self.db.commit()
 
     def upsert_entity(
         self, entity_id: str, entity_type: str, attributes: dict[str, Any]
     ) -> WorldEntity:
+        if not entity_id.strip() or not entity_type.strip():
+            raise ValueError("entity_id and entity_type are required")
         row = self.db.execute(
             "SELECT version FROM world_entities WHERE entity_id=?", (entity_id,)
         ).fetchone()
@@ -59,7 +75,7 @@ class KnowledgeWorldStore:
             "VALUES (?,?,?,?) ON CONFLICT(entity_id) DO UPDATE SET "
             "entity_type=excluded.entity_type, attributes_json=excluded.attributes_json, "
             "version=excluded.version",
-            (entity_id, entity_type, json.dumps(attributes, sort_keys=True), version),
+            (entity_id, entity_type, _canonical_json(attributes), version),
         )
         self.db.commit()
         return WorldEntity(entity_id, entity_type, dict(attributes), version)
@@ -73,10 +89,12 @@ class KnowledgeWorldStore:
         source: str,
         confidence: float = 1.0,
     ) -> WorldFact:
-        if not source:
+        if not subject_id.strip() or not predicate.strip():
+            raise ValueError("subject_id and predicate are required")
+        if not source.strip():
             raise ValueError("fact provenance source is required")
-        if not 0 <= confidence <= 1:
-            raise ValueError("confidence must be between 0 and 1")
+        if not isfinite(confidence) or not 0 <= confidence <= 1:
+            raise ValueError("confidence must be finite and between 0 and 1")
         row = self.db.execute(
             "SELECT COALESCE(MAX(version),0) FROM world_facts WHERE subject_id=? AND predicate=?",
             (subject_id, predicate),
@@ -90,7 +108,7 @@ class KnowledgeWorldStore:
                 fact_id,
                 subject_id,
                 predicate,
-                json.dumps(object_value, sort_keys=True, default=str),
+                _canonical_json(object_value),
                 source,
                 confidence,
                 version,
@@ -126,7 +144,8 @@ class KnowledgeWorldStore:
 
     def query(self, predicate: str, object_value: Any) -> tuple[WorldFact, ...]:
         rows = self.db.execute(
-            "SELECT * FROM world_facts WHERE predicate=? ORDER BY observed_at", (predicate,)
+            "SELECT * FROM world_facts WHERE predicate=? AND object_json=? ORDER BY observed_at",
+            (predicate, _canonical_json(object_value)),
         ).fetchall()
         return tuple(
             WorldFact(
@@ -140,5 +159,4 @@ class KnowledgeWorldStore:
                 datetime.fromisoformat(r[7]),
             )
             for r in rows
-            if json.loads(r[3]) == object_value
         )
